@@ -8,7 +8,7 @@
 #' @param outputfile Full path pointing to where output should be written.
 #' @author dw9
 #' @export
-GetChromosomeBAFs_SNP6 = function(chrom, alleleFreqFile, haplotypeFile, samplename, outputfile) {
+GetChromosomeBAFs_SNP6 = function(chrom, alleleFreqFile, haplotypeFile, samplename, outputfile, chr_names) {
   # Read in the allele frequencies and variant info
   alleleFreqData = read.csv(alleleFreqFile, header=T)
   variant_data = read.table(haplotypeFile, header=F)
@@ -18,10 +18,13 @@ GetChromosomeBAFs_SNP6 = function(chrom, alleleFreqFile, haplotypeFile, samplena
   # Match the two
   alleleFreqData = alleleFreqData[alleleFreqData[,1] %in% variant_data[,3],]
   
-  chr_name = toString(chrom)
-  if(chr_name == "23"){
-    chr_name = "X"
-  }
+#   chr_name = toString(chrom)
+#   if(chr_name == "23"){
+#     chr_name = "X"
+#   }
+  chr_name = chr_names[as.numeric(chrom)]
+  print(chr_name)
+
   # Switch the haplotypes where required
   alleleFreqs = alleleFreqData$allele.frequency
   reversedHaplotypes = variant_data[,6]==1
@@ -75,7 +78,7 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
   print(filtered_snp_data[1:3,])
   
   # Decode 1,2,3,4 to A,C,G,T (encoding used in the variant_data input files)
-  # TODO: place this in utils script?
+  # TODO: place this in utils script? Isn't this also performed in GenerateImputeInputFromAlleleFrequencies.R?
   nucleotides=c("A","C","G","T")
   ref_indices = match(het_variant_data[cbind(1:nrow(het_variant_data),4+het_variant_data[,6])],nucleotides)
   alt_indices = match(het_variant_data[cbind(1:nrow(het_variant_data),4+het_variant_data[,7])],nucleotides)
@@ -92,7 +95,7 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
   #alt.count = alt.count[min_indices]
   
   # Save all to disk
-  hetMutBAFs<-cbind(chr_name,filtered_snp_data[,2],alt.count/denom)
+  hetMutBAFs = cbind(chr_name,filtered_snp_data[,2],alt.count/denom)
   write.table(hetMutBAFs,outfile,sep="\t",row.names=paste("snp",1:nrow(hetMutBAFs),sep=""),col.names=c("Chromosome","Position",samplename),quote=F)
 }
 
@@ -122,10 +125,10 @@ plot.haplotype.data = function(mutFile, imageFileName, samplename, chrom, impute
 #   points(mut_data$Position,mut_data[,3],col="blue")
 #   points(mut_data$Position,1-mut_data[,3],col="red")
   create.haplotype.plot(chrom.position=mut_data$Position, 
-                        points_blue=mut_data[,3], 
-                        points_red=1-mut_data[,3], 
-                        x_min=min(mut_data$Position,na.rm=T), 
-                        x_max=max(mut_data$Position,na.rm=T), 
+                        points.blue=mut_data[,3], 
+                        points.red=1-mut_data[,3], 
+                        x.min=min(mut_data$Position,na.rm=T), 
+                        x.max=max(mut_data$Position,na.rm=T), 
                         title=paste(samplename,", chromosome",mut_data[1,1], sep=" "), 
                         xlab="pos", 
                         ylab="BAF")
@@ -149,4 +152,86 @@ combine.baf.files = function(inputfile.prefix, inputfile.postfix, outputfile, im
 #   no.chrs = length(unique(impute.info[,1]))
   no.chrs = length(unique(parse.imputeinfofile(imputeinfofile, FALSE)$chrom))
   concatenateBAFfiles(inputfile.prefix, inputfile.postfix, outputfile, no.chrs)
+}
+
+segment.baf.phased = function(inputfile, outputfile) {
+  #BAFraw = read.table(paste(sample,"_allChromosomes_heterozygousMutBAFs_haplotyped.txt",sep=""),sep="\t",header=T)
+  BAFraw = read.table(inputfile,sep="\t",header=T)
+  
+  for (chr in unique(BAFraw[,1])) {
+    BAFrawchr = BAFraw[BAFraw[,1]==chr,c(2,3)]
+    BAFrawchr = BAFrawchr[!is.na(BAFrawchr[,2]),]
+    
+    BAF = BAFrawchr[,2]
+    pos = BAFrawchr[,1]
+    names(BAF) = rownames(BAFrawchr)
+    names(pos) = rownames(BAFrawchr)
+    
+    sdev <- getMad(ifelse(BAF<0.5,BAF,1-BAF),k=25)
+    #DCW 250314
+    #for cell lines, sdev goes to zero in regions of LOH, which causes problems.
+    #0.09 is around the value expected for a binomial distribution around 0.5 with depth 30
+    if(sdev<0.09){
+      sdev = 0.09
+    }
+    
+     print(paste("BAFlen=",length(BAF),sep=""))
+     if(length(BAF)<50){
+        BAFsegm = rep(mean(BAF),length(BAF))
+     }else{
+        #res= selectFastPcf(BAF,3,3*sdev,T)
+	res= selectFastPcf(BAF,phasekmin,phasegamma*sdev,T)
+        BAFsegm = res$yhat
+     }
+
+    png(filename = paste(sample,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+#     par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
+#     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
+#          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
+#     points(pos/1000000,BAF,pch=".",col="red",cex=2)
+#     points(pos/1000000,BAFsegm,pch=19,cex=0.5,col="green")
+    create.segmented.plotfunction(chrom.position=pos/1000000, 
+                                  points.red=BAF, 
+                                  points.green=BAFsegm, 
+                                  x.min=min(pos)/1000000, 
+                                  x.max=max(pos)/1000000, 
+                                  title=paste(sample,", chromosome ", chr, sep=""), 
+                                  xlab="Position (Mb)", 
+                                  ylab="BAF (phased)")
+    dev.off()
+    
+    BAFphased = ifelse(BAFsegm>0.5,BAF,1-BAF)
+    
+    if(length(BAFphased)<50){
+      BAFphseg = rep(mean(BAFphased),length(BAFphased))
+    }else{
+      res = selectFastPcf(BAFphased,kmin,gamma*sdev,T)
+      BAFphseg = res$yhat
+    }
+    
+    png(filename = paste(sample,"_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+#     par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
+#     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
+#          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
+#     points(pos/1000000,BAF,pch=".",col=ifelse(BAFsegm>0.5,"red","blue"),cex=2)
+#     points(pos/1000000,BAFphseg,pch=19,cex=0.5,col="darkred")
+#     points(pos/1000000,1-BAFphseg,pch=19,cex=0.5,col="darkblue")
+    create.baf.plot(chrom.position=pos/1000000, 
+                    points.red.blue=BAF, 
+                    points.darkred=BAFphseg, 
+                    points.darkblue=1-BAFphseg, 
+                    x.min=min(pos)/1000000, 
+                    x.max=max(pos)/1000000, 
+                    title=paste(sample,", chromosome ", chr, sep=""), 
+                    xlab="Position (Mb)", 
+                    ylab="BAF (phased)")
+    dev.off()
+    
+    BAFphased = ifelse(BAFsegm>0.5,BAF,1-BAF)
+    BAFoutputchr = cbind(rep(chr,length(BAFphseg)),pos,BAF,BAFphased,BAFphseg)
+    BAFoutput = rbind(BAFoutput,BAFoutputchr)
+  }
+  colnames(BAFoutput) = c("Chromosome","Position","BAF","BAFphased","BAFseg")
+  #write.table(BAFoutput,paste(sample,".BAFsegmented.txt",sep=""),sep="\t",row.names=T,col.names=NA,quote=F)
+  write.table(BAFoutput,outputfile,sep="\t",row.names=T,col.names=NA,quote=F)
 }
