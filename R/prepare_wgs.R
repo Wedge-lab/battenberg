@@ -11,7 +11,7 @@
 #' @export
 getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, min.map.qual=35, allelecounter.exe="alleleCounter") {
   cmd = paste(allelecounter.exe,
-              "-b", bam.file
+              "-b", bam.file,
               "-l", g1000.loci,
               "-o", output.file,
               "-m", min.base.qual,
