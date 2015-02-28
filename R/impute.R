@@ -23,7 +23,7 @@ run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, imp
     }
 
     for(b in 1:(length(boundaries)-1)){
-      cmd = paste(impute.executable,
+      cmd = paste(impute.exe,
                   " -m ", impute.info[r,]$genetic_map,
                   " -h ", impute.info[r,]$impute_hap,
                   " -l ", impute.info[r,]$impute_legend,
@@ -52,7 +52,7 @@ run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, imp
 #'   @param is.male A boolean describing whether the sample under study is male.
 #'   @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
 #'   @return A data.frame with 7 columns: Chromosome, impute_legend, genetic_map, impute_hap, start, end, is_par
-#'   @author dw9
+#'   @author sd11
 #'   @export
 parse.imputeinfofile = function(imputeinfofile, is.male, chrom=NA) {
   impute.info = read.table(imputeinfofile, stringsAsFactors=F)
@@ -61,10 +61,21 @@ parse.imputeinfofile = function(imputeinfofile, is.male, chrom=NA) {
   if(is.male){ impute.info = impute.info[impute.info$is_par==1,] }
   chr_names=unique(impute.info$chrom)
   # Subset for a particular chromosome
-  if !is.na(chrom) {
+  if (!is.na(chrom)) {
     impute.info = impute.info[impute.info$chrom==chr_names[chrom],]
   }
   return(impute.info)
+}
+
+#' Returns the chromosome names that are supported
+#'   @param imputeinfofile Path to the imputeinfofile on disk.
+#'   @param is.male A boolean describing whether the sample under study is male.
+#'   @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
+#'   @return A vector containing the supported chromosome names
+#'   @author sd11
+#'   @export
+get.chrom.names = function(imputeinfofile, is.male, chrom=NA) {
+  return(unique(parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)$chrom))
 }
 
 #' Concatenate the impute output generated for each of the regions.
@@ -92,5 +103,6 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
     all.boundaries = rbind(all.boundaries,cbind(boundaries[-(length(boundaries))],boundaries[-1]))
   }
   # Concatenate all the regions  
-  concatenateImputeFiles(inputfile.prefix, outputfile, all.boundaries)
+  impute.output = concatenateImputeFiles(inputfile.prefix, all.boundaries)
+  write.table(impute.output, file=outputfile, row.names=F, col.names=F, quote=F, sep=" ")
 }

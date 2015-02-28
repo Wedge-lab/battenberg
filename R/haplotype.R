@@ -106,17 +106,17 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
 #' @param imageFileName Filename as which the png will be saved.
 #' @param samplename Name of the sample to be used in image title.
 #' @param chrom The chromosome that is plotted.
-#' @param imputeinfofile Impute info file with chromosome name information.
+#' @param chr_names A list of allowed chromosome names.
 #' @author dw9
 #' @export
-plot.haplotype.data = function(mutFile, imageFileName, samplename, chrom, imputeinfofile) {
+plot.haplotype.data = function(haplotyped.baf.file, imageFileName, samplename, chrom, chr_names) {
   #impute.info = read.table(imputeInfoFile,header=F,row.names=NULL,sep="\t",stringsAsFactors=F)
   # TODO: is this really required?
-  chr_names = unique(parse.imputeinfofile(imputeinfofile, FALSE)$chrom)
+  #chr_names = unique(parse.imputeinfofile(imputeinfofile, FALSE)$chrom)
   chr_name = chr_names[chrom]
-  imageFileName = paste(samplename,"_chr",chr_name,"_heterozygousData.png",sep="")
+  #imageFileName = paste(samplename,"_chr",chr_name,"_heterozygousData.png",sep="")
   
-  mut_data = read.table(mutFile,sep="\t",header=T)
+  mut_data = read.table(haplotyped.baf.file,sep="\t",header=T)
   
   png(filename = imageFileName, width = 10000, height = 2500, res = 500)
   # TODO: This should move to the plotting script
@@ -140,17 +140,17 @@ plot.haplotype.data = function(mutFile, imageFileName, samplename, chrom, impute
 #' @param inputfile.prefix Prefix of the input files until the chromosome number. The chromosome number will be added internally.
 #' @param inputfile.postfix Postfix of the input files from the chromosome number.
 #' @param outputfile Full path to where the output will be written.
-#' @param imputeinfofile Impute info file that contains chromosome information
+#' @param no.chrs Number of chromosomes.
 #' @author dw9
 #' @export
-combine.baf.files = function(inputfile.prefix, inputfile.postfix, outputfile, imputeinfofile) {
+combine.baf.files = function(inputfile.prefix, inputfile.postfix, outputfile, no.chrs) {
   # TODO: Possibly deal with ignored chromosomes here
 #   impute.info = read.table(impute_info_file,header=F,row.names=NULL,sep="\t",stringsAsFactors=F)
 #   if(is.male){
 #     impute.info = impute.info[impute.info[,7]==1,]
 #   }
 #   no.chrs = length(unique(impute.info[,1]))
-  no.chrs = length(unique(parse.imputeinfofile(imputeinfofile, FALSE)$chrom))
+  #no.chrs = length(unique(parse.imputeinfofile(imputeinfofile, FALSE)$chrom))
   concatenateBAFfiles(inputfile.prefix, inputfile.postfix, outputfile, no.chrs)
 }
 

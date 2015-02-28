@@ -1,0 +1,397 @@
+#' Function that will fit a clonal copy number profile to segmented data.
+#'
+#'
+fit.copy.number = function(outputfile.prefix, inputfile.baf.segmented, inputfile.baf, inputfile.logr, dist_choice, ascat_dist_choice, min.ploidy=1.6, max.ploidy=4.8, min.rho=0.1, min.goodness=63, uninformative_BAF_threshold=0.51, gamma_param=1, use_preset_rho_psi=F, preset_rho=NA, preset_psi=NA, read_depth=30) {
+  
+  # Read in the required data
+  #   segmented.BAF.data = read.table(paste(samplename,".BAFsegmented.txt",sep=""),sep="\t",header=F,stringsAsFactors=F,skip=1,row.names=1)
+  #   raw.BAF.data = read.table(paste(start.file,"mutantBAF.tab",sep=""),sep="\t",header=T,stringsAsFactors=F)
+  #   raw.logR.data = read.table(paste(start.file,"mutantLogR.tab",sep=""),sep="\t",header=T,stringsAsFactors=F)
+  segmented.BAF.data = read.table(inputfile.baf.segmented, sep="\t", header=F, stringsAsFactors=F, skip=1, row.names=1)
+  raw.BAF.data = read.table(inputfile.baf, sep="\t", header=T, stringsAsFactors=F)
+  raw.logR.data = read.table(inputfile.logr, sep="\t", header=T, stringsAsFactors=F)
+  
+  # Drop NAs
+  raw.BAF.data = raw.BAF.data[!is.na(raw.BAF.data[,3]),]
+  raw.logR.data = raw.logR.data[!is.na(raw.logR.data[,3]),]
+  
+  # Chromosome names are sometimes 'chr1', etc.
+  if(length(grep("chr",raw.BAF.data[1,1]))>0){
+    raw.BAF.data[,1] = gsub("chr","",raw.BAF.data[,1])
+  }
+  if(length(grep("chr",raw.logR.data[1,1]))>0){
+    raw.logR.data[,1] = gsub("chr","",raw.logR.data[,1])
+  }
+  
+  BAF.data = NULL
+  logR.data = NULL
+  segmented.logR.data = NULL
+  matched.segmented.BAF.data = NULL
+  chr.names = unique(segmented.BAF.data[,1])
+  
+  # For each chromosome 
+  for(chr in chr.names){
+    chr.BAF.data = raw.BAF.data[raw.BAF.data$Chromosome==chr,]
+    # Skip the rest if there is no data for this chromosome
+    if(nrow(chr.BAF.data)==0){ next }
+    # Match segments with chromosome position
+    chr.segmented.BAF.data = segmented.BAF.data[segmented.BAF.data[,1]==chr,]
+    indices = match(chr.segmented.BAF.data[,2],chr.BAF.data$Position )
+    
+    # Drop NAs here too
+    chr.segmented.BAF.data = chr.segmented.BAF.data[!is.na(indices),]
+    
+    # Append the segmented data
+    matched.segmented.BAF.data = rbind(matched.segmented.BAF.data, chr.segmented.BAF.data)
+    BAF.data = rbind(BAF.data, chr.BAF.data[indices[!is.na(indices)],])
+    
+    # Append raw LogR
+    chr.logR.data = raw.logR.data[raw.logR.data$Chromosome==chr,]
+    indices = match(chr.segmented.BAF.data[,2],chr.logR.data$Position)
+    logR.data = rbind(logR.data, chr.logR.data[indices[!is.na(indices)],])
+    chr.segmented.logR.data = chr.logR.data[indices[!is.na(indices)],]
+    
+    # Append segmented LogR
+    segs = make_seg_lr(chr.segmented.BAF.data[,5])
+    cum.segs = c(0,cumsum(segs))
+    for(s in 1:length(segs)){
+      chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3] = mean(chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3])
+    }
+    segmented.logR.data = rbind(segmented.logR.data,chr.segmented.logR.data)
+    #print(paste(nrow(matched.segmented.BAF.data),nrow(segmented.logR.data),nrow(logR.data),sep=","))
+  }
+  names(matched.segmented.BAF.data)[5] = samplename
+  row.names(segmented.logR.data) = row.names(matched.segmented.BAF.data)
+  row.names(logR.data) = row.names(matched.segmented.BAF.data)
+  
+  write.table(segmented.logR.data,paste(samplename,".logRsegmented.txt",sep=""),sep="\t",quote=F,col.names=F)
+  
+  segBAF = 1-matched.segmented.BAF.data[,5]
+  segLogR = segmented.logR.data[,3]
+  logR = logR.data[,3]
+  names(segBAF) = rownames(matched.segmented.BAF.data)
+  names(segLogR) = rownames(matched.segmented.BAF.data)
+  names(logR) = rownames(matched.segmented.BAF.data)
+  print(unique(logR.data[,1]))
+  chr.segs = NULL
+  for(ch in 1:length(chr.names)){
+    chr.segs[[ch]] = which(logR.data[,1]==chr.names[ch])
+  }
+  
+  if(use_preset_rho_psi){
+    ascat_optimum_pair = list(rho=preset_rho, psi = preset_psi)
+  }else{
+    distance.outfile=paste(start.file,"distance.png",sep="",collapse="") # kjd 20-2-2014
+    copynumberprofile.outfile=paste(start.file,"copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
+    nonroundedprofile.outfile=paste(start.file,"nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
+    
+    ascat_optimum_pair=runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy, max.ploidy, min.rho, min.goodness.of.fit) # kjd 4-2-2014
+  }
+  
+  distance.outfile=paste(start.file,"second_distance.png",sep="",collapse="") # kjd 20-2-2014
+  copynumberprofile.outfile=paste(start.file,"second_copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
+  nonroundedprofile.outfile=paste(start.file,"second_nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
+  
+  # All is set up, now run ASCAT to obtain a clonal copynumber profile
+  out = run_clonal_ASCAT( logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, matched.segmented.BAF.data, ascat_optimum_pair, dist_choice, distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma_param=gamma_param, read_depth, uninformative_BAF_threshold, allow100percent=T, reliabilityFile=NA) # kjd 21-2-2014
+  
+  ascat_optimum_pair_fraction_of_genome = out$output_optimum_pair_without_ref
+  ascat_optimum_pair_ref_seg = out$output_optimum_pair
+  is.ref.better = out$is.ref.better
+  
+  rho_psi_output = data.frame(rho = c(ascat_optimum_pair$rho,ascat_optimum_pair_fraction_of_genome$rho,ascat_optimum_pair_ref_seg$rho),psi = c(ascat_optimum_pair$psi,ascat_optimum_pair_fraction_of_genome$psi,ascat_optimum_pair_ref_seg$psi), distance = c(NA,out$distance_without_ref,out$distance), is.best = c(NA,!is.ref.better,is.ref.better),row.names=c("ASCAT","FRAC_GENOME","REF_SEG"))
+  write.table(rho_psi_output,paste(start.file,"rho_and_psi.txt",sep=""),quote=F,sep="\t")
+}
+
+#' This function fits a subclonal copy number profile where a clonal profile is unlikely.
+#'
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, chr_names, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000) {
+  #impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
+  #chr_names=unique(impute.info$chrom)
+  
+  #   #rho_psi_info = read.table(paste(start.file,"_rho_and_psi.txt",sep=""),header=T,sep="\t",stringsAsFactors=F)
+  #   rho_psi_info = read.table(rho.psi.file, header=T, sep="\t", stringsAsFactors=F)
+  #   
+  #   #rho = rho_psi_info$rho[which(rho_psi_info$is.best)] # rho = tumour percentage (called tp in previous versions)
+  #   #psit = rho_psi_info$psi[which(rho_psi_info$is.best)] # psi of tumour cells
+  #   #always use best solution from grid search - reference segment sometimes gives strange results
+  #   rho = rho_psi_info$rho[rownames(rho_psi_info)=="FRAC_GENOME"] # rho = tumour percentage (called tp in previous versions)
+  #   psit = rho_psi_info$psi[rownames(rho_psi_info)=="FRAC_GENOME"] # psi of tumour cells
+  
+  res = load.rho.psi.file(rho.psi.file)
+  rho = res$rho
+  psit = res$psit
+  
+  psi = rho*psit + 2 * (1-rho) # psi of all cells
+  
+  #   #gamma is the shrinkage parameter for a particular platform
+  #   gamma=1
+  
+  #   #segmentation.gamma is the gamma used in PCF
+  #   segmentation.gamma=NA
+  #   if(length(args)>=5){
+  #     segmentation.gamma = as.integer(args[5])
+  #     print(paste("segmentation.gamma=",segmentation.gamma,sep=""))
+  #     if(length(args)>=6){
+  #       gamma = as.numeric(args[6])
+  #       print(paste("platform gamma=",gamma,sep=""))
+  #     }
+  #   }
+  
+  #   siglevel = 0.05
+  #   maxdist = 0.01
+  #   noperms = 1000
+  
+  # Load the BAF segmented data
+  #   BAFvals = read.table(paste(start.file,".BAFsegmented.txt",sep=""),sep="\t",header=T, row.names=1)
+  BAFvals = read.table(baf.segmented.file, sep="\t", header=T, row.names=1)
+  BAF = BAFvals[,3]
+  names(BAF)=rownames(BAFvals)
+  BAFphased = BAFvals[,4]
+  names(BAFphased)=rownames(BAFvals)
+  BAFseg = BAFvals[,5]
+  names(BAFseg)=rownames(BAFvals)
+  
+  # Save SNP positions separately
+  SNPpos = BAFvals[,c(1,2)]
+  
+  #   #assume filename ends with mutantLogR.tab
+  #   LogRfile = paste(start.file,"_mutantLogR.tab",sep="")
+  #   LogRvals = read.table(LogRfile,sep="\t", header=T, row.names=1)
+  # Load the raw LogR data
+  LogRvals = read.table(logr.file,sep="\t", header=T, row.names=1)
+  
+  ctrans = c(1:length(chr_names))
+  names(ctrans)=chr_names
+  ctrans.logR = c(1:length(chr_names))
+  names(ctrans.logR)=chr_names
+  
+  #note the as.vector to avoid problems
+  LogRpos = as.vector(ctrans.logR[as.vector(LogRvals[,1])]*1000000000+LogRvals[,2])
+  names(LogRpos) = rownames(LogRvals)
+  BAFpos = as.vector(ctrans[as.vector(BAFvals[,1])]*1000000000+BAFvals[,2])
+  names(BAFpos) = rownames(BAFvals)
+  
+  #DCW 240314
+  switchpoints = c(0,which(BAFseg[-1] != BAFseg[-(length(BAFseg))] | BAFvals[-1,1] != BAFvals[-nrow(BAFvals),1]),length(BAFseg))
+  BAFlevels = BAFseg[switchpoints[-1]]
+  
+  pval = NULL
+  BAFpvals = vector(length=length(BAFseg))
+  subcloneres = NULL
+  
+  for (i in 1:length(BAFlevels)) {
+    l = BAFlevels[i]
+    
+    #280814 - make sure that BAF>=0.5, otherwise nMajor and nMinor may be the wrong way around
+    l=max(l,1-l)
+    
+    #DCW 240314
+    BAFke = BAFphased[(switchpoints[i]+1):switchpoints[i+1]]
+    
+    startpos = min(BAFpos[names(BAFke)])
+    endpos = max(BAFpos[names(BAFke)])
+    chrom = names(ctrans[floor(startpos/1000000000)])
+    LogR = mean(LogRvals[LogRpos>=startpos&LogRpos<=endpos & !is.infinite(LogRvals[,3]),3],na.rm=T)
+    #if we don't have a value for LogR, fill in 0
+    if (is.na(LogR)) {
+      LogR = 0
+    }
+    nMajor = (rho-1+l*psi*2^(LogR/gamma))/rho
+    nMinor = (rho-1+(1-l)*psi*2^(LogR/gamma))/rho
+    
+    # to make sure we're always in a positive square:
+    #if(nMajor < 0) {
+    #  nMajor = 0.01
+    #}
+    #if(nMinor < 0) {
+    #  nMinor = 0.01
+    #}
+    #DCW - increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
+    if(nMinor<0){
+      if(l==1){
+        #avoid calling infinite copy number
+        nMajor = 1000
+      }else{
+        nMajor = nMajor + l * (0.01 - nMinor) / (1-l)
+      }
+      nMinor = 0.01  	
+    }
+    
+    # note that these are sorted in the order of ascending BAF:
+    nMaj = c(floor(nMajor),ceiling(nMajor),floor(nMajor),ceiling(nMajor))
+    nMin = c(ceiling(nMinor),ceiling(nMinor),floor(nMinor),floor(nMinor))
+    x = floor(nMinor)
+    y = floor(nMajor)
+    
+    # total copy number, to determine priority options
+    ntot = nMajor + nMinor
+    
+    levels = (1-rho+rho*nMaj)/(2-2*rho+rho*(nMaj+nMin))
+    #problem if rho=1 and nMaj=0 and nMin=0
+    levels[nMaj==0 & nMin==0] = 0.5
+    
+    #whichclosestlevel = which.min(abs(levels-l))
+    ## if 0.5 and there are multiple options, finetune, because a random option got chosen 
+    #if (levels[whichclosestlevel]==0.5 && levels[2]==0.5 && levels[3]==0.5) {
+    #  whichclosestlevel = ifelse(ntot>x+y+1,2,3)
+    #}  
+    
+    #DCW - just test corners on the nearest edge to determine clonality
+    #If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
+    all.edges = orderEdges(levels, l, ntot,x,y)
+    nMaj.test = all.edges[1,c(1,3)]
+    nMin.test = all.edges[1,c(2,4)]
+    test.levels = (1-rho+rho*nMaj.test)/(2-2*rho+rho*(nMaj.test+nMin.test))
+    whichclosestlevel.test = which.min(abs(test.levels-l))
+    
+    #270713 - problem caused by segments with constant BAF (usually 1 or 2)
+    if(sd(BAFke)==0){
+      pval[i]=0
+    }else{
+      #pval[i] = t.test(BAFke,alternative="two.sided",mu=levels[whichclosestlevel])$p.value
+      pval[i] = t.test(BAFke,alternative="two.sided",mu=test.levels[whichclosestlevel.test])$p.value
+    }
+    #if(min(abs(l-levels))<maxdist) {
+    #if(min(abs(l-test.levels))<maxdist) {
+    if(abs(l-test.levels[whichclosestlevel.test])<maxdist) {  
+      pval[i]=1
+    }
+    
+    #BAFpvals[BAFseg==l]=pval[i]
+    #DCW 240314
+    BAFpvals[(switchpoints[i]+1):switchpoints[i+1]]=pval[i]
+    
+    # if the difference is significant, call subclone level
+    if(pval[i] <= siglevel) {
+      
+      all.edges = orderEdges(levels, l, ntot,x,y)
+      #switch order, so that negative copy numbers are at the end
+      na.indices = which(is.na(rowSums(all.edges)))
+      if(length(na.indices)>0){
+        all.edges = rbind(all.edges[-na.indices,],all.edges[na.indices,])
+      }
+      nMaj1 = all.edges[,1]
+      nMin1 = all.edges[,2]
+      nMaj2 = all.edges[,3]
+      nMin2 = all.edges[,4]
+      
+      tau = (1 - rho + rho * nMaj2 - 2 * l * (1 - rho) - l * rho * (nMin2 + nMaj2)) / (l * rho * (nMin1 + nMaj1) - l * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2)
+      sdl = sd(BAFke,na.rm=T)/sqrt(sum(!is.na(BAFke)))
+      sdtau = abs((1 - rho + rho * nMaj2 - 2 * (l+sdl) * (1 - rho) - (l+sdl) * rho * (nMin2 + nMaj2)) / ((l+sdl) * rho * (nMin1 + nMaj1) - (l+sdl) * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2) - tau) / 2 +
+        abs((1 - rho + rho * nMaj2 - 2 * (l-sdl) * (1 - rho) - (l-sdl) * rho * (nMin2 + nMaj2)) / ((l-sdl) * rho * (nMin1 + nMaj1) - (l-sdl) * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2) - tau) / 2
+      
+      sdtaubootstrap = vector(length=length(tau),mode="numeric")
+      tau25 = vector(length=length(tau),mode="numeric")
+      tau975 = vector(length=length(tau),mode="numeric")
+      
+      #bootstrapping, adapted from David Wedge
+      for (option in 1:length(tau)) {
+        nMaj1o = nMaj1[option]
+        nMin1o = nMin1[option]
+        nMaj2o = nMaj2[option]
+        nMin2o = nMin2[option]
+        set.seed(as.integer(Sys.time()))
+        permFraction=vector(length=noperms,mode="numeric")
+        for(j in 1:noperms){
+          permBAFs=sample(BAFke,length(BAFke),replace=T)
+          permMeanBAF=mean(permBAFs)
+          permFraction[j] = (1 - rho + rho * nMaj2o - 2 * permMeanBAF * (1 - rho) - permMeanBAF * rho * (nMin2o + nMaj2o)) / (permMeanBAF * rho * (nMin1o + nMaj1o) - permMeanBAF * rho * (nMin2o + nMaj2o) - rho * nMaj1o + rho * nMaj2o)
+        }
+        orderedFractions=sort(permFraction)
+        sdtaubootstrap[option] = sd(permFraction)
+        tau25[option] = orderedFractions[25]
+        tau975[option] = orderedFractions[975]
+      }
+      
+      subcloneres = rbind(subcloneres,c(chrom,startpos-floor(startpos/1000000000)*1000000000,
+                                        endpos-floor(endpos/1000000000)*1000000000,l,pval[i],LogR,ntot,
+                                        nMaj1[1],nMin1[1],tau[1],nMaj2[1],nMin2[1],1-tau[1],sdtau[1],sdtaubootstrap[1],tau25[1],tau975[1],
+                                        nMaj1[2],nMin1[2],tau[2],nMaj2[2],nMin2[2],1-tau[2],sdtau[2],sdtaubootstrap[2],tau25[2],tau975[2],
+                                        nMaj1[3],nMin1[3],tau[3],nMaj2[3],nMin2[3],1-tau[3],sdtau[3],sdtaubootstrap[3],tau25[3],tau975[3],
+                                        nMaj1[4],nMin1[4],tau[4],nMaj2[4],nMin2[4],1-tau[4],sdtau[4],sdtaubootstrap[4],tau25[4],tau975[4],
+                                        nMaj1[5],nMin1[5],tau[5],nMaj2[5],nMin2[5],1-tau[5],sdtau[5],sdtaubootstrap[5],tau25[5],tau975[5],
+                                        nMaj1[6],nMin1[6],tau[6],nMaj2[6],nMin2[6],1-tau[6],sdtau[6],sdtaubootstrap[6],tau25[6],tau975[6]))
+    }else {
+      #if called as clonal, use the best corner from the nearest edge 
+      subcloneres = rbind(subcloneres,c(chrom,startpos-floor(startpos/1000000000)*1000000000,
+                                        endpos-floor(endpos/1000000000)*1000000000,l,pval[i],LogR,ntot,
+                                        nMaj.test[whichclosestlevel.test],nMin.test[whichclosestlevel.test],1,rep(NA,57)))
+      
+    }
+    colnames(subcloneres) = c("chr","startpos","endpos","BAF","pval","LogR","ntot",
+                              "nMaj1_A","nMin1_A","frac1_A","nMaj2_A","nMin2_A","frac2_A","SDfrac_A","SDfrac_A_BS","frac1_A_0.025","frac1_A_0.975",
+                              "nMaj1_B","nMin1_B","frac1_B","nMaj2_B","nMin2_B","frac2_B","SDfrac_B","SDfrac_B_BS","frac1_B_0.025","frac1_B_0.975",
+                              "nMaj1_C","nMin1_C","frac1_C","nMaj2_C","nMin2_C","frac2_C","SDfrac_C","SDfrac_C_BS","frac1_C_0.025","frac1_C_0.975",
+                              "nMaj1_D","nMin1_D","frac1_D","nMaj2_D","nMin2_D","frac2_D","SDfrac_D","SDfrac_D_BS","frac1_D_0.025","frac1_D_0.975",
+                              "nMaj1_E","nMin1_E","frac1_E","nMaj2_E","nMin2_E","frac2_E","SDfrac_E","SDfrac_E_BS","frac1_E_0.025","frac1_E_0.975",
+                              "nMaj1_F","nMin1_F","frac1_F","nMaj2_F","nMin2_F","frac2_F","SDfrac_F","SDfrac_F_BS","frac1_F_0.025","frac1_F_0.975")
+  }
+  
+  #write.table(subcloneres,paste(start.file,"_subclones.txt",sep=""),quote=F,col.names=NA,row.names=T,sep="\t")
+  write.table(subcloneres,output.file, quote=F, col.names=NA, row.names=T, sep="\t")
+  
+  #DCW 211012
+  #   sample.name = strsplit(start.file,"/")
+  #   sample.name = sample.name[[1]][length(sample.name[[1]])]
+  #   sample.name = gsub("_","",sample.name)
+  
+  for (chr in chr_names) {
+    pos = SNPpos[SNPpos[,1]==chr,2]
+    #if no points to plot, skip
+    if(length(pos)==0){next}
+    #     BAFchr = BAF[SNPpos[,1]==chr]
+    #     BAFsegchr = BAFseg[SNPpos[,1]==chr]
+    #     BAFpvalschr = BAFpvals[SNPpos[,1]==chr]
+    #     LogRchr = LogRvals[LogRvals[,1]==chr,3]
+    #     LogRposke = LogRvals[LogRvals[,1]==chr,2]
+    
+    #png(filename = paste(start.file,"_subclones_chr",chr,".png",sep=""), width = 2000, height = 2000, res = 200)
+    png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200)
+    create.subclonal.cn.plot(chrom.position=pos/1000000, 
+                             LogRposke=LogRvals[LogRvals[,1]==chr,2], 
+                             LogRchr=LogRvals[LogRvals[,1]==chr,3], 
+                             BAFchr=BAF[SNPpos[,1]==chr], 
+                             BAFsegchr=BAFseg[SNPpos[,1]==chr], 
+                             BAFpvalschr=BAFpvals[SNPpos[,1]==chr],
+                             subcloneres=subcloneres, 
+                             siglevel=siglevel, 
+                             xmin=min(pos)/1000000, 
+                             xmax=max(pos)/1000000, 
+                             title=paste(sample.name,", chromosome ", chr, sep=""), 
+                             xlab="Position (Mb)", 
+                             ylab.logr="LogR", 
+                             ylab.baf="BAF (phased)")
+    
+    #     par(mar = c(2.5,2.5,2.5,0.25), cex = 0.4, cex.main=1.5, cex.axis = 1, cex.lab = 1, mfrow = c(2,1))
+    #     plot(c(min(pos)/1000000,max(pos)/1000000),c(-1,1),pch=".",type = "n", 
+    #          main = paste(sample.name,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "LogR")
+    #     points(LogRposke/1000000,LogRchr,pch=".",col="grey")
+    #     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
+    #          main = paste(sample.name,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
+    #     points(pos/1000000,BAFchr,pch=".",col="grey")
+    #     points(pos/1000000,BAFsegchr,pch=19,cex=0.5,col=ifelse(BAFpvalschr>siglevel,"darkgreen","red"))
+    #     points(pos/1000000,1-BAFsegchr,pch=19,cex=0.5,col=ifelse(BAFpvalschr>siglevel,"darkgreen","red"))
+    #     for (i in 1:dim(subcloneres)[1]) {
+    #       if(subcloneres[i,1]==chr) {
+    #         text((as.numeric(subcloneres[i,"startpos"])+as.numeric(subcloneres[i,"endpos"]))/2/1000000,as.numeric(subcloneres[i,"BAF"])-0.04,
+    #              paste(subcloneres[i,"nMaj1_A"],"+",subcloneres[i,"nMin1_A"],": ",100*round(as.numeric(subcloneres[i,"frac1_A"]),3),"%",sep=""),cex = 0.8)
+    #         if(!is.na(subcloneres[i,"nMaj2_A"])) {
+    #           text((as.numeric(subcloneres[i,"startpos"])+as.numeric(subcloneres[i,"endpos"]))/2/1000000,as.numeric(subcloneres[i,"BAF"])-0.08,
+    #                paste(subcloneres[i,"nMaj2_A"],"+",subcloneres[i,"nMin2_A"],": ",100*round(as.numeric(subcloneres[i,"frac2_A"]),3),"%",sep=""), cex = 0.8)
+    #         }
+    #       }
+    #     }
+    dev.off()
+  }
+}
+
+#' Load the rho and psi estimates that were earlier written to file.
+#' @noRd
+load.rho.psi.file = function(rho.psi.file) {
+  rho_psi_info = read.table(rho.psi.file, header=T, sep="\t", stringsAsFactors=F)
+  # Always use best solution from grid search - reference segment sometimes gives strange results
+  rho = rho_psi_info$rho[rownames(rho_psi_info)=="FRAC_GENOME"] # rho = tumour percentage (called tp in previous versions)
+  psit = rho_psi_info$psi[rownames(rho_psi_info)=="FRAC_GENOME"] # psi of tumour cells
+  return(list(rho=rho, psit=psit))
+}
