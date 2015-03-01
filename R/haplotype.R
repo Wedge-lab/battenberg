@@ -157,7 +157,7 @@ combine.baf.files = function(inputfile.prefix, inputfile.postfix, outputfile, no
 #' Segment the haplotyped and phased data using fastPCF.
 #' @param
 #' @author dw9
-segment.baf.phased = function(inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3) {
+segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3) {
   #BAFraw = read.table(paste(sample,"_allChromosomes_heterozygousMutBAFs_haplotyped.txt",sep=""),sep="\t",header=T)
   BAFraw = read.table(inputfile,sep="\t",header=T)
   
@@ -178,27 +178,27 @@ segment.baf.phased = function(inputfile, outputfile, gamma=10, phasegamma=3, kmi
       sdev = 0.09
     }
     
-     print(paste("BAFlen=",length(BAF),sep=""))
-     if(length(BAF)<50){
-        BAFsegm = rep(mean(BAF),length(BAF))
-     }else{
-        #res= selectFastPcf(BAF,3,3*sdev,T)
-	res= selectFastPcf(BAF,phasekmin,phasegamma*sdev,T)
-        BAFsegm = res$yhat
-     }
-
-    png(filename = paste(sample,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
-#     par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
-#     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
-#          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
-#     points(pos/1000000,BAF,pch=".",col="red",cex=2)
-#     points(pos/1000000,BAFsegm,pch=19,cex=0.5,col="green")
+    print(paste("BAFlen=",length(BAF),sep=""))
+    if(length(BAF)<50){
+      BAFsegm = rep(mean(BAF),length(BAF))
+    }else{
+      #res= selectFastPcf(BAF,3,3*sdev,T)
+      res= selectFastPcf(BAF,phasekmin,phasegamma*sdev,T)
+      BAFsegm = res$yhat
+    }
+    
+    png(filename = paste(samplename,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+    #     par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
+    #     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
+    #          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
+    #     points(pos/1000000,BAF,pch=".",col="red",cex=2)
+    #     points(pos/1000000,BAFsegm,pch=19,cex=0.5,col="green")
     create.segmented.plotfunction(chrom.position=pos/1000000, 
                                   points.red=BAF, 
                                   points.green=BAFsegm, 
                                   x.min=min(pos)/1000000, 
                                   x.max=max(pos)/1000000, 
-                                  title=paste(sample,", chromosome ", chr, sep=""), 
+                                  title=paste(samplename,", chromosome ", chr, sep=""), 
                                   xlab="Position (Mb)", 
                                   ylab="BAF (phased)")
     dev.off()
@@ -212,29 +212,29 @@ segment.baf.phased = function(inputfile, outputfile, gamma=10, phasegamma=3, kmi
       BAFphseg = res$yhat
     }
     
-    png(filename = paste(sample,"_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
-#     par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
-#     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
-#          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
-#     points(pos/1000000,BAF,pch=".",col=ifelse(BAFsegm>0.5,"red","blue"),cex=2)
-#     points(pos/1000000,BAFphseg,pch=19,cex=0.5,col="darkred")
-#     points(pos/1000000,1-BAFphseg,pch=19,cex=0.5,col="darkblue")
+    png(filename = paste(samplename,"_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+    #     par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
+    #     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
+    #          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
+    #     points(pos/1000000,BAF,pch=".",col=ifelse(BAFsegm>0.5,"red","blue"),cex=2)
+    #     points(pos/1000000,BAFphseg,pch=19,cex=0.5,col="darkred")
+    #     points(pos/1000000,1-BAFphseg,pch=19,cex=0.5,col="darkblue")
     create.baf.plot(chrom.position=pos/1000000, 
                     points.red.blue=BAF, 
                     points.darkred=BAFphseg, 
                     points.darkblue=1-BAFphseg, 
                     x.min=min(pos)/1000000, 
                     x.max=max(pos)/1000000, 
-                    title=paste(sample,", chromosome ", chr, sep=""), 
+                    title=paste(samplename,", chromosome ", chr, sep=""), 
                     xlab="Position (Mb)", 
                     ylab="BAF (phased)")
     dev.off()
     
-    BAFphased = ifelse(BAFsegm>0.5,BAF,1-BAF)
-    BAFoutputchr = cbind(rep(chr,length(BAFphseg)),pos,BAF,BAFphased,BAFphseg)
-    BAFoutput = rbind(BAFoutput,BAFoutputchr)
+    BAFphased = ifelse(BAFsegm>0.5, BAF, 1-BAF)
+    BAFoutputchr = cbind(rep(chr, length(BAFphseg)), pos, BAF, BAFphased, BAFphseg)
+    BAFoutput = rbind(BAFoutput, BAFoutputchr)
   }
   colnames(BAFoutput) = c("Chromosome","Position","BAF","BAFphased","BAFseg")
   #write.table(BAFoutput,paste(sample,".BAFsegmented.txt",sep=""),sep="\t",row.names=T,col.names=NA,quote=F)
-  write.table(BAFoutput,outputfile,sep="\t",row.names=T,col.names=NA,quote=F)
+  write.table(BAFoutput, outputfile, sep="\t", row.names=T, col.names=NA, quote=F)
 }
