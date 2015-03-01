@@ -81,16 +81,16 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   if(use_preset_rho_psi){
     ascat_optimum_pair = list(rho=preset_rho, psi = preset_psi)
   }else{
-    distance.outfile=paste(start.file,"distance.png",sep="",collapse="") # kjd 20-2-2014
-    copynumberprofile.outfile=paste(start.file,"copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
-    nonroundedprofile.outfile=paste(start.file,"nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
+    distance.outfile=paste(outputfile.prefix,"distance.png",sep="",collapse="") # kjd 20-2-2014
+    copynumberprofile.outfile=paste(outputfile.prefix,"copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
+    nonroundedprofile.outfile=paste(outputfile.prefix,"nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
     
     ascat_optimum_pair=runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy, max.ploidy, min.rho, min.goodness.of.fit) # kjd 4-2-2014
   }
   
-  distance.outfile=paste(start.file,"second_distance.png",sep="",collapse="") # kjd 20-2-2014
-  copynumberprofile.outfile=paste(start.file,"second_copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
-  nonroundedprofile.outfile=paste(start.file,"second_nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
+  distance.outfile=paste(outputfile.prefix,"second_distance.png",sep="",collapse="") # kjd 20-2-2014
+  copynumberprofile.outfile=paste(outputfile.prefix,"second_copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
+  nonroundedprofile.outfile=paste(outputfile.prefix,"second_nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
   
   # All is set up, now run ASCAT to obtain a clonal copynumber profile
   out = run_clonal_ASCAT( logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, matched.segmented.BAF.data, ascat_optimum_pair, dist_choice, distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma_param=gamma_param, read_depth, uninformative_BAF_threshold, allow100percent=T, reliabilityFile=NA) # kjd 21-2-2014
@@ -100,7 +100,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   is.ref.better = out$is.ref.better
   
   rho_psi_output = data.frame(rho = c(ascat_optimum_pair$rho,ascat_optimum_pair_fraction_of_genome$rho,ascat_optimum_pair_ref_seg$rho),psi = c(ascat_optimum_pair$psi,ascat_optimum_pair_fraction_of_genome$psi,ascat_optimum_pair_ref_seg$psi), distance = c(NA,out$distance_without_ref,out$distance), is.best = c(NA,!is.ref.better,is.ref.better),row.names=c("ASCAT","FRAC_GENOME","REF_SEG"))
-  write.table(rho_psi_output,paste(start.file,"rho_and_psi.txt",sep=""),quote=F,sep="\t")
+  write.table(rho_psi_output,paste(outputfile.prefix,"rho_and_psi.txt",sep=""),quote=F,sep="\t")
 }
 
 #' This function fits a subclonal copy number profile where a clonal profile is unlikely.
