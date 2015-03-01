@@ -56,7 +56,7 @@ getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(TUMOURNAME,"_alleleFrequenci
                 minCounts=MIN_NORMAL_DEPTH, 
                 samplename=TUMOURNAME)
 
-# These steps are independent and can be run in parallel. This could be done through multi-threading, but splitting up in separate jobs is more memory efficient on a cluster.
+# These steps are independent and can be run in parallel. This could be done through multi-threading or splitting these up into separate jobs on a cluster.
 for (chrom in 1:length(chrom_names)) {
   print(chrom)
   # Transform the allele counts into something that impute understands
@@ -85,9 +85,7 @@ for (chrom in 1:length(chrom_names)) {
                         imputeinfofile=IMPUTEINFOFILE, 
                         region.size=5000000, 
                         chrom=chrom)
-}
 
-for (chrom in 1:length(chrom_names)) {
   # Transform the impute output into haplotyped BAFs
   GetChromosomeBAFs(chrom=chrom, 
                     SNP_file=paste(TUMOURNAME, "_alleleFrequencies_chr", chrom, ".txt", sep=""), 
@@ -96,9 +94,7 @@ for (chrom in 1:length(chrom_names)) {
                     outfile=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                     chr_names=chrom_names, 
                     minCounts=MIN_NORMAL_DEPTH)
-}
 
-for (chrom in 1:length(chrom_names)) {
   # Plot what we have until this point
   plot.haplotype.data(haplotyped.baf.file=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                       imageFileName=paste(TUMOURNAME,"_chr",chr_name,"_heterozygousData.png",sep=""), 
@@ -124,7 +120,8 @@ segment.baf.phased(inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.
 
 # Fit a clonal copy number profile
 # TODO: Check parameters, clean up internally defined output names
-fit.copy.number(outputfile.prefix=paste(TUMOURNAME, "_", sep=""),
+fit.copy.number(samplename=TUMOURNAME,
+                outputfile.prefix=paste(TUMOURNAME, "_", sep=""),
                 inputfile.baf.segmented=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
                 inputfile.baf=paste(TUMOURNAME,"_mutantBAF.tab", sep=""), 
                 inputfile.logr=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
