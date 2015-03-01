@@ -101,17 +101,22 @@ for (chrom in 1:length(chrom_names)) {
 for (chrom in 1:length(chrom_names)) {
   # Plot what we have until this point
   plot.haplotype.data(haplotyped.baf.file=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                      imageFileName=paste(samplename,"_chr",chr_name,"_heterozygousData.png",sep=""), 
+                      imageFileName=paste(TUMOURNAME,"_chr",chr_name,"_heterozygousData.png",sep=""), 
                       samplename=TUMOURNAME, 
                       chrom=chrom, 
                       chr_names=chrom_names)
 }
 
 # Combine all the BAF output into a single file
+# TODO: Clean up the parameters here
 combine.baf.files(inputfile.prefix=paste(TUMOURNAME, "_chr", sep=""), 
                   inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt", 
                   outputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                  no.chrs=length(chrom_names))
+                  no.chrs=length(chrom_names),
+                  gamma=10,
+                  phasegamma=3,
+                  kmin=3,
+                  phasekmin=3)
 
 # Segment the phased and haplotyped BAF data
 segment.baf.phased(inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 

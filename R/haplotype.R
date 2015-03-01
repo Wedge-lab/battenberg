@@ -154,7 +154,10 @@ combine.baf.files = function(inputfile.prefix, inputfile.postfix, outputfile, no
   concatenateBAFfiles(inputfile.prefix, inputfile.postfix, outputfile, no.chrs)
 }
 
-segment.baf.phased = function(inputfile, outputfile) {
+#' Segment the haplotyped and phased data using fastPCF.
+#' @param
+#' @author dw9
+segment.baf.phased = function(inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3) {
   #BAFraw = read.table(paste(sample,"_allChromosomes_heterozygousMutBAFs_haplotyped.txt",sep=""),sep="\t",header=T)
   BAFraw = read.table(inputfile,sep="\t",header=T)
   
