@@ -193,7 +193,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
     #          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
     #     points(pos/1000000,BAF,pch=".",col="red",cex=2)
     #     points(pos/1000000,BAFsegm,pch=19,cex=0.5,col="green")
-    create.segmented.plotfunction(chrom.position=pos/1000000, 
+    create.segmented.plot(chrom.position=pos/1000000, 
                                   points.red=BAF, 
                                   points.green=BAFsegm, 
                                   x.min=min(pos)/1000000, 
