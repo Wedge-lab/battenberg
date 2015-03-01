@@ -1111,7 +1111,7 @@ calc_square_distance <-function( pt1, pt2 ) # kjd 27-2-2014
 # and then finds the centroid of this set of globla optima.
 # Then we find the global optimum which is nearest to the centroid. 
 # (When the set of global optima is convex, we expect the selected optimum to be at the centroid.)
-find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_minor, s, dist_choice, minimise, new_bounds, distancepng, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, allow100percent, uninformative_BAF_threshold) # kjd 28-2-2014
+find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_minor, s, dist_choice, minimise, new_bounds, distancepng, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, allow100percent, uninformative_BAF_threshold, read_depth) # kjd 28-2-2014
 {
   psi_min = new_bounds$psi_min
   psi_max = new_bounds$psi_max
