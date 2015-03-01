@@ -202,7 +202,7 @@ calc_binomial_prob <-function( sample_proportion, sample_size, pop_proportion ) 
 # The first hypothesis is the "best fit" model we can find. 
 # The second hypothesis is the "second best fit" model we can find. 
 		
-calc_ln_likelihood_ratio <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, read_depth, rho, psi, gamma_param, maxdist_BAF ) # kjd 18-12-2013
+calc_ln_likelihood_ratio <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, read_depth, rho, psi, gamma_param, maxdist_BAF, read_depth ) # kjd 18-12-2013
 {	
 	pooled_BAF.size = read_depth * BAF.size
 	
@@ -759,7 +759,7 @@ calc_distance_clonal <-function( segs, dist_choice, rho, psi, gamma_param, read_
 			# Calculate log likelihood ratio
 			#
 			
-			ln_lratio = calc_ln_likelihood_ratio( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, read_depth, rho, psi, gamma_param, maxdist_BAF ) # kjd 10-2-2014
+			ln_lratio = calc_ln_likelihood_ratio( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, read_depth, rho, psi, gamma_param, maxdist_BAF, read_depth ) # kjd 10-2-2014
 			
 			sum_ln_lratio = sum_ln_lratio + ln_lratio
 			
