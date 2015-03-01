@@ -27,7 +27,7 @@ create.segmented.plot = function(chrom.position, points.red, points.green, x.min
 create.baf.plot = function(chrom.position, points.red.blue, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type = "n", main=title, xlab=xlab, ylab=ylab)
-  points(chrom.position, points.red.blue, pch=".", col=ifelse(BAFsegm>0.5,"red","blue"), cex=2)
+  points(chrom.position, points.red.blue, pch=".", col=ifelse(points.red.blue>0.5, "red", "blue"), cex=2)
   points(chrom.position, points.darkred, pch=19, cex=0.5, col="darkred")
   points(chrom.position, points.darkblue, pch=19, cex=0.5, col="darkblue")
 }
