@@ -161,6 +161,8 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
   #BAFraw = read.table(paste(sample,"_allChromosomes_heterozygousMutBAFs_haplotyped.txt",sep=""),sep="\t",header=T)
   BAFraw = read.table(inputfile,sep="\t",header=T)
   
+  BAFoutput = NULL
+  
   for (chr in unique(BAFraw[,1])) {
     BAFrawchr = BAFraw[BAFraw[,1]==chr,c(2,3)]
     BAFrawchr = BAFrawchr[!is.na(BAFrawchr[,2]),]
