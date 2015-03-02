@@ -1,43 +1,60 @@
+#' Parse the reference info file
+#' @noRD
+parseSNP6refFile = function(snp6_reference_info_file) {
+  return(read.table(snp6_reference_info_file, header=T))
+}
+
 #' Morph cel files into BAF and LogR
 #'
-cel2baf.logr = function(normal_cel_file, tumour_cel_file, run_dir, output_file_prefix) {
-  PROBSET_GENOT = "~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-genotype" 
-  GW_SNP6 = "~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.cdf"
-  SNP6_BIRDSEED_MODELS = "~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.birdseed.models"
-  SNP6_SPECIALSNPS = "~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.specialSNPs"
+cel2baf.logr = function(normal_cel_file, tumour_cel_file, output_file, snp6_reference_info_file, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize", norm.geno.clust.exe="normalize_affy_geno_cluster.pl") {
+  #PROBSET_GENOT = "~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-genotype" 
+  #GW_SNP6 = "~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.cdf"
+  #SNP6_BIRDSEED_MODELS = "~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.birdseed.models"
+  #SNP6_SPECIALSNPS = "~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.specialSNPs"
   
-  PROBSET_SUMMA = "~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-summarize"
-  QUANT_NORM_TARGET = "~pvl/PennCNV/gw6/lib/hapmap.quant-norm.normalization-target.txt"
+  #PROBSET_SUMMA = "~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-summarize"
+  #QUANT_NORM_TARGET = "~pvl/PennCNV/gw6/lib/hapmap.quant-norm.normalization-target.txt"
   
-  NORM_GENO_CLUST = "~pvl/PennCNV/gw6/bin/normalize_affy_geno_cluster.pl"
-  UNM_NORMALS = "/nfs/team78pc2/pvl/normals/selected285/apt/gw6.genocluster"
-  LOCFILE = "~pvl/PennCNV/gw6/lib/affygw6.hg18.pfb"
+  #NORM_GENO_CLUST = "~pvl/PennCNV/gw6/bin/normalize_affy_geno_cluster.pl"
+  #UNM_NORMALS = "/nfs/team78pc2/pvl/normals/selected285/apt/gw6.genocluster"
+  #LOCFILE = "~pvl/PennCNV/gw6/lib/affygw6.hg18.pfb"
   
-  setwd(run_dir)
-  cmd = paste(PROBSET_GENOT, "-c", GW_SNP6, "-a birdseed", "--read-models-birdseed", SNP6_BIRDSEED_MODELS, "--special-snps", SNP6_SPECIALSNPS, "--cels", normal_cel_file)
-  #~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-genotype -c ~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.cdf -a birdseed --read-models-birdseed ~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.birdseed.models --special-snps ~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.specialSNPs --cels ${IDnr}.normal.CEL
+  # Unpack pointers to reference files required during this step
+  ref.files = parseSNP6refFile(snp6_reference_info_file)
+  GW_SNP6 = ref.files[ref.files$variable == "GW_SNP6",]$reference_file
+  SNP6_BIRDSEED_MODELS = ref.files[ref.files$variable == "SNP6_BIRDSEED_MODELS",]$reference_file
+  SNP6_SPECIALSNPS = ref.files[ref.files$variable == "SNP6_SPECIALSNPS",]$reference_file
+  QUANT_NORM_TARGET = ref.files[ref.files$variable == "QUANT_NORM_TARGET",]$reference_file
+  LOCFILE = ref.files[ref.files$variable == "LOCFILE",]$reference_file
+  UNM_NORMALS = ref.files[ref.files$variable == "UNM_NORMALS",]$reference_file
+  
+  # Unpack the normal cel file
+  cmd = paste(apt.probeset.genotype.exe, "-c", GW_SNP6, "-a birdseed", "--read-models-birdseed", SNP6_BIRDSEED_MODELS, "--special-snps", SNP6_SPECIALSNPS, "--cels", normal_cel_file)
   system(cmd, wait=T)
-  
-  cmd = paste(PROBSET_SUMMA, "--cdf-file", GW_SNP6, "--analysis quant-norm.sketch=50000,pm-only,med-polish,expr.genotype=true", "--target-sketch", QUANT_NORM_TARGET, normal_cel_file, tumour_cel_file)
-  #~pvl/PennCNV/apt-1.12.0-20091012-i386-intel-linux/bin/apt-probeset-summarize --cdf-file ~pvl/PennCNV/gw6/lib/GenomeWideSNP_6.cdf --analysis quant-norm.sketch=50000,pm-only,med-polish,expr.genotype=true --target-sketch ~pvl/PennCNV/gw6/lib/hapmap.quant-norm.normalization-target.txt  *.CEL
+  # Unpack the tumour cel file
+  cmd = paste(apt.probeset.summarize.exe, "--cdf-file", GW_SNP6, "--analysis quant-norm.sketch=50000,pm-only,med-polish,expr.genotype=true", "--target-sketch", QUANT_NORM_TARGET, normal_cel_file, tumour_cel_file)
   system(cmd, wait=T)
-  
-  cmd = paste(NORM_GENO_CLUST, UNM_NORMALS, "quant-norm.pm-only.med-polish.expr.summary.txt", "-locfile", LOCFILE, "-out", paste(output_file_prefix,"_lrr_baf.txt", sep=""))
-  #~pvl/PennCNV/gw6/bin/normalize_affy_geno_cluster.pl /nfs/team78pc2/pvl/normals/selected285/apt/gw6.genocluster quant-norm.pm-only.med-polish.expr.summary.txt -locfile ~pvl/PennCNV/gw6/lib/affygw6.hg18.pfb -out lrr_baf.txt
+  # Construct the LogR and BAF and push that to 
+  #cmd = paste(norm.geno.clust.exe, UNM_NORMALS, "quant-norm.pm-only.med-polish.expr.summary.txt", "-locfile", LOCFILE, "-out", paste(output_file_prefix,"_lrr_baf.txt", sep=""))
+  cmd = paste(norm.geno.clust.exe, UNM_NORMALS, "quant-norm.pm-only.med-polish.expr.summary.txt", "-locfile", LOCFILE, "-out", output_file)
   system(cmd, wait=T)
 }
 
 #' Correct the BAF and LogR estimates for GC content
 #'
-gc.correct = function(samplename, file.logr.baf, file.snp.pos, file.tumor.LogR, file.tumor.BAF, file.normal.LogR, file.normal.BAF, birdseed_report_file, gc_snp6_file) {
+gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.tumor.BAF, outfile.normal.LogR, outfile.normal.BAF, outfile.probeBAF, snp6_reference_info_file, birdseed_report_file="birdseed.report.txt") {
+  # Read in needed reference files
+  ref.files = parseSNP6refFile(snp6_reference_info_file)
+  SNP_POS_REF = ref.files[ref.files$variable == "SNP_POS",]$reference_file
+  GC_SNP6 = ref.files[ref.files$variable == "GC_SNP6",]$reference_file
   
   #lrrbaf = read.table("lrr_baf.txt", header = T, sep = "\t", row.names=1)
   #lrrbaf = read.table(paste(lrr_baf_prefix, "_lrr_baf.txt", sep=""), header=T, sep="\t", row.names=1, stringsAsFactors=F)
-  lrrbaf = read.table(file.logr.baf, header=T, sep="\t", row.names=1, stringsAsFactors=F)
+  lrrbaf = read.table(infile.logr.baf, header=T, sep="\t", row.names=1, stringsAsFactors=F)
   
   #SNPpos = read.table("SNPpos.txt",header=T,sep="\t",row.names=1)
   #SNPpos = read.table(snp_pos_file, header=T, sep="\t", row.names=1, stringsAsFactors=F)
-  SNPpos = read.table(file.snp.pos, header=T, sep="\t", row.names=1, stringsAsFactors=F)
+  SNPpos = read.table(SNP_POS_REF, header=T, sep="\t", row.names=1, stringsAsFactors=F)
   
   #sample = sub(".normal.CEL.Log.R.Ratio","",colnames(lrrbaf)[3])
   
@@ -71,15 +88,15 @@ gc.correct = function(samplename, file.logr.baf, file.snp.pos, file.tumor.LogR, 
   Normal_LogR = round(Normal_LogR,4)
   
   #write.table(cbind(SNPpos,Tumor_BAF), paste(output_file_prefix, ".tumour.BAF.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Tumor_BAF), file.tumor.BAF, sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Tumor_BAF), outfile.tumor.BAF, sep="\t", row.names=T, col.names=NA, quote=F)
   #write.table(cbind(SNPpos,Normal_BAF), paste(output_file_prefix, ".normal.BAF.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Normal_BAF), file.normal.BAF, sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Normal_BAF), outfile.normal.BAF, sep="\t", row.names=T, col.names=NA, quote=F)
   
   # read into ASCAT and make GC corrected input:
   #write.table(cbind(SNPpos,Tumor_LogR), paste(output_file_prefix, ".tumour.LogR.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Tumor_LogR), file.tumor.LogR, sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Tumor_LogR), outfile.tumor.LogR, sep="\t", row.names=T, col.names=NA, quote=F)
   #write.table(cbind(SNPpos,Normal_LogR), paste(output_file_prefix, ".normal.LogR.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Normal_LogR), file.normal.LogR, sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Normal_LogR), outfile.normal.LogR, sep="\t", row.names=T, col.names=NA, quote=F)
   
   # ======================================= above previous prepareGCcorrect, below runGCcorrect ==============================================
   
@@ -90,54 +107,73 @@ gc.correct = function(samplename, file.logr.baf, file.snp.pos, file.tumor.LogR, 
   sex[sex == "male"] <- "XY"
   sex[sex == "unknown"] <- NA
   
-  ascat.bc <- ascat.loadData(file.tumor.LogR, file.tumor.BAF, file.normal.LogR, file.normal.BAF, chrs=c(1:22, "X"), gender=sex)
-  ascat.bc <- ascat.GCcorrect(ascat.bc, gc_snp6_file)
+  ascat.bc <- ascat.loadData(outfile.tumor.LogR, outfile.tumor.BAF, outfile.normal.LogR, outfile.normal.BAF, chrs=c(1:22, "X"), gender=sex)
+  ascat.bc <- ascat.GCcorrect(ascat.bc, GC_SNP6)
   
   select = which(!is.na(ascat.bc$Tumor_BAF))
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_LogR, 4))
   dat = dat[select,]
-  write.table(dat, file=paste(file.tumor.LogR, ".GCcorr.txt", sep=""), row.names=T, quote=F, sep="\t")
+  write.table(dat, file=paste(outfile.tumor.LogR, ".GCcorr.txt", sep=""), row.names=T, quote=F, sep="\t")
   
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_BAF, 4))
   dat = dat[select,]
-  write.table(dat, file=paste(file.tumor.BAF, ".GCcorr.txt", sep=""), row.names=T, quote=F, sep="\t")
+  write.table(dat, file=paste(outfile.tumor.BAF, ".GCcorr.txt", sep=""), row.names=T, quote=F, sep="\t")
   
   # Save the probe ids plus their BAF
   dat = cbind(row.names(ascat.bc$SNPpos), ascat.bc$Tumor_BAF)
   dat = dat[select,]
-  write.table(dat, file=paste(samplename, "_probeBAF.txt", sep=""), row.names=F, quote=F, col.names=F, sep="\t")
+  #write.table(dat, file=paste(samplename, "_probeBAF.txt", sep=""), row.names=F, quote=F, col.names=F, sep="\t")
+  write.table(dat, file=outfile.probeBAF, row.names=F, quote=F, col.names=F, sep="\t")
   
   # Drop SNPs with BAF between 0.3-0.7 from normal
   select = which(!(ascat.bc$Germline_BAF >= 0.3 & ascat.bc$Germline_BAF <= 0.7))
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_LogR, 4))
   dat = dat[select,]
-  write.table(dat, file=paste(file.normal.LogR, ".cleaned.txt", sep=""), row.names=T, quote=F, sep="\t")
+  write.table(dat, file=paste(outfile.normal.LogR, ".cleaned.txt", sep=""), row.names=T, quote=F, sep="\t")
   
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_BAF, 4))
   dat = dat[select,]
-  write.table(dat, file=paste(file.normal.BAF, ".cleaned.txt", sep=""), row.names=T, quote=F, sep="\t")
+  write.table(dat, file=paste(outfile.normal.BAF, ".cleaned.txt", sep=""), row.names=T, quote=F, sep="\t")
 }
 
 #' Prepares data for impute
 #'
-generate.impute.input.snp6 = function(SNP_file, outFileStart, chr, problemLociFile, known_snps_autosomes_file, known_snps_x_par1_file, known_snps_x_par2_file, known_snps_x_nonpar_file, anno_file, heterozygousFilter="none") {
+generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_names, problemLociFile, snp6_reference_info_file, imputeinfofile, is.male, heterozygousFilter="none") {
+  # Obtain pointer to SNP6 specific reference file
+  ref.files = parseSNP6refFile(snp6_reference_info_file)
+  ANNO_FILE = ref.files[ref.files$variable == "ANNO_FILE",]$reference_file
+  
+  # Read in the 1000 genomes reference file paths for the specified chrom
+  impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
+  chr_names = unique(impute.info$chrom)
+  
+  #print(paste("GenerateImputeInput is.male? ", is.male,sep=""))
+  #print(paste("GenerateImputeInput #impute files? ", nrow(impute.info),sep=""))
+  
+  # Read in the known SNP locations from the 1000 genomes reference files
+  known_SNPs = read.table(impute.info$impute_legend[1], sep=" ", header=T)
+  if(nrow(impute.info)>1){
+    for(r in 2:nrow(impute.info)){
+      known_SNPs = rbind(known_SNPs, read.table(impute.info$impute_legend[r], sep=" ", header=T))
+    }
+  }
   
   outfile=paste(outFileStart,chr,".txt",sep="")
-  chr_names=c(1:22,"X")
-  if(chr==23){
-    #known_SNPs<-read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR1_impute.legend",sep=""),sep=" ",header=T)
-    known_SNPs<-read.table(known_snps_x_par1_file,sep=" ",header=T)
-    print(paste("#known SNPs PAR1=",nrow(known_SNPs),sep=""))
-    #known_SNPs<-rbind(known_SNPs,read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_nonPAR_impute.legend",sep=""),sep=" ",header=T))
-    known_SNPs<-rbind(known_SNPs, read.table(known_snps_x_nonpar_file,sep=" ",header=T))
-    print(paste("#known SNPs PAR1 + nonPAR=",nrow(known_SNPs),sep=""))
-    #known_SNPs<-rbind(known_SNPs,read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR2_impute.legend",sep=""),sep=" ",header=T))
-    known_SNPs<-rbind(known_SNPs, read.table(known_snps_x_par2_file,sep=" ",header=T))
-    print(paste("#known SNPs PAR1 + nonPAR + PAR2=",nrow(known_SNPs),sep=""))
-  }else{
-    #known_SNPs<-read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chr",chr_names[chr],"_impute.legend",sep=""),sep=" ",header=T)
-    known_SNPs<-read.table(known_snps_autosomes_file,sep=" ",header=T)
-  }
+#   chr_names=c(1:22,"X")
+#   if(chr==23){
+#     #known_SNPs<-read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR1_impute.legend",sep=""),sep=" ",header=T)
+#     known_SNPs<-read.table(known_snps_x_par1_file,sep=" ",header=T)
+#     print(paste("#known SNPs PAR1=",nrow(known_SNPs),sep=""))
+#     #known_SNPs<-rbind(known_SNPs,read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_nonPAR_impute.legend",sep=""),sep=" ",header=T))
+#     known_SNPs<-rbind(known_SNPs, read.table(known_snps_x_nonpar_file,sep=" ",header=T))
+#     print(paste("#known SNPs PAR1 + nonPAR=",nrow(known_SNPs),sep=""))
+#     #known_SNPs<-rbind(known_SNPs,read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR2_impute.legend",sep=""),sep=" ",header=T))
+#     known_SNPs<-rbind(known_SNPs, read.table(known_snps_x_par2_file,sep=" ",header=T))
+#     print(paste("#known SNPs PAR1 + nonPAR + PAR2=",nrow(known_SNPs),sep=""))
+#   }else{
+#     #known_SNPs<-read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chr",chr_names[chr],"_impute.legend",sep=""),sep=" ",header=T)
+#     known_SNPs<-read.table(known_snps_autosomes_file,sep=" ",header=T)
+#   }
   
   #280412
   known_SNPs = known_SNPs[known_SNPs[,5]=="SNP",]
@@ -153,11 +189,12 @@ generate.impute.input.snp6 = function(SNP_file, outFileStart, chr, problemLociFi
   #known_SNPs$allele1=factor(known_SNPs$allele1,levels=c("A","C","G","T"))
   known_SNPs[,3]=factor(known_SNPs[,3],levels=c("A","C","G","T"))
   known_SNPs[,4]=factor(known_SNPs[,4],levels=c("A","C","G","T"))
-  chr_name=chr
-  if(chr_name=="23")
-  {
-    chr_name="X"
-  }
+#   chr_name=chrom
+#   if(chr_name=="23")
+#   {
+#     chr_name="X"
+#   }
+  chr_name = chr_names[chrom]
   
   #filter out bad SNPs (streaks in BAF)
   if((problemLociFile !="NA") & (!is.na(problemLociFile)))
@@ -198,7 +235,7 @@ generate.impute.input.snp6 = function(SNP_file, outFileStart, chr, problemLociFi
   knownSNP6data$Allele.A = factor(knownSNP6data$Allele.A,levels=c("A","C","G","T"))
   knownSNP6data$Allele.B = factor(knownSNP6data$Allele.B,levels=c("A","C","G","T"))
   
-  snp_data = read.table(SNP_file,sep="\t",header=F,row.names=NULL,stringsAsFactors=F)
+  snp_data = read.table(infile.probeBAF,sep="\t",header=F,row.names=NULL,stringsAsFactors=F)
   print(paste("first datum=",snp_data[1,1],sep=""))
   
   indices = match(snp_data[,1],knownSNP6data$Probe.Set.ID)
