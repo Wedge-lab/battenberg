@@ -1,7 +1,7 @@
 #' Parse the reference info file
 #' @noRD
 parseSNP6refFile = function(snp6_reference_info_file) {
-  return(read.table(snp6_reference_info_file, header=T))
+  return(read.table(snp6_reference_info_file, header=T, stringsAsFactors=F))
 }
 
 #' Morph cel files into BAF and LogR
