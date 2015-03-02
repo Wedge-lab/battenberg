@@ -210,7 +210,7 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
   }
   
   #knownSNP6data=read.csv("/lustre/scratch110/sanger/dw9/haplotype_pipeline/GenomeWideSNP_6.na32.annot.csv",comment.char="#",header=T,row.names=NULL,stringsAsFactors=F)
-  knownSNP6data=read.csv(anno_file,comment.char="#",header=T,row.names=NULL,stringsAsFactors=F)
+  knownSNP6data=read.csv(ANNO_FILE,comment.char="#",header=T,row.names=NULL,stringsAsFactors=F)
   knownSNP6data=knownSNP6data[knownSNP6data$Chromosome==chr_name,]
   print(paste("first column=",names(knownSNP6data)[1],sep=""))
   print(paste("first known datum=",knownSNP6data[1,1],sep=""))
