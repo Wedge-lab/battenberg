@@ -35,7 +35,7 @@ create.baf.plot = function(chrom.position, points.red.blue, points.darkred, poin
 #' Function that creates the plots for subclonal copy number
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.subclonal.cn.plot = function(chrom.position, LogRposke, LogRchr, BAFchr, BAFsegchr, BAFpvalschr, subcloneres, siglevel, xmin, xmax, title, xlab, ylab.logr, ylab.baf) {
+create.subclonal.cn.plot = function(chrom.position, LogRposke, LogRchr, BAFchr, BAFsegchr, BAFpvalschr, subcloneres, siglevel, x.min, x.max, title, xlab, ylab.logr, ylab.baf) {
   par(mar=c(2.5,2.5,2.5,0.25), cex=0.4, cex.main=1.5, cex.axis=1, cex.lab=1, mfrow=c(2,1))
   plot(c(x.min, x.max), c(-1,1), pch=".", type="n", main=title, xlab=xlab, ylab=ylab.logr)
   points(LogRposke/1000000, LogRchr, pch=".", col="grey")
