@@ -1675,7 +1675,7 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   
   #########################################################
   
-  ret = find_centroid_of_global_minima( d, ref_seg_matrix, ref_major, ref_minor, s, dist_choice, minimise, new_bounds, distancepng, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, allow100percent, uninformative_BAF_threshold) # kjd 28-2-2014
+  ret = find_centroid_of_global_minima( d, ref_seg_matrix, ref_major, ref_minor, s, dist_choice, minimise, new_bounds, distancepng, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, allow100percent, uninformative_BAF_threshold, read_depth) # kjd 28-2-2014
   optima_info_without_ref = ret$optima_info_without_ref
   optima_info = ret$optima_info
   
