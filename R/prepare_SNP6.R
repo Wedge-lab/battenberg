@@ -161,7 +161,7 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
     }
   }
   
-  outfile=paste(outFileStart,chr,".txt",sep="")
+  outfile=paste(outFileStart,chrom,".txt",sep="")
 #   chr_names=c(1:22,"X")
 #   if(chr==23){
 #     #known_SNPs<-read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL_1000G_phase1integrated_feb2012_impute/ALL_1000G_phase1integrated_feb2012_chrX_PAR1_impute.legend",sep=""),sep=" ",header=T)
@@ -287,7 +287,7 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
   #all.info=all.info[order(all.info[,1]),]
   all.info = all.info[order(as.numeric(all.info[,1])),]
   names(all.info)[4]="allele.frequency"
-  write.csv(all.info, file=paste(outFileStart,chr,"_withAlleleFreq.csv",sep=""), quote=F, row.names=F)
+  write.csv(all.info, file=paste(outFileStart,chrom,"_withAlleleFreq.csv",sep=""), quote=F, row.names=F)
   
   #no.rows=1:sum(!is.na(indices))
   no.rows = nrow(all.info)
@@ -295,7 +295,7 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
   #out.data<-cbind(snp.names,all.info[!is.na(indices),5:8],matrix(data=c(0,1,0),nrow=no.rows,ncol=3,byrow=T))
   out.data = cbind(snp.names,all.info[5:8], matrix(data=c(0,1,0), nrow=no.rows, ncol=3, byrow=T))
   write.table(out.data,file=outfile,row.names=F,col.names=F,quote=F)
-  if(chr==23){
+  if(chrom==23){
     sample.g.file = paste(outFileStart,"sample_g.txt",sep="")
     sample_g_data = data.frame(ID_1=c(0,"INDIVI1"),ID_2=c(0,"INDIVI1"),missing=c(0,0),sex=c("D",2))
     write.table(sample_g_data, file=sample.g.file, row.names=F, col.names=T, quote=F)
