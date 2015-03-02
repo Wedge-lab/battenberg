@@ -348,7 +348,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     
     #png(filename = paste(start.file,"_subclones_chr",chr,".png",sep=""), width = 2000, height = 2000, res = 200)
     png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200)
-    create.subclonal.cn.plot(chrom.position=pos/1000000, 
+    create.subclonal.cn.plot(chrom=chr,
+                             chrom.position=pos/1000000, 
                              LogRposke=LogRvals[LogRvals[,1]==chr,2], 
                              LogRchr=LogRvals[LogRvals[,1]==chr,3], 
                              BAFchr=BAF[SNPpos[,1]==chr], 
