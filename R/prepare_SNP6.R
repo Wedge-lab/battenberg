@@ -62,16 +62,16 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   #sample = sub(".normal.CEL.Log.R.Ratio","",colnames(lrrbaf)[3])
   
   Tumor_LogR = lrrbaf[rownames(SNPpos), 5, drop=F]
-  colnames(Tumor_LogR) = sample
+  colnames(Tumor_LogR) = samplename
   
   Tumor_BAF = lrrbaf[rownames(SNPpos), 6, drop=F]
-  colnames(Tumor_BAF) = sample
+  colnames(Tumor_BAF) = samplename
   
   Normal_LogR = lrrbaf[rownames(SNPpos), 3, drop=F]
-  colnames(Normal_LogR) = sample
+  colnames(Normal_LogR) = samplename
   
   Normal_BAF = lrrbaf[rownames(SNPpos), 4, drop=F]
-  colnames(Normal_BAF) = sample
+  colnames(Normal_BAF) = samplename
   
   #replace 2's by NA
   Tumor_BAF[Tumor_BAF==2]=NA
