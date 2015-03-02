@@ -159,7 +159,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   #   LogRfile = paste(start.file,"_mutantLogR.tab",sep="")
   #   LogRvals = read.table(LogRfile,sep="\t", header=T, row.names=1)
   # Load the raw LogR data
-  LogRvals = read.table(logr.file,sep="\t", header=T, row.names=1)
+  LogRvals = read.table(logr.file,sep="\t", header=T)
   
   ctrans = c(1:length(chr_names))
   names(ctrans)=chr_names
