@@ -30,13 +30,16 @@ cel2baf.logr = function(normal_cel_file, tumour_cel_file, output_file, snp6_refe
   
   # Unpack the normal cel file
   cmd = paste(apt.probeset.genotype.exe, "-c", GW_SNP6, "-a birdseed", "--read-models-birdseed", SNP6_BIRDSEED_MODELS, "--special-snps", SNP6_SPECIALSNPS, "--cels", normal_cel_file)
+  print(cmd)
   system(cmd, wait=T)
   # Unpack the tumour cel file
   cmd = paste(apt.probeset.summarize.exe, "--cdf-file", GW_SNP6, "--analysis quant-norm.sketch=50000,pm-only,med-polish,expr.genotype=true", "--target-sketch", QUANT_NORM_TARGET, normal_cel_file, tumour_cel_file)
+  print(cmd)
   system(cmd, wait=T)
   # Construct the LogR and BAF and push that to 
   #cmd = paste(norm.geno.clust.exe, UNM_NORMALS, "quant-norm.pm-only.med-polish.expr.summary.txt", "-locfile", LOCFILE, "-out", paste(output_file_prefix,"_lrr_baf.txt", sep=""))
   cmd = paste(norm.geno.clust.exe, UNM_NORMALS, "quant-norm.pm-only.med-polish.expr.summary.txt", "-locfile", LOCFILE, "-out", output_file)
+  print(cmd)
   system(cmd, wait=T)
 }
 
