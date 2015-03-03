@@ -179,7 +179,7 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
 #   }
   
   #280412
-#  known_SNPs = known_SNPs[known_SNPs[,5]=="SNP",]
+  known_SNPs = known_SNPs[known_SNPs[,5]=="SNP",]
   
   #if(chr==23){
   #	known_SNPs<-read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL.chrX.phase1.legend",sep=""),sep=" ",header=T,stringsAsFactors=F)
@@ -190,8 +190,8 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
   #make sure all bases are repesented as factors, in the correct order
   #known_SNPs$allele0=factor(known_SNPs$allele0,levels=c("A","C","G","T"))
   #known_SNPs$allele1=factor(known_SNPs$allele1,levels=c("A","C","G","T"))
-#  known_SNPs[,3]=factor(known_SNPs[,3],levels=c("A","C","G","T"))
-#  known_SNPs[,4]=factor(known_SNPs[,4],levels=c("A","C","G","T"))
+  known_SNPs[,3]=factor(known_SNPs[,3],levels=c("A","C","G","T"))
+  known_SNPs[,4]=factor(known_SNPs[,4],levels=c("A","C","G","T"))
 #   chr_name=chrom
 #   if(chr_name=="23")
 #   {
