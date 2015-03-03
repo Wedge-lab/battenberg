@@ -148,7 +148,7 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
   
   # Read in the 1000 genomes reference file paths for the specified chrom
   impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
-  chr_names = unique(impute.info$chrom)
+  #chr_names = unique(impute.info$chrom)
   
   #print(paste("GenerateImputeInput is.male? ", is.male,sep=""))
   #print(paste("GenerateImputeInput #impute files? ", nrow(impute.info),sep=""))
