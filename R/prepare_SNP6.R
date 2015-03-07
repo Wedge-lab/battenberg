@@ -115,31 +115,37 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
 
   # Make sure the right column names are added here, because these are expected by fitcopynumber
   colnames(ascat.bc$SNPpos) = c("Chromosome", "Position")
-  
-  select = which(!is.na(ascat.bc$Tumor_BAF))
-  dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_LogR, 4))
-  dat = dat[select,]
-  write.table(dat, file=outfile.tumor.LogR, row.names=T, quote=F, sep="\t")
-  
-  dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_BAF, 4))
-  dat = dat[select,]
-  write.table(dat, file=outfile.tumor.BAF, row.names=T, quote=F, sep="\t")
-  
-  # Save the probe ids plus their BAF
-  dat = cbind(row.names(ascat.bc$SNPpos), ascat.bc$Tumor_BAF)
-  dat = dat[select,]
-  #write.table(dat, file=paste(samplename, "_probeBAF.txt", sep=""), row.names=F, quote=F, col.names=F, sep="\t")
-  write.table(dat, file=outfile.probeBAF, row.names=F, quote=F, col.names=F, sep="\t")
-  
-  # Drop SNPs with BAF between 0.3-0.7 from normal
-  select = which(!(ascat.bc$Germline_BAF >= 0.3 & ascat.bc$Germline_BAF <= 0.7))
+
+
+# Determine SNPs with BAF between 0.3-0.7 from normal => these are supposed to be heterozygous
+  is.het = (ascat.bc$Germline_BAF >= 0.3 & ascat.bc$Germline_BAF <= 0.7)
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_LogR, 4))
-  dat = dat[select,]
+  dat = dat[which(is.het),]
+  colnames(dat) = c("Chromosome", "Position", samplename)
   write.table(dat, file=outfile.normal.LogR, row.names=T, quote=F, sep="\t")
-  
+
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_BAF, 4))
-  dat = dat[select,]
+  dat = dat[which(is.het),]
+  colnames(dat) = c("Chromosome", "Position", samplename)
   write.table(dat, file=outfile.normal.BAF, row.names=T, quote=F, sep="\t")
+
+  # Save the probe ids plus their BAF for only the germline heterozygous mutations
+  select = !is.na(ascat.bc$Tumor_BAF)
+  dat = cbind(row.names(ascat.bc$SNPpos), ascat.bc$Tumor_BAF)
+  dat = dat[which(select & is.het),]
+  write.table(dat, file=outfile.probeBAF, row.names=F, quote=F, col.names=F, sep="\t")
+
+  dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_BAF, 4))
+  dat = dat[which(select),]
+  colnames(dat) = c("Chromosome", "Position", samplename)
+  write.table(dat, file=outfile.tumor.BAF, row.names=T, quote=F, sep="\t")
+
+  # Save tumour BAF and LogR directly. Include homozygous SNPs here.
+  select = !is.na(ascat.bc$Tumor_LogR)
+  dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_LogR, 4))
+  dat = dat[which(select),]
+  colnames(dat) = c("Chromosome", "Position", samplename)
+  write.table(dat, file=outfile.tumor.LogR, row.names=T, quote=F, sep="\t")
 }
 
 #' Prepares data for impute
