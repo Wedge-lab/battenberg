@@ -91,15 +91,15 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   Normal_LogR = round(Normal_LogR,4)
   
   #write.table(cbind(SNPpos,Tumor_BAF), paste(output_file_prefix, ".tumour.BAF.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Tumor_BAF), outfile.tumor.BAF, sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Tumor_BAF), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
   #write.table(cbind(SNPpos,Normal_BAF), paste(output_file_prefix, ".normal.BAF.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Normal_BAF), outfile.normal.BAF, sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Normal_BAF), paste(outfile.normal.BAF, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
   
   # read into ASCAT and make GC corrected input:
   #write.table(cbind(SNPpos,Tumor_LogR), paste(output_file_prefix, ".tumour.LogR.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Tumor_LogR), outfile.tumor.LogR, sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Tumor_LogR), paste(outfile.tumor.LogR, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
   #write.table(cbind(SNPpos,Normal_LogR), paste(output_file_prefix, ".normal.LogR.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Normal_LogR), outfile.normal.LogR, sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Normal_LogR), paste(outfile.normal.LogR, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
   
   # ======================================= above previous prepareGCcorrect, below runGCcorrect ==============================================
   
@@ -116,11 +116,11 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   select = which(!is.na(ascat.bc$Tumor_BAF))
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_LogR, 4))
   dat = dat[select,]
-  write.table(dat, file=paste(outfile.tumor.LogR, ".GCcorr.txt", sep=""), row.names=T, quote=F, sep="\t")
+  write.table(dat, file=outfile.tumor.LogR, row.names=T, quote=F, sep="\t")
   
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_BAF, 4))
   dat = dat[select,]
-  write.table(dat, file=paste(outfile.tumor.BAF, ".GCcorr.txt", sep=""), row.names=T, quote=F, sep="\t")
+  write.table(dat, file=outfile.tumor.BAF, row.names=T, quote=F, sep="\t")
   
   # Save the probe ids plus their BAF
   dat = cbind(row.names(ascat.bc$SNPpos), ascat.bc$Tumor_BAF)
@@ -132,11 +132,11 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   select = which(!(ascat.bc$Germline_BAF >= 0.3 & ascat.bc$Germline_BAF <= 0.7))
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_LogR, 4))
   dat = dat[select,]
-  write.table(dat, file=paste(outfile.normal.LogR, ".cleaned.txt", sep=""), row.names=T, quote=F, sep="\t")
+  write.table(dat, file=outfile.normal.LogR, sep=""), row.names=T, quote=F, sep="\t")
   
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_BAF, 4))
   dat = dat[select,]
-  write.table(dat, file=paste(outfile.normal.BAF, ".cleaned.txt", sep=""), row.names=T, quote=F, sep="\t")
+  write.table(dat, file=outfile.normal.BAF, row.names=T, quote=F, sep="\t")
 }
 
 #' Prepares data for impute
