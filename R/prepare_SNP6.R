@@ -132,7 +132,7 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   select = which(!(ascat.bc$Germline_BAF >= 0.3 & ascat.bc$Germline_BAF <= 0.7))
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_LogR, 4))
   dat = dat[select,]
-  write.table(dat, file=outfile.normal.LogR, sep=""), row.names=T, quote=F, sep="\t")
+  write.table(dat, file=outfile.normal.LogR, row.names=T, quote=F, sep="\t")
   
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_BAF, 4))
   dat = dat[select,]
