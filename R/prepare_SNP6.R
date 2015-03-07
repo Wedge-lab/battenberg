@@ -45,7 +45,7 @@ cel2baf.logr = function(normal_cel_file, tumour_cel_file, output_file, snp6_refe
 
 #' Correct the BAF and LogR estimates for GC content
 #'
-gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.tumor.BAF, outfile.normal.LogR, outfile.normal.BAF, outfile.probeBAF, snp6_reference_info_file, birdseed_report_file="birdseed.report.txt") {
+gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.tumor.BAF, outfile.normal.LogR, outfile.normal.BAF, outfile.probeBAF, snp6_reference_info_file, chr_names, birdseed_report_file="birdseed.report.txt") {
   # Read in needed reference files
   ref.files = parseSNP6refFile(snp6_reference_info_file)
   SNP_POS_REF = ref.files[ref.files$variable == "SNP_POS",]$reference_file
@@ -110,7 +110,7 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   sex[sex == "male"] <- "XY"
   sex[sex == "unknown"] <- NA
   
-  ascat.bc <- ascat.loadData(outfile.tumor.LogR, outfile.tumor.BAF, outfile.normal.LogR, outfile.normal.BAF, chrs=c(1:22, "X"), gender=sex)
+  ascat.bc <- ascat.loadData(paste(outfile.tumor.LogR, "_noGCcorr.txt", sep=""), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep=""),paste(outfile.normal.LogR, "_noGCcorr.txt", sep=""), paste(outfile.normal.BAF, "_noGCcorr.txt", sep=""), chrs=chr_names, gender=sex)
   ascat.bc <- ascat.GCcorrect(ascat.bc, GC_SNP6)
 
   # Make sure the right column names are added here, because these are expected by fitcopynumber
