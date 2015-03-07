@@ -10,6 +10,8 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   segmented.BAF.data = read.table(inputfile.baf.segmented, sep="\t", header=F, stringsAsFactors=F, skip=1, row.names=1)
   raw.BAF.data = read.table(inputfile.baf, sep="\t", header=T, stringsAsFactors=F)
   raw.logR.data = read.table(inputfile.logr, sep="\t", header=T, stringsAsFactors=F)
+
+  # TODO: strip row names from the input files and check for column names Chromosome, and Position
   
   # Drop NAs
   raw.BAF.data = raw.BAF.data[!is.na(raw.BAF.data[,3]),]

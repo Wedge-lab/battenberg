@@ -112,6 +112,9 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   
   ascat.bc <- ascat.loadData(outfile.tumor.LogR, outfile.tumor.BAF, outfile.normal.LogR, outfile.normal.BAF, chrs=c(1:22, "X"), gender=sex)
   ascat.bc <- ascat.GCcorrect(ascat.bc, GC_SNP6)
+
+  # Make sure the right column names are added here, because these are expected by fitcopynumber
+  colnames(ascat.bc$SNPpos) = c("Chromosome", "Position")
   
   select = which(!is.na(ascat.bc$Tumor_BAF))
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_LogR, 4))
