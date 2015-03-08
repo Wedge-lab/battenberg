@@ -37,6 +37,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     # Skip the rest if there is no data for this chromosome
     if(nrow(chr.BAF.data)==0){ next }
     # Match segments with chromosome position
+    # TODO: Make sure there are column names for this file at the output of segmentation
     chr.segmented.BAF.data = segmented.BAF.data[segmented.BAF.data[,1]==chr,]
     indices = match(chr.segmented.BAF.data[,2],chr.BAF.data$Position )
     
