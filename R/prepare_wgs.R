@@ -129,7 +129,7 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
                   SNPpos=tumor.LogR[,1:2], chrs=chr_names, samples=c(samplename), chrom=split_genome(tumor.LogR[,1:2]),
                   ch=ch)
   # TODO: On PD7422a this produces different plots than before (see streak on chrom 14)
-  ascat.plotRawData(ascat.bc, parentDir=figuresFile.prefix)
+  ascat.plotRawData(ascat.bc) #, parentDir=figuresFile.prefix)
 }
 
 #' Prepare data for impute
