@@ -90,9 +90,18 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
 
   # Filter out those SNPs that have less than minCounts reads
   min_indices = denom>=minCounts
+  print(dim(filtered_snp_data))
+  
   filtered_snp_data = filtered_snp_data[min_indices,]
-  #denom = denom[min_indices]
-  #alt.count = alt.count[min_indices]
+  
+  print(dim(filtered_snp_data))
+  print(dim(denom))
+  
+  denom = denom[min_indices]
+  print(dim(denom))
+  print(dim(alt.count))
+  alt.count = alt.count[min_indices]
+  print(dim(alt.count))
   
   # Save all to disk
   hetMutBAFs = cbind(chr_name,filtered_snp_data[,2],alt.count/denom)
