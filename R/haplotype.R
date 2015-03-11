@@ -95,13 +95,13 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
   filtered_snp_data = filtered_snp_data[min_indices,]
   
   print(dim(filtered_snp_data))
-  print(dim(denom))
+  print(length(denom))
   
   denom = denom[min_indices]
-  print(dim(denom))
-  print(dim(alt.count))
+  print(length(denom))
+  print(length(alt.count))
   alt.count = alt.count[min_indices]
-  print(dim(alt.count))
+  print(length(alt.count))
   
   # Save all to disk
   hetMutBAFs = cbind(chr_name,filtered_snp_data[,2],alt.count/denom)
