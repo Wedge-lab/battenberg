@@ -309,16 +309,13 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     dev.off()
   }
   
-  plot.gw.subclonal.cn(subclones=subcloneres, BAFvals=BAFvals, rho=rho, psi=psi, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix)
+  plot.gw.subclonal.cn(subclones=as.data.frame(subcloneres), BAFvals=BAFvals, rho=rho, psi=psi, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix)
 
 }
 
 #' Plot the copy number genome wide in two different ways
 #' @noRd
 plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.gw.figures.prefix) {
-  print(head(subclones))
-  print(head(BAFvals))
-  
   # Map start and end of each segment into the BAF values. The plot uses the index of this BAF table as x-axis
   pos_min = array(NA, nrow(subclones))
   pos_max = array(NA, nrow(subclones))
