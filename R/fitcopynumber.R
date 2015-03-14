@@ -108,45 +108,16 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 
 #' This function fits a subclonal copy number profile where a clonal profile is unlikely.
 #'
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, chr_names, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000) {
-  #impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
-  #chr_names=unique(impute.info$chrom)
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000) {
   
-  #   #rho_psi_info = read.table(paste(start.file,"_rho_and_psi.txt",sep=""),header=T,sep="\t",stringsAsFactors=F)
-  #   rho_psi_info = read.table(rho.psi.file, header=T, sep="\t", stringsAsFactors=F)
-  #   
-  #   #rho = rho_psi_info$rho[which(rho_psi_info$is.best)] # rho = tumour percentage (called tp in previous versions)
-  #   #psit = rho_psi_info$psi[which(rho_psi_info$is.best)] # psi of tumour cells
-  #   #always use best solution from grid search - reference segment sometimes gives strange results
-  #   rho = rho_psi_info$rho[rownames(rho_psi_info)=="FRAC_GENOME"] # rho = tumour percentage (called tp in previous versions)
-  #   psit = rho_psi_info$psi[rownames(rho_psi_info)=="FRAC_GENOME"] # psi of tumour cells
-  
+  # Load rho/psi/goodness of fit
   res = load.rho.psi.file(rho.psi.file)
   rho = res$rho
   psit = res$psit
-  
   psi = rho*psit + 2 * (1-rho) # psi of all cells
-  
-  #   #gamma is the shrinkage parameter for a particular platform
-  #   gamma=1
-  
-  #   #segmentation.gamma is the gamma used in PCF
-  #   segmentation.gamma=NA
-  #   if(length(args)>=5){
-  #     segmentation.gamma = as.integer(args[5])
-  #     print(paste("segmentation.gamma=",segmentation.gamma,sep=""))
-  #     if(length(args)>=6){
-  #       gamma = as.numeric(args[6])
-  #       print(paste("platform gamma=",gamma,sep=""))
-  #     }
-  #   }
-  
-  #   siglevel = 0.05
-  #   maxdist = 0.01
-  #   noperms = 1000
+  goodness = res$goodness
   
   # Load the BAF segmented data
-  #   BAFvals = read.table(paste(start.file,".BAFsegmented.txt",sep=""),sep="\t",header=T, row.names=1)
   BAFvals = read.table(baf.segmented.file, sep="\t", header=T, row.names=1)
   BAF = BAFvals[,3]
   names(BAF)=rownames(BAFvals)
@@ -158,9 +129,6 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # Save SNP positions separately
   SNPpos = BAFvals[,c(1,2)]
   
-  #   #assume filename ends with mutantLogR.tab
-  #   LogRfile = paste(start.file,"_mutantLogR.tab",sep="")
-  #   LogRvals = read.table(LogRfile,sep="\t", header=T, row.names=1)
   # Load the raw LogR data
   LogRvals = read.table(logr.file,sep="\t", header=T)
   
@@ -169,7 +137,6 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ctrans.logR = c(1:length(chr_names))
   names(ctrans.logR)=chr_names
   
-  #note the as.vector to avoid problems
   LogRpos = as.vector(ctrans.logR[as.vector(LogRvals[,1])]*1000000000+LogRvals[,2])
   names(LogRpos) = rownames(LogRvals)
   BAFpos = as.vector(ctrans[as.vector(BAFvals[,1])]*1000000000+BAFvals[,2])
@@ -186,34 +153,26 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   for (i in 1:length(BAFlevels)) {
     l = BAFlevels[i]
     
-    #280814 - make sure that BAF>=0.5, otherwise nMajor and nMinor may be the wrong way around
+    # Make sure that BAF>=0.5, otherwise nMajor and nMinor may be the wrong way around
     l=max(l,1-l)
     
-    #DCW 240314
     BAFke = BAFphased[(switchpoints[i]+1):switchpoints[i+1]]
     
     startpos = min(BAFpos[names(BAFke)])
     endpos = max(BAFpos[names(BAFke)])
     chrom = names(ctrans[floor(startpos/1000000000)])
     LogR = mean(LogRvals[LogRpos>=startpos&LogRpos<=endpos & !is.infinite(LogRvals[,3]),3],na.rm=T)
-    #if we don't have a value for LogR, fill in 0
+    # if we don't have a value for LogR, fill in 0
     if (is.na(LogR)) {
       LogR = 0
     }
     nMajor = (rho-1+l*psi*2^(LogR/gamma))/rho
     nMinor = (rho-1+(1-l)*psi*2^(LogR/gamma))/rho
     
-    # to make sure we're always in a positive square:
-    #if(nMajor < 0) {
-    #  nMajor = 0.01
-    #}
-    #if(nMinor < 0) {
-    #  nMinor = 0.01
-    #}
-    #DCW - increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
+    # Increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
     if(nMinor<0){
       if(l==1){
-        #avoid calling infinite copy number
+        # Avoid calling infinite copy number
         nMajor = 1000
       }else{
         nMajor = nMajor + l * (0.01 - nMinor) / (1-l)
@@ -221,24 +180,18 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
       nMinor = 0.01  	
     }
     
-    # note that these are sorted in the order of ascending BAF:
+    # Note that these are sorted in the order of ascending BAF:
     nMaj = c(floor(nMajor),ceiling(nMajor),floor(nMajor),ceiling(nMajor))
     nMin = c(ceiling(nMinor),ceiling(nMinor),floor(nMinor),floor(nMinor))
     x = floor(nMinor)
     y = floor(nMajor)
     
-    # total copy number, to determine priority options
+    # Total copy number, to determine priority options
     ntot = nMajor + nMinor
     
     levels = (1-rho+rho*nMaj)/(2-2*rho+rho*(nMaj+nMin))
-    #problem if rho=1 and nMaj=0 and nMin=0
+    # Problem if rho=1 and nMaj=0 and nMin=0
     levels[nMaj==0 & nMin==0] = 0.5
-    
-    #whichclosestlevel = which.min(abs(levels-l))
-    ## if 0.5 and there are multiple options, finetune, because a random option got chosen 
-    #if (levels[whichclosestlevel]==0.5 && levels[2]==0.5 && levels[3]==0.5) {
-    #  whichclosestlevel = ifelse(ntot>x+y+1,2,3)
-    #}  
     
     #DCW - just test corners on the nearest edge to determine clonality
     #If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
@@ -248,28 +201,25 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     test.levels = (1-rho+rho*nMaj.test)/(2-2*rho+rho*(nMaj.test+nMin.test))
     whichclosestlevel.test = which.min(abs(test.levels-l))
     
-    #270713 - problem caused by segments with constant BAF (usually 1 or 2)
-    if(sd(BAFke)==0){
-      pval[i]=0
-    }else{
-      #pval[i] = t.test(BAFke,alternative="two.sided",mu=levels[whichclosestlevel])$p.value
-      pval[i] = t.test(BAFke,alternative="two.sided",mu=test.levels[whichclosestlevel.test])$p.value
+    # Test whether a segment should be subclonal
+    if (sd(BAFke)==0) {
+      pval[i] = 0 # problem caused by segments with constant BAF (usually 1 or 2)
+    } else {
+      pval[i] = t.test(BAFke, alternative="two.sided", mu=test.levels[whichclosestlevel.test])$p.value
     }
-    #if(min(abs(l-levels))<maxdist) {
-    #if(min(abs(l-test.levels))<maxdist) {
-    if(abs(l-test.levels[whichclosestlevel.test])<maxdist) {  
-      pval[i]=1
+    if (abs(l-test.levels[whichclosestlevel.test])<maxdist) {  
+      pval[i] = 1
     }
     
     #BAFpvals[BAFseg==l]=pval[i]
     #DCW 240314
     BAFpvals[(switchpoints[i]+1):switchpoints[i+1]]=pval[i]
     
-    # if the difference is significant, call subclone level
+    # If the difference is significant, call subclonal level
     if(pval[i] <= siglevel) {
       
       all.edges = orderEdges(levels, l, ntot,x,y)
-      #switch order, so that negative copy numbers are at the end
+      # Switch order, so that negative copy numbers are at the end
       na.indices = which(is.na(rowSums(all.edges)))
       if(length(na.indices)>0){
         all.edges = rbind(all.edges[-na.indices,],all.edges[na.indices,])
@@ -331,25 +281,14 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
                               "nMaj1_F","nMin1_F","frac1_F","nMaj2_F","nMin2_F","frac2_F","SDfrac_F","SDfrac_F_BS","frac1_F_0.025","frac1_F_0.975")
   }
   
-  #write.table(subcloneres,paste(start.file,"_subclones.txt",sep=""),quote=F,col.names=NA,row.names=T,sep="\t")
-  write.table(subcloneres,output.file, quote=F, col.names=NA, row.names=T, sep="\t")
-  
-  #DCW 211012
-  #   sample.name = strsplit(start.file,"/")
-  #   sample.name = sample.name[[1]][length(sample.name[[1]])]
-  #   sample.name = gsub("_","",sample.name)
-  
+  write.table(subcloneres, output.file, quote=F, col.names=NA, row.names=T, sep="\t")
+
+  # Create a plot per chromosome that shows the segments with their CN state in text
   for (chr in chr_names) {
-    pos = SNPpos[SNPpos[,1]==chr,2]
+    pos = SNPpos[SNPpos[,1]==chr, 2]
     #if no points to plot, skip
-    if(length(pos)==0){next}
-    #     BAFchr = BAF[SNPpos[,1]==chr]
-    #     BAFsegchr = BAFseg[SNPpos[,1]==chr]
-    #     BAFpvalschr = BAFpvals[SNPpos[,1]==chr]
-    #     LogRchr = LogRvals[LogRvals[,1]==chr,3]
-    #     LogRposke = LogRvals[LogRvals[,1]==chr,2]
-    
-    #png(filename = paste(start.file,"_subclones_chr",chr,".png",sep=""), width = 2000, height = 2000, res = 200)
+    if (length(pos)==0) { next }
+
     png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200)
     create.subclonal.cn.plot(chrom=chr,
                              chrom.position=pos/1000000, 
@@ -366,28 +305,75 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
                              xlab="Position (Mb)", 
                              ylab.logr="LogR", 
                              ylab.baf="BAF (phased)")
-    
-    #     par(mar = c(2.5,2.5,2.5,0.25), cex = 0.4, cex.main=1.5, cex.axis = 1, cex.lab = 1, mfrow = c(2,1))
-    #     plot(c(min(pos)/1000000,max(pos)/1000000),c(-1,1),pch=".",type = "n", 
-    #          main = paste(sample.name,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "LogR")
-    #     points(LogRposke/1000000,LogRchr,pch=".",col="grey")
-    #     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
-    #          main = paste(sample.name,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
-    #     points(pos/1000000,BAFchr,pch=".",col="grey")
-    #     points(pos/1000000,BAFsegchr,pch=19,cex=0.5,col=ifelse(BAFpvalschr>siglevel,"darkgreen","red"))
-    #     points(pos/1000000,1-BAFsegchr,pch=19,cex=0.5,col=ifelse(BAFpvalschr>siglevel,"darkgreen","red"))
-    #     for (i in 1:dim(subcloneres)[1]) {
-    #       if(subcloneres[i,1]==chr) {
-    #         text((as.numeric(subcloneres[i,"startpos"])+as.numeric(subcloneres[i,"endpos"]))/2/1000000,as.numeric(subcloneres[i,"BAF"])-0.04,
-    #              paste(subcloneres[i,"nMaj1_A"],"+",subcloneres[i,"nMin1_A"],": ",100*round(as.numeric(subcloneres[i,"frac1_A"]),3),"%",sep=""),cex = 0.8)
-    #         if(!is.na(subcloneres[i,"nMaj2_A"])) {
-    #           text((as.numeric(subcloneres[i,"startpos"])+as.numeric(subcloneres[i,"endpos"]))/2/1000000,as.numeric(subcloneres[i,"BAF"])-0.08,
-    #                paste(subcloneres[i,"nMaj2_A"],"+",subcloneres[i,"nMin2_A"],": ",100*round(as.numeric(subcloneres[i,"frac2_A"]),3),"%",sep=""), cex = 0.8)
-    #         }
-    #       }
-    #     }
     dev.off()
   }
+  
+  plot.gw.subclonal.cn(subclones=subcloneres, BAFvals=BAFvals, rho=rho, psi=psi, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix)
+
+}
+
+#' Plot the copy number genome wide in two different ways
+#' @noRd
+plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.gw.figures.prefix) {
+  # Map start and end of each segment into the BAF values. The plot uses the index of this BAF table as x-axis
+  pos_min = array(NA, nrow(subclones))
+  pos_max = array(NA, nrow(subclones))
+  for (i in 1:nrow(subclones)) {
+    segm_chr = subclones$chr[i] == BAFvals$Chromosome & subclones$startpos[i] < BAFvals$Position & subclones$endpos[i] >= BAFvals$Position
+    pos_min[i] = min(which(segm_chr))
+    pos_max[i] = max(which(segm_chr))
+  }
+  
+  # For those segments that are subclonal, Obtain the second state.
+  is_subclonal = which(subclones$frac1_A < 1)
+  subcl_min = array(NA, length(is_subclonal))
+  subcl_max = array(NA, length(is_subclonal))
+  for (i in 1:length(is_subclonal)) {
+    segment_index = is_subclonal[i]
+    segm_chr = subclones$chr[segment_index] == BAFvals$Chromosome & subclones$startpos[segment_index] < BAFvals$Position & subclones$endpos[segment_index] >= BAFvals$Position
+    subcl_min[i] = min(which(segm_chr))
+    subcl_max[i] = max(which(segm_chr))
+  }
+  
+  # Determine whether it's the major or the minor allele that is represented by two states
+  is_subclonal_maj = abs(subclones$nMaj1_A - subclones$nMaj2_A) > 0
+  is_subclonal_min = abs(subclones$nMin1_A - subclones$nMin2_A) > 0
+  is_subclonal_maj[is.na(is_subclonal_maj)] = F
+  is_subclonal_min[is.na(is_subclonal_min)] = F
+  
+  # BB represents subclonal CN as a mixture of two CN states. Calculate this mixture for both minor allele and total CN.
+  segment_states_min = subclones$nMin1_A * ifelse(is_subclonal_min, subclones$frac1_A, 1)  + ifelse(is_subclonal_min, subclones$nMin2_A, 0) * ifelse(is_subclonal_min, subclones$frac2_A, 0) 
+  segment_states_tot = (subclones$nMaj1_A+subclones$nMin1_A) * ifelse(is_subclonal_maj, subclones$frac1_A, 1) + ifelse(is_subclonal_maj, subclones$nMaj2_A+subclones$nMin2_A, 0) * ifelse(is_subclonal_maj, subclones$frac2_A, 0) 
+  
+  # Determine which SNPs are on which chromosome, to be used as a proxy for chromosome size in the plots
+  chr.segs = lapply(1:length(chr.names), function(ch) { which(bafsegmented$Chromosome==chr.names[ch]) })
+  
+  # Plot subclonal copy number as mixtures of two states
+  png(filename = paste(output.gw.figures.prefix, "_mixture.png", sep=""), width = 2000, height = 500, res = 200)
+  create.gw.cn.plot.mixture(bafsegmented=BAFvals, 
+                            ploidy=psi, 
+                            rho=rho, 
+                            goodnessOfFit=goodness, 
+                            pos_min=pos_min, 
+                            pos_max=pos_max, 
+                            segment_states_min=segment_states_min, 
+                            segment_states_tot=segment_states_tot, 
+                            chr.segs=chr.segs)
+  dev.off()
+  
+  # Plot subclonal copy number as two separate states
+  png(filename = paste(output.gw.figures.prefix, "_separate.png", sep=""), width = 2000, height = 500, res = 200)
+  create.gw.cn.plot.separate(bafsegmented=BAFvals, 
+                             subclones=subclones,
+                             ploidy=psi, 
+                             rho=rho, 
+                             goodnessOfFit=goodness, 
+                             pos_min=pos_min, 
+                             pos_max=pos_max, 
+                             subcl_min=subcl_min, 
+                             subcl_max=subcl_max, 
+                             is_subclonal=is_subclonal)
+  dev.off()
 }
 
 #' Load the rho and psi estimates that were earlier written to file.
@@ -397,5 +383,6 @@ load.rho.psi.file = function(rho.psi.file) {
   # Always use best solution from grid search - reference segment sometimes gives strange results
   rho = rho_psi_info$rho[rownames(rho_psi_info)=="FRAC_GENOME"] # rho = tumour percentage (called tp in previous versions)
   psit = rho_psi_info$psi[rownames(rho_psi_info)=="FRAC_GENOME"] # psi of tumour cells
-  return(list(rho=rho, psit=psit))
+  goodness = rho_psi_info$distance[rownames(rho_psi_info)=="FRAC_GENOME"] # goodness of fit
+  return(list(rho=rho, psit=psit, goodness=goodness))
 }
