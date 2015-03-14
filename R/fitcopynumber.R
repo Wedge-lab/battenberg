@@ -233,12 +233,12 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
       sdl = sd(BAFke,na.rm=T)/sqrt(sum(!is.na(BAFke)))
       sdtau = abs((1 - rho + rho * nMaj2 - 2 * (l+sdl) * (1 - rho) - (l+sdl) * rho * (nMin2 + nMaj2)) / ((l+sdl) * rho * (nMin1 + nMaj1) - (l+sdl) * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2) - tau) / 2 +
         abs((1 - rho + rho * nMaj2 - 2 * (l-sdl) * (1 - rho) - (l-sdl) * rho * (nMin2 + nMaj2)) / ((l-sdl) * rho * (nMin1 + nMaj1) - (l-sdl) * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2) - tau) / 2
-      
+
+      # Bootstrapping to obtain 95% confidense intervals
       sdtaubootstrap = vector(length=length(tau),mode="numeric")
       tau25 = vector(length=length(tau),mode="numeric")
       tau975 = vector(length=length(tau),mode="numeric")
       
-      #bootstrapping, adapted from David Wedge
       for (option in 1:length(tau)) {
         nMaj1o = nMaj1[option]
         nMin1o = nMin1[option]
@@ -272,14 +272,15 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
                                         nMaj.test[whichclosestlevel.test],nMin.test[whichclosestlevel.test],1,rep(NA,57)))
       
     }
-    colnames(subcloneres) = c("chr","startpos","endpos","BAF","pval","LogR","ntot",
-                              "nMaj1_A","nMin1_A","frac1_A","nMaj2_A","nMin2_A","frac2_A","SDfrac_A","SDfrac_A_BS","frac1_A_0.025","frac1_A_0.975",
-                              "nMaj1_B","nMin1_B","frac1_B","nMaj2_B","nMin2_B","frac2_B","SDfrac_B","SDfrac_B_BS","frac1_B_0.025","frac1_B_0.975",
-                              "nMaj1_C","nMin1_C","frac1_C","nMaj2_C","nMin2_C","frac2_C","SDfrac_C","SDfrac_C_BS","frac1_C_0.025","frac1_C_0.975",
-                              "nMaj1_D","nMin1_D","frac1_D","nMaj2_D","nMin2_D","frac2_D","SDfrac_D","SDfrac_D_BS","frac1_D_0.025","frac1_D_0.975",
-                              "nMaj1_E","nMin1_E","frac1_E","nMaj2_E","nMin2_E","frac2_E","SDfrac_E","SDfrac_E_BS","frac1_E_0.025","frac1_E_0.975",
-                              "nMaj1_F","nMin1_F","frac1_F","nMaj2_F","nMin2_F","frac2_F","SDfrac_F","SDfrac_F_BS","frac1_F_0.025","frac1_F_0.975")
   }
+
+  colnames(subcloneres) = c("chr","startpos","endpos","BAF","pval","LogR","ntot",
+                            "nMaj1_A","nMin1_A","frac1_A","nMaj2_A","nMin2_A","frac2_A","SDfrac_A","SDfrac_A_BS","frac1_A_0.025","frac1_A_0.975",
+                            "nMaj1_B","nMin1_B","frac1_B","nMaj2_B","nMin2_B","frac2_B","SDfrac_B","SDfrac_B_BS","frac1_B_0.025","frac1_B_0.975",
+                            "nMaj1_C","nMin1_C","frac1_C","nMaj2_C","nMin2_C","frac2_C","SDfrac_C","SDfrac_C_BS","frac1_C_0.025","frac1_C_0.975",
+                            "nMaj1_D","nMin1_D","frac1_D","nMaj2_D","nMin2_D","frac2_D","SDfrac_D","SDfrac_D_BS","frac1_D_0.025","frac1_D_0.975",
+                            "nMaj1_E","nMin1_E","frac1_E","nMaj2_E","nMin2_E","frac2_E","SDfrac_E","SDfrac_E_BS","frac1_E_0.025","frac1_E_0.975",
+                            "nMaj1_F","nMin1_F","frac1_F","nMaj2_F","nMin2_F","frac2_F","SDfrac_F","SDfrac_F_BS","frac1_F_0.025","frac1_F_0.975")
   
   write.table(subcloneres, output.file, quote=F, col.names=NA, row.names=T, sep="\t")
 
@@ -315,6 +316,9 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
 #' Plot the copy number genome wide in two different ways
 #' @noRd
 plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.gw.figures.prefix) {
+  print(head(subclones))
+  print(head(BAFvals))
+  
   # Map start and end of each segment into the BAF values. The plot uses the index of this BAF table as x-axis
   pos_min = array(NA, nrow(subclones))
   pos_max = array(NA, nrow(subclones))
