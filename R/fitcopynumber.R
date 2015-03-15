@@ -351,7 +351,7 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.g
   
   # Plot subclonal copy number as mixtures of two states
   png(filename = paste(output.gw.figures.prefix, "_mixture.png", sep=""), width = 2000, height = 500, res = 200)
-  create.gw.cn.plot.mixture(bafsegmented=BAFvals, 
+  create.bb.plot.average(bafsegmented=BAFvals, 
                             ploidy=psi, 
                             rho=rho, 
                             goodnessOfFit=goodness, 
@@ -364,7 +364,7 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.g
   
   # Plot subclonal copy number as two separate states
   png(filename = paste(output.gw.figures.prefix, "_separate.png", sep=""), width = 2000, height = 500, res = 200)
-  create.gw.cn.plot.separate(bafsegmented=BAFvals, 
+  create.bb.plot.subclones(bafsegmented=BAFvals, 
                              subclones=subclones,
                              ploidy=psi, 
                              rho=rho, 
@@ -373,7 +373,9 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.g
                              pos_max=pos_max, 
                              subcl_min=subcl_min, 
                              subcl_max=subcl_max, 
-                             is_subclonal=is_subclonal)
+                             is_subclonal=is_subclonal,
+			     is_subclonal_maj=is_subclonal_maj,
+			     is_subclonal_min=is_subclonal_min)
   dev.off()
 }
 
