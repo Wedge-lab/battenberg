@@ -350,7 +350,7 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.g
   chr.segs = lapply(1:length(chr.names), function(ch) { which(BAFvals$Chromosome==chr.names[ch]) })
   
   # Plot subclonal copy number as mixtures of two states
-  png(filename = paste(output.gw.figures.prefix, "_mixture.png", sep=""), width = 2000, height = 500, res = 200)
+  png(filename = paste(output.gw.figures.prefix, "_average.png", sep=""), width = 2000, height = 500, res = 200)
   create.bb.plot.average(bafsegmented=BAFvals, 
                             ploidy=psi, 
                             rho=rho, 
@@ -363,7 +363,7 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.g
   dev.off()
   
   # Plot subclonal copy number as two separate states
-  png(filename = paste(output.gw.figures.prefix, "_separate.png", sep=""), width = 2000, height = 500, res = 200)
+  png(filename = paste(output.gw.figures.prefix, "_subclones.png", sep=""), width = 2000, height = 500, res = 200)
   create.bb.plot.subclones(bafsegmented=BAFvals, 
                              subclones=subclones,
                              ploidy=psi, 
