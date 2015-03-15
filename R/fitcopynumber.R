@@ -347,7 +347,7 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.g
   segment_states_tot = (subclones$nMaj1_A+subclones$nMin1_A) * ifelse(is_subclonal_maj, subclones$frac1_A, 1) + ifelse(is_subclonal_maj, subclones$nMaj2_A+subclones$nMin2_A, 0) * ifelse(is_subclonal_maj, subclones$frac2_A, 0) 
   
   # Determine which SNPs are on which chromosome, to be used as a proxy for chromosome size in the plots
-  chr.segs = lapply(1:length(chr.names), function(ch) { which(bafsegmented$Chromosome==chr.names[ch]) })
+  chr.segs = lapply(1:length(chr.names), function(ch) { which(BAFvals$Chromosome==chr.names[ch]) })
   
   # Plot subclonal copy number as mixtures of two states
   png(filename = paste(output.gw.figures.prefix, "_mixture.png", sep=""), width = 2000, height = 500, res = 200)
