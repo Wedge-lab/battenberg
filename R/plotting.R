@@ -86,7 +86,12 @@ create.bb.plot.average = function(bafsegmented, ploidy, rho, goodnessOfFit, pos_
 #' Make GW CN plot where subclonal CN is represented by two separate states
 #' @noRd
 create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodnessOfFit, pos_min, pos_max, subcl_min, subcl_max, is_subclonal, is_subclonal_maj, is_subclonal_min) {
-  print(head(subclones))
+
+  print(head(pos_min))
+  print(head(subclones$nMin1_A))
+  print(head(pos_max))
+  print(head(ubclones$nMin1_A))
+
   par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
   maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
   plot(c(1,nrow(bafsegmented)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
