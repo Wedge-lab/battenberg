@@ -72,7 +72,7 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
   
   # No matches found, save empty file and quit
   if(nrow(het_variant_data)==0){
-    write.table(array(NA,c(0,3)),outfile,sep="\t",col.names=c("Chromosome","Position",samplename),quote=F)		
+    write.table(array(NA,c(0,3)),outfile,sep="\t",col.names=c("Chromosome","Position",samplename),quote=F,row.names=F)		
     return()
   }
   print(filtered_snp_data[1:3,])
@@ -96,7 +96,7 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
   
   # Save all to disk
   hetMutBAFs = cbind(chr_name,filtered_snp_data[,2],alt.count/denom)
-  write.table(hetMutBAFs,outfile,sep="\t",row.names=paste("snp",1:nrow(hetMutBAFs),sep=""),col.names=c("Chromosome","Position",samplename),quote=F)
+  write.table(hetMutBAFs,outfile,sep="\t",row.names=F,col.names=c("Chromosome","Position",samplename),quote=F)
 }
 
 #' Plot haplotyped SNPs
@@ -238,5 +238,5 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
   }
   colnames(BAFoutput) = c("Chromosome","Position","BAF","BAFphased","BAFseg")
   #write.table(BAFoutput,paste(sample,".BAFsegmented.txt",sep=""),sep="\t",row.names=T,col.names=NA,quote=F)
-  write.table(BAFoutput, outputfile, sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(BAFoutput, outputfile, sep="\t", row.names=F, col.names=NA, quote=F)
 }

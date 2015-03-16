@@ -67,7 +67,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   row.names(segmented.logR.data) = row.names(matched.segmented.BAF.data)
   row.names(logR.data) = row.names(matched.segmented.BAF.data)
   
-  write.table(segmented.logR.data,paste(samplename,".logRsegmented.txt",sep=""),sep="\t",quote=F,col.names=F)
+  write.table(segmented.logR.data,paste(samplename,".logRsegmented.txt",sep=""),sep="\t",quote=F,col.names=F,row.names=F)
   
   segBAF = 1-matched.segmented.BAF.data[,5]
   segLogR = segmented.logR.data[,3]
@@ -118,7 +118,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   goodness = res$goodness
   
   # Load the BAF segmented data
-  BAFvals = read.table(baf.segmented.file, sep="\t", header=T, row.names=1)
+  BAFvals = read.table(baf.segmented.file, sep="\t", header=T, row.names=F)
   BAF = BAFvals[,3]
   names(BAF)=rownames(BAFvals)
   BAFphased = BAFvals[,4]
@@ -154,7 +154,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     l = BAFlevels[i]
     
     # Make sure that BAF>=0.5, otherwise nMajor and nMinor may be the wrong way around
-    l=max(l,1-l)
+    l = max(l,1-l)
     
     BAFke = BAFphased[(switchpoints[i]+1):switchpoints[i+1]]
     
@@ -170,19 +170,19 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     nMinor = (rho-1+(1-l)*psi*2^(LogR/gamma))/rho
     
     # Increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
-    if(nMinor<0){
-      if(l==1){
+    if (nMinor<0) {
+      if (l==1) {
         # Avoid calling infinite copy number
         nMajor = 1000
-      }else{
+      } else {
         nMajor = nMajor + l * (0.01 - nMinor) / (1-l)
       }
       nMinor = 0.01  	
     }
     
     # Note that these are sorted in the order of ascending BAF:
-    nMaj = c(floor(nMajor),ceiling(nMajor),floor(nMajor),ceiling(nMajor))
-    nMin = c(ceiling(nMinor),ceiling(nMinor),floor(nMinor),floor(nMinor))
+    nMaj = c(floor(nMajor), ceiling(nMajor), floor(nMajor), ceiling(nMajor))
+    nMin = c(ceiling(nMinor), ceiling(nMinor), floor(nMinor), floor(nMinor))
     x = floor(nMinor)
     y = floor(nMajor)
     
@@ -194,7 +194,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     levels[nMaj==0 & nMin==0] = 0.5
     
     #DCW - just test corners on the nearest edge to determine clonality
-    #If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
+    # If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
     all.edges = orderEdges(levels, l, ntot,x,y)
     nMaj.test = all.edges[1,c(1,3)]
     nMin.test = all.edges[1,c(2,4)]
@@ -211,18 +211,17 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
       pval[i] = 1
     }
     
-    #BAFpvals[BAFseg==l]=pval[i]
     #DCW 240314
-    BAFpvals[(switchpoints[i]+1):switchpoints[i+1]]=pval[i]
+    BAFpvals[(switchpoints[i]+1):switchpoints[i+1]] = pval[i]
     
     # If the difference is significant, call subclonal level
-    if(pval[i] <= siglevel) {
+    if (pval[i] <= siglevel) {
       
       all.edges = orderEdges(levels, l, ntot,x,y)
       # Switch order, so that negative copy numbers are at the end
       na.indices = which(is.na(rowSums(all.edges)))
-      if(length(na.indices)>0){
-        all.edges = rbind(all.edges[-na.indices,],all.edges[na.indices,])
+      if (length(na.indices)>0) {
+        all.edges = rbind(all.edges[-na.indices,], all.edges[na.indices,])
       }
       nMaj1 = all.edges[,1]
       nMin1 = all.edges[,2]
@@ -235,9 +234,9 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
         abs((1 - rho + rho * nMaj2 - 2 * (l-sdl) * (1 - rho) - (l-sdl) * rho * (nMin2 + nMaj2)) / ((l-sdl) * rho * (nMin1 + nMaj1) - (l-sdl) * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2) - tau) / 2
 
       # Bootstrapping to obtain 95% confidense intervals
-      sdtaubootstrap = vector(length=length(tau),mode="numeric")
-      tau25 = vector(length=length(tau),mode="numeric")
-      tau975 = vector(length=length(tau),mode="numeric")
+      sdtaubootstrap = vector(length=length(tau), mode="numeric")
+      tau25 = vector(length=length(tau), mode="numeric")
+      tau975 = vector(length=length(tau), mode="numeric")
       
       for (option in 1:length(tau)) {
         nMaj1o = nMaj1[option]
@@ -245,13 +244,13 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
         nMaj2o = nMaj2[option]
         nMin2o = nMin2[option]
         set.seed(as.integer(Sys.time()))
-        permFraction=vector(length=noperms,mode="numeric")
-        for(j in 1:noperms){
+        permFraction = vector(length=noperms,mode="numeric")
+        for (j in 1:noperms) {
           permBAFs=sample(BAFke,length(BAFke),replace=T)
           permMeanBAF=mean(permBAFs)
           permFraction[j] = (1 - rho + rho * nMaj2o - 2 * permMeanBAF * (1 - rho) - permMeanBAF * rho * (nMin2o + nMaj2o)) / (permMeanBAF * rho * (nMin1o + nMaj1o) - permMeanBAF * rho * (nMin2o + nMaj2o) - rho * nMaj1o + rho * nMaj2o)
         }
-        orderedFractions=sort(permFraction)
+        orderedFractions = sort(permFraction)
         sdtaubootstrap[option] = sd(permFraction)
         tau25[option] = orderedFractions[25]
         tau975[option] = orderedFractions[975]
@@ -282,7 +281,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
                             "nMaj1_E","nMin1_E","frac1_E","nMaj2_E","nMin2_E","frac2_E","SDfrac_E","SDfrac_E_BS","frac1_E_0.025","frac1_E_0.975",
                             "nMaj1_F","nMin1_F","frac1_F","nMaj2_F","nMin2_F","frac2_F","SDfrac_F","SDfrac_F_BS","frac1_F_0.025","frac1_F_0.975")
   
-  write.table(subcloneres, output.file, quote=F, col.names=NA, row.names=F, sep="\t")
+  write.table(subcloneres, output.file, quote=F, col.names=T, row.names=F, sep="\t")
 
   # Create a plot per chromosome that shows the segments with their CN state in text
   for (chr in chr_names) {

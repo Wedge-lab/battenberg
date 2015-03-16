@@ -30,8 +30,8 @@ concatenateBAFfiles<-function(inputStart, inputEnd, outputFile, no.chrs) {
       colNames<-names(data)
     }
   }
-  rnames=paste("snp",1:nrow(all_data),sep="")
-  write.table(all_data,outputFile, row.names=rnames, col.names=colNames, quote=F, sep="\t")
+  #rnames=paste("snp",1:nrow(all_data),sep="")
+  write.table(all_data,outputFile, row.names=F, col.names=colNames, quote=F, sep="\t")
 }
 
 #' Function to concatenate allele counter output
