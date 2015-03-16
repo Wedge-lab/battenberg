@@ -308,8 +308,11 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
                              ylab.baf="BAF (phased)")
     dev.off()
   }
-  
-  plot.gw.subclonal.cn(subclones=as.data.frame(subcloneres), BAFvals=BAFvals, rho=rho, psi=psi, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix, chr.names=chr_names)
+ 
+  # Cast columns back to numeric
+  subclones = as.data.frame(subcloneres)
+  subclones[,2:ncol(subclones)] = sapply(2:ncol(subclones), function(x) { as.numeric(as.character(subclones[,x])) })
+  plot.gw.subclonal.cn(subclones=subclones, BAFvals=BAFvals, rho=rho, psi=psi, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix, chr.names=chr_names)
 
 }
 
