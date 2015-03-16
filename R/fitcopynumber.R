@@ -282,7 +282,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
                             "nMaj1_E","nMin1_E","frac1_E","nMaj2_E","nMin2_E","frac2_E","SDfrac_E","SDfrac_E_BS","frac1_E_0.025","frac1_E_0.975",
                             "nMaj1_F","nMin1_F","frac1_F","nMaj2_F","nMin2_F","frac2_F","SDfrac_F","SDfrac_F_BS","frac1_F_0.025","frac1_F_0.975")
   
-  write.table(subcloneres, output.file, quote=F, col.names=NA, row.names=T, sep="\t")
+  write.table(subcloneres, output.file, quote=F, col.names=NA, row.names=F, sep="\t")
 
   # Create a plot per chromosome that shows the segments with their CN state in text
   for (chr in chr_names) {
@@ -378,7 +378,8 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.g
                              subcl_max=subcl_max, 
                              is_subclonal=is_subclonal,
 			     is_subclonal_maj=is_subclonal_maj,
-			     is_subclonal_min=is_subclonal_min)
+			     is_subclonal_min=is_subclonal_min,
+			     chr.segs=chr.segs)
   dev.off()
 }
 
