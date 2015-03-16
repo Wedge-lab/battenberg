@@ -7,7 +7,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   #   segmented.BAF.data = read.table(paste(samplename,".BAFsegmented.txt",sep=""),sep="\t",header=F,stringsAsFactors=F,skip=1,row.names=1)
   #   raw.BAF.data = read.table(paste(start.file,"mutantBAF.tab",sep=""),sep="\t",header=T,stringsAsFactors=F)
   #   raw.logR.data = read.table(paste(start.file,"mutantLogR.tab",sep=""),sep="\t",header=T,stringsAsFactors=F)
-  segmented.BAF.data = read.table(inputfile.baf.segmented, sep="\t", header=F, stringsAsFactors=F, skip=1, row.names=1)
+  segmented.BAF.data = read.table(inputfile.baf.segmented, sep="\t", header=F, stringsAsFactors=F, skip=1) #, row.names=1
   raw.BAF.data = read.table(inputfile.baf, sep="\t", header=T, stringsAsFactors=F)
   raw.logR.data = read.table(inputfile.logr, sep="\t", header=T, stringsAsFactors=F)
 
@@ -118,7 +118,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   goodness = res$goodness
   
   # Load the BAF segmented data
-  BAFvals = read.table(baf.segmented.file, sep="\t", header=T, row.names=F)
+  BAFvals = read.table(baf.segmented.file, sep="\t", header=T) #, row.names=F
   BAF = BAFvals[,3]
   names(BAF)=rownames(BAFvals)
   BAFphased = BAFvals[,4]
