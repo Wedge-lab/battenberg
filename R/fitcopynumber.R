@@ -118,42 +118,33 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   goodness = res$goodness
   
   # Load the BAF segmented data
-  BAFvals = read.table(baf.segmented.file, sep="\t", header=T) #, row.names=F
+  BAFvals = read.table(baf.segmented.file, sep="\t", header=T, stringsAsFactors=F) #, row.names=F
   if (colnames(BAFvals)[1] == "X") {
 	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
 	  BAFvals = BAFvals[,-1]
   }
 
-  print(head(BAFvals))
   BAF = BAFvals[,3]
-  #names(BAF)=rownames(BAFvals)
   BAFphased = BAFvals[,4]
-  #names(BAFphased)=rownames(BAFvals)
   BAFseg = BAFvals[,5]
-  #names(BAFseg)=rownames(BAFvals)
   
   # Save SNP positions separately
   SNPpos = BAFvals[,c(1,2)]
   
   # Load the raw LogR data
-  LogRvals = read.table(logr.file,sep="\t", header=T)
+  LogRvals = read.table(logr.file,sep="\t", header=T, stringsAsFactors=F)
   if (colnames(LogRvals)[1] == "X") {
 	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
 	  LogRvals = LogRvals[,-1]
   }
-  print(head(LogRvals))
   
   ctrans = c(1:length(chr_names))
   names(ctrans) = chr_names
   ctrans.logR = c(1:length(chr_names))
-  #names(ctrans.logR)=chr_names
+  names(ctrans.logR) = chr_names
   
   LogRpos = as.vector(ctrans.logR[as.vector(LogRvals[,1])]*1000000000+LogRvals[,2])
-  print(head(LogRpos))
-  #names(LogRpos) = rownames(LogRvals)
   BAFpos = as.vector(ctrans[as.vector(BAFvals[,1])]*1000000000+BAFvals[,2])
-  #names(BAFpos) = rownames(BAFvals)
-  print(head(BAFpos))
   
   #DCW 240314
   switchpoints = c(0,which(BAFseg[-1] != BAFseg[-(length(BAFseg))] | BAFvals[-1,1] != BAFvals[-nrow(BAFvals),1]),length(BAFseg))
@@ -166,8 +157,6 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   print(head(BAFvals))
   print(head(LogRvals))
 
-  print("Before for loop")
-  
   for (i in 1:length(BAFlevels)) {
     l = BAFlevels[i]
     
@@ -182,13 +171,6 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     endpos = max(BAFpos[(switchpoints[i]+1):switchpoints[i+1]])
     chrom = names(ctrans[floor(startpos/1000000000)])
     LogR = mean(LogRvals[LogRpos>=startpos&LogRpos<=endpos & !is.infinite(LogRvals[,3]),3],na.rm=T)
-    
-    print(head(BAFke))
-    print(startpos)
-    print(endpos)
-    print(head(LogR))
-    print(chrom)
-    
     
     # if we don't have a value for LogR, fill in 0
     if (is.na(LogR)) {
