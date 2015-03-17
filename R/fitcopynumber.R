@@ -149,9 +149,11 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   #names(ctrans.logR)=chr_names
   
   LogRpos = as.vector(ctrans.logR[as.vector(LogRvals[,1])]*1000000000+LogRvals[,2])
+  print(head(LogRpos))
   #names(LogRpos) = rownames(LogRvals)
   BAFpos = as.vector(ctrans[as.vector(BAFvals[,1])]*1000000000+BAFvals[,2])
   #names(BAFpos) = rownames(BAFvals)
+  print(head(BAFpos))
   
   #DCW 240314
   switchpoints = c(0,which(BAFseg[-1] != BAFseg[-(length(BAFseg))] | BAFvals[-1,1] != BAFvals[-nrow(BAFvals),1]),length(BAFseg))
