@@ -224,8 +224,6 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     #DCW 240314
     BAFpvals[(switchpoints[i]+1):switchpoints[i+1]] = pval[i]
     
-    print("Before if to fit second CN state")
-
     # If the difference is significant, call subclonal level
     if (pval[i] <= siglevel) {
       
