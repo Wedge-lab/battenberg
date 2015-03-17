@@ -243,7 +243,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
       sdtau = abs((1 - rho + rho * nMaj2 - 2 * (l+sdl) * (1 - rho) - (l+sdl) * rho * (nMin2 + nMaj2)) / ((l+sdl) * rho * (nMin1 + nMaj1) - (l+sdl) * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2) - tau) / 2 +
         abs((1 - rho + rho * nMaj2 - 2 * (l-sdl) * (1 - rho) - (l-sdl) * rho * (nMin2 + nMaj2)) / ((l-sdl) * rho * (nMin1 + nMaj1) - (l-sdl) * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2) - tau) / 2
 
-      # Bootstrapping to obtain 95% confidense intervals
+      # Bootstrapping to obtain 95% confidence intervals
       sdtaubootstrap = vector(length=length(tau), mode="numeric")
       tau25 = vector(length=length(tau), mode="numeric")
       tau975 = vector(length=length(tau), mode="numeric")
