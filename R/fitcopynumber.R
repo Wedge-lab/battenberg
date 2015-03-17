@@ -119,28 +119,30 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   
   # Load the BAF segmented data
   BAFvals = read.table(baf.segmented.file, sep="\t", header=T) #, row.names=F
+  print(head(BAFvals))
   BAF = BAFvals[,3]
-  names(BAF)=rownames(BAFvals)
+  #names(BAF)=rownames(BAFvals)
   BAFphased = BAFvals[,4]
-  names(BAFphased)=rownames(BAFvals)
+  #names(BAFphased)=rownames(BAFvals)
   BAFseg = BAFvals[,5]
-  names(BAFseg)=rownames(BAFvals)
+  #names(BAFseg)=rownames(BAFvals)
   
   # Save SNP positions separately
   SNPpos = BAFvals[,c(1,2)]
   
   # Load the raw LogR data
   LogRvals = read.table(logr.file,sep="\t", header=T)
+  print(head(LogRvals))
   
   ctrans = c(1:length(chr_names))
-  names(ctrans)=chr_names
+  #names(ctrans)=chr_names
   ctrans.logR = c(1:length(chr_names))
-  names(ctrans.logR)=chr_names
+  #names(ctrans.logR)=chr_names
   
   LogRpos = as.vector(ctrans.logR[as.vector(LogRvals[,1])]*1000000000+LogRvals[,2])
-  names(LogRpos) = rownames(LogRvals)
+  #names(LogRpos) = rownames(LogRvals)
   BAFpos = as.vector(ctrans[as.vector(BAFvals[,1])]*1000000000+BAFvals[,2])
-  names(BAFpos) = rownames(BAFvals)
+  #names(BAFpos) = rownames(BAFvals)
   
   #DCW 240314
   switchpoints = c(0,which(BAFseg[-1] != BAFseg[-(length(BAFseg))] | BAFvals[-1,1] != BAFvals[-nrow(BAFvals),1]),length(BAFseg))
