@@ -144,7 +144,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   print(head(LogRvals))
   
   ctrans = c(1:length(chr_names))
-  #names(ctrans)=chr_names
+  names(ctrans) = chr_names
   ctrans.logR = c(1:length(chr_names))
   #names(ctrans.logR)=chr_names
   
@@ -174,10 +174,20 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     
     BAFke = BAFphased[(switchpoints[i]+1):switchpoints[i+1]]
     
-    startpos = min(BAFpos[names(BAFke)])
-    endpos = max(BAFpos[names(BAFke)])
+    #startpos = min(BAFpos[names(BAFke)])
+    #endpos = max(BAFpos[names(BAFke)])
+    startpos = min(BAFpos[(switchpoints[i]+1):switchpoints[i+1]])
+    endpos = max(BAFpos[(switchpoints[i]+1):switchpoints[i+1]])
     chrom = names(ctrans[floor(startpos/1000000000)])
     LogR = mean(LogRvals[LogRpos>=startpos&LogRpos<=endpos & !is.infinite(LogRvals[,3]),3],na.rm=T)
+    
+    print(head(BAFke))
+    print(startpos)
+    print(endpos)
+    print(head(LogR))
+    print(chrom)
+    
+    
     # if we don't have a value for LogR, fill in 0
     if (is.na(LogR)) {
       LogR = 0
