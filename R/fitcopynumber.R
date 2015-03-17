@@ -149,6 +149,11 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   pval = NULL
   BAFpvals = vector(length=length(BAFseg))
   subcloneres = NULL
+
+  print(head(BAFvals))
+  print(head(LogRvals))
+
+  print("Before for loop")
   
   for (i in 1:length(BAFlevels)) {
     l = BAFlevels[i]
@@ -214,6 +219,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     #DCW 240314
     BAFpvals[(switchpoints[i]+1):switchpoints[i+1]] = pval[i]
     
+    print("Before if to fit second CN state")
+
     # If the difference is significant, call subclonal level
     if (pval[i] <= siglevel) {
       
