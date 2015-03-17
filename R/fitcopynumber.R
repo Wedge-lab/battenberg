@@ -119,6 +119,11 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   
   # Load the BAF segmented data
   BAFvals = read.table(baf.segmented.file, sep="\t", header=T) #, row.names=F
+  if (colnames(BAFvals)[1] == "X") {
+	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
+	  BAFvals = BAFvals[,-1]
+  }
+
   print(head(BAFvals))
   BAF = BAFvals[,3]
   #names(BAF)=rownames(BAFvals)
@@ -132,6 +137,10 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   
   # Load the raw LogR data
   LogRvals = read.table(logr.file,sep="\t", header=T)
+  if (colnames(LogRvals)[1] == "X") {
+	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
+	  LogRvals = LogRvals[,-1]
+  }
   print(head(LogRvals))
   
   ctrans = c(1:length(chr_names))
