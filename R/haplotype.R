@@ -238,5 +238,5 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
   }
   colnames(BAFoutput) = c("Chromosome","Position","BAF","BAFphased","BAFseg")
   #write.table(BAFoutput,paste(sample,".BAFsegmented.txt",sep=""),sep="\t",row.names=T,col.names=NA,quote=F)
-  write.table(BAFoutput, outputfile, sep="\t", row.names=F, col.names=NA, quote=F)
+  write.table(BAFoutput, outputfile, sep="\t", row.names=F, col.names=F, quote=F)
 }
