@@ -25,7 +25,7 @@ concatenateBAFfiles<-function(inputStart, inputEnd, outputFile, no.chrs) {
     filename = paste(inputStart,i,inputEnd,sep="")
     if(file.exists(filename) && file.info(filename)$size>0)
     {
-      data<-read.table(filename, sep = "\t", header=T, row.names=1)
+      data<-read.table(filename, sep = "\t", header=T)
       all_data<-rbind(all_data,data)
       colNames<-names(data)
     }
