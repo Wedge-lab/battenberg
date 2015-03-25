@@ -174,7 +174,7 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
   
   # filter 'good' SNPs (e.g. SNP6 positions)
   if((useLociFile != "NA") & (!is.na(useLociFile))) {
-    goodSNPs = read.table(useLociFile, header=T, sep="\t", stringsAsFactors=F))
+    goodSNPs = read.table(useLociFile, header=T, sep="\t", stringsAsFactors=F)
     goodSNPs = goodSNPs$pos[goodSNPs$chr==chrom]  
     len = length(goodSNPs)
     goodIndices = match(known_SNPs$position, goodSNPs)
