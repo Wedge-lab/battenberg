@@ -73,6 +73,7 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
     
     totalNormal = totalNormal[indices]
     totalMutant = totalMutant[indices]
+    # These variables are cleaned
     #normal_data = normal_data[indices,]
     #mutant_data = mutant_data[indices,]
     
@@ -164,8 +165,8 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
   
   # filter out bad SNPs (streaks in BAF)
   if((problemLociFile != "NA") & (!is.na(problemLociFile))) {
-    problemSNPs = read.table(problemLociFile, header=T, sep="\t")
-    problemSNPs = problemSNPs$Pos[problemSNPs$Chr==chr_names[chrom]]
+    problemSNPs = read.table(problemLociFile, header=T, sep="\t", stringsAsFactors=F)
+    problemSNPs = problemSNPs$Pos[problemSNPs$Chr==chrom]
     badIndices = match(known_SNPs$position, problemSNPs)
     known_SNPs = known_SNPs[is.na(badIndices),]
     rm(problemSNPs, badIndices)
@@ -173,8 +174,8 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
   
   # filter 'good' SNPs (e.g. SNP6 positions)
   if((useLociFile != "NA") & (!is.na(useLociFile))) {
-    goodSNPs = read.table(useLociFile, header=T, sep="\t", row.names=NULL)
-    goodSNPs = goodSNPs$pos[goodSNPs$chr==chr_names[chrom]]  
+    goodSNPs = read.table(useLociFile, header=T, sep="\t", stringsAsFactors=F))
+    goodSNPs = goodSNPs$pos[goodSNPs$chr==chrom]  
     len = length(goodSNPs)
     goodIndices = match(known_SNPs$position, goodSNPs)
     known_SNPs = known_SNPs[!is.na(goodIndices),]
