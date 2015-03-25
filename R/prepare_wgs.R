@@ -151,22 +151,23 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
   # Read in the 1000 genomes reference file paths for the specified chrom
   impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
   chr_names = unique(impute.info$chrom)
+  chrom_name = parse.imputeinfofile(imputeinfofile, is.male)$chrom[chrom]
   
   #print(paste("GenerateImputeInput is.male? ", is.male,sep=""))
   #print(paste("GenerateImputeInput #impute files? ", nrow(impute.info),sep=""))
   
   # Read in the known SNP locations from the 1000 genomes reference files
-  known_SNPs = read.table(impute.info$impute_legend[1], sep=" ", header=T)
+  known_SNPs = read.table(impute.info$impute_legend[1], sep=" ", header=T, stringsAsFactors=F)
   if(nrow(impute.info)>1){
     for(r in 2:nrow(impute.info)){
-      known_SNPs = rbind(known_SNPs, read.table(impute.info$impute_legend[r], sep=" ", header=T))
+      known_SNPs = rbind(known_SNPs, read.table(impute.info$impute_legend[r], sep=" ", header=T, stringsAsFactors=F))
     }
   }
   
   # filter out bad SNPs (streaks in BAF)
   if((problemLociFile != "NA") & (!is.na(problemLociFile))) {
     problemSNPs = read.table(problemLociFile, header=T, sep="\t", stringsAsFactors=F)
-    problemSNPs = problemSNPs$Pos[problemSNPs$Chr==chrom]
+    problemSNPs = problemSNPs$Pos[problemSNPs$Chr==chrom_name]
     badIndices = match(known_SNPs$position, problemSNPs)
     known_SNPs = known_SNPs[is.na(badIndices),]
     rm(problemSNPs, badIndices)
@@ -175,7 +176,7 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
   # filter 'good' SNPs (e.g. SNP6 positions)
   if((useLociFile != "NA") & (!is.na(useLociFile))) {
     goodSNPs = read.table(useLociFile, header=T, sep="\t", stringsAsFactors=F)
-    goodSNPs = goodSNPs$pos[goodSNPs$chr==chrom]  
+    goodSNPs = goodSNPs$pos[goodSNPs$chr==chrom_name]  
     len = length(goodSNPs)
     goodIndices = match(known_SNPs$position, goodSNPs)
     known_SNPs = known_SNPs[!is.na(goodIndices),]
@@ -212,7 +213,7 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
   out.data = cbind(snp.names, known_SNPs[!is.na(indices),1:4], genotypes)
   
   write.table(out.data, file=output.file, row.names=F, col.names=F, quote=F)
-  if(is.na(as.numeric(chr_names[chrom]))){
+  if(is.na(as.numeric(chrom_name))) {
     sample.g.file = paste(dirname(output.file), "/sample_g.txt", sep="")
     #not sure this is necessary, because only the PAR regions are used for males
     #if(is.male){
