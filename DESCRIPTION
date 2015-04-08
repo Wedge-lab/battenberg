@@ -1,9 +1,18 @@
 Package: Battenberg
+Maintainer: Stefan Dentro <sd11@sanger.ac.uk>
+License: GPL-3
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
-Date: 2015-02-10
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Title: Battenberg subclonal copy number caller
+Version: 2.0.0
+Authors@R: c(person("David", "Wedge", role=c("aut","cre")),
+    person("Peter", "Van Loo", role=c("aut","cre")),
+    person("Stefan","Dentro", email="sd11@sanger.ac.uk", role=c("ctb")),
+    person("Kevin", "Dawson", role=c("ctb")),
+    person("Gro", "Nielsen", role="ctb"),
+    person("Jiqiu","Cheng", role="ctb"))
+Description: Estimate subclonal copy number from whole genome sequencing or SNP6 data.
+Depends: 
+  R (>= 2.13.0),
+  ASCAT
+URL: https://github.com/sdentro/Battenberg
+LazyLoad: yes
