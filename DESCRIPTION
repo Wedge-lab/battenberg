@@ -4,9 +4,9 @@ License: GPL-3
 Type: Package
 Title: Battenberg subclonal copy number caller
 Version: 2.0.0
-Authors@R: c(person("David", "Wedge", role=c("aut","cre"), email="dw9@sanger.ac.uk"),
-    person("Peter", "Van Loo", role=c("aut","cre")),
-    person("Stefan","Dentro", email="sd11@sanger.ac.uk", role=c("aut", "ctb")),
+Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
+    person("Peter", "Van Loo", role=c("aut")),
+    person("Stefan","Dentro", email="sd11@sanger.ac.uk", role=c("aut", "cre")),
     person("Kevin", "Dawson", role=c("ctb")),
     person("Gro", "Nielsen", role="ctb"),
     person("Jiqiu","Cheng", role="ctb"))
