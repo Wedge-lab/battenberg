@@ -1601,7 +1601,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
       dev.off()
     }
   }
-  output_optimum_pair = list(psi = psi, rho = rho)
+  output_optimum_pair = list(psi = psi, rho = rho, ploidy = ploidy_opt1)
   return( output_optimum_pair ) # kjd 20-2-2014 
 }
 
@@ -1817,8 +1817,8 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
       dev.off()
     }
   } 
-  output_optimum_pair = list(psi = psi_opt1, rho = rho_opt1)
-  output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref)
+  output_optimum_pair = list(psi = psi_opt1, rho = rho_opt1, ploidy = ploidy_opt1)
+  output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)
   return(list(output_optimum_pair=output_optimum_pair, output_optimum_pair_without_ref=output_optimum_pair_without_ref, distance = distance.from.ref.seg, distance_without_ref = best.distance, minimise = minimise, is.ref.better = is.ref.better)) # kjd 20-2-2014, adapted by DCW 140314
 }
 
