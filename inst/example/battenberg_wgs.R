@@ -1,14 +1,14 @@
-# Parameters:
+# Sample specific
 TUMOURNAME = "PD7422a"
 NORMALNAME = "PD7422b"
 IS.MALE = F
 TUMOURBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422a.bam"
 NORMALBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422b.bam"
 
+# General static
 IMPUTEINFOFILE = "/nfs/users/nfs_s/sd11/repo/battenberg/impute_info.txt"
 G1000PREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
-PROBLEMLOCI = "/nfs/users/nfs_s/sd11/repo/battenberg/probloci.txt"
-ALLELECOUNTER = "alleleCounter"
+
 PLATFORM_GAMMA = 1
 PHASING_GAMMA = 1
 SEGMENTATION_GAMMA = 10
@@ -22,6 +22,10 @@ BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
 MIN_BASE_QUAL = 20
 MIN_MAP_QUAL = 35
+
+# WGS specific static
+ALLELECOUNTER = "alleleCounter"
+PROBLEMLOCI = "/nfs/users/nfs_s/sd11/repo/battenberg/probloci.txt"
 
 chrom_names = get.chrom.names(IMPUTEINFOFILE, IS.MALE)
 
@@ -132,7 +136,7 @@ fit.copy.number(samplename=TUMOURNAME,
                 min.rho=MIN_RHO, 
                 min.goodness=MIN_GOODNESS_OF_FIT, 
                 uninformative_BAF_threshold=BALANCED_THRESHOLD, 
-                gamma_param=1, 
+                gamma_param=PLATFORM_GAMMA, 
                 use_preset_rho_psi=F, 
                 preset_rho=NA, 
                 preset_psi=NA, 
@@ -146,7 +150,7 @@ callSubclones(sample.name=TUMOURNAME,
               output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
               output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
               chr_names=chrom_names, 
-              gamma=1, 
+              gamma=PLATFORM_GAMMA, 
               segmentation.gamma=NA, 
               siglevel=0.05, 
               maxdist=0.01, 
