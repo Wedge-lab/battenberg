@@ -80,6 +80,7 @@ gc.correct(samplename=TUMOURNAME,
 # Infer what the gender is
 gender = infer_gender_birdseed(BIRDSEED_REPORT_FILE)
 is_male = gender == "male"
+chrom_names = get.chrom.names(IMPUTEINFOFILE, is_male)
 
 # Plot the raw data
 ascat.bc = ascat.loadData(paste(TUMOURNAME, "_mutantLogR.tab", sep=""),
