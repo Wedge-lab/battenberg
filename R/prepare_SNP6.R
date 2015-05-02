@@ -1,3 +1,93 @@
+#' Adapted code from ASCAT to load in SNP6 data for plotting
+#' noRD
+ascat.loadData = function(Tumor_LogR_file, Tumor_BAF_file, Germline_LogR_file = NULL, Germline_BAF_file = NULL, chrs = c(1:22,"X","Y"), gender = NULL, sexchromosomes = c("X","Y")) {
+  
+  # read in SNP array data files
+  print.noquote("Reading Tumor LogR data...")
+  Tumor_LogR <- read.table(Tumor_LogR_file, header=T, row.names=1, comment.char="", sep = "\t", check.names=F)
+  print.noquote("Reading Tumor BAF data...")
+  Tumor_BAF <- read.table(Tumor_BAF_file, header=T, row.names=1, comment.char="", sep = "\t", check.names=F)
+  
+  #infinite values are a problem - change those
+  Tumor_LogR[Tumor_LogR==-Inf]=NA
+  Tumor_LogR[Tumor_LogR==Inf]=NA
+  
+  Germline_LogR = NULL
+  Germline_BAF = NULL
+  if(!is.null(Germline_LogR_file)) {
+    print.noquote("Reading Germline LogR data...")
+    Germline_LogR <- read.table(Germline_LogR_file, header=T, row.names=1, comment.char="", sep = "\t", check.names=F)
+    print.noquote("Reading Germline BAF data...")
+    Germline_BAF <- read.table(Germline_BAF_file, header=T, row.names=1, comment.char="", sep = "\t", check.names=F)
+    
+    #infinite values are a problem - change those
+    Germline_LogR[Germline_LogR==-Inf]=NA
+    Germline_LogR[Germline_LogR==Inf]=NA
+  }
+  
+  # make SNPpos vector that contains genomic position for all SNPs and remove all data not on chromosome 1-22,X,Y (or whatever is given in the input value of chrs)
+  print.noquote("Registering SNP locations...")
+  SNPpos <- Tumor_LogR[,1:2]
+  SNPpos = SNPpos[SNPpos[,1]%in%chrs,]
+  
+  # if some chromosomes have no data, just remove them
+  chrs = intersect(chrs,unique(SNPpos[,1]))
+  
+  Tumor_LogR = Tumor_LogR[,c(-1,-2),drop=F]
+  Tumor_BAF = Tumor_BAF[,c(-1,-2),drop=F]
+  # make sure it is all converted to numerical values
+  for (cc in 1:dim(Tumor_LogR)[2]) {
+    Tumor_LogR[,cc]=as.numeric(as.vector(Tumor_LogR[,cc]))
+    Tumor_BAF[,cc]=as.numeric(as.vector(Tumor_BAF[,cc]))
+  }
+  if(!is.null(Germline_LogR_file)) {
+    Germline_LogR = Germline_LogR[,c(-1,-2),drop=F]
+    Germline_BAF = Germline_BAF[,c(-1,-2),drop=F]
+    for (cc in 1:dim(Germline_LogR)[2]) {
+      Germline_LogR[,cc]=as.numeric(as.vector(Germline_LogR[,cc]))
+      Germline_BAF[,cc]=as.numeric(as.vector(Germline_BAF[,cc]))
+    }
+  }
+  
+  # sort all data by genomic position
+  last = 0;
+  ch = list();
+  SNPorder = vector(length=dim(SNPpos)[1])
+  for (i in 1:length(chrs)) {
+    chrke = SNPpos[SNPpos[,1]==chrs[i],]
+    chrpos = chrke[,2]
+    names(chrpos) = rownames(chrke)
+    chrpos = sort(chrpos)
+    ch[[i]] = (last+1):(last+length(chrpos))  
+    SNPorder[ch[[i]]] = names(chrpos)
+    last = last+length(chrpos)
+  }
+  SNPpos = SNPpos[SNPorder,]
+  Tumor_LogR=Tumor_LogR[SNPorder,,drop=F]
+  Tumor_BAF=Tumor_BAF[SNPorder,,drop=F]
+  
+  if(!is.null(Germline_LogR_file)) {
+    Germline_LogR = Germline_LogR[SNPorder,,drop=F]
+    Germline_BAF = Germline_BAF[SNPorder,,drop=F]
+  }
+  
+  # split the genome into distinct parts to be used for segmentation (e.g. chromosome arms, parts of genome between gaps in array design)
+  print.noquote("Splitting genome in distinct chunks...")
+  chr = split_genome(SNPpos)
+  
+  if (is.null(gender)) {
+    gender = rep("XX",dim(Tumor_LogR)[2])
+  }
+  return(list(Tumor_LogR = Tumor_LogR, Tumor_BAF = Tumor_BAF, 
+              Tumor_LogR_segmented = NULL, Tumor_BAF_segmented = NULL, 
+              Germline_LogR = Germline_LogR, Germline_BAF = Germline_BAF, 
+              SNPpos = SNPpos, ch = ch, chr = chr, chrs = chrs, 
+              samples = colnames(Tumor_LogR), gender = gender, 
+              sexchromosomes = sexchromosomes,
+              failedarrays = NULL))
+}
+
+
 #' Parse the reference info file
 #' @noRD
 parseSNP6refFile = function(snp6_reference_info_file) {
