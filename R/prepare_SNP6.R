@@ -201,8 +201,8 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   sex[sex == "unknown"] <- NA
   
   ascat.bc <- ascat.loadData(paste(outfile.tumor.LogR, "_noGCcorr.txt", sep=""), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep=""),paste(outfile.normal.LogR, "_noGCcorr.txt", sep=""), paste(outfile.normal.BAF, "_noGCcorr.txt", sep=""), chrs=chr_names, gender=sex)
+  ascat.plotRawData(ascat.bc)
   ascat.bc <- ascat.GCcorrect(ascat.bc, GC_SNP6)
-  ascat.plotRawData(ascat.bc, parentDir=getwd())
 
   # Make sure the right column names are added here, because these are expected by fitcopynumber
   colnames(ascat.bc$SNPpos) = c("Chromosome", "Position")
