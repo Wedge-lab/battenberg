@@ -101,7 +101,8 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   ascat_optimum_pair_fraction_of_genome = out$output_optimum_pair_without_ref
   ascat_optimum_pair_ref_seg = out$output_optimum_pair
   is.ref.better = out$is.ref.better
- 
+
+  save.image(file="almost_at_end.RData") 
   print(c(ascat_optimum_pair$rho,ascat_optimum_pair_fraction_of_genome$rho,ascat_optimum_pair_ref_seg$rho))
   print(c(ascat_optimum_pair$psi,ascat_optimum_pair_fraction_of_genome$psi,ascat_optimum_pair_ref_seg$psi))
   print(c(ascat_optimum_pair$ploidy,ascat_optimum_pair_fraction_of_genome$ploidy,ascat_optimum_pair_ref_seg$ploidy))
