@@ -82,7 +82,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   }
   
   if(use_preset_rho_psi){
-    ascat_optimum_pair = list(rho=preset_rho, psi = preset_psi)
+    ascat_optimum_pair = list(rho=preset_rho, psi = preset_psi, ploidy = preset_psi)
   }else{
     distance.outfile=paste(outputfile.prefix,"distance.png",sep="",collapse="") # kjd 20-2-2014
     copynumberprofile.outfile=paste(outputfile.prefix,"copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
@@ -101,13 +101,6 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   ascat_optimum_pair_fraction_of_genome = out$output_optimum_pair_without_ref
   ascat_optimum_pair_ref_seg = out$output_optimum_pair
   is.ref.better = out$is.ref.better
-
-  save.image(file="almost_at_end.RData") 
-  print(c(ascat_optimum_pair$rho,ascat_optimum_pair_fraction_of_genome$rho,ascat_optimum_pair_ref_seg$rho))
-  print(c(ascat_optimum_pair$psi,ascat_optimum_pair_fraction_of_genome$psi,ascat_optimum_pair_ref_seg$psi))
-  print(c(ascat_optimum_pair$ploidy,ascat_optimum_pair_fraction_of_genome$ploidy,ascat_optimum_pair_ref_seg$ploidy))
-  print(c(NA,out$distance_without_ref,out$distance))
-  print(c(NA,!is.ref.better,is.ref.better))
 
   # Save rho, psi and ploidy for future reference
   rho_psi_output = data.frame(rho = c(ascat_optimum_pair$rho,ascat_optimum_pair_fraction_of_genome$rho,ascat_optimum_pair_ref_seg$rho),psi = c(ascat_optimum_pair$psi,ascat_optimum_pair_fraction_of_genome$psi,ascat_optimum_pair_ref_seg$psi), ploidy = c(ascat_optimum_pair$ploidy,ascat_optimum_pair_fraction_of_genome$ploidy,ascat_optimum_pair_ref_seg$ploidy), distance = c(NA,out$distance_without_ref,out$distance), is.best = c(NA,!is.ref.better,is.ref.better),row.names=c("ASCAT","FRAC_GENOME","REF_SEG"))
