@@ -214,7 +214,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
       BAFphseg = res$yhat
     }
     
-    png(filename = paste(samplename,"_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+    png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
     #     par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
     #     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
     #          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
