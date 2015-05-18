@@ -69,7 +69,7 @@ create.bb.plot.average = function(bafsegmented, ploidy, rho, goodnessOfFit, pos_
   # Minor allele in blue, total CN in purple
   #segments(x0=pos_min, y0=segment_states_min, x1=pos_max, y1=segment_states_min, col="navy", pch="|", lwd=6, lend=1)
   #segments(x0=pos_min, y0=segment_states_tot, x1=pos_max, y1=segment_states_tot, col="darkred", pch="|", lwd=6, lend=1)
-  segments(x0=pos_min, y0=segment_states_min, x1=pos_max, y1=segment_states_min, col="#999999", pch="|", lwd=6, lend=1)
+  segments(x0=pos_min, y0=segment_states_min, x1=pos_max, y1=segment_states_min, col="#2f4f4f", pch="|", lwd=6, lend=1)
   segments(x0=pos_min, y0=segment_states_tot, x1=pos_max, y1=segment_states_tot, col="#E69F00", pch="|", lwd=6, lend=1)
 
   # Plot the vertical lines that show start/end of a chromosome
