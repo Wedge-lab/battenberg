@@ -66,9 +66,7 @@ create.bb.plot.average = function(bafsegmented, ploidy, rho, goodnessOfFit, pos_
   abline(v=0,lty=1,col="lightgrey")
   # Horizontal lines for y=0 to y=5
   abline(h=c(0:5),lty=1,col="lightgrey")
-  # Minor allele in blue, total CN in purple
-  #segments(x0=pos_min, y0=segment_states_min, x1=pos_max, y1=segment_states_min, col="navy", pch="|", lwd=6, lend=1)
-  #segments(x0=pos_min, y0=segment_states_tot, x1=pos_max, y1=segment_states_tot, col="darkred", pch="|", lwd=6, lend=1)
+  # Minor allele in gray, total CN in orange
   segments(x0=pos_min, y0=segment_states_min, x1=pos_max, y1=segment_states_min, col="#2f4f4f", pch="|", lwd=6, lend=1)
   segments(x0=pos_min, y0=segment_states_tot, x1=pos_max, y1=segment_states_tot, col="#E69F00", pch="|", lwd=6, lend=1)
 
@@ -94,10 +92,10 @@ create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodne
   maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
   plot(c(1,nrow(bafsegmented)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
   abline(v=0,lty=1,col="lightgrey")
-  segments(x0=pos_min, y0=subclones$nMin1_A, x1=pos_max, y1=subclones$nMin1_A, col="navy", pch="|", lwd=ifelse(is_subclonal_min, 6*subclones$frac1_A, 6), lend=1)
-  segments(x0=pos_min, y0=subclones$nMaj1_A+subclones$nMin1_A, x1=pos_max, y1=subclones$nMaj1_A+subclones$nMin1_A, col="darkred", pch="|", lwd=ifelse(is_subclonal_maj, 6*subclones$frac1_A, 6), lend=1)
-  segments(x0=subcl_min, y0=subclones$nMin2_A[is_subclonal], x1=subcl_max, y1=subclones$nMin2_A[is_subclonal], col="navy", pch="|", lwd=ifelse(is_subclonal_min[is_subclonal], 6*subclones$frac2_A[is_subclonal], 0), lend=1)
-  segments(x0=subcl_min, y0=subclones$nMaj2_A[is_subclonal]+subclones$nMin2_A[is_subclonal], x1=subcl_max, y1=subclones$nMaj2_A[is_subclonal]+subclones$nMin2_A[is_subclonal], col="darkred", pch="|", lwd=ifelse(is_subclonal_maj[is_subclonal], 6*subclones$frac2_A[is_subclonal], 0), lend=1)
+  segments(x0=pos_min, y0=subclones$nMin1_A, x1=pos_max, y1=subclones$nMin1_A, col="#2f4f4f", pch="|", lwd=ifelse(is_subclonal_min, 6*subclones$frac1_A, 6), lend=1)
+  segments(x0=pos_min, y0=subclones$nMaj1_A+subclones$nMin1_A, x1=pos_max, y1=subclones$nMaj1_A+subclones$nMin1_A, col="#E69F00", pch="|", lwd=ifelse(is_subclonal_maj, 6*subclones$frac1_A, 6), lend=1)
+  segments(x0=subcl_min, y0=subclones$nMin2_A[is_subclonal], x1=subcl_max, y1=subclones$nMin2_A[is_subclonal], col="#2f4f4f", pch="|", lwd=ifelse(is_subclonal_min[is_subclonal], 6*subclones$frac2_A[is_subclonal], 0), lend=1)
+  segments(x0=subcl_min, y0=subclones$nMaj2_A[is_subclonal]+subclones$nMin2_A[is_subclonal], x1=subcl_max, y1=subclones$nMaj2_A[is_subclonal]+subclones$nMin2_A[is_subclonal], col="#E69F00", pch="|", lwd=ifelse(is_subclonal_maj[is_subclonal], 6*subclones$frac2_A[is_subclonal], 0), lend=1)
   chrk_tot_len = 0
   for (i in 1:length(chr.segs)) {
     chrk = chr.segs[[i]];
