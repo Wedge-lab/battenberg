@@ -1403,6 +1403,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
         
         # ploidy is recalculated based on results, to avoid bias (due to differences in normalization of LogR)
         ploidy = sum((nA+nB) * s[,"length"]) / sum(s[,"length"]);
+	ploidy_opt1 = ploidy
       
         percentzero = (sum((round(nA)==0)*s[,"length"])+sum((round(nB)==0)*s[,"length"]))/sum(s[,"length"])
         perczeroAbb = (sum((round(nA)==0)*s[,"length"]*ifelse(s[,"b"]==0.5,0,1))+sum((round(nB)==0)*s[,"length"]*ifelse(s[,"b"]==0.5,0,1)))/sum(s[,"length"]*ifelse(s[,"b"]==0.5,0,1))
