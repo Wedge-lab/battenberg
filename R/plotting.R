@@ -87,32 +87,53 @@ create.bb.plot.average = function(bafsegmented, ploidy, rho, goodnessOfFit, pos_
 #' Make GW CN plot where subclonal CN is represented by two separate states
 #' @noRd
 create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodnessOfFit, pos_min, pos_max, subcl_min, subcl_max, is_subclonal, is_subclonal_maj, is_subclonal_min, chr.segs) {
+	par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
+	maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
+	plot(c(1,nrow(bafsegmented)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
+	abline(v=0,lty=1,col="lightgrey")
+	# Minor allele clonal and lowest of the two states when subclonal
+	segments(x0=pos_min, y0=subclones$nMin1_A-0.1, 
+		 x1=pos_max, y1=subclones$nMin1_A-0.1, col="#2f4f4f", pch="|", 
+		 lwd=ifelse(is_subclonal_min, 6*subclones$frac1_A, 6), lend=1)
+	# Minor allele highest of the two states when subclonal
+	segments(x0=subcl_min, y0=subclones$nMin2_A[is_subclonal]-0.1, 
+		 x1=subcl_max, y1=subclones$nMin2_A[is_subclonal]-0.1, col="#2f4f4f", pch="|", 
+		 lwd=ifelse(is_subclonal_min[is_subclonal], 6*subclones$frac2_A[is_subclonal], 0), lend=1)
 
-  par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
-  maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
-  plot(c(1,nrow(bafsegmented)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-  abline(v=0,lty=1,col="lightgrey")
-  segments(x0=pos_min, y0=subclones$nMin1_A, 
-	   x1=pos_max, y1=subclones$nMin1_A, col="#2f4f4f", pch="|", 
-	   lwd=ifelse(is_subclonal_min, 6*subclones$frac1_A, 6), lend=1)
-  segments(x0=pos_min, y0=subclones$nMaj1_A+subclones$nMin1_A, 
-	   x1=pos_max, y1=subclones$nMaj1_A+subclones$nMin1_A, col="#E69F00", pch="|", 
-	   lwd=ifelse(is_subclonal_maj, 6*subclones$frac1_A, 6), lend=1)
-  segments(x0=subcl_min, y0=subclones$nMin2_A[is_subclonal], 
-	   x1=subcl_max, y1=subclones$nMin2_A[is_subclonal], col="#2f4f4f", pch="|", 
-	   lwd=ifelse(is_subclonal_min[is_subclonal], 6*subclones$frac2_A[is_subclonal], 0), lend=1)
-  segments(x0=subcl_min, y0=subclones$nMaj2_A[is_subclonal]+subclones$nMin2_A, 
-	   x1=subcl_max, y1=subclones$nMaj2_A[is_subclonal]+subclones$nMin2_A, col="#E69F00", pch="|", 
-	   lwd=ifelse(is_subclonal_maj[is_subclonal], 6*subclones$frac2_A[is_subclonal], 0), lend=1)
-  chrk_tot_len = 0
-  for (i in 1:length(chr.segs)) {
-    chrk = chr.segs[[i]];
-    chrk_hetero = names(bafsegmented)[chrk]
-    chrk_tot_len_prev = chrk_tot_len
-    chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-    vpos = chrk_tot_len;
-    tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-    text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-    abline(v=vpos,lty=1,col="lightgrey")
-  }
+	# Total CN, when minor allele subclonal CN (one of the two alleles)
+	segments(x0=subcl_min, y0=subclones$nMaj1_A[is_subclonal]+subclones$nMin1_A[is_subclonal]+0.1, 
+		 x1=subcl_max, y1=subclones$nMaj1_A[is_subclonal]+subclones$nMin1_A[is_subclonal]+0.1, col="#E69F00", pch="|", 
+		 lwd=ifelse(is_subclonal_min[is_subclonal], 6*subclones$frac1_A[is_subclonal], 0), lend=1)
+
+	# Total CN, when minor allele subclonal CN (the other allele)
+	segments(x0=subcl_min, y0=subclones$nMaj2_A[is_subclonal]+subclones$nMin2_A[is_subclonal]+0.1, 
+		 x1=subcl_max, y1=subclones$nMaj2_A[is_subclonal]+subclones$nMin2_A[is_subclonal]+0.1, col="#E69F00", pch="|", 
+		 lwd=ifelse(is_subclonal_min[is_subclonal], 6*subclones$frac2_A[is_subclonal], 0), lend=1)
+
+	# Total CN, when major allele clonal and subclonal, unless the minor allele is subclonal (then plot nothing, done above)
+	segments(x0=pos_min, y0=subclones$nMaj1_A+subclones$nMin1_A+0.1, 
+		 x1=pos_max, y1=subclones$nMaj1_A+subclones$nMin1_A+0.1, col="#E69F00", pch="|", 
+		 lwd=ifelse(is_subclonal_maj & (!is_subclonal_min), 6*subclones$frac1_A, 0), lend=1)
+
+	# Total CN, when subclonal major allele and not subclonal minor allele (the other allele)
+	segments(x0=pos_min, y0=subclones$nMaj2_A+subclones$nMin2_A+0.1, 
+		 x1=pos_max, y1=subclones$nMaj2_A+subclones$nMin2_A+0.1, col="#E69F00", pch="|", 
+		 lwd=ifelse(is_subclonal_maj & (!is_subclonal_min), 6*subclones$frac2_A, 0), lend=1)
+
+	# Total allele when major and minor both non-subclonal
+	segments(x0=pos_min, y0=subclones$nMaj1_A+subclones$nMin1_A+0.1, 
+		 x1=pos_max, y1=subclones$nMaj1_A+subclones$nMin1_A+0.1, col="#E69F00", pch="|", 
+		 lwd=ifelse((!is_subclonal_maj) & (!is_subclonal_min), 6, 0), lend=1)
+
+	chrk_tot_len = 0
+	for (i in 1:length(chr.segs)) {
+		chrk = chr.segs[[i]];
+		chrk_hetero = names(bafsegmented)[chrk]
+		chrk_tot_len_prev = chrk_tot_len
+		chrk_tot_len = chrk_tot_len + length(chrk_hetero)
+		vpos = chrk_tot_len;
+		tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
+		text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
+		abline(v=vpos,lty=1,col="lightgrey")
+	}
 }
