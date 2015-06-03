@@ -121,7 +121,11 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
   ch = list()
   for (i in 1:length(chr_names)) {
     temp = which(SNPpos$Chromosome==chr_names[i])
-    ch[[i]] = temp[1]:temp[length(temp)]
+    if (length(temp) == 0) {
+	ch[[i]] = 0
+    } else {
+    	ch[[i]] = temp[1]:temp[length(temp)]
+    }
   }
   
   ascat.bc = list(Tumor_LogR=as.data.frame(tumor.LogR[,3]), Tumor_BAF=as.data.frame(tumor.BAF[,3]), 
