@@ -196,6 +196,7 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
   ref_indices = match(known_SNPs[!is.na(indices),3], nucleotides)+ncol(normal_snp_data)+2
   alt_indices = match(known_SNPs[!is.na(indices),4], nucleotides)+ncol(normal_snp_data)+2
   BAFs = as.numeric(found_snp_data[cbind(1:nrow(found_snp_data),alt_indices)])/(as.numeric(found_snp_data[cbind(1:nrow(found_snp_data),alt_indices)])+as.numeric(found_snp_data[cbind(1:nrow(found_snp_data),ref_indices)]))
+  BAFs[is.nan(BAFs)] = 0
   rm(nucleotides, ref_indices, alt_indices, found_snp_data, normal_snp_data)
   
   # Set the minimum level to use for obtaining genotypes
