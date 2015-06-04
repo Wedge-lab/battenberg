@@ -71,7 +71,7 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
   filtered_snp_data = snp_data[snp_indices,]
   
   # No matches found, save empty file and quit
-  if(nrow(het_variant_data)==0){
+  if(nrow(het_variant_data)==0 | is.null(het_variant_data)) {
     write.table(array(NA,c(0,3)),outfile,sep="\t",col.names=c("Chromosome","Position",samplename),quote=F,row.names=F)		
     return()
   }
@@ -93,6 +93,12 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
   filtered_snp_data = filtered_snp_data[min_indices,]
   denom = denom[min_indices]
   alt.count = alt.count[min_indices]
+  
+  # No matches found, save empty file and quit
+  if(nrow(filtered_snp_data)==0 | is.null(filtered_snp_data)) {
+    write.table(array(NA,c(0,3)),outfile,sep="\t",col.names=c("Chromosome","Position",samplename),quote=F,row.names=F)  	
+    return()
+  }
   
   # Save all to disk
   hetMutBAFs = cbind(chr_name,filtered_snp_data[,2],alt.count/denom)
