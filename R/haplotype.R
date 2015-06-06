@@ -179,6 +179,10 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
     names(pos) = rownames(BAFrawchr)
     
     sdev <- getMad(ifelse(BAF<0.5,BAF,1-BAF),k=25)
+    # Standard deviation is not defined for a single value
+    if (is.na(sdev)) {
+	    sdev = 0
+    }
     #DCW 250314
     #for cell lines, sdev goes to zero in regions of LOH, which causes problems.
     #0.09 is around the value expected for a binomial distribution around 0.5 with depth 30
