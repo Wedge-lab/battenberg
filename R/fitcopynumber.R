@@ -142,6 +142,11 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
 	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
 	  LogRvals = LogRvals[,-1]
   }
+
+  # Chromosome names are sometimes 'chr1', etc.
+  if(length(grep("chr",LogRvals[1,1]))>0){
+	      LogRvals[,1] = gsub("chr","",LogRvals[,1])
+  }
   
   ctrans = c(1:length(chr_names))
   names(ctrans) = chr_names
