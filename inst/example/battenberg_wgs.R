@@ -1,13 +1,35 @@
+args = commandArgs(TRUE)
+TUMOURNAME = toString(args[1])
+NORMALNAME = toString(args[2])
+NORMALBAM = toString(args[3])
+TUMOURBAM = toString(args[4])
+IS.MALE = as.logical(args[5])
+RUN_DIR = toString(args[6])
+
+library(Battenberg)
+library(doParallel)
+
+###############################################################################
+# 2015-04-12
+# A pure R Battenberg v2.0.0 SNP6 pipeline implementation.
+# sd11@sanger.ac.uk
+###############################################################################
+
+
 # Sample specific
-TUMOURNAME = "PD7422a"
-NORMALNAME = "PD7422b"
-IS.MALE = F
-TUMOURBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422a.bam"
-NORMALBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422b.bam"
+#TUMOURNAME = "PD7422a"
+#NORMALNAME = "PD7422b"
+#IS.MALE = F
+#TUMOURBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422a.bam"
+#NORMALBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422b.bam"
+
+# Parallelism parameters
+NTHREADS = 6
 
 # General static
-IMPUTEINFOFILE = "/nfs/users/nfs_s/sd11/repo/battenberg/impute_info.txt"
-G1000PREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
+IMPUTEINFOFILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute_v3/impute_info.txt"
+G1000PREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
+G1000PREFIX_AC = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
 
 PLATFORM_GAMMA = 1
 PHASING_GAMMA = 1
@@ -25,26 +47,30 @@ MIN_MAP_QUAL = 35
 
 # WGS specific static
 ALLELECOUNTER = "alleleCounter"
-PROBLEMLOCI = "/nfs/users/nfs_s/sd11/repo/battenberg/probloci.txt"
+PROBLEMLOCI = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
 
 chrom_names = get.chrom.names(IMPUTEINFOFILE, IS.MALE)
 
+# Setup for parallel computing
+clp = makeCluster(NTHREADS)
+registerDoParallel(clp)
+
 # Obtain allele counts for 1000 Genomes locations for both tumour and normal
-for (i in 1:length(chrom_names)) {
+#for (i in 1:length(chrom_names)) {
+foreach(i=1:length(chrom_names), .export=c("getAlleleCounts")) %dopar% {
   getAlleleCounts(bam.file=TUMOURBAM,
-                  output.file=paste(TUMOURNAME,"_alleleFrequencies_chr", sep=""),
-                  g1000.loci=paste(G1000PREFIX, i, ".txt", sep=""),
+                  output.file=paste(TUMOURNAME,"_alleleFrequencies_chr", i, ".txt", sep=""),
+                  g1000.loci=paste(G1000PREFIX_AC, i, ".txt", sep=""),
                   min.base.qual=MIN_BASE_QUAL,
                   min.map.qual=MIN_MAP_QUAL,
                   allelecounter.exe=ALLELECOUNTER)
   
   getAlleleCounts(bam.file=NORMALBAM,
-                  output.file=paste(NORMALNAME,"_alleleFrequencies_chr", sep=""),
-                  g1000.loci=paste(G1000PREFIX, i, ".txt", sep=""),
+                  output.file=paste(NORMALNAME,"_alleleFrequencies_chr", i, ".txt",  sep=""),
+                  g1000.loci=paste(G1000PREFIX_AC, i, ".txt", sep=""),
                   min.base.qual=MIN_BASE_QUAL,
                   min.map.qual=MIN_MAP_QUAL,
                   allelecounter.exe=ALLELECOUNTER)
-}
 
 # Obtain BAF and LogR from the raw allele counts
 getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(TUMOURNAME,"_alleleFrequencies_chr", sep=""), 
@@ -61,7 +87,7 @@ getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(TUMOURNAME,"_alleleFrequenci
                 samplename=TUMOURNAME)
 
 # These steps are independent and can be run in parallel. This could be done through multi-threading or splitting these up into separate jobs on a cluster.
-for (chrom in 1:length(chrom_names)) {
+foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.impute","combine.impute.output","GetChromosomeBAFs","plot.haplotype.data")) %dopar% {
   print(chrom)
   # Transform the allele counts into something that impute understands
   generate.impute.input.wgs(chrom=chrom, 
@@ -101,29 +127,34 @@ for (chrom in 1:length(chrom_names)) {
 
   # Plot what we have until this point
   plot.haplotype.data(haplotyped.baf.file=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                      imageFileName=paste(TUMOURNAME,"_chr",chr_name,"_heterozygousData.png",sep=""), 
+                      imageFileName=paste(TUMOURNAME,"_chr",chrom,"_heterozygousData.png",sep=""), 
                       samplename=TUMOURNAME, 
                       chrom=chrom, 
                       chr_names=chrom_names)
+
+  # Cleanup temp Impute output
+  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "*K.txt*", sep=""))
 }
 
+# Kill the threads as from here its all single core
+stopCluster(clp)
+
 # Combine all the BAF output into a single file
-# TODO: Clean up the parameters here
 combine.baf.files(inputfile.prefix=paste(TUMOURNAME, "_chr", sep=""), 
                   inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt", 
                   outputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                  no.chrs=length(chrom_names),
-                  gamma=10,
-                  phasegamma=3,
-                  kmin=3,
-                  phasekmin=3)
+                  no.chrs=length(chrom_names))
 
 # Segment the phased and haplotyped BAF data
-segment.baf.phased(inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
-                   outputfile=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""))
+segment.baf.phased(samplename=TUMOURNAME,
+                     inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
+                     outputfile=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""),
+                     gamma=SEGMENTATION_GAMMA,
+                     phasegamma=PHASING_GAMMA,
+                     kmin=3,
+                     phasekmin=1)
 
 # Fit a clonal copy number profile
-# TODO: Check parameters, clean up internally defined output names
 fit.copy.number(samplename=TUMOURNAME,
                 outputfile.prefix=paste(TUMOURNAME, "_", sep=""),
                 inputfile.baf.segmented=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
@@ -149,6 +180,7 @@ callSubclones(sample.name=TUMOURNAME,
               rho.psi.file=paste(TUMOURNAME, "_rho_and_psi.txt",sep=""), 
               output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
               output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
+	      output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""),
               chr_names=chrom_names, 
               gamma=PLATFORM_GAMMA, 
               segmentation.gamma=NA, 
