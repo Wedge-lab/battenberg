@@ -128,7 +128,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run
                       chr_names=chrom_names)
   
   # Cleanup temp Impute output
-  unlink(paste("NASCR-0016", "_impute_output_chr", chrom, "*K.txt*", sep=""))
+  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "*K.txt*", sep=""))
 }
 
 # Kill the threads as from here its all single core
