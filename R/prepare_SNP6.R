@@ -279,7 +279,7 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
 #   }
   
   #280412
-  known_SNPs = known_SNPs[known_SNPs[,5]=="SNP",]
+  #known_SNPs = known_SNPs[known_SNPs[,5]=="SNP",]
   
   #if(chr==23){
   #	known_SNPs<-read.table(paste("/lustre/scratch110/sanger/dw9/haplotype_pipeline/impute/ALL.chrX.phase1.legend",sep=""),sep=" ",header=T,stringsAsFactors=F)
