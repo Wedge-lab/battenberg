@@ -413,11 +413,14 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
 	if (is.na(LogR)) {
 		LogR = 0
 	}
-    nA = (rho-1-(BAFreq-1)*2^(LogR/gamma_param)*((1-rho)*2+rho*psi))/rho
-    nB = (rho-1+BAFreq*2^(LogR/gamma_param)*((1-rho)*2+rho*psi))/rho
-    nMajor = max(nA,nB)
-    nMinor = min(nA,nB)
+  
+  nA = (rho-1-(BAFreq-1)*2^(LogR/gamma_param)*((1-rho)*2+rho*psi))/rho
+  nB = (rho-1+BAFreq*2^(LogR/gamma_param)*((1-rho)*2+rho*psi))/rho
+  nMajor = max(nA,nB)
+  nMinor = min(nA,nB)
     
+	# check for big shifts in nMajor - if there's a big shift, we shouldn't trust a clonal call
+	nMajor.saved = nMajor
 	## to make sure we're always in a positive square:
 	#if(nMajor < 0) {
 	#	nMajor = 0.01
@@ -447,8 +450,8 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
 	ntot = nMajor + nMinor
 	
 	BAF_levels = (1-rho+rho*nMaj)/(2-2*rho+rho*(nMaj+nMin))
-    #problem if rho=1 and nMaj=0 and nMin=0
-    BAF_levels[nMaj==0 & nMin==0] = 0.5
+  #problem if rho=1 and nMaj=0 and nMin=0
+  BAF_levels[nMaj==0 & nMin==0] = 0.5
 	
 	LogR_levels = gamma_param * log( (2-2*rho+rho*(nMaj+nMin))/(2-2*rho+rho*psi) , 2 ) # kjd 21-2-2014
 
@@ -479,6 +482,10 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   balanced = nMaj.test[whichclosestlevel.test] == nMin.test[whichclosestlevel.test]
   
   is.clonal = (pval > siglevel_BAF)
+	# check for big shifts in nMajor - if there's a big shift, we shouldn't trust a clonal call
+	# This is particularly problematic for very high cellularity samples, like some of the ovarian samples
+	is.clonal = (pval > siglevel_BAF & nMajor - nMajor.saved <1)
+  
   segment_info = list( is.clonal = is.clonal, balanced = balanced, nMaj.test = nMaj.test[whichclosestlevel.test] , nMin.test = nMin.test[whichclosestlevel.test] )
 	
 	return( segment_info )
