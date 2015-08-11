@@ -62,3 +62,12 @@ concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs) {
   #infiles = paste(inputStart, 1:no.chrs, inputEnd, sep="")
   return(do.call(rbind, lapply(infiles, FUN=function(x) { read.table(x, sep="\t", header=T) })))
 }
+
+#' Check if a file exists, if it doesn't, exit non-clean
+#' @noRd
+assert.file.exists = function(filename) {
+  if (!file.exists(filename)) {
+    warning(paste("Supplied file does not exist: ", filename, sep=""))
+    quit(save="no", status=1)
+  }
+}

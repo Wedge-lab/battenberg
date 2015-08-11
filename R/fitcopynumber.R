@@ -3,6 +3,10 @@
 #'
 fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmented, inputfile.baf, inputfile.logr, dist_choice, ascat_dist_choice, min.ploidy=1.6, max.ploidy=4.8, min.rho=0.1, min.goodness=63, uninformative_BAF_threshold=0.51, gamma_param=1, use_preset_rho_psi=F, preset_rho=NA, preset_psi=NA, read_depth=30) {
   
+  assert.file.exists(inputfile.baf.segmented)
+  assert.file.exists(inputfile.baf)
+  assert.file.exists(inputfile.logr)
+  
   # Read in the required data
   #   segmented.BAF.data = read.table(paste(samplename,".BAFsegmented.txt",sep=""),sep="\t",header=F,stringsAsFactors=F,skip=1,row.names=1)
   #   raw.BAF.data = read.table(paste(start.file,"mutantBAF.tab",sep=""),sep="\t",header=T,stringsAsFactors=F)
