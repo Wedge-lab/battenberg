@@ -68,6 +68,25 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     #print(paste(nrow(matched.segmented.BAF.data),nrow(segmented.logR.data),nrow(logR.data),sep=","))
   }
   names(matched.segmented.BAF.data)[5] = samplename
+
+  # Sync the dataframes
+  selection = c()
+  for (chrom in chr.names) {
+	matched.segmented.BAF.data.chr = matched.segmented.BAF.data[matched.segmented.BAF.data[,1]==chrom,]
+  	logR.data.chr = logR.data[logR.data[,1]==chrom,]
+	selection = c(selection, matched.segmented.BAF.data.chr[,2] %in% logR.data.chr[,2])
+  }
+
+  print(dim(matched.segmented.BAF.data))
+  print(dim(segmented.logR.data))
+
+  matched.segmented.BAF.data = matched.segmented.BAF.data[selection,]
+  segmented.logR.data = segmented.logR.data[selection,]
+
+  print(dim(matched.segmented.BAF.data))
+  print(dim(segmented.logR.data))
+  print(dim(logR.data))
+
   row.names(segmented.logR.data) = row.names(matched.segmented.BAF.data)
   row.names(logR.data) = row.names(matched.segmented.BAF.data)
   
