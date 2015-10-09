@@ -267,8 +267,8 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, gc_content_file_prefix, chr
   maxGCcol_long = maxGCcol_long+(index_1M-1)
   
   cat("weighted correlation: ",paste(names(corr),format(corr,digits=2), ";"),"\n")   
-  cat("Short window size: ",names(GC_newlist)[maxGCcol_short+2],"\n")
-  cat("Long window size: ",names(GC_newlist)[maxGCcol_long+2],"\n")
+  cat("Short window size: ",names(GC_data)[maxGCcol_short+2],"\n")
+  cat("Long window size: ",names(GC_data)[maxGCcol_long+2],"\n")
   
   # Multiple regression 
   flag_NA = (is.infinite(Tumor_LogR[,3])) | (is.na(GC_data[,2+maxGCcol_short])) | (is.na(GC_data[,2+maxGCcol_long]))
