@@ -243,46 +243,47 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, gc_content_file_prefix, chr
   Tumor_LogR_new = NULL
   Tumor_LogR = read.table(Tumour_LogR_file, stringsAsFactors=F, header=T)
 
+  GC_data = NULL
   for (chrindex in chrom_names) {
     print(paste("chr =", chrindex))
     Tumor_LogR_chr = Tumor_LogR[Tumor_LogR$Chromosome %in% chrindex,]
     GC_newlist = read.table(paste(gc_content_file_prefix, chrindex, ".txt", sep=""), header=T, stringsAsFactors=F)
     colnames(GC_newlist)[c(1,2)] = c("Chr","Position")
-    #GC_newlist$Position<-as.numeric(as.character(GC_newlist$Position))
     GC_newlist = GC_newlist[GC_newlist$Position %in% Tumor_LogR_chr$Position,]
-#     SNPpos = GC_newlist$Position
-    
-    ovl = which(Tumor_LogR_chr$Position %in% GC_newlist$Position)
-    Tumor_LogR_chr = Tumor_LogR_chr[ovl,,drop=F]
-    
-    flag_nona = is.finite(Tumor_LogR_chr[,3])
-    corr = cor(GC_newlist[flag_nona, 3:ncol(GC_newlist)], Tumor_LogR_chr[flag_nona,3], use="complete.obs")
-    length = nrow(Tumor_LogR_chr)
-    
-    corr = apply(corr, 1, function(x) sum(abs(x*length))/sum(length))
-    index_1M = c(which(names(corr)=="X1M"), which(names(corr)=="X1Mb"))
-    maxGCcol_short = which(corr[1:(index_1M-1)]==max(corr[1:(index_1M-1)]))
-    maxGCcol_long = which(corr[index_1M:length(corr)]==max(corr[index_1M:length(corr)]))
-    maxGCcol_long = maxGCcol_long+(index_1M-1)
-    
-    cat("weighted correlation: ",paste(names(corr),format(corr,digits=2), ";"),"\n")   
-    cat("Short window size: ",names(GC_newlist)[maxGCcol_short+2],"\n")
-    cat("Long window size: ",names(GC_newlist)[maxGCcol_long+2],"\n")
-    
-    # Multiple regression 
-    flag_NA = (is.infinite(Tumor_LogR_chr[,3])) | (is.na(GC_newlist[,2+maxGCcol_short])) | (is.na(GC_newlist[,2+maxGCcol_long]))
-    td_select = Tumor_LogR_chr[!flag_NA,3]
-    GC_newlist_select = GC_newlist[!flag_NA,]
-    x1 = GC_newlist_select[,2+maxGCcol_short]
-    x2 = GC_newlist_select[,2+maxGCcol_long]
-    x3 = (x1)^2
-    x4 = (x2)^2
-    model = lm(td_select ~ x1+x2+x3+x4, y=T, na.action="na.omit")
-    
-    GCcorrected = Tumor_LogR_chr[!flag_NA,]
-    GCcorrected[,3] = model$residuals
-    
-    Tumor_LogR_new = rbind(Tumor_LogR_new,GCcorrected)
+    GC_data = rbind(GC_data, GC_newlist)
   }
-  write.table(Tumor_LogR_new, file=outfile, sep="\t", quote=F)
+    
+#     ovl = which(Tumor_LogR_chr$Position %in% GC_newlist$Position)
+#     Tumor_LogR_chr = Tumor_LogR_chr[ovl,,drop=F]
+  
+  flag_nona = is.finite(Tumor_LogR[,3])
+  corr = cor(GC_data[flag_nona, 3:ncol(GC_data)], Tumor_LogR[flag_nona,3], use="complete.obs")
+  length = nrow(Tumor_LogR)
+  
+  corr = apply(corr, 1, function(x) sum(abs(x*length))/sum(length))
+  index_1M = c(which(names(corr)=="X1M"), which(names(corr)=="X1Mb"))
+  maxGCcol_short = which(corr[1:(index_1M-1)]==max(corr[1:(index_1M-1)]))
+  maxGCcol_long = which(corr[index_1M:length(corr)]==max(corr[index_1M:length(corr)]))
+  maxGCcol_long = maxGCcol_long+(index_1M-1)
+  
+  cat("weighted correlation: ",paste(names(corr),format(corr,digits=2), ";"),"\n")   
+  cat("Short window size: ",names(GC_newlist)[maxGCcol_short+2],"\n")
+  cat("Long window size: ",names(GC_newlist)[maxGCcol_long+2],"\n")
+  
+  # Multiple regression 
+  flag_NA = (is.infinite(Tumor_LogR[,3])) | (is.na(GC_data[,2+maxGCcol_short])) | (is.na(GC_data[,2+maxGCcol_long]))
+  td_select = Tumor_LogR[!flag_NA,3]
+  GC_data_select = GC_data[!flag_NA,]
+  x1 = GC_data_select[,2+maxGCcol_short]
+  x2 = GC_data_select[,2+maxGCcol_long]
+  x3 = (x1)^2
+  x4 = (x2)^2
+  model = lm(td_select ~ x1+x2+x3+x4, y=T, na.action="na.omit")
+  
+  GCcorrected = Tumor_LogR[!flag_NA,]
+  GCcorrected[,3] = model$residuals
+    
+    #Tumor_LogR_new = rbind(Tumor_LogR_new,GCcorrected)
+  #write.table(Tumor_LogR_new, file=outfile, sep="\t", quote=F)
+  write.table(GCcorrected, file=outfile, sep="\t", quote=F)
 }
