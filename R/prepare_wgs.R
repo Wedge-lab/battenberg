@@ -244,7 +244,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, gc_content_file_prefix, chr
   Tumor_LogR = read.table(Tumour_LogR_file, stringsAsFactors=F, header=T)
 
   GC_data = NULL
-  for (chrindex in chrom_names) {
+  for (chrindex in 1:length(chrom_names)) {
     print(paste("chr =", chrindex))
     Tumor_LogR_chr = Tumor_LogR[Tumor_LogR$Chromosome %in% chrindex,]
     GC_newlist = read.table(paste(gc_content_file_prefix, chrindex, ".txt", sep=""), header=T, stringsAsFactors=F)
