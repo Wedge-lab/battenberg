@@ -251,8 +251,11 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, gc_content_file_prefix, chr
     colnames(GC_newlist)[c(1,2)] = c("Chr","Position")
     GC_newlist = GC_newlist[GC_newlist$Position %in% Tumor_LogR_chr$Position,]
     GC_data = rbind(GC_data, GC_newlist)
+    Tumor_LogR_new = rbind(Tumor_LogR_new, Tumor_LogR_chr[!is.na(match(Tumor_LogR_chr$Position, GC_newlist$Position)),])
   }
-    
+  Tumor_LogR = Tumor_LogR_new  
+  rm(Tumor_LogR_new)
+  
 #     ovl = which(Tumor_LogR_chr$Position %in% GC_newlist$Position)
 #     Tumor_LogR_chr = Tumor_LogR_chr[ovl,,drop=F]
   
