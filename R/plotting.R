@@ -314,6 +314,25 @@ clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psi_o
   } else  {
     image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
   }
+  psi_min_label = ceiling( 10 * psi_min )/10
+  psi_max_label = floor( 10 * psi_max )/10
+  psi_label_interval = 0.1
+  
+  psi_min_label_standardised = ( psi_min_label - psi_min ) / psi_range
+  psi_max_label_standardised = ( psi_max_label - psi_min ) / psi_range
+  psi_label_interval_standardised = psi_label_interval / psi_range
+  
+  rho_min_label = ceiling( 100 * rho_min )/100
+  rho_max_label = floor( 100 * rho_max )/100
+  rho_label_interval = 0.01
+  
+  rho_min_label_standardised = ( rho_min_label - rho_min ) / rho_range
+  rho_max_label_standardised = ( rho_max_label - rho_min ) / rho_range
+  rho_label_interval_standardised = rho_label_interval / rho_range
+  
+  axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), label = seq(psi_min_label, psi_max_label, by = psi_label_interval))
+  axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
+  
   points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col="green",pch="X", cex = 2 ) # kjd 28-2-2014
   dev.off()
 }

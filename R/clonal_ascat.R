@@ -1156,24 +1156,24 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
   
   # axis(1, at = seq(0, 1.0, by = 0.1), label = seq(psi_min, psi_max, by = 0.1 * psi_range))
   # axis(2, at = seq(0, 1.0, by = 0.1), label = seq(rho_min, rho_max, by = 0.1 * rho_range ))
-  psi_min_label = ceiling( 10 * psi_min )/10
-  psi_max_label = floor( 10 * psi_max )/10
-  psi_label_interval = 0.1
+  # psi_min_label = ceiling( 10 * psi_min )/10
+  # psi_max_label = floor( 10 * psi_max )/10
+  # psi_label_interval = 0.1
   
-  psi_min_label_standardised = ( psi_min_label - psi_min ) / psi_range
-  psi_max_label_standardised = ( psi_max_label - psi_min ) / psi_range
-  psi_label_interval_standardised = psi_label_interval / psi_range
+  # psi_min_label_standardised = ( psi_min_label - psi_min ) / psi_range
+  # psi_max_label_standardised = ( psi_max_label - psi_min ) / psi_range
+  # psi_label_interval_standardised = psi_label_interval / psi_range
   
-  rho_min_label = ceiling( 100 * rho_min )/100
-  rho_max_label = floor( 100 * rho_max )/100
-  rho_label_interval = 0.01
+  # rho_min_label = ceiling( 100 * rho_min )/100
+  # rho_max_label = floor( 100 * rho_max )/100
+  # rho_label_interval = 0.01
   
-  rho_min_label_standardised = ( rho_min_label - rho_min ) / rho_range
-  rho_max_label_standardised = ( rho_max_label - rho_min ) / rho_range
-  rho_label_interval_standardised = rho_label_interval / rho_range
+  # rho_min_label_standardised = ( rho_min_label - rho_min ) / rho_range
+  # rho_max_label_standardised = ( rho_max_label - rho_min ) / rho_range
+  # rho_label_interval_standardised = rho_label_interval / rho_range
   
-  axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), label = seq(psi_min_label, psi_max_label, by = psi_label_interval))
-  axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
+  # axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), label = seq(psi_min_label, psi_max_label, by = psi_label_interval))
+  # axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
   
   #Theoretmaxdist_BAF = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   #DCW 180711 - try weighting BAF=0.5 equally with other points
