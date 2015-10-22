@@ -1360,7 +1360,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
 
-  # library(RColorBrewer)
+  library(RColorBrewer)
 
   s = make_segments(r,b)
   dist_matrix_info <- create_distance_matrix( s, dist_choice, gamma, uninformative_BAF_threshold =uninformative_BAF_threshold)  
@@ -1506,7 +1506,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   }
 
   if (!is.na(distancepng)) {
-    clonal_runascat.plot1(distancepng, minimise, d, psi_opt1_plot, rho_opt1_plot)
+    clonal_runascat.plot1(distancepng, minimise, -d, psi_opt1_plot, rho_opt1_plot)
   }
 
 
