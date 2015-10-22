@@ -1367,24 +1367,6 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   d = dist_matrix_info$distance_matrix
   minimise = dist_matrix_info$minimise
 
- #  if (!is.na(distancepng)) {
- #    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
- #  }
-
- #  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
-
- #  #hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
- #  if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
- #  	hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
- #  }else{
-	# hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
- #  }  
-  
- #  image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
-
- #  axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
- #  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
-
   #TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   #DCW 180711 - try weighting BAF=0.5 equally with other points
   TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"],na.rm=T)
@@ -1505,21 +1487,13 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     }
   }
 
+  # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
     clonal_runascat.plot1(distancepng, minimise, -d, psi_opt1_plot, rho_opt1_plot)
   }
 
 
   if(nropt>0) {
-
-    if (!is.na(copynumberprofilespng)) {
-      png(filename = copynumberprofilespng, width = 2000, height = 1000, res = 200)
-    } 
-    else {      
-      windows(10,5)
-    }
-
-    par(mar = c(0.5,5,5,0.5), mfrow=c(2,1), cex = 0.4, cex.main=3, cex.axis = 2.5)
 
     rho = rho_opt1
     psi = psi_opt1
@@ -1529,24 +1503,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     nBfull = (rho-1+b*2^(r/gamma)*((1-rho)*2+rho*psi))/rho
     nA = pmax(round(nAfull),0)
     nB = pmax(round(nBfull),0)
-    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(nA-0.1,col="red",pch = "|")
-    points(nB+0.1,col="green",pch = "|")
-# don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
-    
+  
     rBacktransform = gamma*log((rho*(nA+nB)+(1-rho)*2)/((1-rho)*2+rho*psi),2)
     bBacktransform = (1-rho+rho*nB)/(2-2*rho+rho*(nA+nB))
     rConf = ifelse(abs(rBacktransform)>0.15,pmin(100,pmax(0,100*(1-abs(rBacktransform-r)/abs(r)))),NA)
@@ -1555,66 +1512,42 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     if(!is.na(reliabilityFile)){
 		write.table(data.frame(segmentedBAF=b,backTransformedBAF=bBacktransform,confidenceBAF=bConf,segmentedR=r,backTransformedR=rBacktransform,confidenceR=rConf,nA=nA,nB=nB,nAfull=nAfull,nBfull=nBfull), reliabilityFile,sep=",",row.names=F)
 	}
-    confidence = ifelse(is.na(rConf),bConf,ifelse(is.na(bConf),rConf,(rConf+bConf)/2))
-    maintitle = paste("Aberration reliability score (%), average: ", sprintf("%2.0f",mean(confidence,na.rm=T)),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,100), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(confidence,col="blue",pch = "|")
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
-    
+    confidence = ifelse(is.na(rConf),bConf,ifelse(is.na(bConf),rConf,(rConf+bConf)/2))    
 
     if (!is.na(copynumberprofilespng)) {
-      dev.off()
+      clonal_runascat.plot2(copynumberprofilespng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence)
     }
 
 
-    if (!is.na(nonroundedprofilepng)) {
-      png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
-    } 
-    else {      
-      windows(10,5)
-    }
+#     if (!is.na(nonroundedprofilepng)) {
+#       png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
+#     } 
+#     else {      
+#       windows(10,5)
+#     }
 
-    par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
+#     par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
 
-    rho = rho_opt1
-    psi = psi_opt1
-    ploidy = ploidy_opt1
-    
-    nAfull = (rho-1-(b-1)*2^(r/gamma)*((1-rho)*2+rho*psi))/rho
-    nBfull = (rho-1+b*2^(r/gamma)*((1-rho)*2+rho*psi))/rho
-    nA = pmax(round(nAfull),0)
-    nB = pmax(round(nBfull),0)
-    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(nBfull,col="blue",pch = "|")
-    points(nAfull+nBfull,col="purple",pch = "|")
-# don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
+#     maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
+#     plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
+#     points(nBfull,col="blue",pch = "|")
+#     points(nAfull+nBfull,col="purple",pch = "|")
+# # don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
+#     abline(v=0,lty=1,col="lightgrey")
+#     chrk_tot_len = 0
+#     for (i in 1:length(ch)) {
+#       chrk = ch[[i]];
+#       chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
+#       chrk_tot_len_prev = chrk_tot_len
+#       chrk_tot_len = chrk_tot_len + length(chrk_hetero)
+#       vpos = chrk_tot_len;
+#       tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
+#       text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
+#       abline(v=vpos,lty=1,col="lightgrey")
+#     }
     
     if (!is.na(nonroundedprofilepng)) {
-      dev.off()
+      clonal_runascat.plot3 = function(nonroundedprofilepng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented)
     }
   }
   output_optimum_pair = list(psi = psi, rho = rho, ploidy = ploidy)
