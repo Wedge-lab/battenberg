@@ -231,74 +231,69 @@ clonal_runascat.plot1 = function(figurename, minim, distmat, psis, rhos) {
 }
 
 #' Code extracted from the second plot in clonal_ascat runASCAT.
-#' Note: This is a temporary function.
+#' Note: This is a temporary function and VERY similar to clonal_runascat.plot3
 #' @noRd
 #'
 clonal_runascat.plot2 = function(copynumberprofilespng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence) {
   png(filename = copynumberprofilespng, width = 2000, height = 1000, res = 200)
   par(mar = c(0.5,5,5,0.5), mfrow=c(2,1), cex = 0.4, cex.main=3, cex.axis = 2.5)
-
-    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
-    plot(c(1,length(nA)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(nA-0.1,col="red",pch = "|")
-    points(nB+0.1,col="green",pch = "|")
-# don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
-    
-    maintitle = paste("Aberration reliability score (%), average: ", sprintf("%2.0f",mean(confidence,na.rm=T)),"%",sep="")
-    plot(c(1,length(nA)), c(0,100), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(confidence,col="blue",pch = "|")
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
-    dev.off()
+  maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
+  plot(c(1,length(nA)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
+  points(nA-0.1,col="red",pch = "|")
+  points(nB+0.1,col="green",pch = "|")
+  abline(v=0,lty=1,col="lightgrey")
+  chrk_tot_len = 0
+  for (i in 1:length(ch)) {
+    chrk = ch[[i]];
+    chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
+    chrk_tot_len_prev = chrk_tot_len
+    chrk_tot_len = chrk_tot_len + length(chrk_hetero)
+    vpos = chrk_tot_len;
+    tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
+    text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
+    abline(v=vpos,lty=1,col="lightgrey")
+  }  
+  maintitle = paste("Aberration reliability score (%), average: ", sprintf("%2.0f",mean(confidence,na.rm=T)),"%",sep="")
+  plot(c(1,length(nA)), c(0,100), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
+  points(confidence,col="blue",pch = "|")
+  abline(v=0,lty=1,col="lightgrey")
+  chrk_tot_len = 0
+  for (i in 1:length(ch)) {
+    chrk = ch[[i]];
+    chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
+    chrk_tot_len_prev = chrk_tot_len
+    chrk_tot_len = chrk_tot_len + length(chrk_hetero)
+    vpos = chrk_tot_len;
+    tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
+    text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
+    abline(v=vpos,lty=1,col="lightgrey")
+  }
+dev.off()
 }
 
 #' Code extracted from the third plot in clonal_ascat runASCAT.
-#' Note: This is a temporary function.
+#' Note: This is a temporary function and VERY similar to clonal_runascat.plot2
 #' @noRd
 #'
 clonal_runascat.plot3 = function(nonroundedprofilepng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented) {
   png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
   par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
-
-    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(nBfull,col="blue",pch = "|")
-    points(nAfull+nBfull,col="purple",pch = "|")
-# don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
-    dev.off()
+  maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
+  plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
+  points(nBfull,col="blue",pch = "|")
+  points(nAfull+nBfull,col="purple",pch = "|")
+  abline(v=0,lty=1,col="lightgrey")
+  chrk_tot_len = 0
+  for (i in 1:length(ch)) {
+    chrk = ch[[i]];
+    chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
+    chrk_tot_len_prev = chrk_tot_len
+    chrk_tot_len = chrk_tot_len + length(chrk_hetero)
+    vpos = chrk_tot_len;
+    tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
+    text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
+    abline(v=vpos,lty=1,col="lightgrey")
+  }
+  dev.off()
 }
 
