@@ -1483,6 +1483,10 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     }
   }
 
+  # added for output to plotting
+  psi_opt1_plot = vector(mode="numeric")
+  rho_opt1_plot = vector(mode="numeric")
+
   if (nropt>0) {
     optlim = sort(localmin)[1]
     for (i in 1:length(optima)) {
