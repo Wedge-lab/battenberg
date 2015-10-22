@@ -341,7 +341,7 @@ clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psis,
   axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), label = seq(psi_min_label, psi_max_label, by = psi_label_interval))
   axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
   
-  points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col=c("green", "darkgreen"), pch="X", cex = 2 )
+  points( ( psis - psi_min ) / psi_range , ( rhos - rho_min ) / rho_range , col=c("green", "darkgreen"), pch="X", cex = 2 )
   dev.off()
 }
 
