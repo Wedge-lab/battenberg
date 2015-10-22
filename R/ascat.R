@@ -918,6 +918,8 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
   
+  library(RColorBrewer)
+  
   SNPposhet = SNPpos[names(bafsegmented),]
   autoprobes = !(SNPposhet[,1]%in%sexchromosomes)
   
@@ -926,6 +928,18 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
   
   s = make_segments(r2,b2)
   d = create_distance_matrix(s, gamma)
+  
+  if (!is.na(distancepng)) {
+    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
+  }
+  
+  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
+  
+  hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
+  image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  
+  axis(1, at = seq(0, 1, by = 1/5), label = seq(1, 6, by = 1))
+  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
   
   TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   
@@ -1121,6 +1135,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
     
   }
   
+  
   if (nropt>0) {
     if (is.na(rho_manual)) {
       optlim = sort(localmin)[1]
@@ -1133,9 +1148,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
           }
           ploidy_opt1 = optima[[i]][4]
           goodnessOfFit_opt1 = optima[[i]][5]
-          # added input to plotting
-          psi_opt1_plot = c(psi_opt1_plot, psi_opt1)
-          rho_opt1_plot = c(rho_opt1_plot, rho_opt1)
+          points((psi_opt1-1)/5,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
         }
       }
     } else {
@@ -1143,20 +1156,26 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
       psi_opt1 = optima[[1]][3]
       ploidy_opt1 = optima[[1]][4]
       goodnessOfFit_opt1 = optima[[1]][5]
-      # added input to plotting
-      psi_opt1_plot = psi_opt1
-      rho_opt1_plot = rho_opt1
+      points((psi_opt1-1)/5,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
     }
   }
-
-  # separated plotting from logic
+  
   if (!is.na(distancepng)) {
-    runascat.plot1(distancepng, d, psi_opt1_plot, rho_opt1_plot)
+    dev.off()
   }
-
-
+  
+  
   if(nropt>0) {
-
+    
+    if (!is.na(nonroundedprofilepng)) {
+      png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
+    } 
+    else {      
+      windows(10,5)
+    }
+    
+    par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
+    
     rho = rho_opt1
     psi = psi_opt1
     
@@ -1179,11 +1198,27 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
                            ifelse(b<0.5,0,(rho-1+((1-rho)*2+rho*psi)*2^(r/gamma))/rho)))
     nA = pmax(round(nAfull),0)
     nB = pmax(round(nBfull),0)
-   
-   
-    # separated plotting from logic plot 2
+    
+    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%", ifelse(nonaberrant,", non-aberrant",""),sep="")
+    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
+    points(nBfull,col="blue",pch = "|")
+    points(nAfull+nBfull,col="purple",pch = "|")
+    # don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
+    abline(v=0,lty=1,col="lightgrey")
+    chrk_tot_len = 0
+    for (i in 1:length(ch)) {
+      chrk = ch[[i]];
+      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
+      chrk_tot_len_prev = chrk_tot_len
+      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
+      vpos = chrk_tot_len;
+      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
+      text(tpos,5,chrs[i], pos = 1, cex = 2)
+      abline(v=vpos,lty=1,col="lightgrey")
+    }
+    
     if (!is.na(nonroundedprofilepng)) {
-      runascat.plot2(nonroundedprofilepng, ploidy_opt1, rho_opt1, goodnessOfFit_opt1, nonaberrant, nAfull, nBfull, ch, lrr, bafsegmented, chrs)
+      dev.off()
     }
     
     rho = rho_opt1
@@ -1326,17 +1361,45 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
     n2all[heteroprobes] = ifelse(baf[heteroprobes2]>0.5,nMajor[heteroprobes], nMinor[heteroprobes])
     n1all[homoprobes] = ifelse(baf[homoprobes]<=0.5,nMajor[homoprobes]+nMinor[homoprobes],0)
     n2all[homoprobes] = ifelse(baf[homoprobes]>0.5,nMajor[homoprobes]+nMinor[homoprobes],0)
-      
+    
+    
+    # plot ASCAT profile
+    if (!is.na(copynumberprofilespng)) {
+      png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200)
+    } 
+    else {      
+      windows(10,2.5)
+    }
+    
+    par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
+    
     nA2 = n1all[heteroprobes]
     nB2 = n2all[heteroprobes]
     nA = ifelse(nA2>nB2,nA2,nB2)
     nB = ifelse(nA2>nB2,nB2,nA2)
+    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%", ifelse(nonaberrant,", non-aberrant",""),sep="")
+    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
+    points(nA-0.1,col="red",pch = "|")
+    points(nB+0.1,col="green",pch = "|")
+    # don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
+    abline(v=0,lty=1,col="lightgrey")
+    chrk_tot_len = 0
+    for (i in 1:length(ch)) {
+      chrk = ch[[i]];
+      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
+      chrk_tot_len_prev = chrk_tot_len
+      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
+      vpos = chrk_tot_len;
+      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
+      text(tpos,5,chrs[i], pos = 1, cex = 2)
+      abline(v=vpos,lty=1,col="lightgrey")
+    }
     
-
-    # separated plotting from logic plot 3
+    
     if (!is.na(copynumberprofilespng)) {
-      runascat.plot3(copynumberprofilespng, ploidy_opt1, rho_opt1, goodnessOfFit_opt1, nonaberrant, nA, nB, ch, lrr, bafsegmented, chrs)
-    }    
+      dev.off()
+    }
+    
     
     if (!is.na(aberrationreliabilitypng)) {
       png(filename = aberrationreliabilitypng, width = 2000, height = 500, res = 200)
