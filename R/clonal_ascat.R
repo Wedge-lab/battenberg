@@ -1547,7 +1547,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 #     }
     
     if (!is.na(nonroundedprofilepng)) {
-      clonal_runascat.plot3 = function(nonroundedprofilepng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented)
+      clonal_runascat.plot3(nonroundedprofilepng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented)
     }
   }
   output_optimum_pair = list(psi = psi, rho = rho, ploidy = ploidy)
