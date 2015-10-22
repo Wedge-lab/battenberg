@@ -143,32 +143,37 @@ plot.haplotype.data = function(haplotyped.baf.file, imageFileName, samplename, c
 
 #' Combines all separate BAF files per chromosome into a single file
 #'
-#' @param inputfile.prefix Prefix of the input files until the chromosome number. The chromosome number will be added internally.
-#' @param inputfile.postfix Postfix of the input files from the chromosome number.
-#' @param outputfile Full path to where the output will be written.
-#' @param no.chrs Number of chromosomes.
+#' @param inputfile.prefix Prefix of the input files until the chromosome number. The chromosome number will be added internally
+#' @param inputfile.postfix Postfix of the input files from the chromosome number
+#' @param outputfile Full path to where the output will be written
+#' @param no.chrs Number of chromosomes, i.e. the number of files that need to be concatenated
 #' @author dw9
 #' @export
 combine.baf.files = function(inputfile.prefix, inputfile.postfix, outputfile, no.chrs) {
-  # TODO: Possibly deal with ignored chromosomes here
-#   impute.info = read.table(impute_info_file,header=F,row.names=NULL,sep="\t",stringsAsFactors=F)
-#   if(is.male){
-#     impute.info = impute.info[impute.info[,7]==1,]
-#   }
-#   no.chrs = length(unique(impute.info[,1]))
-  #no.chrs = length(unique(parse.imputeinfofile(imputeinfofile, FALSE)$chrom))
   concatenateBAFfiles(inputfile.prefix, inputfile.postfix, outputfile, no.chrs)
 }
 
 #' Segment the haplotyped and phased data using fastPCF.
-#' @param
+#' 
+#' This function performs segmentation. This is done in two steps. First a segmentation step
+#' that aims to find short segments. These are used to find haplotype blocks that have been
+#' switched. These blocks are switched into the correct order first after which the second
+#' segmentation step is performed. This second step aims to segment the data that will go into
+#' fit.copy.number. This function produces a BAF segmented file with 5 columns: chromosome, position,
+#' original BAF, switched BAF and BAF segment. The BAF segment column should be used subsequently
+#' @param samplename Name of the sample, which is used to name output figures
+#' @param inputfile String that points to the output from the \code{combine.baf.files} function. This contains the phased SNPs with their BAF values
+#' @param outputfile String where the segmentation output will be written
+#' @param gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)
+#' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default 3)
+#' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default 3)
+#' @param phasekmin Kmin parameter used when correcting phasing mistakes (Default 3)
 #' @author dw9
+#' @export
 segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3) {
-  #BAFraw = read.table(paste(sample,"_allChromosomes_heterozygousMutBAFs_haplotyped.txt",sep=""),sep="\t",header=T)
   BAFraw = read.table(inputfile,sep="\t",header=T, stringsAsFactors=F)
   
   BAFoutput = NULL
-  
   for (chr in unique(BAFraw[,1])) {
     BAFrawchr = BAFraw[BAFraw[,1]==chr,c(2,3)]
     BAFrawchr = BAFrawchr[!is.na(BAFrawchr[,2]),]
@@ -194,17 +199,11 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
     if(length(BAF)<50){
       BAFsegm = rep(mean(BAF),length(BAF))
     }else{
-      #res= selectFastPcf(BAF,3,3*sdev,T)
       res= selectFastPcf(BAF,phasekmin,phasegamma*sdev,T)
       BAFsegm = res$yhat
     }
     
     png(filename = paste(samplename,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
-    #     par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
-    #     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
-    #          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
-    #     points(pos/1000000,BAF,pch=".",col="red",cex=2)
-    #     points(pos/1000000,BAFsegm,pch=19,cex=0.5,col="green")
     create.segmented.plot(chrom.position=pos/1000000, 
                                   points.red=BAF, 
                                   points.green=BAFsegm, 
@@ -225,12 +224,6 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
     }
     
     png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
-    #     par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
-    #     plot(c(min(pos)/1000000,max(pos)/1000000),c(0,1),pch=".",type = "n", 
-    #          main = paste(sample,", chromosome ", chr, sep=""), xlab = "Position (Mb)", ylab = "BAF (phased)")
-    #     points(pos/1000000,BAF,pch=".",col=ifelse(BAFsegm>0.5,"red","blue"),cex=2)
-    #     points(pos/1000000,BAFphseg,pch=19,cex=0.5,col="darkred")
-    #     points(pos/1000000,1-BAFphseg,pch=19,cex=0.5,col="darkblue")
     create.baf.plot(chrom.position=pos/1000000, 
                     points.red.blue=BAF, 
                     points.darkred=BAFphseg, 
@@ -247,6 +240,5 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
     BAFoutput = rbind(BAFoutput, BAFoutputchr)
   }
   colnames(BAFoutput) = c("Chromosome","Position","BAF","BAFphased","BAFseg")
-  #write.table(BAFoutput,paste(sample,".BAFsegmented.txt",sep=""),sep="\t",row.names=T,col.names=NA,quote=F)
   write.table(BAFoutput, outputfile, sep="\t", row.names=F, col.names=T, quote=F)
 }
