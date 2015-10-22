@@ -1360,30 +1360,30 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
 
-  library(RColorBrewer)
+  # library(RColorBrewer)
 
   s = make_segments(r,b)
   dist_matrix_info <- create_distance_matrix( s, dist_choice, gamma, uninformative_BAF_threshold =uninformative_BAF_threshold)  
   d = dist_matrix_info$distance_matrix
   minimise = dist_matrix_info$minimise
 
-  if (!is.na(distancepng)) {
-    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
-  }
+ #  if (!is.na(distancepng)) {
+ #    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
+ #  }
 
-  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
+ #  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
 
-  #hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
-  if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
-  	hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
-  }else{
-	hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
-  }  
+ #  #hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
+ #  if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
+ #  	hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
+ #  }else{
+	# hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
+ #  }  
   
-  image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+ #  image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
 
-  axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
-  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
+ #  axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
+ #  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
 
   #TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   #DCW 180711 - try weighting BAF=0.5 equally with other points
@@ -1494,13 +1494,15 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
         }
         ploidy_opt1 = optima[[i]][4]
         goodnessOfFit_opt1 = optima[[i]][5]
-        points((psi_opt1-1)/4.4,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
+        psi_opt1_plot = c(psi_opt1_plot, psi_opt1)
+        rho_opt1_plot = c(rho_opt1_plot, rho_opt1)
+        # points((psi_opt1-1)/4.4,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
       }
     }
   }
 
   if (!is.na(distancepng)) {
-    dev.off()
+    clonal_runascat.plot1(distancepng, minimise, d, psi_opt1_plot, rho_opt1_plot)
   }
 
 
