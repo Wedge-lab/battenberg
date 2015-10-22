@@ -230,7 +230,7 @@ clonal_runascat.plot1 = function(figurename, minim, distmat, psis, rhos) {
   dev.off()
 }
 
-#' Code extracted from the second plot in clonal_ascat runASCAT.
+#' Code extracted from the second plot in clonal_ascat run(clonal)ASCAT.
 #' Note: This is a temporary function and VERY similar to clonal_runascat.plot3
 #' @noRd
 #'
@@ -271,7 +271,7 @@ clonal_runascat.plot2 = function(copynumberprofilespng, rho_opt1, goodnessOfFit_
 dev.off()
 }
 
-#' Code extracted from the third plot in clonal_ascat runASCAT.
+#' Code extracted from the third plot in clonal_ascat run(clonal)ASCAT.
 #' Note: This is a temporary function and VERY similar to clonal_runascat.plot2
 #' @noRd
 #'
@@ -297,11 +297,24 @@ clonal_runascat.plot3 = function(nonroundedprofilepng, rho_opt1, goodnessOfFit_o
   dev.off()
 }
 
-# #' Code extracted from the third plot in clonal_ascat runASCAT.
-# #' Note: This is a temporary function and VERY similar to clonal_runascat.plot2
-# #' @noRd
-# #'
-# clonal_runclonalascat.plot2 = function(copynumberprofilespng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence) {
-#   png(filename = copynumberprofilespng, width = 2000, height = 1000, res = 200)
-#   par(mar = c(0.5,5,5,0.5), mfrow=c(2,1), cex = 0.4, cex.main=3, cex.axis = 2.5)
-# }
+#' Code extracted from the plot in clonal_ascat find_centroid_of_global_minima.
+#' Note: This is a temporary function and VERY similar to clonal_runascat.plot1()
+#' @noRd
+#'
+clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psi_opt1, rho_opt1, psi_min, psi_range, rho_min, rho_range) {
+  png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
+  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
+  if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
+    hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
+  } else {
+    hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
+  }
+  if ( dist_choice == 4 ) {
+    image(d, col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  } else  {
+    image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  }
+  points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col="green",pch="X", cex = 2 ) # kjd 28-2-2014
+  dev.off()
+}
+
