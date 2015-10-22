@@ -156,3 +156,30 @@ runascat.plot1 = function(figurename, distancematrix, psis, rhos) {
   points((psis-1)/5,(rhos-0.1)/0.95,col="green",pch="X", cex = 2)
   dev.off()
 }
+
+#' Code extracted from the second plot in runASCAT.
+#' Note: This is a temporary function.
+#' @noRd
+#'
+runascat.plot2 = function(figurename, ploidy, rho, goodnessoffit, nonaber, nAf, nBf, chroms, logr, bafsegm, chromnames) {
+  png(filename = figurename, width = 2000, height = 500, res = 200)
+  par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
+  maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessoffit),"%", ifelse(nonaber,", non-aberrant",""),sep="")
+    plot(c(1,length(nAf)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
+    points(nBf,col="blue",pch = "|")
+    points(nAf+nBf,col="purple",pch = "|")
+    # don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
+    abline(v=0,lty=1,col="lightgrey")
+    chrk_tot_len = 0
+    for (i in 1:length(chroms)) {
+      chrk = chroms[[i]];
+      chrk_hetero = intersect(names(logr)[chrk],names(bafsegm))
+      chrk_tot_len_prev = chrk_tot_len
+      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
+      vpos = chrk_tot_len;
+      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
+      text(tpos,5,chromnames[i], pos = 1, cex = 2)
+      abline(v=vpos,lty=1,col="lightgrey")
+    }
+    dev.off()
+}
