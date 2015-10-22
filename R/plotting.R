@@ -210,3 +210,24 @@ runascat.plot3 = function(figurename, ploidy, rho, goodnessoffit, nonaber, nA, n
     }
     dev.off()
 }
+
+#' Code extracted from the first plot in clonal_ASCAT runASCAT.
+#' Note: This is a temporary function.
+#' @noRd
+#'
+clonal_runascat.plot1 = function(figurename, minim, distmat, psis, rhos) {
+  require(RColorBrewer)
+  png(filename = figurename, width = 1000, height = 1000, res = 1000/7)
+  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
+  if(minim){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
+    hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
+  } else {
+  hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
+  }  
+  image(log(distmat), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
+  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
+  points((psis-1)/4.4,(rhos-0.1)/0.95,col="green",pch="X", cex = 2)
+  dev.off()
+}
+
