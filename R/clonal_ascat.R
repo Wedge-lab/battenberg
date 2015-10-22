@@ -1296,7 +1296,9 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
     
 
     # points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col="green",pch="X", cex = 2 ) # kjd 28-2-2014
-       
+   if (!is.na(distancepng)) {
+   	clonal_findcentroid.plot(distancepng, minimise, dist_choice, -d, psi_opt1, rho_opt1, psi_min, psi_max, psi_range, rho_min, rho_max, rho_range)	
+   }
         
       #
 	  # Write to clonal info file:
@@ -1337,7 +1339,7 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
     # points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col="darkgreen",pch="X", cex = 2 ) # kjd 28-2-2014   
   
   if (!is.na(distancepng)) {
-    clonal_findcentroid.plot(distancepng, minimise, dist_choice, -d, psi_opt1, rho_opt1, psi_min, psi_max, psi_range, rho_min, rho_max, rho_range)
+    clonal_findcentroid.plot(paste0(distancepng,"sec"), minimise, dist_choice, -d, psi_opt1, rho_opt1, psi_min, psi_max, psi_range, rho_min, rho_max, rho_range)
   }
 	
 	optima_info = list( nropt = nropt, psi_opt1 = psi_opt1, rho_opt1 = rho_opt1, ploidy_opt1 = ploidy_opt1, ref_seg = ref_seg, goodnessOfFit_opt1 = goodnessOfFit_opt1 ) # kjd 10-3-2014
