@@ -1008,9 +1008,10 @@ get_new_bounds = function( input_optimum_pair, ininitial_bounds ) # kjd 21-2-201
 # input: segmented LRR and BAF and the value for gamma_param
 
 #modified by kd7
-create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF_threshold=0.51) {
-  psi_pos = seq(1,5.4,0.05) 
-  rho_pos = seq(0.1,1.05,0.01)
+create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF_threshold=0.51, min_rho=0.1, max_rho=1, min_psi=1, max_psi=5.4) {
+  # TODO: the min and max rho/psi are also used as figure boundaries. Check if this works properly
+  psi_pos = seq(min_psi,max_psi,0.05) 
+  rho_pos = seq(min_rho,max_rho,0.01)
   d = matrix(nrow = length(psi_pos), ncol = length(rho_pos))
   rownames(d) = psi_pos
   colnames(d) = rho_pos
@@ -1355,7 +1356,7 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
 # copynumberprofilespng: if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file
 # nonroundedprofilepng: if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file
 #the limit on rho is lenient and may lead to spurious solutions
-runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,min.goodness=63, uninformative_BAF_threshold = 0.51) {
+runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,max.rho=1.05,min.goodness=63, uninformative_BAF_threshold = 0.51) {
   ch = chromosomes
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
@@ -1363,7 +1364,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   library(RColorBrewer)
 
   s = make_segments(r,b)
-  dist_matrix_info <- create_distance_matrix( s, dist_choice, gamma, uninformative_BAF_threshold =uninformative_BAF_threshold)  
+  dist_matrix_info <- create_distance_matrix( s, dist_choice, gamma, uninformative_BAF_threshold=uninformative_BAF_threshold, min_psi=min.ploidy, max_psi=max.ploidy, min_rho=min.rho, max_rho=max.rho)  
   d = dist_matrix_info$distance_matrix
   minimise = dist_matrix_info$minimise
 
