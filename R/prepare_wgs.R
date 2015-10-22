@@ -288,5 +288,5 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, gc_content_file_prefix, chr
     
     #Tumor_LogR_new = rbind(Tumor_LogR_new,GCcorrected)
   #write.table(Tumor_LogR_new, file=outfile, sep="\t", quote=F)
-  write.table(GCcorrected, file=outfile, sep="\t", quote=F)
+  write.table(GCcorrected, file=outfile, sep="\t", quote=F, row.names=F)
 }
