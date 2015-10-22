@@ -927,11 +927,6 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
   s = make_segments(r2,b2)
   d = create_distance_matrix(s, gamma)
   
-
-  ## start plottinggroup 1.0
-
-  ## end plottinggroup 1.0
-
   TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   
   # flag the sample as non-aberrant if necessary
@@ -1126,10 +1121,6 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
     
   }
   
-  # add for plotting
-  psi_opt1_plot = vector(mode = "numeric")
-  rho_opt1_plot = vector(mode = "numeric")
-
   if (nropt>0) {
     if (is.na(rho_manual)) {
       optlim = sort(localmin)[1]
@@ -1142,12 +1133,9 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
           }
           ploidy_opt1 = optima[[i]][4]
           goodnessOfFit_opt1 = optima[[i]][5]
-          ## add for plotting
+          # added input to plotting
           psi_opt1_plot = c(psi_opt1_plot, psi_opt1)
           rho_opt1_plot = c(rho_opt1_plot, rho_opt1)
-          ## start plottinggroup 1.1
-          # points((psi_opt1-1)/5,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
-          ## end plottinggroup 1.1
         }
       }
     } else {
@@ -1155,12 +1143,9 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
       psi_opt1 = optima[[1]][3]
       ploidy_opt1 = optima[[1]][4]
       goodnessOfFit_opt1 = optima[[1]][5]
-      ## add for plotting
-      psi_opt1_plot = c(psi_opt1_plot, psi_opt1)
-      rho_opt1_plot = c(rho_opt1_plot, rho_opt1)
-      ## start plottinggroup 1.2
-      # points((psi_opt1-1)/5,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
-      ## end plottinggroup 1.2
+      # added input to plotting
+      psi_opt1_plot = psi_opt1
+      rho_opt1_plot = rho_opt1
     }
   }
 
@@ -1168,7 +1153,6 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
   if (!is.na(distancepng)) {
     runascat.plot1(distancepng, d, psi_opt1_plot, rho_opt1_plot)
   }
-  # end mod
 
 
   if(nropt>0) {
