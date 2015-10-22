@@ -297,3 +297,11 @@ clonal_runascat.plot3 = function(nonroundedprofilepng, rho_opt1, goodnessOfFit_o
   dev.off()
 }
 
+# #' Code extracted from the third plot in clonal_ascat runASCAT.
+# #' Note: This is a temporary function and VERY similar to clonal_runascat.plot2
+# #' @noRd
+# #'
+# clonal_runclonalascat.plot2 = function(copynumberprofilespng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence) {
+#   png(filename = copynumberprofilespng, width = 2000, height = 1000, res = 200)
+#   par(mar = c(0.5,5,5,0.5), mfrow=c(2,1), cex = 0.4, cex.main=3, cex.axis = 2.5)
+# }
