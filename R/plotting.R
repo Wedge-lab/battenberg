@@ -1,7 +1,6 @@
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-#'
 create.haplotype.plot = function(chrom.position, points.blue, points.red, x.min, x.max, title, xlab, ylab) {
   par(pch=".", cex=1, cex.main=0.8, cex.axis = 0.6, cex.lab=0.7,yaxp=c(-0.05,1.05,6))
   plot(c(x.min,x.max), c(0,1), type="n",, main=title, xlab=xlab, ylab=ylab)
@@ -12,7 +11,6 @@ create.haplotype.plot = function(chrom.position, points.blue, points.red, x.min,
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-#'
 create.segmented.plot = function(chrom.position, points.red, points.green, x.min, x.max, title, xlab, ylab) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type="n", main=title, xlab=xlab, ylab=ylab)
@@ -23,7 +21,6 @@ create.segmented.plot = function(chrom.position, points.red, points.green, x.min
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-#'
 create.baf.plot = function(chrom.position, points.red.blue, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type = "n", main=title, xlab=xlab, ylab=ylab)
