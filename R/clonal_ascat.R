@@ -1121,52 +1121,6 @@ calc_square_distance <-function( pt1, pt2 ) # kjd 27-2-2014
 find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_minor, s, dist_choice, minimise, new_bounds, distancepng, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, allow100percent, uninformative_BAF_threshold, read_depth) # kjd 28-2-2014
 {
 
- #  if (!is.na(distancepng)) {
- #    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
- #  }
-
- #  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
-
- #  if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
- #  	hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
- #  }else{
-	# hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
- #  }
-  
-  
- #  if( dist_choice == 4 )
- #  {
-	# image(d, col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
-	
- #  }else
- #  {
-	# image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
- #  }
-  
-  # axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
-  # axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
-  
-  # axis(1, at = seq(0, 1.0, by = 0.1), label = seq(psi_min, psi_max, by = 0.1 * psi_range))
-  # axis(2, at = seq(0, 1.0, by = 0.1), label = seq(rho_min, rho_max, by = 0.1 * rho_range ))
-  # psi_min_label = ceiling( 10 * psi_min )/10
-  # psi_max_label = floor( 10 * psi_max )/10
-  # psi_label_interval = 0.1
-  
-  # psi_min_label_standardised = ( psi_min_label - psi_min ) / psi_range
-  # psi_max_label_standardised = ( psi_max_label - psi_min ) / psi_range
-  # psi_label_interval_standardised = psi_label_interval / psi_range
-  
-  # rho_min_label = ceiling( 100 * rho_min )/100
-  # rho_max_label = floor( 100 * rho_max )/100
-  # rho_label_interval = 0.01
-  
-  # rho_min_label_standardised = ( rho_min_label - rho_min ) / rho_range
-  # rho_max_label_standardised = ( rho_max_label - rho_min ) / rho_range
-  # rho_label_interval_standardised = rho_label_interval / rho_range
-  
-  # axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), label = seq(psi_min_label, psi_max_label, by = psi_label_interval))
-  # axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
-  
   #Theoretmaxdist_BAF = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   #DCW 180711 - try weighting BAF=0.5 equally with other points
   # Theoretmaxdist_BAF = sum(rep(0.25,dim(s)[1]) * s[,"length"],na.rm=T)
@@ -1286,8 +1240,7 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
     
     ref_seg = ref_seg_matrix[ grid_x, grid_y ]
     
-
-    # points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col="green",pch="X", cex = 2 ) # kjd 28-2-2014
+    # store optima for plotting later
     rhos = rho_opt1
     psis = psi_opt1
       #
@@ -1325,13 +1278,15 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
   		distance.info = calc_distance_clonal( s, dist_choice, rho_opt1, psi_opt1, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold)
   		goodnessOfFit_opt1 = distance.info$distance_value		
 		#goodnessOfFit_opt1 = ref_segment_info$goodnessOfFit_opt1
-	}
-    # points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col="darkgreen",pch="X", cex = 2 ) # kjd 28-2-2014   
-    rhos = c(rhos, rho_opt1)
-    psis = c(psis, psi_opt1)
+	} 
+
+	# store optima for plotting later
+    	rhos = c(rhos, rho_opt1)
+    	psis = c(psis, psi_opt1)
   
+  # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
-    clonal_findcentroid.plot(paste0(distancepng,"sec"), minimise, dist_choice, -d, psis, rhos, new_bounds)
+    clonal_findcentroid.plot(distancepng, minimise, dist_choice, -d, psis, rhos, new_bounds)
   }
 	
 	optima_info = list( nropt = nropt, psi_opt1 = psi_opt1, rho_opt1 = rho_opt1, ploidy_opt1 = ploidy_opt1, ref_seg = ref_seg, goodnessOfFit_opt1 = goodnessOfFit_opt1 ) # kjd 10-3-2014
