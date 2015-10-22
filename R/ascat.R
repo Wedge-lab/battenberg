@@ -1328,42 +1328,41 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
     
     
     # plot ASCAT profile
-    if (!is.na(copynumberprofilespng)) {
-      png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200)
-    } 
-    else {      
-      windows(10,2.5)
-    }
+    # if (!is.na(copynumberprofilespng)) {
+    #   png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200)
+    # } 
+    # else {      
+    #   windows(10,2.5)
+    # }
     
-    par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
+    # par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
     
     nA2 = n1all[heteroprobes]
     nB2 = n2all[heteroprobes]
     nA = ifelse(nA2>nB2,nA2,nB2)
     nB = ifelse(nA2>nB2,nB2,nA2)
-    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%", ifelse(nonaberrant,", non-aberrant",""),sep="")
-    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(nA-0.1,col="red",pch = "|")
-    points(nB+0.1,col="green",pch = "|")
-    # don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,chrs[i], pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
+    # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%", ifelse(nonaberrant,", non-aberrant",""),sep="")
+    # plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
+    # points(nA-0.1,col="red",pch = "|")
+    # points(nB+0.1,col="green",pch = "|")
+    # # don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
+    # abline(v=0,lty=1,col="lightgrey")
+    # chrk_tot_len = 0
+    # for (i in 1:length(ch)) {
+    #   chrk = ch[[i]];
+    #   chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
+    #   chrk_tot_len_prev = chrk_tot_len
+    #   chrk_tot_len = chrk_tot_len + length(chrk_hetero)
+    #   vpos = chrk_tot_len;
+    #   tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
+    #   text(tpos,5,chrs[i], pos = 1, cex = 2)
+    #   abline(v=vpos,lty=1,col="lightgrey")
+    # }
     
-    
+    # separated plotting from logic plot 3
     if (!is.na(copynumberprofilespng)) {
-      dev.off()
-    }
-    
+      runascat.plot3(copynumberprofilespng, ploidy_opt1, rho_opt1, goodnessOfFit_opt1, nonaberrant, nA, nB, ch, lrr, bafsegmented, chrs)
+    }    
     
     if (!is.na(aberrationreliabilitypng)) {
       png(filename = aberrationreliabilitypng, width = 2000, height = 500, res = 200)
