@@ -301,7 +301,7 @@ clonal_runascat.plot3 = function(nonroundedprofilepng, rho_opt1, goodnessOfFit_o
 #' Note: This is a temporary function and VERY similar to clonal_runascat.plot1()
 #' @noRd
 #'
-clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psi_opt1, rho_opt1, new_bounds) {
+clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psis, rhos, new_bounds) {
   png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
   par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
   if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
@@ -321,7 +321,7 @@ clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psi_o
   
   psi_range = psi_max - psi_min
   rho_range = rho_max - rho_min
-  
+
   psi_min_label = ceiling( 10 * psi_min )/10
   psi_max_label = floor( 10 * psi_max )/10
   psi_label_interval = 0.1
@@ -341,7 +341,7 @@ clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psi_o
   axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), label = seq(psi_min_label, psi_max_label, by = psi_label_interval))
   axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
   
-  points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col="green",pch="X", cex = 2 )
+  points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col=c("green", "darkgreen"), pch="X", cex = 2 )
   dev.off()
 }
 
