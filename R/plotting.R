@@ -140,3 +140,19 @@ create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodne
 		abline(v=vpos,lty=1,col="lightgrey")
 	}
 }
+
+#' Code extracted from the first plot in runASCAT.
+#' Note: This is a temporary function.
+#' @noRd
+#'
+runascat.plot1 = function(figurename, distancematrix, psis, rhos) {
+  require(RColorBrewer)
+  png(filename = figurename, width = 1000, height = 1000, res = 1000/7)
+  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
+  hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
+  image(log(distancematrix), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  axis(1, at = seq(0, 1, by = 1/5), label = seq(1, 6, by = 1))
+  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
+  points((psis-1)/5,(rhos-0.1)/0.95,col="green",pch="X", cex = 2)
+  dev.off()
+}
