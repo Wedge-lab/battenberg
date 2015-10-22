@@ -301,7 +301,7 @@ clonal_runascat.plot3 = function(nonroundedprofilepng, rho_opt1, goodnessOfFit_o
 #' Note: This is a temporary function and VERY similar to clonal_runascat.plot1()
 #' @noRd
 #'
-clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psi_opt1, rho_opt1, psi_min, psi_max, psi_range, rho_min, rho_max, rho_range) {
+clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psi_opt1, rho_opt1, new_bounds) {
   png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
   par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
   if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
@@ -314,6 +314,14 @@ clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psi_o
   } else  {
     image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
   }
+  psi_min = new_bounds$psi_min
+  psi_max = new_bounds$psi_max
+  rho_min = new_bounds$rho_min
+  rho_max = new_bounds$rho_max
+  
+  psi_range = psi_max - psi_min
+  rho_range = rho_max - rho_min
+  
   psi_min_label = ceiling( 10 * psi_min )/10
   psi_max_label = floor( 10 * psi_max )/10
   psi_label_interval = 0.1
