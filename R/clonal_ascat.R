@@ -1632,7 +1632,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 # notice that: gamma_param = 0.55
 
 
-run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA) # kjd 10-1-2014
+run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA, psi_min_initial=1.0, psi_max_initial=5.4, rho_min_initial=0.1, rho_max_initial=1.05) # kjd 10-1-2014
 {
   
   siglevel_BAF = 0.05 # kjd 21-2-2014
@@ -1650,10 +1650,10 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   maxdist_LogR = 1
 
   
-  psi_min_initial = 1.0
-  psi_max_initial = 5.4
-  rho_min_initial = 0.1
-  rho_max_initial = 1.05
+#   psi_min_initial = 1.0
+#   psi_max_initial = 5.4
+#   rho_min_initial = 0.1
+#   rho_max_initial = 1.05
   
   ininitial_bounds = list( psi_min = psi_min_initial, psi_max = psi_max_initial, rho_min = rho_min_initial, rho_max = rho_max_initial )
   
