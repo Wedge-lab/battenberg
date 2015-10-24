@@ -1286,8 +1286,10 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
   
   # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
-    clonal_findcentroid.plot(distancepng, minimise, dist_choice, -d, psis, rhos, new_bounds)
+    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
   }
+  clonal_findcentroid.plot(minimise, dist_choice, -d, psis, rhos, new_bounds)
+  if (!is.na(distancepng)) { dev.off() }
 	
 	optima_info = list( nropt = nropt, psi_opt1 = psi_opt1, rho_opt1 = rho_opt1, ploidy_opt1 = ploidy_opt1, ref_seg = ref_seg, goodnessOfFit_opt1 = goodnessOfFit_opt1 ) # kjd 10-3-2014
 	
@@ -1439,8 +1441,10 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 
   # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
-    clonal_runascat.plot1(distancepng, minimise, -d, psi_opt1_plot, rho_opt1_plot)
+    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
   }
+  clonal_runascat.plot1(distancepng, minimise, -d, psi_opt1_plot, rho_opt1_plot)
+  if (!is.na(distancepng)) { dev.off() }
 
 
   if(nropt>0) {
@@ -1464,15 +1468,20 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 	}
     confidence = ifelse(is.na(rConf),bConf,ifelse(is.na(bConf),rConf,(rConf+bConf)/2))    
 
-  # separated plotting from logic: create copy number profile plot here
-    if (!is.na(copynumberprofilespng)) {
-      clonal_runascat.plot2(copynumberprofilespng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence)
-    }
-   
-  # separated plotting from logic: create nonrounded copy number profile plot here
-    if (!is.na(nonroundedprofilepng)) {
-      clonal_runascat.plot3(nonroundedprofilepng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented)
-    }
+	# separated plotting from logic: create copy number profile plot here
+	if (!is.na(copynumberprofilespng)) {
+	  png(filename = copynumberprofilespng, width = 2000, height = 1000, res = 200)
+	}
+	clonal_runascat.plot2(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence)
+	if (!is.na(copynumberprofilespng)) { dev.off() }
+	
+	# separated plotting from logic: create nonrounded copy number profile plot here
+	if (!is.na(nonroundedprofilepng)) {
+	  png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
+	}
+	clonal_runascat.plot3(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented)
+	if (!is.na(nonroundedprofilepng)) { dev.off() }
+  
   }
   output_optimum_pair = list(psi = psi, rho = rho, ploidy = ploidy)
   return( output_optimum_pair ) # kjd 20-2-2014 
@@ -1608,15 +1617,20 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 	}
     confidence = ifelse(is.na(rConf),bConf,ifelse(is.na(bConf),rConf,(rConf+bConf)/2))
 
-    # separated plotting from logic: create copy number profile plot here
-    if (!is.na(copynumberprofilespng)) {
-      clonal_runascat.plot2(copynumberprofilespng, rho, goodnessOfFit, ploidy, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence)
-    }
+	# separated plotting from logic: create copy number profile plot here
+	if (!is.na(copynumberprofilespng)) {
+	  png(filename = copynumberprofilespng, width = 2000, height = 1000, res = 200)
+	}
+	clonal_runascat.plot2(rho, goodnessOfFit, ploidy, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence)
+	if (!is.na(copynumberprofilespng)) { dev.off() }
     
-    # separated plotting from logic: create nonrounded copy number profile plot here
-    if (!is.na(nonroundedprofilepng)) {
-      clonal_runascat.plot3(nonroundedprofilepng, rho, goodnessOfFit, ploidy, nAfull, nBfull, ch, lrr, bafsegmented)
-    }
+	# separated plotting from logic: create nonrounded copy number profile plot here
+	if (!is.na(nonroundedprofilepng)) {
+	  png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
+	}
+	clonal_runascat.plot3(rho, goodnessOfFit, ploidy, nAfull, nBfull, ch, lrr, bafsegmented)
+	if (!is.na(nonroundedprofilepng)) { dev.off() }
+  
   } 
   output_optimum_pair = list(psi = psi_opt1, rho = rho_opt1, ploidy = ploidy_opt1)
   output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)

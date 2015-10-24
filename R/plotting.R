@@ -141,12 +141,11 @@ create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodne
 	}
 }
 
-#' Code extracted from the first plot in clonal_ascat runASCAT.
+#' Code extracted from the first plot in clonal_ascat runASCAT: Sunrise plot
 #' Note: This is a temporary function.
 #' @noRd
 #'
-clonal_runascat.plot1 = function(figurename, minim, distmat, psis, rhos) {
-  png(filename = figurename, width = 1000, height = 1000, res = 1000/7)
+clonal_runascat.plot1 = function(minim, distmat, psis, rhos) {
   par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
   if(minim){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
     hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
@@ -157,15 +156,13 @@ clonal_runascat.plot1 = function(figurename, minim, distmat, psis, rhos) {
   axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
   axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
   points((psis-1)/4.4,(rhos-0.1)/0.95,col="green",pch="X", cex = 2)
-  dev.off()
 }
 
 #' Code extracted from the second plot in clonal_ascat run(clonal)ASCAT.
 #' Note: This is a temporary function and VERY similar to clonal_runascat.plot3
 #' @noRd
 #'
-clonal_runascat.plot2 = function(copynumberprofilespng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence) {
-  png(filename = copynumberprofilespng, width = 2000, height = 1000, res = 200)
+clonal_runascat.plot2 = function(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence) {
   par(mar = c(0.5,5,5,0.5), mfrow=c(2,1), cex = 0.4, cex.main=3, cex.axis = 2.5)
   maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
   plot(c(1,length(nA)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
@@ -198,14 +195,13 @@ clonal_runascat.plot2 = function(copynumberprofilespng, rho_opt1, goodnessOfFit_
     text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
     abline(v=vpos,lty=1,col="lightgrey")
   }
-dev.off()
 }
 
 #' Code extracted from the third plot in clonal_ascat run(clonal)ASCAT.
 #' Note: This is a temporary function and VERY similar to clonal_runascat.plot2
 #' @noRd
 #'
-clonal_runascat.plot3 = function(nonroundedprofilepng, rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented) {
+clonal_runascat.plot3 = function(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented) {
   png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
   par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
   maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
@@ -224,15 +220,13 @@ clonal_runascat.plot3 = function(nonroundedprofilepng, rho_opt1, goodnessOfFit_o
     text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
     abline(v=vpos,lty=1,col="lightgrey")
   }
-  dev.off()
 }
 
 #' Code extracted from the plot in clonal_ascat find_centroid_of_global_minima.
 #' Note: This is a temporary function and VERY similar to clonal_runascat.plot1()
 #' @noRd
 #'
-clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psis, rhos, new_bounds) {
-  png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
+clonal_findcentroid.plot = function(minimise, dist_choice, d, psis, rhos, new_bounds) {
   par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
   if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
     hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
@@ -272,6 +266,5 @@ clonal_findcentroid.plot = function(distancepng, minimise, dist_choice, d, psis,
   axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
   
   points( ( psis - psi_min ) / psi_range , ( rhos - rho_min ) / rho_range , col=c("green", "darkgreen"), pch="X", cex = 2 )
-  dev.off()
 }
 
