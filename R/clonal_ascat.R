@@ -1495,9 +1495,16 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
         }
         ploidy_opt1 = optima[[i]][4]
         goodnessOfFit_opt1 = optima[[i]][5]
-        points((psi_opt1-1)/4.4,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
+        #points((psi_opt1-1)/4.4,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
+	# Define the allowed ranges to put the green X in the correct relative spot
+	range.ploidy = max.ploidy - min.ploidy
+	range.rho = max.rho - min.rho
+	print("Plotting green point")
+	points((psi_opt1-min.ploidy)/range.ploidy, (rho_opt1-min.rho)/range.rho, col="green", pch="X", cex = 2)
       }
     }
+  } else {
+	  print("No solution found")
   }
 
   if (!is.na(distancepng)) {
