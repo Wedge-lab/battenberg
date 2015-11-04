@@ -1161,6 +1161,7 @@ calc_square_distance <-function( pt1, pt2 ) # kjd 27-2-2014
 #' @param allow100percent Boolean whether to allow for a 100% cellularity solution
 #' @param uninformative_BAF_threshold The threshold above which BAF becomes uninformative
 #' @param read_depth TODO: this option is no longer used
+#' @return A list with fields optima_info_without_ref and optima_info
 #' @export
 find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_minor, s, dist_choice, minimise, new_bounds, distancepng, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, allow100percent, uninformative_BAF_threshold, read_depth) # kjd 28-2-2014
 {
@@ -1361,6 +1362,7 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
 #' @param min.rho The minimum cellularity to consider (Default 0.1)
 #' @param min.goodness The minimum goodness of fit for a solution to have to be considered (Default 63)
 #' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative (Default 0.51)
+#' @return A list with fields psi, rho and ploidy
 #' @export
 #the limit on rho is lenient and may lead to spurious solutions
 runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,min.goodness=63, uninformative_BAF_threshold = 0.51) {
@@ -1544,21 +1546,31 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 }
 
 ####################################################################################################
-
-# the ASCAT main function
-# lrr: (unsegmented) log R, in genomic sequence (all probes), with probe IDs
-# baf: (unsegmented) B Allele Frequency, in genomic sequence (all probes), with probe IDs
-# lrrsegmented: log R, segmented, in genomic sequence (all probes), with probe IDs
-# bafsegmented: B Allele Frequency, segmented, in genomic sequence (only probes heterozygous in germline), with probe IDs
-# gamma_param: technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays)
-# chromosomes: a list containing c vectors, where c is the number of chromosomes and every vector contains all probe numbers per chromosome
-# distancepng: if NA: distance is plotted, if filename is given, the plot is written to a .png file
-# copynumberprofilespng: if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file
-# nonroundedprofilepng: if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file
-
-# notice that: gamma_param = 0.55
-
-
+#' ASCAT like function to obtain a clonal copy number profile
+#' 
+#' This function takes an initial optimum rho/psi pair and uses
+#' an internal distance metric to calculate a score for each rho/psi pair allowed.
+#' The solution with the best score is then taken to obtain a global copy number
+#' profile. This function performs both a grid search and tries to find a reference
+#' segment, but the grid search result is always used for now.
+#' @param lrr (unsegmented) log R, in genomic sequence (all probes), with probe IDs
+#' @param baf (unsegmented) B Allele Frequency, in genomic sequence (all probes), with probe IDs
+#' @param lrrsegmented log R, segmented, in genomic sequence (all probes), with probe IDs
+#' @param bafsegmented B Allele Frequency, segmented, in genomic sequence (only probes heterozygous in germline), with probe IDs
+#' @param chromosomes a list containing c vectors, where c is the number of chromosomes and every vector contains all probe numbers per chromosome
+#' @param segBAF.table Segmented BAF data.frame from \code{get_segment_info}
+#' @param input_optimum_pair A list containing fields for rho, psi and ploidy, as is output from \code{runASCAT}
+#' @param dist_choice The distance metric to be used internally to penalise a copy number solution
+#' @param distancepng if NA: distance is plotted, if filename is given, the plot is written to a .png file (Default NA)
+#' @param copynumberprofilespng if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file (Default NA)
+#' @param nonroundedprofilepng if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)
+#' @param gamma_param technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
+#' @param read_depth TODO: unused parameter that should be removed
+#' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative
+#' @param allow100percent A boolean whether to allow a 100% cellularity solution
+#' @param reliabilityFile String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)
+#' @return A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is.ref.better
+#' @export
 run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA) # kjd 10-1-2014
 {
   
