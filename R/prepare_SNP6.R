@@ -89,7 +89,6 @@ ascat.loadData = function(Tumor_LogR_file, Tumor_BAF_file, Germline_LogR_file = 
 
 
 #' Parse the reference info file
-#' @noRD
 parseSNP6refFile = function(snp6_reference_info_file) {
   return(read.table(snp6_reference_info_file, header=T, stringsAsFactors=F))
 }

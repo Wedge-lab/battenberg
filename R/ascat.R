@@ -935,7 +935,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, gender, SNPpos, chromo
   
   par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
   
-  hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
+  hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256))
   image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
   
   axis(1, at = seq(0, 1, by = 1/5), label = seq(1, 6, by = 1))

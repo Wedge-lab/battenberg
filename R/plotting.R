@@ -145,9 +145,9 @@ create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodne
 clonal_runascat.plot1 = function(minim, distmat, psis, rhos) {
   par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
   if(minim){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
-    hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
+    hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256))
   } else {
-  hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
+  hmcol = colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256)
   }  
   image(log(distmat), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
   axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
@@ -225,9 +225,9 @@ clonal_runascat.plot3 = function(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfu
 clonal_findcentroid.plot = function(minimise, dist_choice, d, psis, rhos, new_bounds) {
   par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
   if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
-    hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
+    hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256))
   } else {
-    hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
+    hmcol = colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256)
   }
   if ( dist_choice == 4 ) {
     image(d, col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
