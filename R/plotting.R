@@ -264,3 +264,64 @@ clonal_findcentroid.plot = function(minimise, dist_choice, d, psis, rhos, new_bo
   points( ( psis - psi_min ) / psi_range , ( rhos - rho_min ) / rho_range , col=c("green", "darkgreen"), pch="X", cex = 2 )
 }
 
+
+#' Plot Battenberg copy number solutions for a segment 
+#' 
+#' \code{squaresplot} plots the different Battenberg copy number solutions for a segment
+#' 
+#' The diagnostic plot is output to the run directory as "tumourname_squares_chr_position.png/pdf"
+#' 
+#' @param tumourname Sample name
+#' @param run_dir Running directory
+#' @param segment_chr Chromosome containing the segment to be investigated
+#' @param segment_pos Chromosomal position within the segment in Mb (e.g. 90M)
+#' @param pdf output format: 0 for png (default), 1 for pdf
+#' @return figure written to tumourname_squares_chr_position
+#' @author jd 12-11-2015
+squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, pdf=0) {
+  require(ggplot2)
+  
+  if (pdf)
+    pdf(file = paste0(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".pdf"), width = 7, height = 7)
+  else
+    png(filename = paste0(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".png"), width = 1200, height = 1200, res = 200)
+  
+  # read in and augment data
+  segment_pos <- as.numeric(gsub("M", "000000", segment_pos))
+  subclones <- read.table(paste(run_dir, tumourname, "_subclones.txt", sep=""), header=T, stringsAsFactors=F)
+  subclone <- subclones[(subclones$chr == segment_chr) & (subclones$startpos <= segment_pos) & (subclones$endpos >= segment_pos),]
+  rhopsi <- read.table(paste(run_dir, tumourname, "_cellularity_ploidy.txt", sep=""), header = T, stringsAsFactors=F)[,c("cellularity","psi")]
+  nMincalc <- (rhopsi$cel-1-(subclone$BAF-1)*2^(subclone$LogR/0.55)*((1-rhopsi$cel)*2+rhopsi$cel*rhopsi$psi))/rhopsi$cel
+  nMajcalc <- (rhopsi$cel-1+subclone$BAF*2^(subclone$LogR/0.55)*((1-rhopsi$cel)*2+rhopsi$cel*rhopsi$psi))/rhopsi$cel
+  subclone <- data.frame(subclone, rhopsi, nMincalc, nMajcalc)
+  
+  # create grid for allelic copynumber + corresponding BAF/LogR values
+  ngrid <- expand.grid(nMaj=seq(0.1,5,0.1), nMin=seq(0.1,5,0.1))
+  ngrid$BAF <- apply(ngrid, 1, function(x) x[2]/sum(x))
+  ngrid$logR <- apply(ngrid, 1, function(x) log2(sum(x[1:2])/2))
+  
+  # start plotting - setup
+  q <- ggplot(NULL) + scale_x_continuous(breaks=0:10, limits=c(-0.1,5)) + scale_y_continuous(breaks=0:10, limits=c(-0.1,5)) + coord_fixed()
+  q <- q + stat_contour(data = ngrid, aes(nMaj, nMin, z=BAF), colour="blue", alpha=0.6, breaks=seq(0,1,(1/6)), size = 0.25)
+  q <- q + stat_contour(data = ngrid, aes(nMaj, nMin, z=logR), colour="red", alpha=0.6, breaks=seq(-1.5,1.5,0.5), size = 0.25) + theme_bw()
+  q <- q + theme(panel.grid.major = element_line(colour="darkgrey", size = 0.5), panel.grid.minor = element_blank())
+  
+  # if clonal segment, only plot clonal solution
+  if (subclone$frac1_A == 1) {
+    q <- q + geom_point(data = subclone, aes(nMaj1_A, nMin1_A), size = 5)
+  } else { # if subclonal, plot all equivalent solutions
+    solutions <- matrix(unlist(subclone[,grep("nM.{5}$|^frac.{3}$", colnames(subclone))]), byrow = T, ncol = 3)
+    solutions <- cbind(solutions, rep(1:6,rep(2,6)))
+    colnames(solutions) <- c("nMaj", "nMin", "frac", "sol")
+    solutions <- na.omit(as.data.frame(solutions))
+    q <- q + geom_point(data = solutions, aes(nMaj, nMin, size=frac, colour=factor(sol)), alpha=0.75, position = position_jitter(width = .05, height = .05), shape = 79) + scale_size_continuous(guide=F, limits=c(0,1) ,range = c(2,10)) + scale_color_discrete(name="solution")
+  }
+  
+  # plot precise values, as calculated by battenberg
+  q <- q + geom_point(data=subclone, aes(nMajcalc, nMincalc), size=4, shape = 88)
+  q <- q + geom_abline(intercept=0, slope=(subclone$nMincalc/subclone$nMajcalc), color = "green")
+  
+  q <- q + labs(title = paste0(tumourname," chr",subclone$chr,": ",subclone$startpos,"-",subclone$endpos))
+  print(q)
+  dev.off()
+}
