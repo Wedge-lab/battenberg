@@ -1604,6 +1604,7 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   r = lrrsegmented[names(bafsegmented)]
 
   s = get_segment_info(lrrsegmented,segBAF.table)  
+  s = s[s$length > 1,]
   dist_matrix_info <- create_distance_matrix_clonal( s, dist_choice, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold, new_bounds)# kjd 10-2-2013
   
   d = dist_matrix_info$distance_matrix # kjd 10-2-2013
