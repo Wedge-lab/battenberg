@@ -236,7 +236,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
     dev.off()
     
     BAFphased = ifelse(BAFsegm>0.5, BAF, 1-BAF)
-    BAFoutputchr = cbind(rep(chr, length(BAFphseg)), pos, BAF, BAFphased, BAFphseg)
+    BAFoutputchr = data.frame(Chromosome=rep(chr, length(BAFphseg)), Position=pos, BAF=BAF, BAFphased=BAFphased, BAFseg=BAFphseg)
     BAFoutput = rbind(BAFoutput, BAFoutputchr)
   }
   colnames(BAFoutput) = c("Chromosome","Position","BAF","BAFphased","BAFseg")
