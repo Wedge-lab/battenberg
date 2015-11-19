@@ -63,6 +63,10 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     # TODO: Make sure there are column names for this file at the output of segmentation
     chr.segmented.BAF.data = segmented.BAF.data[segmented.BAF.data[,1]==chr,]
     indices = match(chr.segmented.BAF.data[,2],chr.BAF.data$Position )
+
+    if (sum(is.na(indices))==length(indices) | length(indices)==0) {
+	    next
+    }
     
     # Drop NAs here too
     chr.segmented.BAF.data = chr.segmented.BAF.data[!is.na(indices),]
