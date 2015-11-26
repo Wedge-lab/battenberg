@@ -278,8 +278,9 @@ clonal_findcentroid.plot = function(minimise, dist_choice, d, psis, rhos, new_bo
 #' @param platform_gamma Platform-specific gamma value (0.55 for SNP6, 1 for NGS), default 1
 #' @param pdf Output format: 0 for png (default), 1 for pdf
 #' @param binwidth_baf BAF isobafline spacing, default 0.25
+#' @param xylimits x/y-axis limits, default c(-0.2,5)
 #' @author jd
-squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_gamma=1, pdf=0, binwidth_baf=0.25) {
+squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_gamma=1, pdf=0, binwidth_baf=0.25, xylimits=c(-0.2,5)) {
   require(ggplot2)
   
   if (pdf)
@@ -303,9 +304,9 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
   
   # create grid for allelic copynumber
   ngrid <- data.frame(nMaj=seq(0,5,1), nMin=seq(0,5,1))
-
+  
   # start plotting - setup
-  q <- ggplot(data = ngrid, aes(nMaj, nMin)) + scale_x_continuous(breaks=0:5, limits=c(-0.2,5)) + scale_y_continuous(breaks=0:5, limits=c(-0.2,5)) + coord_fixed()
+  q <- ggplot(data = ngrid, aes(nMaj, nMin)) + scale_x_continuous(breaks=0:max(xylimits), limits=xylimits) + scale_y_continuous(breaks=0:max(xylimits), limits=xylimits) + coord_fixed()
   q <- q + theme_bw() + theme(panel.grid.major = element_line(colour="darkgrey", size = 0.5), panel.grid.minor = element_blank())
   
   # add isobaflines
@@ -317,7 +318,7 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
   # add isologrline
   q <- q + geom_segment(data = data.frame(flnMaj = floor(nMajcalc)-0.2, cnMin = ceiling(nMincalc)+0.2, cnMaj = ceiling(nMajcalc)+0.2, flnMin = floor(nMincalc)-0.2),
                         aes(x = flnMaj, y = cnMin, xend = cnMaj, yend = flnMin), colour="red", alpha = 0.6)
-
+  
   # if clonal segment, only plot clonal solution
   if (subclone$frac1_A == 1) {
     q <- q + geom_point(data = subclone, aes(nMaj1_A, nMin1_A), size = 5)
