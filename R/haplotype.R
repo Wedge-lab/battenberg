@@ -17,6 +17,8 @@ GetChromosomeBAFs_SNP6 = function(chrom, alleleFreqFile, haplotypeFile, samplena
   
   # Match the two
   alleleFreqData = alleleFreqData[alleleFreqData[,1] %in% variant_data[,3],]
+  select = match(alleleFreqData[,1], variant_data[,3])
+  variant_data = variant_data[select,]
   
 #   chr_name = toString(chrom)
 #   if(chr_name == "23"){
