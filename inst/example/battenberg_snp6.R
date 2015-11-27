@@ -1,8 +1,8 @@
-args = commandArgs(TRUE)
-TUMOURNAME = toString(args[1])
-NORMALCEL = toString(args[2])
-TUMOURCEL = toString(args[3])
-RUN_DIR = toString(args[4])
+# args = commandArgs(TRUE)
+# TUMOURNAME = toString(args[1])
+# NORMALCEL = toString(args[2])
+# TUMOURCEL = toString(args[3])
+# RUN_DIR = toString(args[4])
 
 library(Battenberg)
 library(doParallel)
@@ -15,10 +15,10 @@ library(doParallel)
 
 # Sample specific
 #IS.MALE = F
-# TUMOURNAME = "NASCR-0016"
-# NORMALCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016B1.CEL"
-# TUMOURCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016.CEL"
-# RUN_DIR = "/lustre/scratch110/sanger/sd11/battenberg_package_test/NASCR-0016_bb_v2.0_singlecore"
+TUMOURNAME = "MicMa083"
+NORMALCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016B1.CEL"
+TUMOURCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016.CEL"
+RUN_DIR = "/lustre/scratch110/sanger/sd11/battenberg_package_test/NASCR-0016_bb_v2.0_singlecore"
 
 # Parallelism parameters
 NTHREADS = 1
@@ -86,7 +86,8 @@ chrom_names = get.chrom.names(IMPUTEINFOFILE, is_male)
 #, .export=c("generate.impute.input.snp6","run.impute","combine.impute.output","GetChromosomeBAFs_SNP6","plot.haplotype.data")
 foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run.impute","combine.impute.output","GetChromosomeBAFs_SNP6","plot.haplotype.data")) %dopar% {
   # Transform input into a format that Impute2 takes
-  generate.impute.input.snp6(infile.probeBAF=paste(TUMOURNAME, "_probeBAF.txt", sep=""), 
+  generate.impute.input.snp6(infile.germlineBAF=paste(TUMOURNAME, "_germlineBAF.tab", sep=""), 
+                             infile.tumourBAF=paste(TUMOURNAME, "_mutantBAF.tab", sep=""),
                              outFileStart=paste(TUMOURNAME, "_impute_input_chr", sep=""), 
                              chrom=chrom, 
                              chr_names=chrom_names,

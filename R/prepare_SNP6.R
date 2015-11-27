@@ -224,7 +224,7 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   write.table(dat[which(is.het),], file=outfile.normal.BAF, row.names=T, quote=F, sep="\t")
 
   # JD write out the BAF for all of the SNPs - clean up/merge later
-  write.table(dat[which(select),], file=outfile.all.normal.BAF, row.names=T, quote=F, sep="\t")
+  write.table(dat[which(select),], file=paste0("all.",outfile.normal.BAF), row.names=T, quote=F, sep="\t")
 
   # Save the probe ids plus their BAF for only the germline heterozygous mutations
   select = !is.na(ascat.bc$Tumor_BAF)
@@ -470,7 +470,7 @@ generate.impute.input.snp6 = function(infile.germlineBAF, infile.tumourBAF, outF
   
   # Read in the BAFs and see which 1000 genomes SNPs are covered
   germline_snp_data = read.table(infile.germlineBAF,sep="\t",header=T, stringsAsFactors=F)[,3,drop=F]
-  tumour_snp_data = read.table(infile.mutantBAF,sep="\t",header=T, stringsAsFactors=F)[,3,drop=F]
+  tumour_snp_data = read.table(infile.tumourBAF,sep="\t",header=T, stringsAsFactors=F)[,3,drop=F]
   snp_matches = match(rownames(germline_snp_data), rownames(tumour_snp_data))
   snp_data = na.omit(cbind(nBAF = germline_snp_data, tBAF = tumour_snp_data[snp_matches,]))
 
@@ -529,7 +529,7 @@ generate.impute.input.snp6 = function(infile.germlineBAF, infile.tumourBAF, outF
     is.hom.alt = (all.info[,4] >= maxBaf)
 
     # Obtain genotypes that impute2 is able to understand
-    genotypes = array(0,nrow(all.info),3))
+    genotypes = array(0,c(nrow(all.info),3))
     genotypes[is.hom.ref,1] = 1
     genotypes[is.het,2] = 1
     genotypes[is.hom.alt,3] = 1 
