@@ -221,10 +221,7 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   select = !is.na(ascat.bc$Germline_BAF)
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_BAF, 4))
   colnames(dat) = c("Chromosome", "Position", samplename)
-  write.table(dat[which(is.het),], file=outfile.normal.BAF, row.names=T, quote=F, sep="\t")
-
-  # JD write out the BAF for all of the SNPs - clean up/merge later
-  write.table(dat[which(select),], file=paste0("all.",outfile.normal.BAF), row.names=T, quote=F, sep="\t")
+  write.table(dat[which(select),], file=outfile.normal.BAF, row.names=T, quote=F, sep="\t")
 
   # Save the probe ids plus their BAF for only the germline heterozygous mutations
   select = !is.na(ascat.bc$Tumor_BAF)
