@@ -393,7 +393,7 @@ generate.impute.input.snp6 = function(infile.germlineBAF, infile.tumourBAF, outF
     out.data = cbind(snp.names,all.info[6:9], genotypes)
   } else {
     snp.names = paste("snp",1:sum(is.het),sep="")
-    out.data = cbind(snp.names,all.info[6:9], matrix(data=c(0,1,0), nrow=sum(is.het), ncol=3, byrow=T))
+    out.data = cbind(snp.names,all.info[is.het,6:9], matrix(data=c(0,1,0), nrow=sum(is.het), ncol=3, byrow=T))
   }
   write.table(out.data,file=outfile,row.names=F,col.names=F,quote=F)
 
