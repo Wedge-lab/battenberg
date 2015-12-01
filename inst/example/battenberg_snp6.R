@@ -1,8 +1,8 @@
-# args = commandArgs(TRUE)
-# TUMOURNAME = toString(args[1])
-# NORMALCEL = toString(args[2])
-# TUMOURCEL = toString(args[3])
-# RUN_DIR = toString(args[4])
+args = commandArgs(TRUE)
+TUMOURNAME = toString(args[1])
+NORMALCEL = toString(args[2])
+TUMOURCEL = toString(args[3])
+RUN_DIR = toString(args[4])
 
 library(Battenberg)
 library(doParallel)
@@ -14,11 +14,11 @@ library(doParallel)
 ###############################################################################
 
 # Sample specific
-#IS.MALE = F
-TUMOURNAME = "MicMa083"
-NORMALCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016B1.CEL"
-TUMOURCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016.CEL"
-RUN_DIR = "/lustre/scratch110/sanger/sd11/battenberg_package_test/NASCR-0016_bb_v2.0_singlecore"
+# IS.MALE = F
+# TUMOURNAME = "NASCR-0016"
+# NORMALCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016B1.CEL"
+# TUMOURCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016.CEL"
+# RUN_DIR = "/lustre/scratch110/sanger/sd11/battenberg_package_test/NASCR-0016_bb_v2.0_singlecore"
 
 # Parallelism parameters
 NTHREADS = 1
@@ -48,6 +48,7 @@ MIN_RHO = 0.1
 MIN_GOODNESS_OF_FIT = 0.63
 BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
+HETEROZYGOUSFILTER = "none"
 
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
@@ -95,7 +96,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run
                              snp6_reference_info_file=SNP6_REF_INFO_FILE, 
                              imputeinfofile=IMPUTEINFOFILE,
                              is.male=is_male,
-                             heterozygousFilter="none")
+                             heterozygousFilter=HETEROZYGOUSFILTER)
   
   # Run impute on the files
   run.impute(inputfile=paste(TUMOURNAME, "_impute_input_chr", chrom, ".txt", sep=""),

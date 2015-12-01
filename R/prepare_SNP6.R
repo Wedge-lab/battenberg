@@ -349,7 +349,7 @@ generate.impute.input.snp6 = function(infile.germlineBAF, infile.tumourBAF, outF
   print(paste("class 2a =",class(as.numeric(known_SNPs[,2])),sep=""))
 
   indices2 = match(matched.info[,1],known_SNPs[,2])
-  combined.info = cbind(matched.info[!is.na(indices2),],known_SNPs[indices2[!is.na(indices2)],1:4])
+  combined.info = na.omit(cbind(matched.info[!is.na(indices2),],known_SNPs[indices2[!is.na(indices2)],1:4]))
   print(paste("first row of combined.info=",paste(combined.info[1,],sep=","),sep=""))
   lev2 = levels(combined.info[,2])
   print(paste("levels[2]=",paste(lev2,sep=","),sep=""))
@@ -387,16 +387,16 @@ generate.impute.input.snp6 = function(infile.germlineBAF, infile.tumourBAF, outF
     genotypes = array(0,c(nrow(all.info),3))
     genotypes[is.hom.ref,1] = 1
     genotypes[is.het,2] = 1
-    genotypes[is.hom.alt,3] = 1 
+    genotypes[is.hom.alt,3] = 1
+    is.genotyped = (is.het | is.hom.ref | is.hom.alt)
 
-    snp.names = paste("snp",1:nrow(all.info),sep="")
-    out.data = cbind(snp.names,all.info[6:9], genotypes)
+    snp.names = paste("snp",1:sum(is.genotyped),sep="")
+    out.data = cbind(snp.names,all.info[is.genotyped,6:9], genotypes[is.genotyped,])
   } else {
     snp.names = paste("snp",1:sum(is.het),sep="")
     out.data = cbind(snp.names,all.info[is.het,6:9], matrix(data=c(0,1,0), nrow=sum(is.het), ncol=3, byrow=T))
   }
   write.table(out.data,file=outfile,row.names=F,col.names=F,quote=F)
-
   
   if (chrom==23) {
     sample.g.file = paste(outFileStart,"sample_g.txt",sep="")
