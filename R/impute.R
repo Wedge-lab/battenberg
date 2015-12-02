@@ -31,7 +31,8 @@ run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, imp
                   " -int ", boundaries[b], " ", boundaries[b+1],
                   " -Ne 20000", # Authors of impute2 mention that this parameter works best on all population types, thus hardcoded.
                   " -o ", outputfile.prefix, "_", boundaries[b]/1000, "K_", boundaries[b+1]/1000, "K.txt", 
-                  " -phase", sep="")		
+                  " -phase",
+                  " -os 2", sep="") # lowers computational cost by not imputing reference only SNPs
       system(cmd, wait=T)
     }
   }
