@@ -292,14 +292,18 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
   segment_pos <- as.numeric(gsub("M", "000000", segment_pos))
   subclones <- read.table(paste(run_dir, tumourname, "_subclones.txt", sep=""), header=T, stringsAsFactors=F)
   subclone <- subclones[(subclones$chr == segment_chr) & (subclones$startpos <= segment_pos) & (subclones$endpos >= segment_pos),]
-  rhopsi <- read.table(paste(run_dir, tumourname, "_cellularity_ploidy.txt", sep=""), header = T, stringsAsFactors=F)[,c("cellularity","psi")]
-  nMincalc <- (rhopsi$cel-1-(subclone$BAF-1)*2^(subclone$LogR/platform_gamma)*((1-rhopsi$cel)*2+rhopsi$cel*rhopsi$psi))/rhopsi$cel
-  nMajcalc <- (rhopsi$cel-1+subclone$BAF*2^(subclone$LogR/platform_gamma)*((1-rhopsi$cel)*2+rhopsi$cel*rhopsi$psi))/rhopsi$cel
+  
+  rhopsi <- read.table(paste(run_dir, tumourname, "_rho_and_psi.txt", sep=""), header = T, stringsAsFactors=F)
+  rhopsi <- rhopsi[which(rhopsi$is.best == TRUE), c("rho", "psi")] 
+  rhopsi$psi <- rhopsi$rho*rhopsi$psi + 2 * (1-rhopsi$rho) # psi of all cells 
+  
+  nMincalc <- (rhopsi$rho-1-(subclone$BAF-1)*2^(subclone$LogR/platform_gamma)*((1-rhopsi$rho)*2+rhopsi$rho*rhopsi$psi))/rhopsi$rho
+  nMajcalc <- (rhopsi$rho-1+subclone$BAF*2^(subclone$LogR/platform_gamma)*((1-rhopsi$rho)*2+rhopsi$rho*rhopsi$psi))/rhopsi$rho
   subclone <- data.frame(subclone, rhopsi, nMincalc, nMajcalc)
   
   # helper function to calculate isobaflines
   isobafline <- function(nB, cstbaf) {
-    (1-rhopsi$cel+rhopsi$cel*nB-cstbaf*(2-2*rhopsi$cel)-rhopsi$cel*cstbaf*nB)/(rhopsi$cel*cstbaf)
+    (1-rhopsi$rho+rhopsi$rho*nB-cstbaf*(2-2*rhopsi$rho)-rhopsi$rho*cstbaf*nB)/(rhopsi$rho*cstbaf)
   }
   
   # create grid for allelic copynumber
