@@ -82,7 +82,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     chr.segmented.logR.data = chr.logR.data[indices[!is.na(indices)],]
     
     # Append segmented LogR
-    segs = make_seg_lr(chr.segmented.BAF.data[,5])
+    segs = rle(chr.segmented.BAF.data[,5])$lengths
     cum.segs = c(0,cumsum(segs))
     for(s in 1:length(segs)){
       chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3] = mean(chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3])

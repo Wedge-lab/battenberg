@@ -1,30 +1,3 @@
-
-#' Make segments
-#' 
-#' Create segments from continuous data. This function walks through
-#' the supplied vector and creates a new segment when the next value
-#' is different from the previous.
-#' @param r A vector with BAF or LogR values
-#' @export
-make_seg_lr = function(r) {
-  pcf_segments = numeric(0);
-  index = 0;
-  previousr = 1E10;
-  for (i in 1:length(r)) {
-    if (r[i] != previousr) {
-      index=index+1;
-      count=1;
-    }
-    else {
-      count = count + 1;
-    }
-    pcf_segments[index] = count;
-    previousr = r[i];
-  }
-  return(pcf_segments);
-}
-
-
 ####################################################################################################
 
 #' A helper function to split the genome into parts
