@@ -13,6 +13,7 @@ Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
 Description: Estimate subclonal copy number from whole genome sequencing or SNP6 data.
 Depends: 
   R (>= 2.13.0),
-  RColorBrewer
+  RColorBrewer,
+  ASCAT
 URL: https://github.com/sdentro/Battenberg
 LazyLoad: yes
