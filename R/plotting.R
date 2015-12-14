@@ -324,7 +324,7 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
     q <- q + geom_point(data = subclone, aes(nMaj1_A, nMin1_A), size = 5)
   } else { # if subclonal, plot all equivalent solutions
     solutions <- matrix(unlist(subclone[,grep("nM.{5}$|^frac.{3}$", colnames(subclone))]), byrow = T, ncol = 3)
-    solutions <- cbind(solutions, rep(1:6,rep(2,6)))
+    solutions <- cbind(solutions, rep(1:6,rep(2,6)))[12:1,]
     colnames(solutions) <- c("nMaj", "nMin", "frac", "sol")
     solutions <- na.omit(as.data.frame(solutions))
     q <- q + geom_point(data = solutions, aes(nMaj, nMin, size=frac, colour=factor(sol)), alpha=0.75, position = position_jitter(width = .05, height = .05), shape = 79) +
