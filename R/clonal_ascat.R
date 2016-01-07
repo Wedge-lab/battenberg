@@ -1389,7 +1389,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   if (!is.na(distancepng)) {
     png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
   }
-  ascat::ascat.plotSunrise(-d, psi_opt1_plot, rho_opt1_plot,minimise)
+  ASCAT::ascat.plotSunrise(-d, psi_opt1_plot, rho_opt1_plot,minimise)
   if (!is.na(distancepng)) { dev.off() }
 
 
