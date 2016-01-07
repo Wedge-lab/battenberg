@@ -1,3 +1,4 @@
+
 ####################################################################################################
 
 #' A helper function to split the genome into parts
@@ -56,59 +57,6 @@ split_genome = function(SNPpos) {
   }
   
   return(chr)
-}
-
-
-####################################################################################################
-
-#' A helper function to predict germline homozygous segments for later resegmentation
-#' TODO: This function is not called in Battenberg
-#' @noRd
-predictGermlineHomozygousStretches = function(chr, hom) {
-
-  # contains the result: a list of vectors of probe numbers in homozygous stretches for each sample
-  HomoStretches = list()
-
-  for (sam in 1:dim(hom)[2]) {
-    homsam = hom[,sam]
-
-    perchom = sum(homsam,na.rm=T)/sum(!is.na(homsam))
-
-    # NOTE THAT A P-VALUE THRESHOLD OF 0.001 IS HARDCODED HERE
-    homthres = ceiling(log(0.001,perchom))
-
-    allhprobes = NULL
-    for (chrke in 1:length(chr)) {
-      hschr = homsam[chr[[chrke]]]
-
-      hprobes = vector(length=0)
-      for(probe in 1:length(hschr)) {
-        if(!is.na(hschr[probe])) {
-          if(hschr[probe]) {
-            hprobes = c(hprobes,probe)
-          }
-          else {
-            if(length(hprobes)>=homthres) {
-              allhprobes = rbind(allhprobes,c(chrke,chr[[chrke]][min(hprobes)],chr[[chrke]][max(hprobes)]))
-            }
-            hprobes = vector(length=0)
-          }
-        }
-      }
-      # if the last probe is homozygous, this is not yet accounted for
-      if(!is.na(hschr[probe]) & hschr[probe]) {
-        if(length(hprobes)>=homthres) {
-          allhprobes = rbind(allhprobes,c(chrke,chr[[chrke]][min(hprobes)],chr[[chrke]][max(hprobes)]))
-        }
-      }
-   
-    }
-
-    HomoStretches[[sam]]=allhprobes
-  
-  }
-
-  return(HomoStretches)
 }
 
 ####################################################################################################
@@ -838,39 +786,6 @@ calc_distance_clonal <-function( segs, dist_choice, rho, psi, gamma_param, read_
   
   return( distance_info ) # kjd 10-2-2014
   
-}
-
-####################################################################################################
-#' function to make segments of constant LRR and BAF 
-#' this function is more general and does not depend on specifically ASPCF output
-#' it can also handle segmention performed on LRR and BAF separately
-#' @noRd
-make_segments = function(r,b) {
-  m = matrix(ncol = 2, nrow = length(b))
-  m[,1] = r
-  m[,2] = b
-  m = as.matrix(na.omit(m))
-  pcf_segments = matrix(ncol = 3, nrow = dim(m)[1])
-  colnames(pcf_segments) = c("r","b","length");
-  index = 0;
-  previousb = -1;
-  previousr = 1E10;
-  for (i in 1:dim(m)[1]) {
-    if (m[i,2] != previousb || m[i,1] != previousr) {
-      index=index+1;
-      count=1;
-      pcf_segments[index, "r"] = m[i,1];
-      pcf_segments[index, "b"] = m[i,2];
-    }
-    else {
-      count = count + 1;
-    }
-    pcf_segments[index, "length"] = count;
-    previousb = m[i,2];
-    previousr = m[i,1];
-  }
-  pcf_segments = as.matrix(na.omit(pcf_segments))[,]
-  return(pcf_segments);
 }
 
 #' Function to make segments of constant LRR and BAF 
