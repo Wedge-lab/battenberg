@@ -138,67 +138,21 @@ create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodne
 	}
 }
 
-#' Code extracted from the second plot in clonal_ascat run(clonal)ASCAT.
-#' Note: This is a temporary function and VERY similar to clonal_runascat.plot3
+#' Code extracted from the first plot in clonal_ascat runASCAT: Sunrise plot
+#' Note: This is a temporary function.
 #' @noRd
 #'
-clonal_runascat.plot2 = function(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence) {
-  par(mar = c(0.5,5,5,0.5), mfrow=c(2,1), cex = 0.4, cex.main=3, cex.axis = 2.5)
-  maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
-  plot(c(1,length(nA)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-  points(nA-0.1,col="red",pch = "|")
-  points(nB+0.1,col="green",pch = "|")
-  abline(v=0,lty=1,col="lightgrey")
-  chrk_tot_len = 0
-  for (i in 1:length(ch)) {
-    chrk = ch[[i]];
-    chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-    chrk_tot_len_prev = chrk_tot_len
-    chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-    vpos = chrk_tot_len;
-    tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-    text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-    abline(v=vpos,lty=1,col="lightgrey")
+clonal_runascat.plot1 = function(minim, distmat, psis, rhos) {
+  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
+  if(minim){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
+    hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256))
+  } else {
+  hmcol = colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256)
   }  
-  maintitle = paste("Aberration reliability score (%), average: ", sprintf("%2.0f",mean(confidence,na.rm=T)),"%",sep="")
-  plot(c(1,length(nA)), c(0,100), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-  points(confidence,col="blue",pch = "|")
-  abline(v=0,lty=1,col="lightgrey")
-  chrk_tot_len = 0
-  for (i in 1:length(ch)) {
-    chrk = ch[[i]];
-    chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-    chrk_tot_len_prev = chrk_tot_len
-    chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-    vpos = chrk_tot_len;
-    tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-    text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-    abline(v=vpos,lty=1,col="lightgrey")
-  }
-}
-
-#' Code extracted from the third plot in clonal_ascat run(clonal)ASCAT.
-#' Note: This is a temporary function and VERY similar to clonal_runascat.plot2
-#' @noRd
-#'
-clonal_runascat.plot3 = function(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented) {
-  par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
-  maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
-  plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-  points(nBfull,col="blue",pch = "|")
-  points(nAfull+nBfull,col="purple",pch = "|")
-  abline(v=0,lty=1,col="lightgrey")
-  chrk_tot_len = 0
-  for (i in 1:length(ch)) {
-    chrk = ch[[i]];
-    chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-    chrk_tot_len_prev = chrk_tot_len
-    chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-    vpos = chrk_tot_len;
-    tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-    text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-    abline(v=vpos,lty=1,col="lightgrey")
-  }
+  image(log(distmat), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
+  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
+  points((psis-1)/4.4,(rhos-0.1)/0.95,col="green",pch="X", cex = 2)
 }
 
 #' Code extracted from the plot in clonal_ascat find_centroid_of_global_minima.
