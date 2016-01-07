@@ -2,11 +2,15 @@
 % Please edit documentation in R/prepare_SNP6.R
 \name{parseSNP6refFile}
 \alias{parseSNP6refFile}
-\title{Parse the reference info file}
+\title{Adapted code from ASCAT to load in SNP6 data for plotting
+noRD
+Parse the reference info file}
 \usage{
 parseSNP6refFile(snp6_reference_info_file)
 }
 \description{
+Adapted code from ASCAT to load in SNP6 data for plotting
+noRD
 Parse the reference info file
 }
 
