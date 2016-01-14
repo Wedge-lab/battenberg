@@ -788,11 +788,12 @@ calc_distance_clonal <-function( segs, dist_choice, rho, psi, gamma_param, read_
   
 }
 
-#' Function to make segments of constant LRR and BAF 
-#' this function is more general and does not depend on specifically ASPCF output
-#' it can also handle segmention performed on LRR and BAF separately.
+#' Function extends the ASCAT \code{make_segments} function to make segments
+#' of constant BAF and LogR. This function returns a matrix with for each
+#' segment the LogR, BAF, the length of the segment (twice), and the mean and 
+#' standard deviation of the BAF values
 #' @noRd
-get_segment_info = function( segLogR , segBAF.table ) {
+get_segment_info = function(segLogR , segBAF.table) {
   segBAF = segBAF.table[,5]
   
   names(segBAF) = rownames(segBAF.table)
@@ -800,50 +801,48 @@ get_segment_info = function( segLogR , segBAF.table ) {
   
   b = segBAF
   r = segLogR[names(segBAF)]
+  pcf_segments = ASCAT::make_segments(r,b)
   
-  
-  m = matrix(ncol = 2, nrow = length(b))
-  m[,1] = r
-  m[,2] = b
-  m = as.matrix(na.omit(m))
-  pcf_segments = matrix(ncol = 3, nrow = dim(m)[1])
-  colnames(pcf_segments) = c("r","b","length");
-  index = 0;
-  previousb = -1;
-  previousr = 1E10;
-  for (i in 1:dim(m)[1]) {
-    if (m[i,2] != previousb || m[i,1] != previousr) {
-      index=index+1;
-      count=1;
-      pcf_segments[index, "r"] = m[i,1];
-      pcf_segments[index, "b"] = m[i,2];
-    }
-    else {
-      count = count + 1;
-    }
-    pcf_segments[index, "length"] = count;
-    previousb = m[i,2];
-    previousr = m[i,1];
-  }
-  
-  # pcf_segments = as.matrix(na.omit(pcf_segments))[,] # kjd 10-1-2014 This version caused bug in R on laptop.
-  pcf_segments = as.matrix(na.omit(pcf_segments)) # kjd 10-1-2014 This version resolved bug in R on laptop. (Problem with installed version of R?)
-  
-  segs = matrix( ncol = 6, nrow = nrow(pcf_segments) )
+#   m = matrix(ncol = 2, nrow = length(b))
+#   m[,1] = r
+#   m[,2] = b
+#   m = as.matrix(na.omit(m))
+#   pcf_segments = matrix(ncol = 3, nrow = dim(m)[1])
+#   colnames(pcf_segments) = c("r","b","length");
+#   index = 0;
+#   previousb = -1;
+#   previousr = 1E10;
+#   for (i in 1:dim(m)[1]) {
+#     if (m[i,2] != previousb || m[i,1] != previousr) {
+#       index=index+1;
+#       count=1;
+#       pcf_segments[index, "r"] = m[i,1];
+#       pcf_segments[index, "b"] = m[i,2];
+#     }
+#     else {
+#       count = count + 1;
+#     }
+#     pcf_segments[index, "length"] = count;
+#     previousb = m[i,2];
+#     previousr = m[i,1];
+#   }
+#   
+#   # pcf_segments = as.matrix(na.omit(pcf_segments))[,] # kjd 10-1-2014 This version caused bug in R on laptop.
+#   pcf_segments = as.matrix(na.omit(pcf_segments)) # kjd 10-1-2014 This version resolved bug in R on laptop. (Problem with installed version of R?)
+#   
+  segs = matrix(ncol = 6, nrow = nrow(pcf_segments))
   colnames(segs) = c("r","b","length","size", "mean", "sd")
-  segs[ , c("r","b","length") ] = pcf_segments
+  segs[ , c("r","b","length")] = pcf_segments
+
   for( i in 1:nrow(segs) ) {
+		BAFreq = segs[i, "b"] # l = BAFlevels[i]		
+		index_vect = which( segBAF.table[ , 5] == BAFreq )
+		BAFke = segBAF.table[index_vect, 4] # column 4 contains "phased BAF" values; # kjd 6-1-2014 
 		
-		BAFreq = segs[ i, "b" ] # l = BAFlevels[i]		
-		index_vect = which( segBAF.table[ , 5 ] == BAFreq )
-		BAFke = segBAF.table[ index_vect, 4 ] # column 4 contains "phased BAF" values; # kjd 6-1-2014 
-		
-		segs[ i, "size" ] = length( BAFke )
-		segs[ i, "mean" ] = mean( BAFke )
-		segs[ i, "sd" ] = sd( BAFke )
-		
+		segs[i, "size"] = length(BAFke)
+		segs[i, "mean"] = mean(BAFke)
+		segs[i, "sd"] = sd(BAFke)
   }
-  
   return(segs);
 }
 
@@ -1594,9 +1593,50 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 	if (!is.na(nonroundedprofilepng)) { dev.off() }
   
   } 
+
+  # Recalculate the ploidy for the pair without a reference
+  ploidy = recalc_ploidy(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, uninformative_BAF_threshold, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, include_subcl_segments=T)
+  
   output_optimum_pair = list(psi = psi_opt1, rho = rho_opt1, ploidy = ploidy_opt1)
-  output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)
+  #output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)
+  # Use the recalculated ploidy from the clonal segments as our final estimate of psi which is data driven with rho fixed
+  output_optimum_pair_without_ref = list(psi = ploidy, rho = rho_without_ref, ploidy = ploidy_without_ref)
   return(list(output_optimum_pair=output_optimum_pair, output_optimum_pair_without_ref=output_optimum_pair_without_ref, distance = distance.from.ref.seg, distance_without_ref = best.distance, minimise = minimise, is.ref.better = is.ref.better)) # kjd 20-2-2014, adapted by DCW 140314
 }
 
-
+#' Recalculate ploidy based on rho and the available data
+recalc_ploidy = function(psi, rho, gamma_param, lrrsegmented, segBAF.table, uninformative_BAF_threshold, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, include_subcl_segments=T) {
+  # Create segments of constant BAF/LogR  
+  s = get_segment_info(lrrsegmented[rownames(segBAF.table)], segBAF.table)
+  
+  # Fetch all segments that are clonal with this rho/psi configuration
+  segs = data.frame()
+  for (i in 1:nrow(s)) {
+    read_depth = NA # Unused parameter
+    segment_info = is.segment.clonal(LogR=s[i, "r"], 
+                                     BAFreq=s[i, "b"], 
+                                     BAF.length=s[i, "length"], 
+                                     BAF.size=s[i, "size"], 
+                                     BAF.mean=s[i, "mean"], 
+                                     BAF.sd=s[i, "sd"], 
+                                     read_depth=read_depth, 
+                                     rho=rho, 
+                                     psi=psi, 
+                                     gamma_param=gamma_param, 
+                                     siglevel_BAF=siglevel_BAF, 
+                                     maxdist_BAF=maxdist_BAF, 
+                                     siglevel_LogR=siglevel_LogR, 
+                                     maxdist_LogR=maxdist_LogR)
+    
+    # Include this segment if we want to include subclonal segments in general, or if we don't want those include it if its clonal
+    if (include_subcl_segments | segment_info$is.clonal) {
+      nMaj = segment_info$nMaj.test
+      nMin = segment_info$nMin.test
+      segs = rbind(segs, data.frame(nMaj=nMaj, nMin=nMin, length=s[i, "length"]))
+    }
+  }
+      
+  # Calculate ploidy as the weighted average copy number across all segments
+  ploidy = sum((segs$nMaj+segs$nMin) * segs$length) / sum(segs$length);
+  return(ploidy)
+}
