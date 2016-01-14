@@ -33,9 +33,10 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   segmented.BAF.data = read.table(inputfile.baf.segmented, sep="\t", header=T, stringsAsFactors=F) #, row.names=1
   raw.BAF.data = read.table(inputfile.baf, sep="\t", header=T, stringsAsFactors=F)
   raw.logR.data = read.table(inputfile.logr, sep="\t", header=T, stringsAsFactors=F)
-
-  # TODO: strip row names from the input files and check for column names Chromosome, and Position
   
+  # Assign rownames as those are required by various clonal_ascat.R functions
+  rownames(segmented.BAF.data) = paste(segmented.BAF.data[,1], segmented.BAF.data[,2], sep="_")
+
   # Drop NAs
   raw.BAF.data = raw.BAF.data[!is.na(raw.BAF.data[,3]),]
   raw.logR.data = raw.logR.data[!is.na(raw.logR.data[,3]),]
