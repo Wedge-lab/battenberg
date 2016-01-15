@@ -132,10 +132,6 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   # Save rho, psi and ploidy for future reference
   rho_psi_output = data.frame(rho = c(ascat_optimum_pair$rho,ascat_optimum_pair_fraction_of_genome$rho,ascat_optimum_pair_ref_seg$rho),psi = c(ascat_optimum_pair$psi,ascat_optimum_pair_fraction_of_genome$psi,ascat_optimum_pair_ref_seg$psi), ploidy = c(ascat_optimum_pair$ploidy,ascat_optimum_pair_fraction_of_genome$ploidy,ascat_optimum_pair_ref_seg$ploidy), distance = c(NA,out$distance_without_ref,out$distance), is.best = c(NA,!is.ref.better,is.ref.better),row.names=c("ASCAT","FRAC_GENOME","REF_SEG"))
   write.table(rho_psi_output,paste(outputfile.prefix,"rho_and_psi.txt",sep=""),quote=F,sep="\t")
-
-  # Create user friendly cellularity and ploidy output file
-  cellularity_ploidy_output = data.frame(cellularity = c(ascat_optimum_pair_fraction_of_genome$rho), ploidy = c(ascat_optimum_pair_fraction_of_genome$ploidy), psi = c(ascat_optimum_pair_fraction_of_genome$psi))
-  write.table(cellularity_ploidy_output, paste(outputfile.prefix,"cellularity_ploidy.txt",sep=""), quote=F, sep="\t", row.names=F)
 }
 
 #' Fit subclonal copy number
@@ -349,6 +345,21 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
                             "nMaj1_F","nMin1_F","frac1_F","nMaj2_F","nMin2_F","frac2_F","SDfrac_F","SDfrac_F_BS","frac1_F_0.025","frac1_F_0.975")
   
   write.table(subcloneres, output.file, quote=F, col.names=T, row.names=F, sep="\t")
+  
+  # Recalculate the ploidy based on the actual fit
+  seg_length = floor((subcloneres$endpos-subcloneres$startpos)/1000)
+  is_subclonal_maj = abs(subclones$nMaj1_A - subclones$nMaj2_A) > 0
+  is_subclonal_min = abs(subclones$nMin1_A - subclones$nMin2_A) > 0
+  is_subclonal_maj[is.na(is_subclonal_maj)] = F
+  is_subclonal_min[is.na(is_subclonal_min)] = F
+  segment_states_min = subclones$nMin1_A * ifelse(is_subclonal_min, subclones$frac1_A, 1)  + ifelse(is_subclonal_min, subclones$nMin2_A, 0) * ifelse(is_subclonal_min, subclones$frac2_A, 0) 
+  segment_states_maj = subclones$nMaj1_A * ifelse(is_subclonal_maj, subclones$frac1_A, 1)  + ifelse(is_subclonal_maj, subclones$nMaj2_A, 0) * ifelse(is_subclonal_maj, subclones$frac2_A, 0) 
+  ploidy = sum((segment_states_min+segment_states_maj) * seg_length) / sum(seg_length)
+  
+  # Create user friendly cellularity and ploidy output file
+  cellularity_ploidy_output = data.frame(cellularity = c(rho), ploidy = c(ploidy), psi = c(psit))
+  cellularity_file = gsub("_subclones.txt", "_cellularity_ploidy.txt", output.file)
+  write.table(cellularity_ploidy_output, cellularity_file, quote=F, sep="\t", row.names=F)
 
   # Create a plot per chromosome that shows the segments with their CN state in text
   for (chr in chr_names) {
@@ -378,7 +389,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # Cast columns back to numeric
   subclones = as.data.frame(subcloneres)
   subclones[,2:ncol(subclones)] = sapply(2:ncol(subclones), function(x) { as.numeric(as.character(subclones[,x])) })
-  plot.gw.subclonal.cn(subclones=subclones, BAFvals=BAFvals, rho=rho, psi=psi, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix, chr.names=chr_names)
+  plot.gw.subclonal.cn(subclones=subclones, BAFvals=BAFvals, rho=rho, ploidy=ploidy, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix, chr.names=chr_names)
 
 }
 
@@ -388,7 +399,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
 #' separate states. The thickness of the line represents the fraction of tumour cells carying
 #' the particular state.
 #' @noRd
-plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.gw.figures.prefix, chr.names) {
+plot.gw.subclonal.cn = function(subclones, BAFvals, rho, ploidy, goodness, output.gw.figures.prefix, chr.names) {
   # Map start and end of each segment into the BAF values. The plot uses the index of this BAF table as x-axis
   pos_min = array(NA, nrow(subclones))
   pos_max = array(NA, nrow(subclones))
@@ -429,7 +440,7 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.g
   # Plot subclonal copy number as mixtures of two states
   png(filename = paste(output.gw.figures.prefix, "_average.png", sep=""), width = 2000, height = 500, res = 200)
   create.bb.plot.average(bafsegmented=BAFvals, 
-                            ploidy=psi, 
+                            ploidy=ploidy, 
                             rho=rho, 
                             goodnessOfFit=goodness, 
                             pos_min=pos_min, 
@@ -443,7 +454,7 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, psi, goodness, output.g
   png(filename = paste(output.gw.figures.prefix, "_subclones.png", sep=""), width = 2000, height = 500, res = 200)
   create.bb.plot.subclones(bafsegmented=BAFvals, 
                              subclones=subclones,
-                             ploidy=psi, 
+                             ploidy=ploidy, 
                              rho=rho, 
                              goodnessOfFit=goodness, 
                              pos_min=pos_min, 
