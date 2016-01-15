@@ -347,6 +347,8 @@ get.psi.rho.from.ref.seg <-function( ref_seg, s, nA_ref, nB_ref, gamma_param = 1
 #' @noRd
 is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.sd, read_depth, rho, psi, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR ) # kjd 21-2-2014
 {	
+  # TODO: read_depth, siglevel_LogR and maxdist_LogR are no longer in use
+  
 	#270314 no longer used
 	#pooled_BAF.size = read_depth * BAF.size
 	
@@ -1475,8 +1477,8 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   #maxdist_LogR = 0.1 # kjd 21-2-2014
   
   #DCW 160314 - much more lenient logR thresholds (allow anything!)
-  siglevel_LogR = -0.01
-  maxdist_LogR = 1
+  siglevel_LogR = -0.01 # TODO: This parameter is pushed down to is.segment.clonal but not used there (maybe not used at all?)
+  maxdist_LogR = 1 # TODO: This parameter is pushed down to is.segment.clonal but not used there (maybe not used at all?)
 
   
   psi_min_initial = 1.0
@@ -1594,25 +1596,37 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   
   } 
 
-  # Recalculate the ploidy for the pair without a reference
-  ploidy = recalc_ploidy(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, uninformative_BAF_threshold, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, include_subcl_segments=T)
+  # Recalculate the psi_t for this rho using only clonal segments 
+  psi_t = recalc_psi_t(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments=F)
   
   output_optimum_pair = list(psi = psi_opt1, rho = rho_opt1, ploidy = ploidy_opt1)
   #output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)
-  # Use the recalculated ploidy from the clonal segments as our final estimate of psi which is data driven with rho fixed
-  output_optimum_pair_without_ref = list(psi = ploidy, rho = rho_without_ref, ploidy = ploidy_without_ref)
+  # Use the recalculated psi_t from the clonal segments as our final estimate of psi_t which is data driven with rho fixed
+  output_optimum_pair_without_ref = list(psi = psi_t, rho = rho_without_ref, ploidy = ploidy_without_ref)
   return(list(output_optimum_pair=output_optimum_pair, output_optimum_pair_without_ref=output_optimum_pair_without_ref, distance = distance.from.ref.seg, distance_without_ref = best.distance, minimise = minimise, is.ref.better = is.ref.better)) # kjd 20-2-2014, adapted by DCW 140314
 }
 
-#' Recalculate ploidy based on rho and the available data
-recalc_ploidy = function(psi, rho, gamma_param, lrrsegmented, segBAF.table, uninformative_BAF_threshold, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, include_subcl_segments=T) {
+#' Recalculate psi_t based on rho and the available data
+#' 
+#' @param psi A psi estimate
+#' @param rho A rho estimate
+#' @param platform_gamma The platform specific LogR scaling parameter
+#' @param lrrsegmented Segmented LogR, a vector with just the values
+#' @param segBAF.table Segmented BAF, the full table
+#' @param siglevel_BAF Significance level when testing wether a segment is clonal or subclonal given a rho/psi combination, parameter is used in \code{is.segment.clonal}
+#' @param maxdist_BAF Max distance BAF is allowed to be away from the copy number solution before we don't trust the value and overrule a p-value, parameter required when determining the clonal status of a segment in \code{is.segment.clonal}
+#' @param include_subcl_segments Boolean flag, supply TRUE if subclonal segments should be included when calculating psi_t, supply FALSE if only clonal segments should be included (default: TRUE)
+#' @noRd
+recalc_psi_t = function(psi, rho, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments=T) {
   # Create segments of constant BAF/LogR  
   s = get_segment_info(lrrsegmented[rownames(segBAF.table)], segBAF.table)
   
-  # Fetch all segments that are clonal with this rho/psi configuration
-  segs = data.frame()
+  # Fetch all segments, if required check which ones are clonal with this rho/psi configuration
+  segs = list()
   for (i in 1:nrow(s)) {
     read_depth = NA # Unused parameter
+    maxdist_LogR = NA # Unused parameter
+    siglevel_LogR = NA # Unused parameter
     segment_info = is.segment.clonal(LogR=s[i, "r"], 
                                      BAFreq=s[i, "b"], 
                                      BAF.length=s[i, "length"], 
@@ -1627,16 +1641,32 @@ recalc_ploidy = function(psi, rho, gamma_param, lrrsegmented, segBAF.table, unin
                                      maxdist_BAF=maxdist_BAF, 
                                      siglevel_LogR=siglevel_LogR, 
                                      maxdist_LogR=maxdist_LogR)
-    
-    # Include this segment if we want to include subclonal segments in general, or if we don't want those include it if its clonal
+    # Include this segment if we want to include all segments, or if we don't want subclonal segments include it only if its clonal
     if (include_subcl_segments | segment_info$is.clonal) {
       nMaj = segment_info$nMaj.test
       nMin = segment_info$nMin.test
-      segs = rbind(segs, data.frame(nMaj=nMaj, nMin=nMin, length=s[i, "length"]))
+      psi_t = calc_psi_t(nMaj+nMin, s[i, "r"], rho, gamma_param)
+      segs[[length(segs)+1]] = data.frame(nMaj=nMaj, nMin=nMin, length=s[i, "length"], psi_t=psi_t)
     }
   }
+  segs = do.call(rbind, segs)
       
-  # Calculate ploidy as the weighted average copy number across all segments
-  ploidy = sum((segs$nMaj+segs$nMin) * segs$length) / sum(segs$length);
-  return(ploidy)
+  # Calculate psi_t as the weighted average copy number across all segments
+  psi_t = sum(segs$psi_t * segs$length) / sum(segs$length)
+  return(psi_t)
+}
+
+
+#' Calculate psi based on a reference segment and its associated logr
+#' 
+#' @param total_cn Integer representing the total clonal copynumber (i.e. nMajor+nMinor)
+#' @param r The LogR of the segment with the total_cn copy number
+#' @param rho A cellularity estimate
+#' @param gamma_param Platform gamma parameter
+#' @author sd11
+#' @export
+calc_psi_t = function(total_cn, r, rho, gamma_param) {
+  psi = (rho*(total_cn)+2-2*rho)/(2^(r/gamma_param))
+  psi_t = (psi-2*(1-rho))/rho
+  return(psi_t)
 }
