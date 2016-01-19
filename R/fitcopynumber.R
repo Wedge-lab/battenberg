@@ -346,21 +346,6 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   
   write.table(subcloneres, output.file, quote=F, col.names=T, row.names=F, sep="\t")
   
-  # Recalculate the ploidy based on the actual fit
-  seg_length = floor((subcloneres$endpos-subcloneres$startpos)/1000)
-  is_subclonal_maj = abs(subclones$nMaj1_A - subclones$nMaj2_A) > 0
-  is_subclonal_min = abs(subclones$nMin1_A - subclones$nMin2_A) > 0
-  is_subclonal_maj[is.na(is_subclonal_maj)] = F
-  is_subclonal_min[is.na(is_subclonal_min)] = F
-  segment_states_min = subclones$nMin1_A * ifelse(is_subclonal_min, subclones$frac1_A, 1)  + ifelse(is_subclonal_min, subclones$nMin2_A, 0) * ifelse(is_subclonal_min, subclones$frac2_A, 0) 
-  segment_states_maj = subclones$nMaj1_A * ifelse(is_subclonal_maj, subclones$frac1_A, 1)  + ifelse(is_subclonal_maj, subclones$nMaj2_A, 0) * ifelse(is_subclonal_maj, subclones$frac2_A, 0) 
-  ploidy = sum((segment_states_min+segment_states_maj) * seg_length) / sum(seg_length)
-  
-  # Create user friendly cellularity and ploidy output file
-  cellularity_ploidy_output = data.frame(cellularity = c(rho), ploidy = c(ploidy), psi = c(psit))
-  cellularity_file = gsub("_subclones.txt", "_cellularity_ploidy.txt", output.file)
-  write.table(cellularity_ploidy_output, cellularity_file, quote=F, sep="\t", row.names=F)
-
   # Create a plot per chromosome that shows the segments with their CN state in text
   for (chr in chr_names) {
     pos = SNPpos[SNPpos[,1]==chr, 2]
@@ -391,6 +376,20 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   subclones[,2:ncol(subclones)] = sapply(2:ncol(subclones), function(x) { as.numeric(as.character(subclones[,x])) })
   plot.gw.subclonal.cn(subclones=subclones, BAFvals=BAFvals, rho=rho, ploidy=ploidy, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix, chr.names=chr_names)
 
+  # Recalculate the ploidy based on the actual fit
+  seg_length = floor((subclones$endpos-subclones$startpos)/1000)
+  is_subclonal_maj = abs(subclones$nMaj1_A - subclones$nMaj2_A) > 0
+  is_subclonal_min = abs(subclones$nMin1_A - subclones$nMin2_A) > 0
+  is_subclonal_maj[is.na(is_subclonal_maj)] = F
+  is_subclonal_min[is.na(is_subclonal_min)] = F
+  segment_states_min = subclones$nMin1_A * ifelse(is_subclonal_min, subclones$frac1_A, 1)  + ifelse(is_subclonal_min, subclones$nMin2_A, 0) * ifelse(is_subclonal_min, subclones$frac2_A, 0) 
+  segment_states_maj = subclones$nMaj1_A * ifelse(is_subclonal_maj, subclones$frac1_A, 1)  + ifelse(is_subclonal_maj, subclones$nMaj2_A, 0) * ifelse(is_subclonal_maj, subclones$frac2_A, 0) 
+  ploidy = sum((segment_states_min+segment_states_maj) * seg_length) / sum(seg_length)
+  
+  # Create user friendly cellularity and ploidy output file
+  cellularity_ploidy_output = data.frame(cellularity = c(rho), ploidy = c(ploidy), psi = c(psit))
+  cellularity_file = gsub("_subclones.txt", "_cellularity_ploidy.txt", output.file)
+  write.table(cellularity_ploidy_output, cellularity_file, quote=F, sep="\t", row.names=F)
 }
 
 #' Plot the copy number genome wide in two different ways. This creates the Battenberg average 
