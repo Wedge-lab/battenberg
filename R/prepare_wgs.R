@@ -248,7 +248,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, gc_content_file_prefix, chr
     chrom = chrom_names[chrindex]
     print(paste("chr =", chrindex))
     Tumor_LogR_chr = Tumor_LogR[Tumor_LogR$Chromosome==chrom,]
-    GC_newlist = read.table(paste(gc_content_file_prefix, chrindex, ".txt", sep=""), header=T, stringsAsFactors=F)
+    GC_newlist = read.table(paste(gc_content_file_prefix, chrindex, ".txt.gz", sep=""), header=T, stringsAsFactors=F)
     colnames(GC_newlist)[c(1,2)] = c("Chr","Position")
     GC_newlist = GC_newlist[GC_newlist$Position %in% Tumor_LogR_chr$Position,]
     GC_data = rbind(GC_data, GC_newlist)
