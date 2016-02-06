@@ -231,19 +231,20 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
 }
 
 #' Function to correct LogR for waivyness that correlates with GC content
-#' @param Tumour_LogR_file: String pointing to the tumour LogR output
-#' @param outfile: String pointing to where the GC corrected LogR should be written
-#' @param gc_content_file_prefix: String pointing to where GC windows for this reference genome can be 
+#' @param Tumour_LogR_file String pointing to the tumour LogR output
+#' @param outfile String pointing to where the GC corrected LogR should be written
+#' @param correlations_outfile File where correlations are to be saved
+#' @param gc_content_file_prefix String pointing to where GC windows for this reference genome can be 
 #' found. These files should be split per chromosome and this prefix must contain the full path until
 #' chr in its name. The .txt extension is automatically added.
-#' @param chrom_names: A vector containing chromosome names to be considered
+#' @param chrom_names A vector containing chromosome names to be considered
 #' @author tjm
-gc.correct.wgs = function(Tumour_LogR_file, outfile, gc_content_file_prefix, chrom_names) {
+gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, chrom_names) {
 
-  Tumor_LogR_new = NULL
   Tumor_LogR = read.table(Tumour_LogR_file, stringsAsFactors=F, header=T)
 
-  GC_data = NULL
+  GC_data = list()
+  Tumor_LogR_new = list()
   for (chrindex in 1:length(chrom_names)) {
     chrom = chrom_names[chrindex]
     print(paste("chr =", chrindex))
@@ -251,14 +252,12 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, gc_content_file_prefix, chr
     GC_newlist = read.table(paste(gc_content_file_prefix, chrindex, ".txt.gz", sep=""), header=T, stringsAsFactors=F)
     colnames(GC_newlist)[c(1,2)] = c("Chr","Position")
     GC_newlist = GC_newlist[GC_newlist$Position %in% Tumor_LogR_chr$Position,]
-    GC_data = rbind(GC_data, GC_newlist)
-    Tumor_LogR_new = rbind(Tumor_LogR_new, Tumor_LogR_chr[!is.na(match(Tumor_LogR_chr$Position, GC_newlist$Position)),])
+    GC_data[[length(GC_data)+1]] = GC_newlist
+    Tumor_LogR_new[[length(Tumor_LogR_new)+1]] = Tumor_LogR_chr[!is.na(match(Tumor_LogR_chr$Position, GC_newlist$Position)),]
   }
-  Tumor_LogR = Tumor_LogR_new  
+  Tumor_LogR = do.call(rbind, Tumor_LogR_new)
   rm(Tumor_LogR_new)
-  
-#     ovl = which(Tumor_LogR_chr$Position %in% GC_newlist$Position)
-#     Tumor_LogR_chr = Tumor_LogR_chr[ovl,,drop=F]
+  GC_data = do.call(rbind, GC_data)
   
   flag_nona = is.finite(Tumor_LogR[,3])
   corr = cor(GC_data[flag_nona, 3:ncol(GC_data)], Tumor_LogR[flag_nona,3], use="complete.obs")
@@ -287,7 +286,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, gc_content_file_prefix, chr
   GCcorrected = Tumor_LogR[!flag_NA,]
   GCcorrected[,3] = model$residuals
     
-    #Tumor_LogR_new = rbind(Tumor_LogR_new,GCcorrected)
-  #write.table(Tumor_LogR_new, file=outfile, sep="\t", quote=F)
+  corr = data.frame(windowsize=names(corr), correlation=corr)
+  write.table(corr, file=correlations_outfile, sep="\t", quote=F, row.names=F)
   write.table(GCcorrected, file=outfile, sep="\t", quote=F, row.names=F)
 }
