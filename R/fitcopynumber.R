@@ -35,7 +35,14 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   raw.logR.data = read.table(inputfile.logr, sep="\t", header=T, stringsAsFactors=F)
   
   # Assign rownames as those are required by various clonal_ascat.R functions
-  rownames(segmented.BAF.data) = paste(segmented.BAF.data[,1], segmented.BAF.data[,2], sep="_")
+  # If there are duplicates (possible with old versions of BB) then remove those
+  identifiers = paste(segmented.BAF.data[,1], segmented.BAF.data[,2], sep="_")
+  if (length(duplicated(identifiers)) > 0) {
+      dups = duplicated(identifiers)
+      segmented.BAF.data = segmented.BAF.data[-dups,]
+      identifiers = identifiers[-dups]
+  }
+  rownames(segmented.BAF.data) = identifiers
 
   # Drop NAs
   raw.BAF.data = raw.BAF.data[!is.na(raw.BAF.data[,3]),]
