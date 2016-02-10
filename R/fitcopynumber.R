@@ -37,8 +37,8 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   # Assign rownames as those are required by various clonal_ascat.R functions
   # If there are duplicates (possible with old versions of BB) then remove those
   identifiers = paste(segmented.BAF.data[,1], segmented.BAF.data[,2], sep="_")
-  if (length(duplicated(identifiers)) > 0) {
-      dups = duplicated(identifiers)
+  dups = which(duplicated(identifiers))
+  if (length(dups) > 0) {
       segmented.BAF.data = segmented.BAF.data[-dups,]
       identifiers = identifiers[-dups]
   }
