@@ -1620,6 +1620,8 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 recalc_psi_t = function(psi, rho, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments=T) {
   # Create segments of constant BAF/LogR  
   s = get_segment_info(lrrsegmented[rownames(segBAF.table)], segBAF.table)
+  # Make sure no segment of length 1 remains - TODO: this should not occur and needs to be prevented upstream
+  s = s[s[,3] > 1,]
   
   # Fetch all segments, if required check which ones are clonal with this rho/psi configuration
   segs = list()
