@@ -291,7 +291,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     whichclosestlevel.test = which.min(abs(test.levels-l))
     
     # Test whether a segment should be subclonal
-    if (sd(BAFke)==0) {
+    if (is.na(sd(BAFke)) || sd(BAFke)==0) {
       pval[i] = 0 # problem caused by segments with constant BAF (usually 1 or 2)
     } else {
       pval[i] = t.test(BAFke, alternative="two.sided", mu=test.levels[whichclosestlevel.test])$p.value
