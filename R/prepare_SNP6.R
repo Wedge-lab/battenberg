@@ -379,6 +379,7 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
 }
 
 #' Infer the gender using the birdseed report file
+#' @export
 infer_gender_birdseed = function(birdseed_report_file) {
   z = read.table(birdseed_report_file, header=T)
   return(as.character(z$em.cluster.chrX.het.contrast_gender))
