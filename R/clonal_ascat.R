@@ -1,28 +1,9 @@
-#source("orderEdges.R")
-
-# helping function to read segments:
-make_seg_lr = function(r) {
-  pcf_segments = numeric(0);
-  index = 0;
-  previousr = 1E10;
-  for (i in 1:length(r)) {
-    if (r[i] != previousr) {
-      index=index+1;
-      count=1;
-    }
-    else {
-      count = count + 1;
-    }
-    pcf_segments[index] = count;
-    previousr = r[i];
-  }
-  return(pcf_segments);
-}
-
 
 ####################################################################################################
 
-# helper function to split the genome into parts
+#' A helper function to split the genome into parts
+#' @param SNPpos A data.frame with a row for each SNP. First column is chromosome, second column position
+#' @noRd
 split_genome = function(SNPpos) {
   # look for gaps of more than 1Mb and chromosome borders
   holesOver1Mb = which(diff(SNPpos[,2])>=1000000)+1
@@ -78,59 +59,9 @@ split_genome = function(SNPpos) {
   return(chr)
 }
 
-
 ####################################################################################################
-
-# helper function to predict germline homozygous segments for later resegmentation
-predictGermlineHomozygousStretches = function(chr, hom) {
-
-  # contains the result: a list of vectors of probe numbers in homozygous stretches for each sample
-  HomoStretches = list()
-
-  for (sam in 1:dim(hom)[2]) {
-    homsam = hom[,sam]
-
-    perchom = sum(homsam,na.rm=T)/sum(!is.na(homsam))
-
-    # NOTE THAT A P-VALUE THRESHOLD OF 0.001 IS HARDCODED HERE
-    homthres = ceiling(log(0.001,perchom))
-
-    allhprobes = NULL
-    for (chrke in 1:length(chr)) {
-      hschr = homsam[chr[[chrke]]]
-
-      hprobes = vector(length=0)
-      for(probe in 1:length(hschr)) {
-        if(!is.na(hschr[probe])) {
-          if(hschr[probe]) {
-            hprobes = c(hprobes,probe)
-          }
-          else {
-            if(length(hprobes)>=homthres) {
-              allhprobes = rbind(allhprobes,c(chrke,chr[[chrke]][min(hprobes)],chr[[chrke]][max(hprobes)]))
-            }
-            hprobes = vector(length=0)
-          }
-        }
-      }
-      # if the last probe is homozygous, this is not yet accounted for
-      if(!is.na(hschr[probe]) & hschr[probe]) {
-        if(length(hprobes)>=homthres) {
-          allhprobes = rbind(allhprobes,c(chrke,chr[[chrke]][min(hprobes)],chr[[chrke]][max(hprobes)]))
-        }
-      }
-   
-    }
-
-    HomoStretches[[sam]]=allhprobes
-  
-  }
-
-  return(HomoStretches)
-}
-
-####################################################################################################
-		
+#' Helper function that calculates a t-statistic
+#' @noRd		
 studentise <-function( sample_size, sample_mean, sample_SD, mu_pop )  # kjd 18-12-2013
 {
 	tvar = ( sample_mean - mu_pop ) * sqrt( sample_size ) / sample_SD
@@ -140,9 +71,9 @@ studentise <-function( sample_size, sample_mean, sample_SD, mu_pop )  # kjd 18-1
 }
 
 ####################################################################################################
-# This function calculates a P-value, for a test where the null hypothesis is that
-# the sample was drawn from a Gaussian population with the specified mean "mu_pop".
-		
+#' This function calculates a P-value, for a test where the null hypothesis is that
+#' the sample was drawn from a Gaussian population with the specified mean "mu_pop".
+#' @noRd
 calc_Pvalue_t_twotailed <-function( sample_size, sample_mean, sample_SD, mu_pop, max_dist)  # kjd 18-12-2013
 {
 	tvar = ( sample_mean - mu_pop ) * sqrt( sample_size ) / sample_SD
@@ -169,7 +100,8 @@ calc_Pvalue_t_twotailed <-function( sample_size, sample_mean, sample_SD, mu_pop,
 }
 
 ####################################################################################################
-		
+#' Helper function that calculates a binomial probability
+#' @noRd
 calc_binomial_prob <-function( sample_proportion, sample_size, pop_proportion ) # kjd 10-2-2014
 {
 	sample_count = round( sample_proportion * sample_size , 0 )
@@ -197,79 +129,81 @@ calc_binomial_prob <-function( sample_proportion, sample_size, pop_proportion ) 
 }
 
 ####################################################################################################
-# This function calculates a log likelihood ratio where the two hypotheses are that
-# the tumour genome segment in question is "clonal".
-# The first hypothesis is the "best fit" model we can find. 
-# The second hypothesis is the "second best fit" model we can find. 
-		
+#' This function calculates a log likelihood ratio where the two hypotheses are that
+#' the tumour genome segment in question is "clonal".
+#' The first hypothesis is the "best fit" model we can find. 
+#' The second hypothesis is the "second best fit" model we can find. 
+#' @noRd
 calc_ln_likelihood_ratio <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, read_depth, rho, psi, gamma_param, maxdist_BAF ) # kjd 18-12-2013
 {	
-	pooled_BAF.size = read_depth * BAF.size
-	
-	# if we don't have a value for LogR, fill in 0
-	if (is.na(LogR)) {
-		LogR = 0
-	}
-	nMajor = (rho-1+BAFreq*psi*2^(LogR/gamma_param))/rho
-	nMinor = (rho-1+(1-BAFreq)*psi*2^(LogR/gamma_param))/rho
-	
-	# to make sure we're always in a positive square:
-	#if(nMajor < 0) {
-	#	nMajor = 0.01
-	#}
-	#
-	#if(nMinor < 0) {
-	#	nMinor = 0.01
-	#}
-	#DCW - increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
-	if(nMinor<0){
-		if(BAFreq==1){
-			#avoid calling infinite copy number
-			nMajor = 1000
-		}else{
-			nMajor = nMajor + BAFreq * (0.01 - nMinor) / (1-BAFreq)
-		}
-		nMinor = 0.01		
-	}
-	
-	nearest_edge = GetNearestCorners_bestOption( rho, psi, BAFreq, nMajor, nMinor ) # kjd 14-2-2014
-	nMaj = nearest_edge$nMaj # kjd 14-2-2014
-	nMin = nearest_edge$nMin # kjd 14-2-2014
-	
-	
-	BAF_levels = (1-rho+rho*nMaj)/(2-2*rho+rho*(nMaj+nMin))
-	
-	index_vect = which( is.finite(BAF_levels) ) # kjd 14-2-2014
-	BAF_levels = BAF_levels[ index_vect ] # kjd 14-2-2014
-		
-	if( length( BAF_levels ) > 1 ) # kjd 14-2-2014
-	{
-		likelihood_vect = sapply( BAF_levels , function(x){ calc_binomial_prob( BAF.mean, pooled_BAF.size, x ) } )
-		likelihood_vect = sort( likelihood_vect, decreasing = TRUE )
-	
-		if( ( likelihood_vect[1] > 0 ) && ( likelihood_vect[2] > 0 ) )
-		{
-			ln_lratio = log( likelihood_vect[1] ) - log( likelihood_vect[2] )
-			
-			
-		}else
-		{
-			ln_lratio = 0
-			
-		}
-		
-	}else
-	{
-		ln_lratio = 0
-		
-	}	
-	
-	return( ln_lratio )
-	
+  pooled_BAF.size = read_depth * BAF.size
+  
+  # if we don't have a value for LogR, fill in 0
+  if (is.na(LogR)) {
+    LogR = 0
+  }
+  nMajor = (rho-1+BAFreq*psi*2^(LogR/gamma_param))/rho
+  nMinor = (rho-1+(1-BAFreq)*psi*2^(LogR/gamma_param))/rho
+  
+  # to make sure we're always in a positive square:
+  #if(nMajor < 0) {
+  #	nMajor = 0.01
+  #}
+  #
+  #if(nMinor < 0) {
+  #	nMinor = 0.01
+  #}
+  #DCW - increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
+  if(nMinor<0){
+    if(BAFreq==1){
+      #avoid calling infinite copy number
+      nMajor = 1000
+    }else{
+      nMajor = nMajor + BAFreq * (0.01 - nMinor) / (1-BAFreq)
+    }
+    nMinor = 0.01		
+  }
+  
+  nearest_edge = GetNearestCorners_bestOption( rho, psi, BAFreq, nMajor, nMinor ) # kjd 14-2-2014
+  nMaj = nearest_edge$nMaj # kjd 14-2-2014
+  nMin = nearest_edge$nMin # kjd 14-2-2014
+  
+  
+  BAF_levels = (1-rho+rho*nMaj)/(2-2*rho+rho*(nMaj+nMin))
+  
+  index_vect = which( is.finite(BAF_levels) ) # kjd 14-2-2014
+  BAF_levels = BAF_levels[ index_vect ] # kjd 14-2-2014
+  
+  if( length( BAF_levels ) > 1 ) # kjd 14-2-2014
+  {
+    likelihood_vect = sapply( BAF_levels , function(x){ calc_binomial_prob( BAF.mean, pooled_BAF.size, x ) } )
+    likelihood_vect = sort( likelihood_vect, decreasing = TRUE )
+    
+    if( ( likelihood_vect[1] > 0 ) && ( likelihood_vect[2] > 0 ) )
+    {
+      ln_lratio = log( likelihood_vect[1] ) - log( likelihood_vect[2] )
+      
+      
+    }else
+    {
+      ln_lratio = 0
+      
+    }
+    
+  }else
+  {
+    ln_lratio = 0
+    
+  }	
+  
+  return( ln_lratio )
+  
 }
 
 ####################################################################################################
 		
+#' Calculate a two tailed binomial p-value
+#' @noRd
 calc_Pvalue_binomial_twotailed <-function( sample_count, sample_size, pop_proportion ) # kjd 27-2-2014
 {
 	lower_tail_prob = pbinom( sample_count, sample_size, pop_proportion , lower.tail = TRUE )
@@ -289,7 +223,9 @@ calc_Pvalue_binomial_twotailed <-function( sample_count, sample_size, pop_propor
 }
 
 ####################################################################################################
-	
+#' Helper function that calculates a p-value for a set of BAF values summarised by their mean
+#' TODO: this function is not used in Battenberg
+#' @noRd
 calc_BAF_Pvalue <-function( BAF.mean, pooled_BAF.size, maxdist_BAF, BAF_level ) # kjd 27-2-2014
 {
 	
@@ -333,7 +269,9 @@ calc_BAF_Pvalue <-function( BAF.mean, pooled_BAF.size, maxdist_BAF, BAF_level ) 
 }
 
 ####################################################################################################
-	
+#' Calculate a p-value for a LogR value
+#' TODO: this function is not used in Battenberg
+#' @noRd
 calc_LogR_Pvalue <-function( LogR, maxdist_LogR, LogR_level ) # kjd 27-2-2014
 {
 	if( is.finite( LogR_level ) )
@@ -354,30 +292,33 @@ calc_LogR_Pvalue <-function( LogR, maxdist_LogR, LogR_level ) # kjd 27-2-2014
 	
 }
 
-
+#' Helper function to estimate rho from a given copy number state and it's BAF and LogR
+#' @noRd
 estimate_rho <-function( LogR_value, BAFreq_value, nA_value, nB_value ) # kjd 10-3-2014
 {
-	temp_value = BAFreq_value * ( 2 - nA_value - nB_value )
-    temp_value = nB_value - 1 - temp_value
-    rho_value =  ( ( 2 * BAFreq_value ) - 1 ) / temp_value
-    
-    return( rho_value )
-	
+  temp_value = BAFreq_value * ( 2 - nA_value - nB_value )
+  temp_value = nB_value - 1 - temp_value
+  rho_value =  ( ( 2 * BAFreq_value ) - 1 ) / temp_value
+  
+  return( rho_value )
+  
 }
 
 ####################################################################################################
-
+#' Helper function to calculate psi from a copy number fit, BAF, LogR, rho and a platform gamma
+#' @noRd
 estimate_psi <-function( LogR_value, BAFreq_value, nA_value, nB_value, rho_value, gamma_param ) # kjd 10-3-2014
 {
-	temp_value = 2^( - LogR_value / gamma_param )
-    temp_value = temp_value * ( 2 + ( rho_value * ( nA_value + nB_value - 2 ) ) )
-    #return(temp_value) # DCW this returns psi rather than psi_t, i.e. the average ploidy of normal and tumour cells
-    temp_value = temp_value - ( 2 * ( 1 - rho_value ) )   
-    psi_value = temp_value / rho_value    
-    return( psi_value )	
+  temp_value = 2^( - LogR_value / gamma_param )
+  temp_value = temp_value * ( 2 + ( rho_value * ( nA_value + nB_value - 2 ) ) )
+  #return(temp_value) # DCW this returns psi rather than psi_t, i.e. the average ploidy of normal and tumour cells
+  temp_value = temp_value - ( 2 * ( 1 - rho_value ) )   
+  psi_value = temp_value / rho_value    
+  return( psi_value )	
 }
 
-#DCW 160314
+#' Function that calculates rho and psi from a given reference segment, defined by ref_seg, with copy number state nA_ref and nB_ref
+#' @noRd
 get.psi.rho.from.ref.seg <-function( ref_seg, s, nA_ref, nB_ref, gamma_param = 1)
 {
 	BAFreq = s[ ref_seg, "b" ]
@@ -397,15 +338,17 @@ get.psi.rho.from.ref.seg <-function( ref_seg, s, nA_ref, nB_ref, gamma_param = 1
 	return( ref_segment_info )	
 }
 
-# This function decides if a segment is "clonal" (= TRUE) or not (= FALSE).
-# (The alternative hypothesis is that the tumour genome segment in question exhibits "sub-clonal" variation.)
-# We test the integer solutions for all 4 corners. Also, along side the hypothesis test for the BAF.
-# We use a decision rule based on LogR (we could use a hypothesis test which takes account of the variance in LogR, or a fixed “tolerance”).
-# If the null hypothesis is accepted for at least one corner, then we accept that
-# the tumour genome segment in question is "clonal".
-
+#' This function decides if a segment is "clonal" (= TRUE) or not (= FALSE).
+#' (The alternative hypothesis is that the tumour genome segment in question exhibits "sub-clonal" variation.)
+#' We test the integer solutions for all 4 corners. Also, along side the hypothesis test for the BAF.
+#' We use a decision rule based on LogR (we could use a hypothesis test which takes account of the variance in LogR, or a fixed “tolerance”).
+#' If the null hypothesis is accepted for at least one corner, then we accept that
+#' the tumour genome segment in question is "clonal".
+#' @noRd
 is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.sd, read_depth, rho, psi, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR ) # kjd 21-2-2014
 {	
+  # TODO: read_depth, siglevel_LogR and maxdist_LogR are no longer in use
+  
 	#270314 no longer used
 	#pooled_BAF.size = read_depth * BAF.size
 	
@@ -493,8 +436,8 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
 }
 
 ####################################################################################################
-# This function calculates a t variate.
-
+#' This function calculates a t variate.
+#' @noRd
 calc_standardised_error <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.sd, rho, psi, gamma_param, maxdist_BAF ) # kjd 31-1-2014
 {
 	
@@ -565,324 +508,294 @@ calc_standardised_error <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean
 }
 
 ####################################################################################################
-# This function computes various "distances".
-#
-# One such distance is an estimate of the proportion of the tumour genome which is clonal.
-# For each segment of the genome, we test the null hypothesis is that
-# the tumour genome segment in question is "clonal". The alternative hypothesis is that
-# the tumour genome segment in question exhibits "sub-clonal" variation.	  
+#' This function computes various "distances", which are used as penalties for a copy number solution.
+#' This function is called when searching for a clonal copy number solution.
+#' One such distance is an estimate of the proportion of the tumour genome which is clonal.
+#' For each segment of the genome, we test the null hypothesis is that
+#' the tumour genome segment in question is "clonal". The alternative hypothesis is that
+#' the tumour genome segment in question exhibits "sub-clonal" variation.	  
+#' @noRd
 calc_distance <-function( segs, dist_choice, rho, psi, gamma_param, uninformative_BAF_threshold=0.51 ) # kjd 10-2-2014  
 {
-	s = segs
-		
-    if( dist_choice == 0 ) # original ASCAT distance
-    {
-	    nA = (rho-1-(s[,"b"]-1)*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
-      nB = (rho-1+s[,"b"]*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
-      # choose the minor allele
-      nMinor = NULL
-      if (sum(nA,na.rm=T) < sum(nB,na.rm=T)) {
-        nMinor = nA
-      }
-      else {
-        nMinor = nB
-      }
-      #d[i,j] = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1), na.rm=T)
-      #DCW 180711 - try weighting BAF=0.5 equally with other points
-      #dist_value = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"], na.rm=T)
-      #DCW 310314 - retry weighting
-      dist_value = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"] * ifelse(s[,"b"]<=uninformative_BAF_threshold,0.05,1), na.rm=T)
-      
-      minimise = TRUE
-		
-    }else if( dist_choice == 1 ){ # new similarity measure suggested by DW 7-3-2014
-	    nA = (rho-1-(s[,"b"]-1)*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
-      nB = (rho-1+s[,"b"]*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
-      # choose the minor allele
-      nMinor = NULL
-      if (sum(nA,na.rm=T) < sum(nB,na.rm=T)) {
-        nMinor = nA
-      }
-      else {
-        nMinor = nB
-      }
-      #d[i,j] = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1), na.rm=T)
-      #DCW 180711 - try weighting BAF=0.5 equally with other points
-      # dist_value = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"], na.rm=T)
-      
-      dist_value = sum((0.5-abs(nMinor - pmax(round(nMinor),0)))^2 * s[,"length"], na.rm=T)
-      
-      minimise = FALSE
-      
-    }else if( dist_choice == 2 ){ # adapted DW's 7-3-2014 measure by SD 8-8-2014 that takes into account both major and minor alleles
-      nA = (rho-1-(s[,"b"]-1)*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
-      nB = (rho-1+s[,"b"]*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
-      # choose the minor allele
-      nMinor = NULL
-      nMajor = NULL
-      if (sum(nA,na.rm=T) < sum(nB,na.rm=T)) {
-        nMinor = nA
-        nMajor = nB
-      }
-      else {
-        nMinor = nB
-        nMajor = nA
-      }
-
-      dist_value = 0.5*sum(((0.5-abs(nMinor - pmax(round(nMinor),0)))^2 + (0.5-abs(nMajor - pmax(round(nMajor),0)))^2) * s[,"length"], na.rm=T)
-      
-      minimise = FALSE
-      
-    }else if( dist_choice == 3 ){ # adapted DW's 7-3-2014 measure by SD 8-8-2014 that takes into account both major and minor alleles and takes the mean, while it also penalises for the number of homozygous deletions
-      nA = (rho-1-(s[,"b"]-1)*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
-      nB = (rho-1+s[,"b"]*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
-      # choose the minor allele
-      nMinor = NULL
-      nMajor = NULL
-      if (sum(nA,na.rm=T) < sum(nB,na.rm=T)) {
-        nMinor = nA
-        nMajor = nB
-      }
-      else {
-        nMinor = nB
-        nMajor = nA
-      }
-      
-      # Penalise homozygous deletions twice as hard as other segments
-      # - the penalty term is increased to make it less likely that hom dels occur
-      # - the segment length is increased to penalise harder for longer segments
-      segs_penalty = (0.5-abs(nMinor - pmax(round(nMinor),0)))^2 + (0.5-abs(nMajor - pmax(round(nMajor),0)))^2
-      hom_del = nMinor<0.5 & nMajor<0.5 & nMinor>=0 & nMajor>=0
-      segs_penalty[which(hom_del)] = segs_penalty[which(hom_del)]*4
-      
-      dist_value = 0.5*sum(segs_penalty * (s[,"length"] * ifelse(hom_del, 2, 1)), na.rm=T)
-      
-      minimise = FALSE
-    }
-		
-	distance_info = list( distance_value = dist_value , minimise = minimise )
-	
-	return( distance_info )
-}
-
-####################################################################################################
-# This function computes various "distances".
-#
-# One such distance is an estimate of the proportion of the tumour genome which is clonal.
-# For each segment of the genome, we test the null hypothesis is that
-# the tumour genome segment in question is "clonal". The alternative hypothesis is that
-# the tumour genome segment in question exhibits "sub-clonal" variation.
-calc_distance_clonal <-function( segs, dist_choice, rho, psi, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold) # kjd 10-2-2014  
-{
-	s = segs
-	
-	pval = NULL
-	
-	# BAFpvals = vector(length=length(BAFseg))
-		
-	genome_size = 0
-	clonal_genome_size = 0
-	seg_count = 0 # kjd 24-1-2014
-	clonal_seg_count = 0 # kjd 24-1-2014
-	n_included_segments = 0 # kjd 31-1-2014
-	included_genome_size = 0 # kjd 31-1-2014
-	sum1 = 0 # kjd 31-1-2014
-	sum2 = 0 # kjd 31-1-2014
-	sum3 = 0 # kjd 31-1-2014
-	sum_ln_lratio = 0 # kjd 10-2-2014
-	
-	max_clonal_segment = 0 # There may be no clonal segments, in which case this remains zero.
-	max_clonal_segment_size = 0
-	
-	ref_maj = NA
-	ref_min = NA
-	
-	for(i in 1:nrow(s)) {
-		
-		BAFreq = s[ i, "b" ] # l = BAFlevels[i]
-		
-		if( BAFreq > uninformative_BAF_threshold )
-		{
-			LogR = s[ i, "r" ]
-			
-			BAF.length = s[ i, "length" ]
-			BAF.size = s[ i, "size" ]
-			BAF.mean = s[ i, "mean" ]
-			BAF.sd = s[ i, "sd" ]
-			
-			#
-			# Calculate P values
-			#
-			
-			segment_info = is.segment.clonal( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.sd, read_depth, rho, psi, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR ) # kjd 21-2-2014
-			is.clonal = segment_info$is.clonal # kjd 21-2-2014			
-			
-			nMaj = segment_info$nMaj
-			nMin = segment_info$nMin			
-			is.balanced = segment_info$balanced
-						
-			segment_size = BAF.length # OR segment_size = BAF.size ?
-			genome_size = genome_size + segment_size
-			seg_count = seg_count + 1 # kjd 24-1-2014
-			
-			# if( pval[i] > siglevel_BAF ){
-			if(is.clonal){ # kjd 21-2-2014
-				clonal_genome_size = clonal_genome_size + segment_size
-				clonal_seg_count = clonal_seg_count + 1 # kjd 24-1-2014
-				
-				if( max_clonal_segment_size < segment_size & !is.balanced) #balanced check added by DCW 160314
-				{
-					max_clonal_segment = i
-					max_clonal_segment_size = segment_size
-					
-					ref_maj = nMaj
-					ref_min = nMin
-				}
-				
-			}
-			
-			#
-			# Calculate "standardised error"
-			#
-			
-			standard_error_info = calc_standardised_error( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.sd, rho, psi, gamma_param, maxdist_BAF ) # kjd 31-1-2014
-			
-			included_segment = standard_error_info$included_segment # kjd 31-1-2014
-			tvar = standard_error_info$tvar # kjd 31-1-2014
-			
-			n_included_segments = n_included_segments + included_segment # kjd 31-1-2014
-			if( included_segment > 0 )
-			{
-				included_genome_size = included_genome_size + segment_size # kjd 31-1-2014
-				
-			}
-			sum1 = sum1 + tvar^2 # kjd 31-1-2014
-			
-			sum2 = sum2 + ( BAFreq - BAF.mean )^2
-			
-			sum3 = sum3 + ( segment_size * ( BAFreq - BAF.mean )^2 )
-			
-			#
-			# Calculate log likelihood ratio
-			#
-			
-			ln_lratio = calc_ln_likelihood_ratio( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, read_depth, rho, psi, gamma_param, maxdist_BAF ) # kjd 10-2-2014
-			
-			sum_ln_lratio = sum_ln_lratio + ln_lratio
-			
-		}
-		
-	}
-		
-	#
-	# Calculate proportion of genome which is "clonal":
-	#
-	
-	clonal_proportion = 0
-	if( genome_size > 0 ){
-		clonal_proportion = clonal_genome_size / genome_size
-		
-	}
-	
-	#
-	# Calculate "distances":
-	#
-	
-	dist1 = 0 # kjd 3-2-2014
-	if( n_included_segments > 0 ){
-		dist1 = sum1 / n_included_segments
-		
-	} # kjd 3-2-2014
-	
-	dist2 = 0 # kjd 3-2-2014
-	if( seg_count > 0 ){ 
-		dist2 = sum2 / seg_count
-		
-	} # kjd 3-2-2014
-	
-	dist3 = 0  # kjd 3-2-2014
-	if( genome_size > 0 ){
-		dist3 = sum3 / genome_size
-		
-	} # kjd 3-2-2014
-	
-	
-    
-    if( dist_choice == 0 )
-    {
-		dist_value = clonal_proportion
-		minimise = FALSE
-    }
-	    
-    if( dist_choice == 1 )
-    {
-		dist_value = dist1
-		minimise = TRUE
-    }
-	    
-    if( dist_choice == 2 )
-    {
-		dist_value = dist2
-		minimise = TRUE
-    }
-	    
-    if( dist_choice == 3 )
-    {
-		dist_value = dist3
-		minimise = TRUE
-    }
-	    
-    if( dist_choice == 4 )
-    {
-		dist_value = sum_ln_lratio
-		minimise = FALSE
-    }
-	
-	distance_info = list( distance_value = dist_value , minimise = minimise , max_clonal_segment = max_clonal_segment, ref_maj = ref_maj, ref_min = ref_min ) # kjd 10-2-2014
-	
-	# return( clonal_proportion ) # kjd 24-1-2014
-	
-	return( distance_info ) # kjd 10-2-2014
-	
-}
-
-####################################################################################################
-# function to make segments of constant LRR and BAF 
-# this function is more general and does not depend on specifically ASPCF output
-# it can also handle segmention performed on LRR and BAF separately
-make_segments = function(r,b) {
-  m = matrix(ncol = 2, nrow = length(b))
-  m[,1] = r
-  m[,2] = b
-  m = as.matrix(na.omit(m))
-  pcf_segments = matrix(ncol = 3, nrow = dim(m)[1])
-  colnames(pcf_segments) = c("r","b","length");
-  index = 0;
-  previousb = -1;
-  previousr = 1E10;
-  for (i in 1:dim(m)[1]) {
-    if (m[i,2] != previousb || m[i,1] != previousr) {
-      index=index+1;
-      count=1;
-      pcf_segments[index, "r"] = m[i,1];
-      pcf_segments[index, "b"] = m[i,2];
+  s = segs
+  
+  if( dist_choice == 0 ) # original ASCAT distance
+  {
+    nA = (rho-1-(s[,"b"]-1)*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
+    nB = (rho-1+s[,"b"]*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
+    # choose the minor allele
+    nMinor = NULL
+    if (sum(nA,na.rm=T) < sum(nB,na.rm=T)) {
+      nMinor = nA
     }
     else {
-      count = count + 1;
+      nMinor = nB
     }
-    pcf_segments[index, "length"] = count;
-    previousb = m[i,2];
-    previousr = m[i,1];
+    #d[i,j] = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1), na.rm=T)
+    #DCW 180711 - try weighting BAF=0.5 equally with other points
+    #dist_value = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"], na.rm=T)
+    #DCW 310314 - retry weighting
+    dist_value = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"] * ifelse(s[,"b"]<=uninformative_BAF_threshold,0.05,1), na.rm=T)
+    
+    minimise = TRUE
+    
+  }else if( dist_choice == 1 ){ # new similarity measure suggested by DW 7-3-2014
+    nA = (rho-1-(s[,"b"]-1)*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
+    nB = (rho-1+s[,"b"]*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
+    # choose the minor allele
+    nMinor = NULL
+    if (sum(nA,na.rm=T) < sum(nB,na.rm=T)) {
+      nMinor = nA
+    }
+    else {
+      nMinor = nB
+    }
+    #d[i,j] = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1), na.rm=T)
+    #DCW 180711 - try weighting BAF=0.5 equally with other points
+    # dist_value = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"], na.rm=T)
+    
+    dist_value = sum((0.5-abs(nMinor - pmax(round(nMinor),0)))^2 * s[,"length"], na.rm=T)
+    
+    minimise = FALSE
+    
+  }else if( dist_choice == 2 ){ # adapted DW's 7-3-2014 measure by SD 8-8-2014 that takes into account both major and minor alleles
+    nA = (rho-1-(s[,"b"]-1)*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
+    nB = (rho-1+s[,"b"]*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
+    # choose the minor allele
+    nMinor = NULL
+    nMajor = NULL
+    if (sum(nA,na.rm=T) < sum(nB,na.rm=T)) {
+      nMinor = nA
+      nMajor = nB
+    }
+    else {
+      nMinor = nB
+      nMajor = nA
+    }
+    
+    dist_value = 0.5*sum(((0.5-abs(nMinor - pmax(round(nMinor),0)))^2 + (0.5-abs(nMajor - pmax(round(nMajor),0)))^2) * s[,"length"], na.rm=T)
+    
+    minimise = FALSE
+    
+  }else if( dist_choice == 3 ){ # adapted DW's 7-3-2014 measure by SD 8-8-2014 that takes into account both major and minor alleles and takes the mean, while it also penalises for the number of homozygous deletions
+    nA = (rho-1-(s[,"b"]-1)*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
+    nB = (rho-1+s[,"b"]*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
+    # choose the minor allele
+    nMinor = NULL
+    nMajor = NULL
+    if (sum(nA,na.rm=T) < sum(nB,na.rm=T)) {
+      nMinor = nA
+      nMajor = nB
+    }
+    else {
+      nMinor = nB
+      nMajor = nA
+    }
+    
+    # Penalise homozygous deletions twice as hard as other segments
+    # - the penalty term is increased to make it less likely that hom dels occur
+    # - the segment length is increased to penalise harder for longer segments
+    segs_penalty = (0.5-abs(nMinor - pmax(round(nMinor),0)))^2 + (0.5-abs(nMajor - pmax(round(nMajor),0)))^2
+    hom_del = nMinor<0.5 & nMajor<0.5 & nMinor>=0 & nMajor>=0
+    segs_penalty[which(hom_del)] = segs_penalty[which(hom_del)]*4
+    
+    dist_value = 0.5*sum(segs_penalty * (s[,"length"] * ifelse(hom_del, 2, 1)), na.rm=T)
+    
+    minimise = FALSE
   }
-  pcf_segments = as.matrix(na.omit(pcf_segments))[,]
-  return(pcf_segments);
+  
+  distance_info = list( distance_value = dist_value , minimise = minimise )
+  
+  return( distance_info )
 }
 
-# function to make segments of constant LRR and BAF 
-# this function is more general and does not depend on specifically ASPCF output
-# it can also handle segmention performed on LRR and BAF separately.
+####################################################################################################
+#' This function computes various "distances", which are used as penalties for a copy number solution
+#' One such distance is an estimate of the proportion of the tumour genome which is clonal.
+#' For each segment of the genome, we test the null hypothesis is that
+#' the tumour genome segment in question is "clonal". The alternative hypothesis is that
+#' the tumour genome segment in question exhibits "sub-clonal" variation.    
+#' @noRd
+calc_distance_clonal <-function( segs, dist_choice, rho, psi, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold) # kjd 10-2-2014  
+{
+  s = segs
+  
+  pval = NULL
+  
+  # BAFpvals = vector(length=length(BAFseg))
+  
+  genome_size = 0
+  clonal_genome_size = 0
+  seg_count = 0 # kjd 24-1-2014
+  clonal_seg_count = 0 # kjd 24-1-2014
+  n_included_segments = 0 # kjd 31-1-2014
+  included_genome_size = 0 # kjd 31-1-2014
+  sum1 = 0 # kjd 31-1-2014
+  sum2 = 0 # kjd 31-1-2014
+  sum3 = 0 # kjd 31-1-2014
+  sum_ln_lratio = 0 # kjd 10-2-2014
+  
+  max_clonal_segment = 0 # There may be no clonal segments, in which case this remains zero.
+  max_clonal_segment_size = 0
+  
+  ref_maj = NA
+  ref_min = NA
+  
+  for(i in 1:nrow(s)) {
+    
+    BAFreq = s[ i, "b" ] # l = BAFlevels[i]
+    
+    if( BAFreq > uninformative_BAF_threshold )
+    {
+      LogR = s[ i, "r" ]
+      
+      BAF.length = s[ i, "length" ]
+      BAF.size = s[ i, "size" ]
+      BAF.mean = s[ i, "mean" ]
+      BAF.sd = s[ i, "sd" ]
+      
+      #
+      # Calculate P values
+      #
+      
+      segment_info = is.segment.clonal( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.sd, read_depth, rho, psi, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR ) # kjd 21-2-2014
+      is.clonal = segment_info$is.clonal # kjd 21-2-2014			
+      
+      nMaj = segment_info$nMaj
+      nMin = segment_info$nMin			
+      is.balanced = segment_info$balanced
+      
+      segment_size = BAF.length # OR segment_size = BAF.size ?
+      genome_size = genome_size + segment_size
+      seg_count = seg_count + 1 # kjd 24-1-2014
+      
+      # if( pval[i] > siglevel_BAF ){
+      if(is.clonal){ # kjd 21-2-2014
+        clonal_genome_size = clonal_genome_size + segment_size
+        clonal_seg_count = clonal_seg_count + 1 # kjd 24-1-2014
+        
+        if( max_clonal_segment_size < segment_size & !is.balanced) #balanced check added by DCW 160314
+        {
+          max_clonal_segment = i
+          max_clonal_segment_size = segment_size
+          
+          ref_maj = nMaj
+          ref_min = nMin
+        }
+        
+      }
+      
+      #
+      # Calculate "standardised error"
+      #
+      
+      standard_error_info = calc_standardised_error( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.sd, rho, psi, gamma_param, maxdist_BAF ) # kjd 31-1-2014
+      
+      included_segment = standard_error_info$included_segment # kjd 31-1-2014
+      tvar = standard_error_info$tvar # kjd 31-1-2014
+      
+      n_included_segments = n_included_segments + included_segment # kjd 31-1-2014
+      if( included_segment > 0 )
+      {
+        included_genome_size = included_genome_size + segment_size # kjd 31-1-2014
+        
+      }
+      sum1 = sum1 + tvar^2 # kjd 31-1-2014
+      
+      sum2 = sum2 + ( BAFreq - BAF.mean )^2
+      
+      sum3 = sum3 + ( segment_size * ( BAFreq - BAF.mean )^2 )
+      
+      #
+      # Calculate log likelihood ratio
+      #
+      
+      ln_lratio = calc_ln_likelihood_ratio( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, read_depth, rho, psi, gamma_param, maxdist_BAF ) # kjd 10-2-2014
+      
+      sum_ln_lratio = sum_ln_lratio + ln_lratio
+      
+    }
+    
+  }
+  
+  #
+  # Calculate proportion of genome which is "clonal":
+  #
+  
+  clonal_proportion = 0
+  if( genome_size > 0 ){
+    clonal_proportion = clonal_genome_size / genome_size
+    
+  }
+  
+  #
+  # Calculate "distances":
+  #
+  
+  dist1 = 0 # kjd 3-2-2014
+  if( n_included_segments > 0 ){
+    dist1 = sum1 / n_included_segments
+    
+  } # kjd 3-2-2014
+  
+  dist2 = 0 # kjd 3-2-2014
+  if( seg_count > 0 ){ 
+    dist2 = sum2 / seg_count
+    
+  } # kjd 3-2-2014
+  
+  dist3 = 0  # kjd 3-2-2014
+  if( genome_size > 0 ){
+    dist3 = sum3 / genome_size
+    
+  } # kjd 3-2-2014
+  
+  
+  
+  if( dist_choice == 0 )
+  {
+    dist_value = clonal_proportion
+    minimise = FALSE
+  }
+  
+  if( dist_choice == 1 )
+  {
+    dist_value = dist1
+    minimise = TRUE
+  }
+  
+  if( dist_choice == 2 )
+  {
+    dist_value = dist2
+    minimise = TRUE
+  }
+  
+  if( dist_choice == 3 )
+  {
+    dist_value = dist3
+    minimise = TRUE
+  }
+  
+  if( dist_choice == 4 )
+  {
+    dist_value = sum_ln_lratio
+    minimise = FALSE
+  }
+  
+  distance_info = list( distance_value = dist_value , minimise = minimise , max_clonal_segment = max_clonal_segment, ref_maj = ref_maj, ref_min = ref_min ) # kjd 10-2-2014
+  
+  # return( clonal_proportion ) # kjd 24-1-2014
+  
+  return( distance_info ) # kjd 10-2-2014
+  
+}
 
-get_segment_info = function( segLogR , segBAF.table ) {
+#' Function extends the ASCAT \code{make_segments} function to make segments
+#' of constant BAF and LogR. This function returns a matrix with for each
+#' segment the LogR, BAF, the length of the segment (twice), and the mean and 
+#' standard deviation of the BAF values
+#' @noRd
+get_segment_info = function(segLogR , segBAF.table) {
   segBAF = segBAF.table[,5]
   
   names(segBAF) = rownames(segBAF.table)
@@ -890,55 +803,54 @@ get_segment_info = function( segLogR , segBAF.table ) {
   
   b = segBAF
   r = segLogR[names(segBAF)]
+  pcf_segments = ASCAT::make_segments(r,b)
   
-  
-  m = matrix(ncol = 2, nrow = length(b))
-  m[,1] = r
-  m[,2] = b
-  m = as.matrix(na.omit(m))
-  pcf_segments = matrix(ncol = 3, nrow = dim(m)[1])
-  colnames(pcf_segments) = c("r","b","length");
-  index = 0;
-  previousb = -1;
-  previousr = 1E10;
-  for (i in 1:dim(m)[1]) {
-    if (m[i,2] != previousb || m[i,1] != previousr) {
-      index=index+1;
-      count=1;
-      pcf_segments[index, "r"] = m[i,1];
-      pcf_segments[index, "b"] = m[i,2];
-    }
-    else {
-      count = count + 1;
-    }
-    pcf_segments[index, "length"] = count;
-    previousb = m[i,2];
-    previousr = m[i,1];
-  }
-  
-  # pcf_segments = as.matrix(na.omit(pcf_segments))[,] # kjd 10-1-2014 This version caused bug in R on laptop.
-  pcf_segments = as.matrix(na.omit(pcf_segments)) # kjd 10-1-2014 This version resolved bug in R on laptop. (Problem with installed version of R?)
-  
-  segs = matrix( ncol = 6, nrow = nrow(pcf_segments) )
+#   m = matrix(ncol = 2, nrow = length(b))
+#   m[,1] = r
+#   m[,2] = b
+#   m = as.matrix(na.omit(m))
+#   pcf_segments = matrix(ncol = 3, nrow = dim(m)[1])
+#   colnames(pcf_segments) = c("r","b","length");
+#   index = 0;
+#   previousb = -1;
+#   previousr = 1E10;
+#   for (i in 1:dim(m)[1]) {
+#     if (m[i,2] != previousb || m[i,1] != previousr) {
+#       index=index+1;
+#       count=1;
+#       pcf_segments[index, "r"] = m[i,1];
+#       pcf_segments[index, "b"] = m[i,2];
+#     }
+#     else {
+#       count = count + 1;
+#     }
+#     pcf_segments[index, "length"] = count;
+#     previousb = m[i,2];
+#     previousr = m[i,1];
+#   }
+#   
+#   # pcf_segments = as.matrix(na.omit(pcf_segments))[,] # kjd 10-1-2014 This version caused bug in R on laptop.
+#   pcf_segments = as.matrix(na.omit(pcf_segments)) # kjd 10-1-2014 This version resolved bug in R on laptop. (Problem with installed version of R?)
+#   
+  segs = matrix(ncol = 6, nrow = nrow(pcf_segments))
   colnames(segs) = c("r","b","length","size", "mean", "sd")
-  segs[ , c("r","b","length") ] = pcf_segments
+  segs[ , c("r","b","length")] = pcf_segments
+
   for( i in 1:nrow(segs) ) {
+		BAFreq = segs[i, "b"] # l = BAFlevels[i]		
+		index_vect = which( segBAF.table[ , 5] == BAFreq )
+		BAFke = segBAF.table[index_vect, 4] # column 4 contains "phased BAF" values; # kjd 6-1-2014 
 		
-		BAFreq = segs[ i, "b" ] # l = BAFlevels[i]		
-		index_vect = which( segBAF.table[ , 5 ] == BAFreq )
-		BAFke = segBAF.table[ index_vect, 4 ] # column 4 contains "phased BAF" values; # kjd 6-1-2014 
-		
-		segs[ i, "size" ] = length( BAFke )
-		segs[ i, "mean" ] = mean( BAFke )
-		segs[ i, "sd" ] = sd( BAFke )
-		
+		segs[i, "size"] = length(BAFke)
+		segs[i, "mean"] = mean(BAFke)
+		segs[i, "sd"] = sd(BAFke)
   }
-  
   return(segs);
 }
 
 ####################################################################################################
-
+#' Helper function to find new rho and psi boundaries given a current optimum pair. 
+#' @noRd
 get_new_bounds = function( input_optimum_pair, ininitial_bounds ) # kjd 21-2-2014
 {
   
@@ -957,42 +869,42 @@ get_new_bounds = function( input_optimum_pair, ininitial_bounds ) # kjd 21-2-201
   
   if( (psi_optimum - 0.5 * psi_range) < psi_min_initial )
   {
-	psi_min = psi_min_initial
-	psi_max = psi_min_initial + psi_range
-	
+    psi_min = psi_min_initial
+    psi_max = psi_min_initial + psi_range
+    
   }else
   {
-	if( (psi_optimum + 0.5 * psi_range) > psi_max_initial )
-	{
-		psi_min = psi_max_initial - psi_range
-		psi_max = psi_max_initial
-		
-	}else
-	{
-		psi_min = psi_optimum - 0.5 * psi_range
-		psi_max = psi_optimum + 0.5 * psi_range
-		
-	}
+    if( (psi_optimum + 0.5 * psi_range) > psi_max_initial )
+    {
+      psi_min = psi_max_initial - psi_range
+      psi_max = psi_max_initial
+      
+    }else
+    {
+      psi_min = psi_optimum - 0.5 * psi_range
+      psi_max = psi_optimum + 0.5 * psi_range
+      
+    }
   }
   
   if( (rho_optimum - 0.5 * rho_range) < rho_min_initial )
   {
-	rho_min = rho_min_initial
-	rho_max = rho_min_initial + rho_range
-	
+    rho_min = rho_min_initial
+    rho_max = rho_min_initial + rho_range
+    
   }else
   {
-	if( (rho_optimum + 0.5 * rho_range) > rho_max_initial )
-	{
-		rho_min = rho_max_initial - rho_range
-		rho_max = rho_max_initial
-		
-	}else
-	{
-		rho_min = rho_optimum - 0.5 * rho_range
-		rho_max = rho_optimum + 0.5 * rho_range
-		
-	}
+    if( (rho_optimum + 0.5 * rho_range) > rho_max_initial )
+    {
+      rho_min = rho_max_initial - rho_range
+      rho_max = rho_max_initial
+      
+    }else
+    {
+      rho_min = rho_optimum - 0.5 * rho_range
+      rho_max = rho_optimum + 0.5 * rho_range
+      
+    }
   }
   
   new_bounds = list( psi_min = psi_min, psi_max = psi_max, rho_min = rho_min, rho_max = rho_max )
@@ -1004,10 +916,9 @@ get_new_bounds = function( input_optimum_pair, ininitial_bounds ) # kjd 21-2-201
  
 ####################################################################################################
 
-# function to create the distance matrix (distance for a range of ploidy and tumor percentage values)
-# input: segmented LRR and BAF and the value for gamma_param
-
-#modified by kd7
+#' function to create the distance matrix (distance for a range of ploidy and tumor percentage values)
+#' input: segmented LRR and BAF and the value for gamma_param
+#' @noRd
 create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF_threshold=0.51) {
   psi_pos = seq(1,5.4,0.05) 
   rho_pos = seq(0.1,1.05,0.01)
@@ -1037,6 +948,9 @@ create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF
   
 }
 
+#' Helper function to create the clonal distance matrix for a range of
+#' rho and psi values
+#' @noRd
 create_distance_matrix_clonal = function( segs, dist_choice, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold, new_bounds) # kjd 18-12-2013
 {
   
@@ -1103,7 +1017,8 @@ create_distance_matrix_clonal = function( segs, dist_choice, gamma_param, read_d
 }
 
 ####################################################################################################
-	
+#' Helper function to calculate a square distance
+#' @noRd
 calc_square_distance <-function( pt1, pt2 ) # kjd 27-2-2014
 {
 	dsqr = ( pt1[1] - pt2[1] )^2 + ( pt1[2] - pt2[2] )^2
@@ -1113,68 +1028,33 @@ calc_square_distance <-function( pt1, pt2 ) # kjd 27-2-2014
 }
 
 ####################################################################################################
-# This function is an alternative procedure for finding the optimum (psi, rho) pair.
-# This function first finds all the find all the global optima,
-# and then finds the centroid of this set of globla optima.
-# Then we find the global optimum which is nearest to the centroid. 
-# (When the set of global optima is convex, we expect the selected optimum to be at the centroid.)
+#' This function is an alternative procedure for finding the optimum (psi, rho) pair.
+#' This function first finds all the find all the global optima,
+#' and then finds the centroid of this set of globla optima.
+#' Then we find the global optimum which is nearest to the centroid. 
+#' (When the set of global optima is convex, we expect the selected optimum to be at the centroid.)
+#' @param d A distance matrix
+#' @param ref_seg_matrix The corresponding ref seg matrix that belongs to d
+#' @param ref_major The corresponding major allele values with d
+#' @param ref_minor The corresponding minor allele values with d
+#' @param s A segmented BAF/LogR data.frame from \code{get_segment_info}
+#' @param dist_choice Some distance metrics require adaptation of the data (i.e. log transform) 
+#' @param minimise Boolean whether we're minimising or maximising
+#' @param new_bounds The rho/psi boundaries between we are searching for a solution. This is a named list with values psi_min, psi_max, rho_min, rho_max
+#' @param distancepng String where the sunrise distance plot will be saved
+#' @param gamma_param The platform gamma
+#' @param siglevel_BAF The level at which BAF becomes significant TODO: this option is no longer used
+#' @param maxdist_BAF TODO: this option is no longer used
+#' @param siglevel_LogR The p-value at which logR becomes significant when establishing whether a segment should be subclonal
+#' @param maxdist_LogR The maximum distance allowed as slack when establishing the significance. This allows for the case when a breakpoint is missed, the segment would then not automatically become subclonal
+#' @param allow100percent Boolean whether to allow for a 100% cellularity solution
+#' @param uninformative_BAF_threshold The threshold above which BAF becomes uninformative
+#' @param read_depth TODO: this option is no longer used
+#' @return A list with fields optima_info_without_ref and optima_info
+#' @export
 find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_minor, s, dist_choice, minimise, new_bounds, distancepng, gamma_param, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, allow100percent, uninformative_BAF_threshold, read_depth) # kjd 28-2-2014
 {
-  psi_min = new_bounds$psi_min
-  psi_max = new_bounds$psi_max
-  rho_min = new_bounds$rho_min
-  rho_max = new_bounds$rho_max
-  
-  psi_range = psi_max - psi_min
-  rho_range = rho_max - rho_min
-  
-  
-  if (!is.na(distancepng)) {
-    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
-  }
 
-  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
-
-  if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
-  	hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
-  }else{
-	hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
-  }
-  
-  
-  if( dist_choice == 4 )
-  {
-	image(d, col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
-	
-  }else
-  {
-	image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
-  }
-  
-  # axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
-  # axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
-  
-  # axis(1, at = seq(0, 1.0, by = 0.1), label = seq(psi_min, psi_max, by = 0.1 * psi_range))
-  # axis(2, at = seq(0, 1.0, by = 0.1), label = seq(rho_min, rho_max, by = 0.1 * rho_range ))
-  psi_min_label = ceiling( 10 * psi_min )/10
-  psi_max_label = floor( 10 * psi_max )/10
-  psi_label_interval = 0.1
-  
-  psi_min_label_standardised = ( psi_min_label - psi_min ) / psi_range
-  psi_max_label_standardised = ( psi_max_label - psi_min ) / psi_range
-  psi_label_interval_standardised = psi_label_interval / psi_range
-  
-  rho_min_label = ceiling( 100 * rho_min )/100
-  rho_max_label = floor( 100 * rho_max )/100
-  rho_label_interval = 0.01
-  
-  rho_min_label_standardised = ( rho_min_label - rho_min ) / rho_range
-  rho_max_label_standardised = ( rho_max_label - rho_min ) / rho_range
-  rho_label_interval_standardised = rho_label_interval / rho_range
-  
-  axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), label = seq(psi_min_label, psi_max_label, by = psi_label_interval))
-  axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
-  
   #Theoretmaxdist_BAF = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   #DCW 180711 - try weighting BAF=0.5 equally with other points
   # Theoretmaxdist_BAF = sum(rep(0.25,dim(s)[1]) * s[,"length"],na.rm=T)
@@ -1294,9 +1174,9 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
     
     ref_seg = ref_seg_matrix[ grid_x, grid_y ]
     
-    points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col="green",pch="X", cex = 2 ) # kjd 28-2-2014
-       
-        
+    # store optima for plotting later
+    rhos = rho_opt1
+    psis = psi_opt1
       #
 	  # Write to clonal info file:
 	  #
@@ -1332,58 +1212,59 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
   		distance.info = calc_distance_clonal( s, dist_choice, rho_opt1, psi_opt1, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold)
   		goodnessOfFit_opt1 = distance.info$distance_value		
 		#goodnessOfFit_opt1 = ref_segment_info$goodnessOfFit_opt1
-	}
-    points( ( psi_opt1 - psi_min ) / psi_range , ( rho_opt1 - rho_min ) / rho_range , col="darkgreen",pch="X", cex = 2 ) # kjd 28-2-2014   
+	} 
+
+	# store optima for plotting later
+    	rhos = c(rhos, rho_opt1)
+    	psis = c(psis, psi_opt1)
   
+  # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
-    dev.off()
+    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
   }
+  clonal_findcentroid.plot(minimise, dist_choice, -d, psis, rhos, new_bounds)
+  if (!is.na(distancepng)) { dev.off() }
 	
 	optima_info = list( nropt = nropt, psi_opt1 = psi_opt1, rho_opt1 = rho_opt1, ploidy_opt1 = ploidy_opt1, ref_seg = ref_seg, goodnessOfFit_opt1 = goodnessOfFit_opt1 ) # kjd 10-3-2014
 	
 	return( list(optima_info_without_ref=optima_info_without_ref, optima_info=optima_info) )
 }
 
-# the ASCAT main function
-# lrr: (unsegmented) log R, in genomic sequence (all probes), with probe IDs
-# baf: (unsegmented) B Allele Frequency, in genomic sequence (all probes), with probe IDs
-# lrrsegmented: log R, segmented, in genomic sequence (all probes), with probe IDs
-# bafsegmented: B Allele Frequency, segmented, in genomic sequence (only probes heterozygous in germline), with probe IDs
-# gamma: technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays)
-# chromosomes: a list containing c vectors, where c is the number of chromosomes and every vector contains all probe numbers per chromosome
-# distancepng: if NA: distance is plotted, if filename is given, the plot is written to a .png file
-# copynumberprofilespng: if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file
-# nonroundedprofilepng: if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file
+#' A modified ASCAT main function to fit Battenberg
+#' 
+#' This function returns an initial rho and psi estimate for a clonal copy number fit. It uses an internal distance metric to create a distance matrix.
+#' Using that matrix it will search for a rho and psi combination that yields the least heavy penalty.
+#' @param lrr (unsegmented) log R, in genomic sequence (all probes), with probe IDs
+#' @param baf (unsegmented) B Allele Frequency, in genomic sequence (all probes), with probe IDs
+#' @param lrrsegmented log R, segmented, in genomic sequence (all probes), with probe IDs
+#' @param bafsegmented B Allele Frequency, segmented, in genomic sequence (only probes heterozygous in germline), with probe IDs
+#' @param chromosomes a list containing c vectors, where c is the number of chromosomes and every vector contains all probe numbers per chromosome
+#' @param dist_choice The distance metric to be used internally to penalise a copy number solution
+#' @param distancepng if NA: distance is plotted, if filename is given, the plot is written to a .png file (Default NA)
+#' @param copynumberprofilespng if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file (Default NA)
+#' @param nonroundedprofilepng if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)
+#' @param gamma technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
+#' @param allow100percent A boolean whether to allow a 100% cellularity solution
+#' @param reliabilityFile String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)
+#' @param min.ploidy The minimum ploidy to consider (Default 1.6)
+#' @param max.ploidy The maximum ploidy to consider (Default 4.8)
+#' @param min.rho The minimum cellularity to consider (Default 0.1)
+#' @param min.goodness The minimum goodness of fit for a solution to have to be considered (Default 63)
+#' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative (Default 0.51)
+#' @return A list with fields psi, rho and ploidy
+#' @export
 #the limit on rho is lenient and may lead to spurious solutions
 runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,min.goodness=63, uninformative_BAF_threshold = 0.51) {
   ch = chromosomes
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
 
-  library(RColorBrewer)
+#   library(RColorBrewer)
 
   s = make_segments(r,b)
   dist_matrix_info <- create_distance_matrix( s, dist_choice, gamma, uninformative_BAF_threshold =uninformative_BAF_threshold)  
   d = dist_matrix_info$distance_matrix
   minimise = dist_matrix_info$minimise
-
-  if (!is.na(distancepng)) {
-    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
-  }
-
-  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
-
-  #hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
-  if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
-  	hmcol = rev(colorRampPalette(brewer.pal(10, "RdBu"))(256))
-  }else{
-	hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
-  }  
-  
-  image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
-
-  axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
-  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
 
   #TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   #DCW 180711 - try weighting BAF=0.5 equally with other points
@@ -1483,6 +1364,10 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     }
   }
 
+  # added for output to plotting
+  psi_opt1_plot = vector(mode="numeric")
+  rho_opt1_plot = vector(mode="numeric")
+
   if (nropt>0) {
     optlim = sort(localmin)[1]
     for (i in 1:length(optima)) {
@@ -1494,26 +1379,22 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
         }
         ploidy_opt1 = optima[[i]][4]
         goodnessOfFit_opt1 = optima[[i]][5]
-        points((psi_opt1-1)/4.4,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
+        psi_opt1_plot = c(psi_opt1_plot, psi_opt1)
+        rho_opt1_plot = c(rho_opt1_plot, rho_opt1)
+        # points((psi_opt1-1)/4.4,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
       }
     }
   }
 
+  # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
-    dev.off()
+    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
   }
+  ASCAT::ascat.plotSunrise(-d, psi_opt1_plot, rho_opt1_plot,minimise)
+  if (!is.na(distancepng)) { dev.off() }
 
 
   if(nropt>0) {
-
-    if (!is.na(copynumberprofilespng)) {
-      png(filename = copynumberprofilespng, width = 2000, height = 1000, res = 200)
-    } 
-    else {      
-      windows(10,5)
-    }
-
-    par(mar = c(0.5,5,5,0.5), mfrow=c(2,1), cex = 0.4, cex.main=3, cex.axis = 2.5)
 
     rho = rho_opt1
     psi = psi_opt1
@@ -1523,24 +1404,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     nBfull = (rho-1+b*2^(r/gamma)*((1-rho)*2+rho*psi))/rho
     nA = pmax(round(nAfull),0)
     nB = pmax(round(nBfull),0)
-    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(nA-0.1,col="red",pch = "|")
-    points(nB+0.1,col="green",pch = "|")
-# don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
-    
+  
     rBacktransform = gamma*log((rho*(nA+nB)+(1-rho)*2)/((1-rho)*2+rho*psi),2)
     bBacktransform = (1-rho+rho*nB)/(2-2*rho+rho*(nA+nB))
     rConf = ifelse(abs(rBacktransform)>0.15,pmin(100,pmax(0,100*(1-abs(rBacktransform-r)/abs(r)))),NA)
@@ -1549,88 +1413,56 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     if(!is.na(reliabilityFile)){
 		write.table(data.frame(segmentedBAF=b,backTransformedBAF=bBacktransform,confidenceBAF=bConf,segmentedR=r,backTransformedR=rBacktransform,confidenceR=rConf,nA=nA,nB=nB,nAfull=nAfull,nBfull=nBfull), reliabilityFile,sep=",",row.names=F)
 	}
-    confidence = ifelse(is.na(rConf),bConf,ifelse(is.na(bConf),rConf,(rConf+bConf)/2))
-    maintitle = paste("Aberration reliability score (%), average: ", sprintf("%2.0f",mean(confidence,na.rm=T)),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,100), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(confidence,col="blue",pch = "|")
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
-    
+    confidence = ifelse(is.na(rConf),bConf,ifelse(is.na(bConf),rConf,(rConf+bConf)/2))    
 
-    if (!is.na(copynumberprofilespng)) {
-      dev.off()
-    }
-
-
-    if (!is.na(nonroundedprofilepng)) {
-      png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
-    } 
-    else {      
-      windows(10,5)
-    }
-
-    par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
-
-    rho = rho_opt1
-    psi = psi_opt1
-    ploidy = ploidy_opt1
-    
-    nAfull = (rho-1-(b-1)*2^(r/gamma)*((1-rho)*2+rho*psi))/rho
-    nBfull = (rho-1+b*2^(r/gamma)*((1-rho)*2+rho*psi))/rho
-    nA = pmax(round(nAfull),0)
-    nB = pmax(round(nBfull),0)
-    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy_opt1),", aberrant cell fraction: ",sprintf("%2.0f",rho_opt1*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit_opt1),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(nBfull,col="blue",pch = "|")
-    points(nAfull+nBfull,col="purple",pch = "|")
-# don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
-    
-    if (!is.na(nonroundedprofilepng)) {
-      dev.off()
-    }
+	# replaced plotting-extracted versions for the new ASCAT plotting functions (+ removed aberration reliability plot)
+	# separated plotting from logic: create copy number profile plot here
+	if (!is.na(copynumberprofilespng)) {
+	  png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200)
+	}
+	# clonal_runascat.plot2(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence)
+	ASCAT::ascat.plotAscatProfile(n1all = nB, n2all = nA, heteroprobes = TRUE, ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented)
+	if (!is.na(copynumberprofilespng)) { dev.off() }
+	
+	# separated plotting from logic: create nonrounded copy number profile plot here
+	if (!is.na(nonroundedprofilepng)) {
+	  png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
+	}
+	# clonal_runascat.plot3(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented)
+	ASCAT::ascat.plotNonRounded(ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, nAfull = nBfull, nBfull = nAfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr)
+	if (!is.na(nonroundedprofilepng)) { dev.off() }
+  
   }
   output_optimum_pair = list(psi = psi, rho = rho, ploidy = ploidy)
   return( output_optimum_pair ) # kjd 20-2-2014 
 }
 
 ####################################################################################################
-
-# the ASCAT main function
-# lrr: (unsegmented) log R, in genomic sequence (all probes), with probe IDs
-# baf: (unsegmented) B Allele Frequency, in genomic sequence (all probes), with probe IDs
-# lrrsegmented: log R, segmented, in genomic sequence (all probes), with probe IDs
-# bafsegmented: B Allele Frequency, segmented, in genomic sequence (only probes heterozygous in germline), with probe IDs
-# gamma_param: technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays)
-# chromosomes: a list containing c vectors, where c is the number of chromosomes and every vector contains all probe numbers per chromosome
-# distancepng: if NA: distance is plotted, if filename is given, the plot is written to a .png file
-# copynumberprofilespng: if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file
-# nonroundedprofilepng: if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file
-
-# notice that: gamma_param = 0.55
-
-
+#' ASCAT like function to obtain a clonal copy number profile
+#' 
+#' This function takes an initial optimum rho/psi pair and uses
+#' an internal distance metric to calculate a score for each rho/psi pair allowed.
+#' The solution with the best score is then taken to obtain a global copy number
+#' profile. This function performs both a grid search and tries to find a reference
+#' segment, but the grid search result is always used for now.
+#' @param lrr (unsegmented) log R, in genomic sequence (all probes), with probe IDs
+#' @param baf (unsegmented) B Allele Frequency, in genomic sequence (all probes), with probe IDs
+#' @param lrrsegmented log R, segmented, in genomic sequence (all probes), with probe IDs
+#' @param bafsegmented B Allele Frequency, segmented, in genomic sequence (only probes heterozygous in germline), with probe IDs
+#' @param chromosomes a list containing c vectors, where c is the number of chromosomes and every vector contains all probe numbers per chromosome
+#' @param segBAF.table Segmented BAF data.frame from \code{get_segment_info}
+#' @param input_optimum_pair A list containing fields for rho, psi and ploidy, as is output from \code{runASCAT}
+#' @param dist_choice The distance metric to be used internally to penalise a copy number solution
+#' @param distancepng if NA: distance is plotted, if filename is given, the plot is written to a .png file (Default NA)
+#' @param copynumberprofilespng if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file (Default NA)
+#' @param nonroundedprofilepng if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)
+#' @param gamma_param technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
+#' @param read_depth TODO: unused parameter that should be removed
+#' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative
+#' @param allow100percent A boolean whether to allow a 100% cellularity solution
+#' @param reliabilityFile String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)
+#' @return A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is.ref.better
+#' @export
 run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA) # kjd 10-1-2014
 {
   
@@ -1645,8 +1477,8 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   #maxdist_LogR = 0.1 # kjd 21-2-2014
   
   #DCW 160314 - much more lenient logR thresholds (allow anything!)
-  siglevel_LogR = -0.01
-  maxdist_LogR = 1
+  siglevel_LogR = -0.01 # TODO: This parameter is pushed down to is.segment.clonal but not used there (maybe not used at all?)
+  maxdist_LogR = 1 # TODO: This parameter is pushed down to is.segment.clonal but not used there (maybe not used at all?)
 
   
   psi_min_initial = 1.0
@@ -1663,9 +1495,9 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
 
-  library(RColorBrewer)
-  
   s = get_segment_info(lrrsegmented,segBAF.table)  
+  # Make sure no segment of length 1 remains - TODO: this should not occur and needs to be prevented upstream
+  s = s[s[,3] > 1,]
   dist_matrix_info <- create_distance_matrix_clonal( s, dist_choice, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold, new_bounds)# kjd 10-2-2013
   
   d = dist_matrix_info$distance_matrix # kjd 10-2-2013
@@ -1714,15 +1546,6 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 
 
   if(nropt>0) {
-
-    if (!is.na(copynumberprofilespng)) {
-      png(filename = copynumberprofilespng, width = 2000, height = 1000, res = 200)
-    } 
-    else {      
-      windows(10,5)
-    }
-
-    par(mar = c(0.5,5,5,0.5), mfrow=c(2,1), cex = 0.4, cex.main=3, cex.axis = 2.5)
 	
 	#310314 DCW - always use grid search solution, because ref segment sometimes gives strange results
 	#if(is.ref.better){
@@ -1732,34 +1555,17 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 	#	goodnessOfFit = goodnessOfFit_opt1
 	#	print("ref segment gives best solution. Using this solution for plotting")
 	#}else{
-    	rho = rho_without_ref
-    	psi = psi_without_ref
-    	ploidy = ploidy_without_ref
-    	goodnessOfFit = goodnessOfFit_without_ref
-    	#print("grid search gives best solution. Using this solution for plotting")
+    rho = rho_without_ref
+    psi = psi_without_ref
+    ploidy = ploidy_without_ref
+    goodnessOfFit = goodnessOfFit_without_ref*100
+    #print("grid search gives best solution. Using this solution for plotting")
 	#}
    
     nAfull = (rho-1-(b-1)*2^(r/gamma_param)*((1-rho)*2+rho*psi))/rho
     nBfull = (rho-1+b*2^(r/gamma_param)*((1-rho)*2+rho*psi))/rho
     nA = pmax(round(nAfull),0)
     nB = pmax(round(nBfull),0)
-    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(nA-0.1,col="red",pch = "|")
-    points(nB+0.1,col="green",pch = "|")
-# don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
     
     rBacktransform = gamma_param*log((rho*(nA+nB)+(1-rho)*2)/((1-rho)*2+rho*psi),2)
     bBacktransform = (1-rho+rho*nB)/(2-2*rho+rho*(nA+nB))
@@ -1770,66 +1576,99 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 		write.table(data.frame(segmentedBAF=b,backTransformedBAF=bBacktransform,confidenceBAF=bConf,segmentedR=r,backTransformedR=rBacktransform,confidenceR=rConf,nA=nA,nB=nB,nAfull=nAfull,nBfull=nBfull), reliabilityFile,sep=",",row.names=F)
 	}
     confidence = ifelse(is.na(rConf),bConf,ifelse(is.na(bConf),rConf,(rConf+bConf)/2))
-    maintitle = paste("Aberration reliability score (%), average: ", sprintf("%2.0f",mean(confidence,na.rm=T)),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,100), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(confidence,col="blue",pch = "|")
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
+
+	# separated plotting from logic: create copy number profile plot here
+	# replaced plotting-extracted versions for the new ASCAT plotting functions (+ removed aberration reliability plot)
+	if (!is.na(copynumberprofilespng)) {
+	  png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200)
+	}
+	# clonal_runascat.plot2(rho, goodnessOfFit, ploidy, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence)
+	ASCAT::ascat.plotAscatProfile(n1all = nB, n2all = nA, heteroprobes = TRUE, ploidy = ploidy, rho = rho, goodnessOfFit = goodnessOfFit, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented)
+	if (!is.na(copynumberprofilespng)) { dev.off() }
     
-
-    if (!is.na(copynumberprofilespng)) {
-      dev.off()
-    }
-
-
-    if (!is.na(nonroundedprofilepng)) {
-      png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
-    } 
-    else {      
-      windows(10,5)
-    }
-
-    par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
-    
-    nAfull = (rho-1-(b-1)*2^(r/gamma_param)*((1-rho)*2+rho*psi))/rho
-    nBfull = (rho-1+b*2^(r/gamma_param)*((1-rho)*2+rho*psi))/rho
-    nA = pmax(round(nAfull),0)
-    nB = pmax(round(nBfull),0)
-    maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
-    plot(c(1,length(nAfull)), c(0,5), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
-    points(nBfull,col="blue",pch = "|")
-    points(nAfull+nBfull,col="purple",pch = "|")
-# don't ask me why, but the "|" sign is not centered, so the lines may need to be shifted..
-    abline(v=0,lty=1,col="lightgrey")
-    chrk_tot_len = 0
-    for (i in 1:length(ch)) {
-      chrk = ch[[i]];
-      chrk_hetero = intersect(names(lrr)[chrk],names(bafsegmented))
-      chrk_tot_len_prev = chrk_tot_len
-      chrk_tot_len = chrk_tot_len + length(chrk_hetero)
-      vpos = chrk_tot_len;
-      tpos = (chrk_tot_len+chrk_tot_len_prev)/2;
-      text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
-      abline(v=vpos,lty=1,col="lightgrey")
-    }
-    
-    if (!is.na(nonroundedprofilepng)) {
-      dev.off()
-    }
+	# separated plotting from logic: create nonrounded copy number profile plot here
+	if (!is.na(nonroundedprofilepng)) {
+	  png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
+	}
+	# clonal_runascat.plot3(rho, goodnessOfFit, ploidy, nAfull, nBfull, ch, lrr, bafsegmented)
+	ASCAT::ascat.plotNonRounded(ploidy = ploidy, rho = rho, goodnessOfFit = goodnessOfFit, nonaberrant = FALSE, nAfull = nBfull, nBfull = nAfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr)
+	if (!is.na(nonroundedprofilepng)) { dev.off() }
+  
   } 
+
+  # Recalculate the psi_t for this rho using only clonal segments 
+  psi_t = recalc_psi_t(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments=F)
+  
   output_optimum_pair = list(psi = psi_opt1, rho = rho_opt1, ploidy = ploidy_opt1)
-  output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)
+  #output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)
+  # Use the recalculated psi_t from the clonal segments as our final estimate of psi_t which is data driven with rho fixed
+  output_optimum_pair_without_ref = list(psi = psi_t, rho = rho_without_ref, ploidy = ploidy_without_ref)
   return(list(output_optimum_pair=output_optimum_pair, output_optimum_pair_without_ref=output_optimum_pair_without_ref, distance = distance.from.ref.seg, distance_without_ref = best.distance, minimise = minimise, is.ref.better = is.ref.better)) # kjd 20-2-2014, adapted by DCW 140314
 }
 
+#' Recalculate psi_t based on rho and the available data
+#' 
+#' @param psi A psi estimate
+#' @param rho A rho estimate
+#' @param platform_gamma The platform specific LogR scaling parameter
+#' @param lrrsegmented Segmented LogR, a vector with just the values
+#' @param segBAF.table Segmented BAF, the full table
+#' @param siglevel_BAF Significance level when testing wether a segment is clonal or subclonal given a rho/psi combination, parameter is used in \code{is.segment.clonal}
+#' @param maxdist_BAF Max distance BAF is allowed to be away from the copy number solution before we don't trust the value and overrule a p-value, parameter required when determining the clonal status of a segment in \code{is.segment.clonal}
+#' @param include_subcl_segments Boolean flag, supply TRUE if subclonal segments should be included when calculating psi_t, supply FALSE if only clonal segments should be included (default: TRUE)
+#' @noRd
+recalc_psi_t = function(psi, rho, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments=T) {
+  # Create segments of constant BAF/LogR  
+  s = get_segment_info(lrrsegmented[rownames(segBAF.table)], segBAF.table)
+  # Make sure no segment of length 1 remains - TODO: this should not occur and needs to be prevented upstream
+  s = s[s[,3] > 1,]
+  
+  # Fetch all segments, if required check which ones are clonal with this rho/psi configuration
+  segs = list()
+  for (i in 1:nrow(s)) {
+    read_depth = NA # Unused parameter
+    maxdist_LogR = NA # Unused parameter
+    siglevel_LogR = NA # Unused parameter
+    segment_info = is.segment.clonal(LogR=s[i, "r"], 
+                                     BAFreq=s[i, "b"], 
+                                     BAF.length=s[i, "length"], 
+                                     BAF.size=s[i, "size"], 
+                                     BAF.mean=s[i, "mean"], 
+                                     BAF.sd=s[i, "sd"], 
+                                     read_depth=read_depth, 
+                                     rho=rho, 
+                                     psi=psi, 
+                                     gamma_param=gamma_param, 
+                                     siglevel_BAF=siglevel_BAF, 
+                                     maxdist_BAF=maxdist_BAF, 
+                                     siglevel_LogR=siglevel_LogR, 
+                                     maxdist_LogR=maxdist_LogR)
+    # Include this segment if we want to include all segments, or if we don't want subclonal segments include it only if its clonal
+    if (include_subcl_segments | segment_info$is.clonal) {
+      nMaj = segment_info$nMaj.test
+      nMin = segment_info$nMin.test
+      psi_t = calc_psi_t(nMaj+nMin, s[i, "r"], rho, gamma_param)
+      segs[[length(segs)+1]] = data.frame(nMaj=nMaj, nMin=nMin, length=s[i, "length"], psi_t=psi_t)
+    }
+  }
+  segs = do.call(rbind, segs)
+      
+  # Calculate psi_t as the weighted average copy number across all segments
+  psi_t = sum(segs$psi_t * segs$length) / sum(segs$length)
+  return(psi_t)
+}
 
+
+#' Calculate psi based on a reference segment and its associated logr
+#' 
+#' @param total_cn Integer representing the total clonal copynumber (i.e. nMajor+nMinor)
+#' @param r The LogR of the segment with the total_cn copy number
+#' @param rho A cellularity estimate
+#' @param gamma_param Platform gamma parameter
+#' @author sd11
+#' @export
+calc_psi_t = function(total_cn, r, rho, gamma_param) {
+  psi = (rho*(total_cn)+2-2*rho)/(2^(r/gamma_param))
+  psi_t = (psi-2*(1-rho))/rho
+  return(psi_t)
+}

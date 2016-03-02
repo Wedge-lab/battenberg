@@ -1,7 +1,6 @@
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-#'
 create.haplotype.plot = function(chrom.position, points.blue, points.red, x.min, x.max, title, xlab, ylab) {
   par(pch=".", cex=1, cex.main=0.8, cex.axis = 0.6, cex.lab=0.7,yaxp=c(-0.05,1.05,6))
   plot(c(x.min,x.max), c(0,1), type="n",, main=title, xlab=xlab, ylab=ylab)
@@ -12,7 +11,6 @@ create.haplotype.plot = function(chrom.position, points.blue, points.red, x.min,
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-#'
 create.segmented.plot = function(chrom.position, points.red, points.green, x.min, x.max, title, xlab, ylab) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type="n", main=title, xlab=xlab, ylab=ylab)
@@ -23,7 +21,6 @@ create.segmented.plot = function(chrom.position, points.red, points.green, x.min
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-#'
 create.baf.plot = function(chrom.position, points.red.blue, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type = "n", main=title, xlab=xlab, ylab=ylab)
@@ -140,3 +137,67 @@ create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodne
 		abline(v=vpos,lty=1,col="lightgrey")
 	}
 }
+
+#' Code extracted from the first plot in clonal_ascat runASCAT: Sunrise plot
+#' Note: This is a temporary function.
+#' @noRd
+#'
+clonal_runascat.plot1 = function(minim, distmat, psis, rhos) {
+  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
+  if(minim){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
+    hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256))
+  } else {
+  hmcol = colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256)
+  }  
+  image(log(distmat), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
+  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
+  points((psis-1)/4.4,(rhos-0.1)/0.95,col="green",pch="X", cex = 2)
+}
+
+#' Code extracted from the plot in clonal_ascat find_centroid_of_global_minima.
+#' Note: This is a temporary function and VERY similar to clonal_runascat.plot1()
+#' @noRd
+#'
+clonal_findcentroid.plot = function(minimise, dist_choice, d, psis, rhos, new_bounds) {
+  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
+  if(minimise){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
+    hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256))
+  } else {
+    hmcol = colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256)
+  }
+  if ( dist_choice == 4 ) {
+    image(d, col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  } else  {
+    image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  }
+  psi_min = new_bounds$psi_min
+  psi_max = new_bounds$psi_max
+  rho_min = new_bounds$rho_min
+  rho_max = new_bounds$rho_max
+  
+  psi_range = psi_max - psi_min
+  rho_range = rho_max - rho_min
+
+  psi_min_label = ceiling( 10 * psi_min )/10
+  psi_max_label = floor( 10 * psi_max )/10
+  psi_label_interval = 0.1
+  
+  psi_min_label_standardised = ( psi_min_label - psi_min ) / psi_range
+  psi_max_label_standardised = ( psi_max_label - psi_min ) / psi_range
+  psi_label_interval_standardised = psi_label_interval / psi_range
+  
+  rho_min_label = ceiling( 100 * rho_min )/100
+  rho_max_label = floor( 100 * rho_max )/100
+  rho_label_interval = 0.01
+  
+  rho_min_label_standardised = ( rho_min_label - rho_min ) / rho_range
+  rho_max_label_standardised = ( rho_max_label - rho_min ) / rho_range
+  rho_label_interval_standardised = rho_label_interval / rho_range
+  
+  axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), label = seq(psi_min_label, psi_max_label, by = psi_label_interval))
+  axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
+  
+  points( ( psis - psi_min ) / psi_range , ( rhos - rho_min ) / rho_range , col=c("green", "darkgreen"), pch="X", cex = 2 )
+}
+

@@ -22,13 +22,16 @@ run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, imp
       boundaries = c(boundaries,impute.info[r,]$end)
     }
 
+    # Take the start of the region+1 here to make sure there are no overlapping regions, wich causes a 
+    # problem with SNPs on exactly the boundary. It does mean the first base on the first chromosome
+    # cannot be phased
     for(b in 1:(length(boundaries)-1)){
       cmd = paste(impute.exe,
                   " -m ", impute.info[r,]$genetic_map,
                   " -h ", impute.info[r,]$impute_hap,
                   " -l ", impute.info[r,]$impute_legend,
                   " -g ", inputfile,
-                  " -int ", boundaries[b], " ", boundaries[b+1],
+                  " -int ", boundaries[b]+1, " ", boundaries[b+1],
                   " -Ne 20000", # Authors of impute2 mention that this parameter works best on all population types, thus hardcoded.
                   " -o ", outputfile.prefix, "_", boundaries[b]/1000, "K_", boundaries[b+1]/1000, "K.txt", 
                   " -phase", sep="")		
