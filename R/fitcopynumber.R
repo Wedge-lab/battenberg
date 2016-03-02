@@ -93,7 +93,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     segs = rle(chr.segmented.BAF.data[,5])$lengths
     cum.segs = c(0,cumsum(segs))
     for(s in 1:length(segs)){
-      chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3] = mean(chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3])
+      chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3] = mean(chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3], na.rm=T)
     }
     segmented.logR.data = rbind(segmented.logR.data,chr.segmented.logR.data)
   }
