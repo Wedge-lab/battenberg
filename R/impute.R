@@ -35,7 +35,7 @@ run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, imp
                   " -Ne 20000", # Authors of impute2 mention that this parameter works best on all population types, thus hardcoded.
                   " -o ", outputfile.prefix, "_", boundaries[b]/1000, "K_", boundaries[b+1]/1000, "K.txt", 
                   " -phase", 
-                  " -seed", seed, sep="")		
+                  " -seed ", seed, sep="")		
       system(cmd, wait=T)
     }
   }
