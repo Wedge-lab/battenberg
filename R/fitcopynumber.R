@@ -182,7 +182,9 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param noperms The number of permutations to be run when bootstrapping the confidence intervals on the copy number state of each segment (Default 1000)
 #' @author dw9, sd11
 #' @export
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000) {
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time())) {
+  
+  set.seed(seed)
   
   # Load rho/psi/goodness of fit
   res = load.rho.psi.file(rho.psi.file)
@@ -332,7 +334,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
         nMin1o = nMin1[option]
         nMaj2o = nMaj2[option]
         nMin2o = nMin2[option]
-        set.seed(as.integer(Sys.time()))
+        
         permFraction = vector(length=noperms,mode="numeric")
         for (j in 1:noperms) {
           permBAFs=sample(BAFke,length(BAFke),replace=T)

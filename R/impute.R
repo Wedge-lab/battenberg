@@ -10,7 +10,7 @@
 #' @param chrom The name of a chromosome on which this function should run (names are used, supply X as 'X') (optional).
 #' @author dw9
 #' @export
-run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, impute.exe="impute2", region.size=5000000, chrom=NA) {
+run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, impute.exe="impute2", region.size=5000000, chrom=NA, seed=as.integer(Sys.time())) {
   
   # Read in the impute file information
   impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
@@ -34,7 +34,8 @@ run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, imp
                   " -int ", boundaries[b]+1, " ", boundaries[b+1],
                   " -Ne 20000", # Authors of impute2 mention that this parameter works best on all population types, thus hardcoded.
                   " -o ", outputfile.prefix, "_", boundaries[b]/1000, "K_", boundaries[b+1]/1000, "K.txt", 
-                  " -phase", sep="")		
+                  " -phase", 
+                  " -seed", seed, sep="")		
       system(cmd, wait=T)
     }
   }
