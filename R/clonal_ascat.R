@@ -1499,7 +1499,6 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 	# Define the allowed ranges to put the green X in the correct relative spot
 	range.ploidy = max.ploidy - min.ploidy
 	range.rho = max.rho - min.rho
-	print("Plotting green point")
 	points((psi_opt1-min.ploidy)/range.ploidy, (rho_opt1-min.rho)/range.rho, col="green", pch="X", cex = 2)
       }
     }
