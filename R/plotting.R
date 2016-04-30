@@ -138,28 +138,6 @@ create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodne
 	}
 }
 
-#' Code extracted from the first plot in clonal_ascat runASCAT: Sunrise plot
-#' Note: This is a temporary function.
-#' @noRd
-#'
-clonal_runascat.plot1 = function(minim, distmat, psis, rhos, min.rho, max.rho, min.ploidy, max.ploidy) {
-  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
-  if(minim){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
-    hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256))
-  } else {
-  hmcol = colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256)
-  }  
-  image(log(distmat), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
-  # axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
-  # axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
-  axis(1, at = seq(0, floor(max.ploidy)/max.ploidy, by = 1/max.ploidy), label = seq(1, ceiling(max.ploidy), by = 1))
-  axis(2, at = seq(min.rho, max.rho, by = 1/3/max.rho), label = seq(min.rho, 1, by = 3/10))
-  # points((psis-1)/4.4,(rhos-0.1)/0.95,col="green",pch="X", cex = 2)
-  range.ploidy = max.ploidy - min.ploidy
-  range.rho = max.rho - min.rho
-  points((psi_opt1-min.ploidy)/range.ploidy, (rho_opt1-min.rho)/range.rho, col="green", pch="X", cex = 2)
-}
-
 #' Code extracted from the plot in clonal_ascat find_centroid_of_global_minima.
 #' Note: This is a temporary function and VERY similar to clonal_runascat.plot1()
 #' @noRd
