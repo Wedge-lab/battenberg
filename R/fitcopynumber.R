@@ -7,6 +7,16 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   assert.file.exists(inputfile.baf)
   assert.file.exists(inputfile.logr)
   
+  # Check for enough options supplied for rho and psi
+  if ((max.ploidy - min.ploidy) < 0.05) {
+    warning(paste("Supplied ploidy range must be larger than 0.05: ", min.ploidy, "-", max.ploidy, sep=""))
+    quit(save="no", status=1)
+  }
+  if ((max.rho - min.rho) < 0.01) {
+    warning(paste("Supplied rho range must be larger than 0.01: ", min.rho, "-", max.rho, sep=""))
+    quit(save="no", status=1)
+  }
+  
   # Read in the required data
   #   segmented.BAF.data = read.table(paste(samplename,".BAFsegmented.txt",sep=""),sep="\t",header=F,stringsAsFactors=F,skip=1,row.names=1)
   #   raw.BAF.data = read.table(paste(start.file,"mutantBAF.tab",sep=""),sep="\t",header=T,stringsAsFactors=F)
