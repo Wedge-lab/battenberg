@@ -915,23 +915,12 @@ get_new_bounds = function( input_optimum_pair, ininitial_bounds ) # kjd 21-2-201
 }
  
 ####################################################################################################
-
-<<<<<<< HEAD
 #' function to create the distance matrix (distance for a range of ploidy and tumor percentage values)
 #' input: segmented LRR and BAF and the value for gamma_param
 #' @noRd
-create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF_threshold=0.51) {
-  psi_pos = seq(1,5.4,0.05) 
-  rho_pos = seq(0.1,1.05,0.01)
-=======
-# function to create the distance matrix (distance for a range of ploidy and tumor percentage values)
-# input: segmented LRR and BAF and the value for gamma_param
-
-#modified by kd7
 create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF_threshold=0.51, min_rho=0.1, max_rho=1, min_psi=1, max_psi=5.4) {
   psi_pos = seq(min_psi,max_psi,0.05) 
   rho_pos = seq(min_rho,max_rho,0.01)
->>>>>>> feature/remove_hardcoded_rho_psi
   d = matrix(nrow = length(psi_pos), ncol = length(rho_pos))
   rownames(d) = psi_pos
   colnames(d) = rho_pos
