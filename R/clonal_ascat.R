@@ -1009,7 +1009,6 @@ get_new_bounds = function( input_optimum_pair, ininitial_bounds ) # kjd 21-2-201
 
 #modified by kd7
 create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF_threshold=0.51, min_rho=0.1, max_rho=1, min_psi=1, max_psi=5.4) {
-  # TODO: the min and max rho/psi are also used as figure boundaries. Check if this works properly
   psi_pos = seq(min_psi,max_psi,0.05) 
   rho_pos = seq(min_rho,max_rho,0.01)
   d = matrix(nrow = length(psi_pos), ncol = length(rho_pos))
@@ -1369,6 +1368,8 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   minimise = dist_matrix_info$minimise
 
   if (!is.na(distancepng)) {
+    
+    
     png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
   }
 
@@ -1383,8 +1384,8 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   
   image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
 
-  axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
-  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
+  axis(1, at = seq(0, floor(max.ploidy)/max.ploidy, by = 1/max.ploidy), label = seq(1, ceiling(max.ploidy), by = 1))
+  axis(2, at = seq(min.rho, max.rho, by = 1/3/max.rho), label = seq(min.rho, 1, by = 3/10))
 
   #TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   #DCW 180711 - try weighting BAF=0.5 equally with other points
@@ -1474,7 +1475,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 			goodnessOfFit = -m/TheoretMaxdist * 100 # we have to use minus to reverse d=-d above
 		}
 
-          if (ploidy > 1.6 & ploidy < 4.8 & rho >= 0.2 & goodnessOfFit > 80) {
+          if (ploidy > min.ploidy & ploidy < max.ploidy & rho >= min.rho & goodnessOfFit >= min.goodness) {
             nropt = nropt + 1
             optima[[nropt]] = c(m,i,j,ploidy,goodnessOfFit)
             localmin[nropt] = m
