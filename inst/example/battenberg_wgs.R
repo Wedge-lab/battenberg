@@ -30,6 +30,7 @@ NTHREADS = 6
 IMPUTEINFOFILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute_v3/impute_info.txt"
 G1000PREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
 G1000PREFIX_AC = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
+GCCORRECTPREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_"
 
 PLATFORM_GAMMA = 1
 PHASING_GAMMA = 1
@@ -71,6 +72,7 @@ foreach(i=1:length(chrom_names), .export=c("getAlleleCounts")) %dopar% {
                   min.base.qual=MIN_BASE_QUAL,
                   min.map.qual=MIN_MAP_QUAL,
                   allelecounter.exe=ALLELECOUNTER)
+}
 
 # Obtain BAF and LogR from the raw allele counts
 getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(TUMOURNAME,"_alleleFrequencies_chr", sep=""), 
@@ -85,6 +87,13 @@ getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(TUMOURNAME,"_alleleFrequenci
                 g1000file.prefix=G1000PREFIX, 
                 minCounts=MIN_NORMAL_DEPTH, 
                 samplename=TUMOURNAME)
+
+# Perform GC correction
+gc.correct.wgs(Tumour_LogR_file=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
+               outfile=paste(TUMOURNAME,"_mutantLogR_gcCorrected.tab", sep=""),
+               correlations_outfile=paste(TUMOURNAME, "_GCwindowCorrelations.txt", sep=""),
+               gc_content_file_prefix=GCCORRECTPREFIX, 
+               chrom_names=chrom_names)
 
 # These steps are independent and can be run in parallel. This could be done through multi-threading or splitting these up into separate jobs on a cluster.
 foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.impute","combine.impute.output","GetChromosomeBAFs","plot.haplotype.data")) %dopar% {
@@ -159,7 +168,7 @@ fit.copy.number(samplename=TUMOURNAME,
                 outputfile.prefix=paste(TUMOURNAME, "_", sep=""),
                 inputfile.baf.segmented=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
                 inputfile.baf=paste(TUMOURNAME,"_mutantBAF.tab", sep=""), 
-                inputfile.logr=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
+                inputfile.logr=paste(TUMOURNAME,"_mutantLogR_gcCorrected.tab", sep=""), 
                 dist_choice=CLONALITY_DIST_METRIC, 
                 ascat_dist_choice=ASCAT_DIST_METRIC, 
                 min.ploidy=MIN_PLOIDY, 
@@ -176,11 +185,11 @@ fit.copy.number(samplename=TUMOURNAME,
 # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
 callSubclones(sample.name=TUMOURNAME, 
               baf.segmented.file=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
-              logr.file=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
+              logr.file=paste(TUMOURNAME,"_mutantLogR_gcCorrected.tab", sep=""), 
               rho.psi.file=paste(TUMOURNAME, "_rho_and_psi.txt",sep=""), 
               output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
               output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
-	      output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""),
+              output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""),
               chr_names=chrom_names, 
               gamma=PLATFORM_GAMMA, 
               segmentation.gamma=NA, 
