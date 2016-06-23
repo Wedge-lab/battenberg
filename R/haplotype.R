@@ -226,6 +226,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
     png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
     create.baf.plot(chrom.position=pos/1000000, 
                     points.red.blue=BAF, 
+                    plot.red=BAFsegm>0.5,
                     points.darkred=BAFphseg, 
                     points.darkblue=1-BAFphseg, 
                     x.min=min(pos)/1000000, 
