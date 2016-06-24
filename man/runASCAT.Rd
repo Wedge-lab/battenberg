@@ -7,7 +7,7 @@
 runASCAT(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice,
   distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA,
   gamma = 0.55, allow100percent, reliabilityFile = NA, min.ploidy = 1.6,
-  max.ploidy = 4.8, min.rho = 0.1, min.goodness = 63,
+  max.ploidy = 4.8, min.rho = 0.1, max.rho = 1.05, min.goodness = 63,
   uninformative_BAF_threshold = 0.51)
 }
 \arguments{

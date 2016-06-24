@@ -8,7 +8,8 @@ run_clonal_ASCAT(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
   segBAF.table, input_optimum_pair, dist_choice, distancepng = NA,
   copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param,
   read_depth, uninformative_BAF_threshold, allow100percent,
-  reliabilityFile = NA)
+  reliabilityFile = NA, psi_min_initial = 1, psi_max_initial = 5.4,
+  rho_min_initial = 0.1, rho_max_initial = 1.05)
 }
 \arguments{
 \item{lrr}{(unsegmented) log R, in genomic sequence (all probes), with probe IDs}
