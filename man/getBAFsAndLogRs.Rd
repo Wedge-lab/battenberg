@@ -7,7 +7,7 @@
 getBAFsAndLogRs(tumourAlleleCountsFile.prefix, normalAlleleCountsFile.prefix,
   figuresFile.prefix, BAFnormalFile, BAFmutantFile, logRnormalFile,
   logRmutantFile, combinedAlleleCountsFile, chr_names, g1000file.prefix,
-  minCounts = NA, samplename = "sample1")
+  minCounts = NA, samplename = "sample1", seed = as.integer(Sys.time()))
 }
 \arguments{
 \item{tumourAlleleCountsFile.prefix}{Prefix of the allele counts files for the tumour.}

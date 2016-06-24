@@ -21,10 +21,10 @@ create.segmented.plot = function(chrom.position, points.red, points.green, x.min
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.baf.plot = function(chrom.position, points.red.blue, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab) {
+create.baf.plot = function(chrom.position, points.red.blue, plot.red, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type = "n", main=title, xlab=xlab, ylab=ylab)
-  points(chrom.position, points.red.blue, pch=".", col=ifelse(points.red.blue>0.5, "red", "blue"), cex=2)
+  points(chrom.position, points.red.blue, pch=".", col=ifelse(plot.red, "red", "blue"), cex=2)
   points(chrom.position, points.darkred, pch=19, cex=0.5, col="darkred")
   points(chrom.position, points.darkblue, pch=19, cex=0.5, col="darkblue")
 }
@@ -136,23 +136,6 @@ create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodne
 		text(tpos,5,ifelse(i<23,sprintf("%d",i),"X"), pos = 1, cex = 2)
 		abline(v=vpos,lty=1,col="lightgrey")
 	}
-}
-
-#' Code extracted from the first plot in clonal_ascat runASCAT: Sunrise plot
-#' Note: This is a temporary function.
-#' @noRd
-#'
-clonal_runascat.plot1 = function(minim, distmat, psis, rhos) {
-  par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
-  if(minim){ #DCW 240314 reverse colour palette, so blue always corresponds to best region
-    hmcol = rev(colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256))
-  } else {
-  hmcol = colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256)
-  }  
-  image(log(distmat), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
-  axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
-  axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
-  points((psis-1)/4.4,(rhos-0.1)/0.95,col="green",pch="X", cex = 2)
 }
 
 #' Code extracted from the plot in clonal_ascat find_centroid_of_global_minima.

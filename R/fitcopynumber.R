@@ -23,11 +23,21 @@
 #' @param read_depth Legacy parameter that is no longer used (Default 30)
 #' @author dw9, sd11
 #' @export
-fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmented, inputfile.baf, inputfile.logr, dist_choice, ascat_dist_choice, min.ploidy=1.6, max.ploidy=4.8, min.rho=0.1, min.goodness=63, uninformative_BAF_threshold=0.51, gamma_param=1, use_preset_rho_psi=F, preset_rho=NA, preset_psi=NA, read_depth=30) {
+fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmented, inputfile.baf, inputfile.logr, dist_choice, ascat_dist_choice, min.ploidy=1.6, max.ploidy=4.8, min.rho=0.1,  max.rho=1.05, min.goodness=63, uninformative_BAF_threshold=0.51, gamma_param=1, use_preset_rho_psi=F, preset_rho=NA, preset_psi=NA, read_depth=30) {
   
   assert.file.exists(inputfile.baf.segmented)
   assert.file.exists(inputfile.baf)
   assert.file.exists(inputfile.logr)
+  
+  # Check for enough options supplied for rho and psi
+  if ((max.ploidy - min.ploidy) < 0.05) {
+    warning(paste("Supplied ploidy range must be larger than 0.05: ", min.ploidy, "-", max.ploidy, sep=""))
+    quit(save="no", status=1)
+  }
+  if ((max.rho - min.rho) < 0.01) {
+    warning(paste("Supplied rho range must be larger than 0.01: ", min.rho, "-", max.rho, sep=""))
+    quit(save="no", status=1)
+  }
   
   # Read in the required data
   segmented.BAF.data = read.table(inputfile.baf.segmented, sep="\t", header=T, stringsAsFactors=F) #, row.names=1
@@ -141,7 +151,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     copynumberprofile.outfile=paste(outputfile.prefix,"copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
     nonroundedprofile.outfile=paste(outputfile.prefix,"nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
     
-    ascat_optimum_pair=runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy, max.ploidy, min.rho, min.goodness) # kjd 4-2-2014
+    ascat_optimum_pair=runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness) # kjd 4-2-2014
   }
   
   distance.outfile=paste(outputfile.prefix,"second_distance.png",sep="",collapse="") # kjd 20-2-2014
@@ -149,7 +159,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   nonroundedprofile.outfile=paste(outputfile.prefix,"second_nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
   
   # All is set up, now run ASCAT to obtain a clonal copynumber profile
-  out = run_clonal_ASCAT( logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, matched.segmented.BAF.data, ascat_optimum_pair, dist_choice, distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma_param=gamma_param, read_depth, uninformative_BAF_threshold, allow100percent=T, reliabilityFile=NA) # kjd 21-2-2014
+  out = run_clonal_ASCAT( logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, matched.segmented.BAF.data, ascat_optimum_pair, dist_choice, distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma_param=gamma_param, read_depth, uninformative_BAF_threshold, allow100percent=T, reliabilityFile=NA,  psi_min_initial=min.ploidy, psi_max_initial=max.ploidy, rho_min_initial=min.rho, rho_max_initial=max.rho) # kjd 21-2-2014
   
   ascat_optimum_pair_fraction_of_genome = out$output_optimum_pair_without_ref
   ascat_optimum_pair_ref_seg = out$output_optimum_pair
@@ -182,7 +192,9 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param noperms The number of permutations to be run when bootstrapping the confidence intervals on the copy number state of each segment (Default 1000)
 #' @author dw9, sd11
 #' @export
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000) {
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time())) {
+  
+  set.seed(seed)
   
   # Load rho/psi/goodness of fit
   res = load.rho.psi.file(rho.psi.file)
@@ -332,7 +344,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
         nMin1o = nMin1[option]
         nMaj2o = nMaj2[option]
         nMin2o = nMin2[option]
-        set.seed(as.integer(Sys.time()))
+        
         permFraction = vector(length=noperms,mode="numeric")
         for (j in 1:noperms) {
           permBAFs=sample(BAFke,length(BAFke),replace=T)

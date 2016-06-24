@@ -915,13 +915,12 @@ get_new_bounds = function( input_optimum_pair, ininitial_bounds ) # kjd 21-2-201
 }
  
 ####################################################################################################
-
 #' function to create the distance matrix (distance for a range of ploidy and tumor percentage values)
 #' input: segmented LRR and BAF and the value for gamma_param
 #' @noRd
-create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF_threshold=0.51) {
-  psi_pos = seq(1,5.4,0.05) 
-  rho_pos = seq(0.1,1.05,0.01)
+create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF_threshold=0.51, min_rho=0.1, max_rho=1, min_psi=1, max_psi=5.4) {
+  psi_pos = seq(min_psi,max_psi,0.05) 
+  rho_pos = seq(min_rho,max_rho,0.01)
   d = matrix(nrow = length(psi_pos), ncol = length(rho_pos))
   rownames(d) = psi_pos
   colnames(d) = rho_pos
@@ -1254,15 +1253,13 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
 #' @return A list with fields psi, rho and ploidy
 #' @export
 #the limit on rho is lenient and may lead to spurious solutions
-runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,min.goodness=63, uninformative_BAF_threshold = 0.51) {
+runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,max.rho=1.05,min.goodness=63, uninformative_BAF_threshold = 0.51) {
   ch = chromosomes
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
 
-#   library(RColorBrewer)
-
   s = make_segments(r,b)
-  dist_matrix_info <- create_distance_matrix( s, dist_choice, gamma, uninformative_BAF_threshold =uninformative_BAF_threshold)  
+  dist_matrix_info <- create_distance_matrix( s, dist_choice, gamma, uninformative_BAF_threshold=uninformative_BAF_threshold, min_psi=min.ploidy, max_psi=max.ploidy, min_rho=min.rho, max_rho=max.rho)  
   d = dist_matrix_info$distance_matrix
   minimise = dist_matrix_info$minimise
 
@@ -1354,7 +1351,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 			goodnessOfFit = -m/TheoretMaxdist * 100 # we have to use minus to reverse d=-d above
 		}
 
-          if (ploidy > 1.6 & ploidy < 4.8 & rho >= 0.2 & goodnessOfFit > 80) {
+          if (ploidy > min.ploidy & ploidy < max.ploidy & rho >= min.rho & goodnessOfFit >= min.goodness) {
             nropt = nropt + 1
             optima[[nropt]] = c(m,i,j,ploidy,goodnessOfFit)
             localmin[nropt] = m
@@ -1384,6 +1381,8 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
         # points((psi_opt1-1)/4.4,(rho_opt1-0.1)/0.95,col="green",pch="X", cex = 2)
       }
     }
+  } else {
+	  print("No solution found")
   }
 
   # separated plotting from logic: create distanceplot here
@@ -1463,7 +1462,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 #' @param reliabilityFile String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)
 #' @return A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is.ref.better
 #' @export
-run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA) # kjd 10-1-2014
+run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA, psi_min_initial=1.0, psi_max_initial=5.4, rho_min_initial=0.1, rho_max_initial=1.05) # kjd 10-1-2014
 {
   
   siglevel_BAF = 0.05 # kjd 21-2-2014
@@ -1481,10 +1480,10 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   maxdist_LogR = 1 # TODO: This parameter is pushed down to is.segment.clonal but not used there (maybe not used at all?)
 
   
-  psi_min_initial = 1.0
-  psi_max_initial = 5.4
-  rho_min_initial = 0.1
-  rho_max_initial = 1.05
+#   psi_min_initial = 1.0
+#   psi_max_initial = 5.4
+#   rho_min_initial = 0.1
+#   rho_max_initial = 1.05
   
   ininitial_bounds = list( psi_min = psi_min_initial, psi_max = psi_max_initial, rho_min = rho_min_initial, rho_max = rho_max_initial )
   

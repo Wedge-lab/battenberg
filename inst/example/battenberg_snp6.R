@@ -4,7 +4,7 @@ NORMALCEL = toString(args[2])
 TUMOURCEL = toString(args[3])
 RUN_DIR = toString(args[4])
 
-library(Battenberg)
+library(Battenberg, lib="~/R/x86_64-unknown-linux-gnu-library/3.2/")
 library(doParallel)
 
 ###############################################################################
@@ -21,16 +21,16 @@ library(doParallel)
 # RUN_DIR = "/lustre/scratch110/sanger/sd11/battenberg_package_test/NASCR-0016_bb_v2.0_singlecore"
 
 # Parallelism parameters
-NTHREADS = 1
+NTHREADS = 6
 
 # General static
-IMPUTEINFOFILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt"
-G1000PREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
+IMPUTEINFOFILE = "/srv/data/vanloo/pipeline-files/human/references/1000genomes/1000genomes_2012_v3_impute/impute_info.txt"
+G1000PREFIX = "/srv/data/vanloo/pipeline-files/human/references/1000genomes/1000genomes_2012_v3_loci/1000genomesAlleles2012_chr"
 IMPUTE_EXE = "impute2"
 
 # General SNP6 specific
 PROBLEMLOCI = NA
-SNP6_REF_INFO_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/snp6_ref_info_file.txt"
+SNP6_REF_INFO_FILE = "/srv/data/vanloo/pipeline-files/human/references/battenberg/battenberg_snp6/snp6_ref_info_file.txt"
 APT_PROBESET_GENOTYPE_EXE = "apt-probeset-genotype"
 APT_PROBESET_SUMMARIZE_EXE = "apt-probeset-summarize"
 NORM_GENO_CLUST_EXE = "normalize_affy_geno_cluster.pl"
