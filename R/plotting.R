@@ -184,3 +184,79 @@ clonal_findcentroid.plot = function(minimise, dist_choice, d, psis, rhos, new_bo
   points( ( psis - psi_min ) / psi_range , ( rhos - rho_min ) / rho_range , col=c("green", "darkgreen"), pch="X", cex = 2 )
 }
 
+
+#' Plot Battenberg copy number solutions for a segment 
+#' 
+#' \code{squaresplot} plots the different Battenberg copy number solutions for a segment
+#' 
+#' The plot is output to the run directory as "tumourname_squares_chr_position.png/pdf"
+#' 
+#' @param tumourname Sample name
+#' @param run_dir Running directory
+#' @param segment_chr Chromosome containing the segment to be investigated
+#' @param segment_pos Chromosomal position within the segment in Mb (e.g. 90M)
+#' @param platform_gamma Platform-specific gamma value (0.55 for SNP6, 1 for NGS), default 1
+#' @param pdf Output format: 0 for png (default), 1 for pdf
+#' @param binwidth_baf BAF isobafline spacing, default 0.25
+#' @param xylimits x/y-axis limits, default c(-0.2,5)
+#' @author jd
+squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_gamma=1, pdf=0, binwidth_baf=0.25, xylimits=c(-0.2,5)) {
+  require(ggplot2)
+  
+  if (pdf)
+    pdf(file = paste(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".pdf", sep=""), width = 7, height = 7)
+  else
+    png(filename = paste(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".png", sep=""), width = 1200, height = 1200, res = 200)
+  
+  # read in and augment data
+  segment_pos <- as.numeric(gsub("M", "000000", segment_pos))
+  subclones <- read.table(paste(run_dir, tumourname, "_subclones.txt", sep=""), header=T, stringsAsFactors=F)
+  subclone <- subclones[(subclones$chr == segment_chr) & (subclones$startpos <= segment_pos) & (subclones$endpos >= segment_pos),]
+  rhopsi <- read.table(paste(run_dir, tumourname, "_rho_and_psi.txt", sep=""), header = T, stringsAsFactors=F)
+  rhopsi <- rhopsi[which(rhopsi$is.best == TRUE), c("rho", "psi")] 
+  
+  nMincalc <- (rhopsi$rho-1-(subclone$BAF-1)*2^(subclone$LogR/platform_gamma)*((1-rhopsi$rho)*2+rhopsi$rho*rhopsi$psi))/rhopsi$rho
+  nMajcalc <- (rhopsi$rho-1+subclone$BAF*2^(subclone$LogR/platform_gamma)*((1-rhopsi$rho)*2+rhopsi$rho*rhopsi$psi))/rhopsi$rho
+
+  subclone <- data.frame(subclone, rhopsi, nMincalc, nMajcalc)
+  
+  # helper function to calculate isobaflines
+  isobafline <- function(nB, cstbaf) {
+    (1-rhopsi$rho+rhopsi$rho*nB-cstbaf*(2-2*rhopsi$rho)-rhopsi$rho*cstbaf*nB)/(rhopsi$rho*cstbaf)
+  }
+  
+  # create grid for allelic copynumber
+  ngrid <- data.frame(nMaj=seq(0,5,1), nMin=seq(0,5,1))
+  
+  # start plotting - setup
+  q <- ggplot2::ggplot(data = ngrid, aes(nMaj, nMin)) + ggplot2::scale_x_continuous(breaks=0:max(xylimits), limits=xylimits) + ggplot2::scale_y_continuous(breaks=0:max(xylimits), limits=xylimits) + ggplot2::coord_fixed()
+  q <- q + ggplot2::theme_bw() + ggplot2::theme(panel.grid.major = ggplot2::element_line(colour="darkgrey", size = 0.5), panel.grid.minor = ggplot2::element_blank())
+  
+  # add isobaflines
+  for (bafval in seq(0,1,binwidth_baf)) {
+    q <- q + ggplot2::stat_function(fun = isobafline, args = list(cstbaf = bafval), colour="blue", alpha=0.6)
+  }
+  q <- q + ggplot2::stat_function(fun = isobafline, args = list(cstbaf = subclone$BAF), colour="green")
+  
+  # add isologrline
+  q <- q + ggplot2::geom_segment(data = data.frame(flnMaj = floor(nMajcalc)-0.2, cnMin = ceiling(nMincalc)+0.2, cnMaj = ceiling(nMajcalc)+0.2, flnMin = floor(nMincalc)-0.2),
+                        aes(x = flnMaj, y = cnMin, xend = cnMaj, yend = flnMin), colour="red", alpha = 0.6)
+  
+  # if clonal segment, only plot clonal solution
+  if (subclone$frac1_A == 1) {
+    q <- q + ggplot2::geom_point(data = subclone, aes(nMaj1_A, nMin1_A), size = 5)
+  } else { # if subclonal, plot all equivalent solutions
+    solutions <- matrix(unlist(subclone[,grep("nM.{5}$|^frac.{3}$", colnames(subclone))]), byrow = T, ncol = 3)
+    solutions <- cbind(solutions, rep(1:6,rep(2,6)))[12:1,]
+    colnames(solutions) <- c("nMaj", "nMin", "frac", "sol")
+    solutions <- na.omit(as.data.frame(solutions))
+    q <- q + ggplot2::geom_point(data = solutions, aes(nMaj, nMin, size=frac, colour=factor(sol)), alpha=0.75, position = ggplot2::position_jitter(width = .05, height = .05), shape = 79) +
+      ggplot2::scale_size_continuous(guide=F, limits=c(0,1) ,range = c(2,10)) + ggplot2::scale_color_discrete(name="solution")
+  }
+  
+  # plot precise values, as calculated by battenberg
+  q <- q + ggplot2::geom_point(data=subclone, aes(nMajcalc, nMincalc), size=4, shape = 88)
+  q <- q + ggplot2::labs(title = paste(tumourname," chr",subclone$chr,": ",subclone$startpos,"-",subclone$endpos, sep=""))
+  print(q)
+  dev.off()
+}
