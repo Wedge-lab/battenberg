@@ -1368,9 +1368,19 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   minimise = dist_matrix_info$minimise
 
   if (!is.na(distancepng)) {
+    # The original hardcoded axis had the below ticks and the figure was 1000x1000.
+    # The code right below converts this hardcoded format into a dynamic one that
+    # scales the figure according to the rho/psi ranges given
+    # axis(1, at = seq(0, 4/4.4, by = 1/4.4), label = seq(1, 5, by = 1))
+    # axis(2, at = seq(0, 1/1.05, by = 1/3/1.05), label = seq(0.1, 1, by = 3/10))
     
+    pix_p_ploid = 1000 / 5
+    ploidy_single_ploid_steps = length(seq(min.ploidy, max.ploidy, by = 1))
     
-    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
+    pix_p_cellularity_5perc = 1000/(4*6)
+    rho_5perc_steps = (max.rho-min.rho) / 0.05
+    
+    png(filename = distancepng, width = ploidy_single_ploid_steps*pix_p_ploid, height = rho_5perc_steps*pix_p_cellularity_5perc, res = 1000/7)
   }
 
   par(mar = c(5,5,0.5,0.5), cex=0.75, cex.lab=2, cex.axis=2)
@@ -1382,11 +1392,37 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 	hmcol = colorRampPalette(brewer.pal(10, "RdBu"))(256)
   }  
   
-  image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+  image(log(d), col = hmcol, axes = F, ann = FALSE)
+  
+  mtext(side = 1, text = "Ploidy", line = 3, padj=0, cex=1.5)
+  mtext(side = 2, text = "Aberrant cell fraction", line = 3, padj=-0.5, cex=1.5)
+  
+  
+  # Convenience function to add the last element to the axis. We've defined a step size
+  # for the axis, but the range of values supplied doesn't always fit exactly. The lower
+  # bound of the range is always plotted by default, but we need to add the upper bound
+  # taking into account the proportions of the axis
+  add_final_axis_element = function(axis_range, axis_values, max.value) {
+    unexplained_data = max.value-max(axis_values)
+    axis_step_size = axis_range[length(axis_range)] - axis_range[length(axis_range)-1]
+    return(list(axis_range=c(axis_range, max(axis_range)+(axis_step_size*unexplained_data)), 
+                axis_values=c(axis_values, max.value)))
+  }
 
-  axis(1, at = seq(0, floor(max.ploidy)/max.ploidy, by = 1/max.ploidy), label = seq(1, ceiling(max.ploidy), by = 1))
-  axis(2, at = seq(min.rho, max.rho, by = 1/3/max.rho), label = seq(min.rho, 1, by = 3/10))
-
+  # Plot the axis  
+  # axis_range = seq(0, 1, by = 1/(max.ploidy-1))
+  axis_range = seq(0, 1, by = 1/(max.ploidy-min.ploidy))
+  ploidy_range = seq(min.ploidy, max.ploidy, by = 1)
+  res = add_final_axis_element(axis_range, ploidy_range, max.ploidy)
+  axis(1, at = res$axis_range, labels = res$axis_values)
+  
+  # axis_range = c(seq(0, 1/max.rho, by = 1/10/(max.rho-min.rho)), 1)
+  # rho_range = c(seq(min.rho, max.rho, by = 1/10), max.rho)
+  axis_range = seq(0, 1/max.rho, by = 1/10/(max.rho-min.rho))
+  rho_range = seq(min.rho, max.rho, by = 1/10)
+  res = add_final_axis_element(axis_range, rho_range, max.rho)
+  axis(2, at = axis_range, labels = rho_range, las=1)
+  
   #TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   #DCW 180711 - try weighting BAF=0.5 equally with other points
   TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"],na.rm=T)
