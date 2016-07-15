@@ -42,12 +42,36 @@ create.baf.plot = function(chrom.position, points.red.blue, plot.red, points.dar
 #' Function that creates the plots for subclonal copy number
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.subclonal.cn.plot = function(chrom, chrom.position, LogRposke, LogRchr, BAFchr, BAFsegchr, BAFpvalschr, subcloneres, siglevel, x.min, x.max, title, xlab, ylab.logr, ylab.baf) {
+create.subclonal.cn.plot = function(chrom, chrom.position, LogRposke, LogRchr, BAFchr, BAFsegchr, BAFpvalschr, subcloneres, siglevel, x.min, x.max, title, xlab, ylab.logr, ylab.baf, breakpoints_pos=NULL, svs_pos=NULL) {
+
+  plot_breakpoints = function(breakpoints, svs_pos) {
+    # Plot the breakpoints
+    if (!is.null(breakpoints)) {
+      for (i in 1:length(breakpoints)) {
+        abline(v=breakpoints[i], col="darkgrey", lwd=1)
+      }
+    }
+    
+    # Overplot the SV breakpoints, if supplied
+    if (!is.null(svs_pos)) {
+      for (i in 1:length(svs_pos)) {
+        abline(v=svs_pos[i], lty=3, col="lightgreen", lwd=1)
+      }
+    }
+  }
+  
+  # Plot the logR
   par(mar=c(2.5,2.5,2.5,0.25), cex=0.4, cex.main=1.5, cex.axis=1, cex.lab=1, mfrow=c(2,1))
   plot(c(x.min, x.max), c(-3,3), pch=".", type="n", main=title, xlab=xlab, ylab=ylab.logr)
   points(LogRposke/1000000, LogRchr, pch=".", col="grey")
+  plot_breakpoints(breakpoints_pos, svs_pos)
+  
+  # Plot BAF
   plot(c(x.min, x.max), c(0,1), pch=".", type="n", main=title, xlab=xlab, ylab=ylab.baf)
   points(chrom.position, BAFchr, pch=".", col="grey")
+  plot_breakpoints(breakpoints_pos, svs_pos)
+  
+  # Plot segments in top of BAF
   points(chrom.position, BAFsegchr, pch=19, cex=0.5, col=ifelse(BAFpvalschr>siglevel, "darkgreen", "red"))
   points(chrom.position, 1-BAFsegchr, pch=19, cex=0.5, col=ifelse(BAFpvalschr>siglevel, "darkgreen", "red"))
   for (i in 1:dim(subcloneres)[1]) {

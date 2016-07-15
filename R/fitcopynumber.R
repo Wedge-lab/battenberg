@@ -192,7 +192,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param noperms The number of permutations to be run when bootstrapping the confidence intervals on the copy number state of each segment (Default 1000)
 #' @author dw9, sd11
 #' @export
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time())) {
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, sv_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time())) {
   
   set.seed(seed)
   
@@ -296,7 +296,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     
     #DCW - just test corners on the nearest edge to determine clonality
     # If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
-    all.edges = orderEdges(levels, l, ntot,x,y)
+    all.edges = Battenberg:::orderEdges(levels, l, ntot,x,y)
     nMaj.test = all.edges[1,c(1,3)]
     nMin.test = all.edges[1,c(2,4)]
     test.levels = (1-rho+rho*nMaj.test)/(2-2*rho+rho*(nMaj.test+nMin.test))
@@ -318,7 +318,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     # If the difference is significant, call subclonal level
     if (pval[i] <= siglevel) {
       
-      all.edges = orderEdges(levels, l, ntot,x,y)
+      all.edges = Battenberg:::orderEdges(levels, l, ntot,x,y)
       # Switch order, so that negative copy numbers are at the end
       na.indices = which(is.na(rowSums(all.edges)))
       if (length(na.indices)>0) {
@@ -384,12 +384,27 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   
   write.table(subcloneres, output.file, quote=F, col.names=T, row.names=F, sep="\t")
   
+  # Collapse the BAFsegmented into breakpoints to be used in plotting
+  segment_breakpoints = collapse_bafsegmented_to_segments(BAFvals)
+  if (!is.null(sv_breakpoints_file)) {
+    svs = read.table(sv_breakpoints_file, header=T, stringsAsFactors=F)
+  }
+  
   # Create a plot per chromosome that shows the segments with their CN state in text
   for (chr in chr_names) {
     pos = SNPpos[SNPpos[,1]==chr, 2]
     #if no points to plot, skip
     if (length(pos)==0) { next }
+    
+    if (!is.null(sv_breakpoints_file)) {
+      svs_pos = svs[svs$chromosome==chr,]$position / 1000000
+    } else {
+      svs_pos = NULL
+    }
 
+    breakpoints_pos = segment_breakpoints[segment_breakpoints$chromosome==chr,]
+    breakpoints_pos = c(breakpoints_pos$start, breakpoints_pos$end[nrow(breakpoints_pos)]) / 1000000
+    
     png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200)
     create.subclonal.cn.plot(chrom=chr,
                              chrom.position=pos/1000000, 
@@ -399,6 +414,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
                              BAFsegchr=BAFseg[SNPpos[,1]==chr], 
                              BAFpvalschr=BAFpvals[SNPpos[,1]==chr],
                              subcloneres=subcloneres, 
+                             breakpoints=breakpoints_pos,
+                             svs_pos=svs_pos,
                              siglevel=siglevel, 
                              x.min=min(pos)/1000000, 
                              x.max=max(pos)/1000000, 
@@ -517,3 +534,28 @@ load.rho.psi.file = function(rho.psi.file) {
   goodness = rho_psi_info$distance[rownames(rho_psi_info)=="FRAC_GENOME"] # goodness of fit
   return(list(rho=rho, psit=psit, goodness=goodness))
 }
+
+#' Collapse a BAFsegmented file into segment start and end points
+#' 
+#' This function looks through the BAFsegmented for stretches of equal
+#' BAFseg and records the start and end coordinates in a data.frame
+#' @param bafsegmented The BAFsegmented output from segmentation
+#' @return A data.frame with columns chromosome, start and end
+#' @author sd11
+#' @noRd
+collapse_bafsegmented_to_segments = function(bafsegmented) {
+  segments_collapsed = data.frame()
+  for (chrom in unique(bafsegmented$Chromosome)) {
+    bafsegmented_chrom = bafsegmented[bafsegmented$Chromosome==chrom,]
+    segments = rle(bafsegmented_chrom$BAFseg)
+    startpoint = 1
+    for (i in 1:length(segments$lengths)) {
+      endpoint = startpoint+segments$lengths[i]-1
+      segments_collapsed = rbind(segments_collapsed,
+                                 data.frame(chromosome=chrom, start=bafsegmented_chrom$Position[startpoint], end=bafsegmented_chrom$Position[endpoint]))
+      startpoint = endpoint+1
+    }
+  }
+  return(segments_collapsed)
+}
+
