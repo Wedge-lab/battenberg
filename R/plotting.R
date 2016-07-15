@@ -44,7 +44,7 @@ create.baf.plot = function(chrom.position, points.red.blue, plot.red, points.dar
 #' @noRd
 create.subclonal.cn.plot = function(chrom, chrom.position, LogRposke, LogRchr, BAFchr, BAFsegchr, BAFpvalschr, subcloneres, siglevel, x.min, x.max, title, xlab, ylab.logr, ylab.baf) {
   par(mar=c(2.5,2.5,2.5,0.25), cex=0.4, cex.main=1.5, cex.axis=1, cex.lab=1, mfrow=c(2,1))
-  plot(c(x.min, x.max), c(-1,1), pch=".", type="n", main=title, xlab=xlab, ylab=ylab.logr)
+  plot(c(x.min, x.max), c(-3,3), pch=".", type="n", main=title, xlab=xlab, ylab=ylab.logr)
   points(LogRposke/1000000, LogRchr, pch=".", col="grey")
   plot(c(x.min, x.max), c(0,1), pch=".", type="n", main=title, xlab=xlab, ylab=ylab.baf)
   points(chrom.position, BAFchr, pch=".", col="grey")
