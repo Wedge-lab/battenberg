@@ -106,12 +106,31 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
 #' @export
 segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=10, phasegamma=3, kmin=3, phasekmin=3) {
   
+  #' Function that takes SNPs that belong to a single segment and looks for big holes between
+  #' each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
+  addin_bigholes = function(breakpoints, positions, chrom, startpos, maxsnpdist) {
+    # If there is a big hole (i.e. centromere), add it in as a separate set of breakpoints
+    
+    # Get the chromosome coordinate right before a big hole
+    bigholes = which(diff(positions)>=maxsnpdist)
+    if (length(bigholes) > 0) {
+      for (endindex in bigholes) {
+        breakpoints = rbind(breakpoints, 
+                            data.frame(chrom=chrom, start=startpos, end=positions[endindex]))
+        startpos = positions[endindex+1]
+      }
+    }
+    return(list(breakpoints=breakpoints, startpos=startpos))
+  }
+  
   #' Helper function that creates segment breakpoints from SV calls
   #' @param svs_chrom Structural variant breakpoints for a single chromosome
   #' @param BAFrawchr Raw BAF values of germline heterozygous SNPs on a single chromosome
   #' @return A data.frame with chrom, start and end columns
   #' @author sd11
-  svs_to_presegment_breakpoints = function(chrom, svs_chrom, BAFrawchr) {
+  svs_to_presegment_breakpoints = function(chrom, svs_chrom, BAFrawchr, addin_bigholes) {
+    maxsnpdist = 3000000
+    
     svs_breakpoints = svs_chrom$position
     
     # If there are no SVs we cannot insert any breakpoints
@@ -130,11 +149,18 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
       for (svposition in svs_breakpoints[startfromsv:length(svs_breakpoints)]) {
         selectedsnps = BAFrawchr$Position >= startpos & BAFrawchr$Position <= svposition
         if (sum(selectedsnps, na.rm=T) > 0) {
+          
+          if (addin_bigholes) {
+            # If there is a big hole (i.e. centromere), add it in as a separate set of breakpoints
+            res = addin_bigholes(breakpoints, BAFrawchr$Position[selectedsnps], chrom, startpos, maxsnpdist)
+            breakpoints = res$breakpoints
+            startpos = res$startpos
+          }
+          
           endindex = max(which(selectedsnps))
           breakpoints = rbind(breakpoints, data.frame(chrom=chrom, start=startpos, end=BAFrawchr$Position[endindex]))
           # Previous SV is the new starting point for the next segment
           startpos = BAFrawchr$Position[endindex + 1]
-          print(paste0("Set ", startpos, " to ", BAFrawchr$Position[endindex]))
         }
       }
       
@@ -142,13 +168,21 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
       if (BAFrawchr$Position[nrow(BAFrawchr)] > svs_breakpoints[length(svs_breakpoints)]) {
         endindex = nrow(BAFrawchr)
         breakpoints = rbind(breakpoints, data.frame(chrom=chrom, start=startpos, end=BAFrawchr$Position[endindex]))
-        print(paste0("Set ", startpos, " to ", BAFrawchr$Position[endindex]))
       }
     } else {
       # There are no SVs, so create one big segment
       print("No SVs")
-      breakpoints = data.frame(chrom=chrom, start=BAFrawchr$Position[1], end=BAFrawchr$Position[nrow(BAFrawchr)])
-      print(paste0("Set ", BAFrawchr$Position[1], " to ", BAFrawchr$Position[nrow(BAFrawchr)]))
+      startpos = BAFrawchr$Position[1]
+      breakpoints = data.frame()
+      
+      if (addin_bigholes) {
+        # If there is a big hole (i.e. centromere), add it in as a separate set of breakpoints
+        res = addin_bigholes(breakpoints, BAFrawchr$Position, chrom, startpos, maxsnpdist=maxsnpdist)
+        breakpoints = res$breakpoints
+        startpos = res$startpos
+      }
+      
+      breakpoints = rbind(breakpoints, data.frame(chrom=chrom, start=startpos, end=BAFrawchr$Position[nrow(BAFrawchr)]))
     }
     return(breakpoints)
   }
@@ -219,7 +253,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     BAFrawchr = BAFrawchr[!is.na(BAFrawchr[,2]),]
     svs_chrom = svs[svs$chromosome==chr,]
     
-    breakpoints_chrom = svs_to_presegment_breakpoints(chr, svs_chrom, BAFrawchr)
+    breakpoints_chrom = svs_to_presegment_breakpoints(chr, svs_chrom, BAFrawchr, addin_bigholes=T)
     print(breakpoints_chrom)
     BAFoutputchr = NULL
     

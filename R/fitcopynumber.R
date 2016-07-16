@@ -403,7 +403,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     }
 
     breakpoints_pos = segment_breakpoints[segment_breakpoints$chromosome==chr,]
-    breakpoints_pos = c(breakpoints_pos$start, breakpoints_pos$end[nrow(breakpoints_pos)]) / 1000000
+    breakpoints_pos = sort(unique(c(breakpoints_pos$start, breakpoints_pos$end) / 1000000))
     
     png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200)
     create.subclonal.cn.plot(chrom=chr,
