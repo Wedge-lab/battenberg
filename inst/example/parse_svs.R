@@ -1,5 +1,4 @@
-
-
+library(VariantAnnotation)
 
 #' Parses BRASS SV calls into a dataframe with a line for each SV and two columns: chromosome and position
 parse_brass_svs = function(vcffile, ref_genome="hg19") {
