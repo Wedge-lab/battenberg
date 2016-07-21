@@ -36,7 +36,7 @@ fit.copy.number(samplename, outputfile.prefix, inputfile.baf.segmented,
 
 \item{uninformative_BAF_threshold}{The threshold beyond which BAF becomes uninformative (Default 0.51)}
 
-\item{gamma_param}{Technology parameter, compaction of Log R profiles. Expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays (Default 1)}
+\item{gamma_param}{Technology parameter, compaction of Log R profiles. Expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays (Default 1)}
 
 \item{use_preset_rho_psi}{Boolean whether to use user specified rho and psi values (Default F)}
 

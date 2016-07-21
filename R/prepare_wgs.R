@@ -240,7 +240,8 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
 #' found. These files should be split per chromosome and this prefix must contain the full path until
 #' chr in its name. The .txt extension is automatically added.
 #' @param chrom_names A vector containing chromosome names to be considered
-#' @author tjm
+#' @author sd11
+#' @export
 gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, chrom_names) {
 
   Tumor_LogR = read.table(Tumour_LogR_file, stringsAsFactors=F, header=T)
