@@ -16,7 +16,7 @@
 #' @param min.rho The minimum cellularity to consider (Default 0.1)
 #' @param min.goodness The minimum goodness of fit for a solution to have to be considered (Default 63)
 #' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative (Default 0.51)
-#' @param gamma_param Technology parameter, compaction of Log R profiles. Expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays (Default 1)
+#' @param gamma_param Technology parameter, compaction of Log R profiles. Expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays (Default 1)
 #' @param use_preset_rho_psi Boolean whether to use user specified rho and psi values (Default F)
 #' @param preset_rho A user specified rho to fit a copy number profile to (Default NA)
 #' @param preset_psi A user specified psi to fit a copy number profile to (Default NA)
@@ -493,11 +493,22 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
 }
 
 
-# fit_segment = function(BAFpos, LogRpos, BAFlevels, BAFphased, LogRvals, switchpoints, rho, psi, gamma, i) {
-# 
-#   return(subcloneres)
-# }
-
+#' Merge copy number segments
+#' 
+#' Merges segments if there is not enough evidence for them to be separate. Two adjacent segments are merged
+#' when they are either fit with the same clonal copy number state or when their BAF is not significantly different
+#' and their logR puts them in the same square.
+#' @param subclones A completely fit copy number profile in Battenberg output format
+#' @param bafsegmented A BAFsegmented data.frame with the 5 columns that corresponds to the subclones file
+#' @param logR The raw logR data
+#' @param rho The rho estimate that the profile was fit with
+#' @param psi the psi estimate that the profile was fit with
+#' @param platform_gamma The gamma parameter for this platform
+#' @return A list with two fields: bafsegmented and subclones. The subclones field contains a data.frame in 
+#' Battenberg output format with the merged segments. The bafsegmented field contains the BAFsegmented data
+#' corresponding to the provided subclones data.frame.
+#' @author sd11
+#' @noRd
 merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamma) {
   subclones_cleaned = data.frame()
   merged = T

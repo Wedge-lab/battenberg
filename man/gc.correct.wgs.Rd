@@ -24,6 +24,6 @@ chr in its name. The .txt extension is automatically added.}
 Function to correct LogR for waivyness that correlates with GC content
 }
 \author{
-tjm
+sd11
 }
 

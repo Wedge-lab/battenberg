@@ -42,7 +42,7 @@ find_centroid_of_global_minima(d, ref_seg_matrix, ref_major, ref_minor, s,
 
 \item{maxdist_LogR}{The maximum distance allowed as slack when establishing the significance. This allows for the case when a breakpoint is missed, the segment would then not automatically become subclonal}
 
-\item{allow100percent}{Boolean whether to allow for a 100% cellularity solution}
+\item{allow100percent}{Boolean whether to allow for a 100"\%" cellularity solution}
 
 \item{uninformative_BAF_threshold}{The threshold above which BAF becomes uninformative}
 

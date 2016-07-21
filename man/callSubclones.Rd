@@ -6,8 +6,9 @@
 \usage{
 callSubclones(sample.name, baf.segmented.file, logr.file, rho.psi.file,
   output.file, output.figures.prefix, output.gw.figures.prefix, chr_names,
-  gamma = 1, segmentation.gamma = NA, siglevel = 0.05, maxdist = 0.01,
-  noperms = 1000, seed = as.integer(Sys.time()))
+  sv_breakpoints_file = NULL, gamma = 1, segmentation.gamma = NA,
+  siglevel = 0.05, maxdist = 0.01, noperms = 1000,
+  seed = as.integer(Sys.time()))
 }
 \arguments{
 \item{sample.name}{Name of the sample, used in figures}

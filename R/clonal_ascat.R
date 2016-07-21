@@ -1046,7 +1046,7 @@ calc_square_distance <-function( pt1, pt2 ) # kjd 27-2-2014
 #' @param maxdist_BAF TODO: this option is no longer used
 #' @param siglevel_LogR The p-value at which logR becomes significant when establishing whether a segment should be subclonal
 #' @param maxdist_LogR The maximum distance allowed as slack when establishing the significance. This allows for the case when a breakpoint is missed, the segment would then not automatically become subclonal
-#' @param allow100percent Boolean whether to allow for a 100% cellularity solution
+#' @param allow100percent Boolean whether to allow for a 100"\%" cellularity solution
 #' @param uninformative_BAF_threshold The threshold above which BAF becomes uninformative
 #' @param read_depth TODO: this option is no longer used
 #' @return A list with fields optima_info_without_ref and optima_info
@@ -1242,8 +1242,8 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
 #' @param distancepng if NA: distance is plotted, if filename is given, the plot is written to a .png file (Default NA)
 #' @param copynumberprofilespng if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file (Default NA)
 #' @param nonroundedprofilepng if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)
-#' @param gamma technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
-#' @param allow100percent A boolean whether to allow a 100% cellularity solution
+#' @param gamma technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
+#' @param allow100percent A boolean whether to allow a 100"\%" cellularity solution
 #' @param reliabilityFile String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)
 #' @param min.ploidy The minimum ploidy to consider (Default 1.6)
 #' @param max.ploidy The maximum ploidy to consider (Default 4.8)
@@ -1455,10 +1455,10 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 #' @param distancepng if NA: distance is plotted, if filename is given, the plot is written to a .png file (Default NA)
 #' @param copynumberprofilespng if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file (Default NA)
 #' @param nonroundedprofilepng if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)
-#' @param gamma_param technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
+#' @param gamma_param technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
 #' @param read_depth TODO: unused parameter that should be removed
 #' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative
-#' @param allow100percent A boolean whether to allow a 100% cellularity solution
+#' @param allow100percent A boolean whether to allow a 100"\%" cellularity solution
 #' @param reliabilityFile String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)
 #' @return A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is.ref.better
 #' @export

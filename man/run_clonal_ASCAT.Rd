@@ -34,13 +34,13 @@ run_clonal_ASCAT(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
 
 \item{nonroundedprofilepng}{if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)}
 
-\item{gamma_param}{technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 % aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)}
+\item{gamma_param}{technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)}
 
 \item{read_depth}{TODO: unused parameter that should be removed}
 
 \item{uninformative_BAF_threshold}{The threshold beyond which BAF becomes uninformative}
 
-\item{allow100percent}{A boolean whether to allow a 100% cellularity solution}
+\item{allow100percent}{A boolean whether to allow a 100"\%" cellularity solution}
 
 \item{reliabilityFile}{String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)}
 }

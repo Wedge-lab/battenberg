@@ -234,6 +234,7 @@ clonal_findcentroid.plot = function(minimise, dist_choice, d, psis, rhos, new_bo
 #' @param binwidth_baf BAF isobafline spacing, default 0.25
 #' @param xylimits x/y-axis limits, default c(-0.2,5)
 #' @author jd
+#' @export
 squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_gamma=1, pdf=0, binwidth_baf=0.25, xylimits=c(-0.2,5)) {
   require(ggplot2)
   
