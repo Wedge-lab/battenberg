@@ -1,7 +1,7 @@
 library(VariantAnnotation)
 
 #' Parses BRASS SV calls into a dataframe with a line for each SV and two columns: chromosome and position
-parse_brass_svs = function(vcffile, ref_genome="hg19") {
+parse_brass_svs = function(vcffile, outfile, ref_genome="hg19") {
   svs = parse_svs_1(vcffile, ref_genome=ref_genome)
   write_svs(svs, outfile)
 }
