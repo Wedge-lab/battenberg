@@ -249,6 +249,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # Scan the segments for cases that should be merged
   res = merge_segments(subcloneres, BAFvals, LogRvals, rho, psi, gamma)
   BAFvals = res$bafsegmented
+  write.table(BAFvals, file=baf.segmented.file, sep="\t", row.names=F, col.names=T, quote=F)
   
   res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
   subcloneres = res$subcloneres
