@@ -4,12 +4,14 @@ library(VariantAnnotation)
 parse_brass_svs = function(vcffile, outfile, ref_genome="hg19") {
   svs = parse_svs_1(vcffile, ref_genome=ref_genome)
   write_svs(svs, outfile)
+  return(svs)
 }
 
 #' Parses ICGC consensus SV calls into a dataframe with a line for each SV and two columns: chromosome and position
 parse_icgc_consensus_svs = function(vcffile, outfile, ref_genome="hg19") {
   svs = parse_svs_1(vcffile, ref_genome=ref_genome)
   write_svs(svs, outfile)
+  return(svs)
 }
 
 #' Helper function that writes the given SVs to file
