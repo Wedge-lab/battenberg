@@ -23,7 +23,7 @@
 #' @param read_depth Legacy parameter that is no longer used (Default 30)
 #' @author dw9, sd11
 #' @export
-fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmented, inputfile.baf, inputfile.logr, dist_choice, ascat_dist_choice, min.ploidy=1.6, max.ploidy=4.8, min.rho=0.1,  max.rho=1.05, min.goodness=63, uninformative_BAF_threshold=0.51, gamma_param=1, use_preset_rho_psi=F, preset_rho=NA, preset_psi=NA, read_depth=30) {
+fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmented, inputfile.baf, inputfile.logr, dist_choice, ascat_dist_choice, min.ploidy=1.6, max.ploidy=4.8, min.rho=0.1,  max.rho=1.0, min.goodness=63, uninformative_BAF_threshold=0.51, gamma_param=1, use_preset_rho_psi=F, preset_rho=NA, preset_psi=NA, read_depth=30) {
   
   assert.file.exists(inputfile.baf.segmented)
   assert.file.exists(inputfile.baf)
@@ -590,6 +590,8 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
       nmaj_curr = round(calc_nmaj(rho, psi, subclones$BAF[i], subclones$LogR[i], platform_gamma))
       nmin_prev = round(calc_nmin(rho, psi, subclones$BAF[i-1], subclones$LogR[i-1], platform_gamma))
       nmaj_prev = round(calc_nmaj(rho, psi, subclones$BAF[i-1], subclones$LogR[i-1], platform_gamma))
+      
+      print(paste(i, " ", rho, " ", psi, " ", subclones$BAF[i-1], " ", subclones$LogR[i-1], sep=""))
       
       # Perform t-test on the BAFphased
       if (sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]])) > 10 & 
