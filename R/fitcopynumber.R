@@ -31,12 +31,10 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   
   # Check for enough options supplied for rho and psi
   if ((max.ploidy - min.ploidy) < 0.05) {
-    warning(paste("Supplied ploidy range must be larger than 0.05: ", min.ploidy, "-", max.ploidy, sep=""))
-    quit(save="no", status=1)
+    stop(paste("Supplied ploidy range must be larger than 0.05: ", min.ploidy, "-", max.ploidy, sep=""))
   }
   if ((max.rho - min.rho) < 0.01) {
-    warning(paste("Supplied rho range must be larger than 0.01: ", min.rho, "-", max.rho, sep=""))
-    quit(save="no", status=1)
+    stop(paste("Supplied rho range must be larger than 0.01: ", min.rho, "-", max.rho, sep=""))
   }
   
   # Read in the required data
@@ -147,11 +145,12 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   if(use_preset_rho_psi){
     ascat_optimum_pair = list(rho=preset_rho, psi = preset_psi, ploidy = preset_psi)
   }else{
-    distance.outfile=paste(outputfile.prefix,"distance.png",sep="",collapse="") # kjd 20-2-2014
-    copynumberprofile.outfile=paste(outputfile.prefix,"copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
-    nonroundedprofile.outfile=paste(outputfile.prefix,"nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
+    distance.outfile=paste(outputfile.prefix, "distance.png", sep="", collapse="") # kjd 20-2-2014
+    copynumberprofile.outfile=paste(outputfile.prefix, "copynumberprofile.png", sep="", collapse="") # kjd 20-2-2014
+    nonroundedprofile.outfile=paste(outputfile.prefix, "nonroundedprofile.png", sep="", collapse="") # kjd 20-2-2014
+    cnaStatusFile = paste(start.file, "copynumber_solution_status.txt", sep="", collapse="")
     
-    ascat_optimum_pair=runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness) # kjd 4-2-2014
+    ascat_optimum_pair = runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, cnaStatusFile=cnaStatusFile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness) # kjd 4-2-2014
   }
   
   distance.outfile=paste(outputfile.prefix,"second_distance.png",sep="",collapse="") # kjd 20-2-2014
@@ -601,6 +600,8 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
         # If not enough SNPs to reliably do a t-test we keep the separate segments, so set this to TRUE
         baf_significant = T
       }
+      
+      print(paste(baf_significant, " & ", nmin_curr, "==", nmin_prev, " & ", nmaj_curr, "==", nmaj_prev, sep=""))
       
       if (!baf_significant & nmin_curr==nmin_prev & nmaj_curr==nmaj_prev) {
         # MERGE

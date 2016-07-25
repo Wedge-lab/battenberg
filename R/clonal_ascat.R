@@ -1242,18 +1242,20 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
 #' @param distancepng if NA: distance is plotted, if filename is given, the plot is written to a .png file (Default NA)
 #' @param copynumberprofilespng if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file (Default NA)
 #' @param nonroundedprofilepng if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)
+#' @param cnaStatusFile File where the copy number profile status is written to. This contains either the message "No suitable copy number solution found" or "X copy number solutions found" (Default copynumber_solution_status.txt)
 #' @param gamma technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
 #' @param allow100percent A boolean whether to allow a 100"\%" cellularity solution
 #' @param reliabilityFile String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)
 #' @param min.ploidy The minimum ploidy to consider (Default 1.6)
 #' @param max.ploidy The maximum ploidy to consider (Default 4.8)
 #' @param min.rho The minimum cellularity to consider (Default 0.1)
+#' @param max.rho The maximum cellularity to consider (Default 1.0)
 #' @param min.goodness The minimum goodness of fit for a solution to have to be considered (Default 63)
 #' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative (Default 0.51)
 #' @return A list with fields psi, rho and ploidy
 #' @export
 #the limit on rho is lenient and may lead to spurious solutions
-runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,max.rho=1.05,min.goodness=63, uninformative_BAF_threshold = 0.51) {
+runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, cnaStatusFile = "copynumber_solution_status.txt", gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,max.rho=1.0,min.goodness=63, uninformative_BAF_threshold = 0.51) {
   ch = chromosomes
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
@@ -1372,6 +1374,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   rho_opt1_plot = vector(mode="numeric")
 
   if (nropt>0) {
+    write.table(paste(nropt, " copy number solutions found", sep=""), file=cnaStatusFile, quote=F, col.names=F, row.names=F)
     optlim = sort(localmin)[1]
     for (i in 1:length(optima)) {
       if(optima[[i]][1] == optlim) {  
@@ -1388,7 +1391,11 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
       }
     }
   } else {
-	  print("No solution found")
+    write.table(paste("no copy number solutions found", sep=""), file=cnaStatusFile, quote=F, col.names=F, row.names=F)
+    print("No suitable copy number solution found")
+    psi = NA
+    ploidy = NA
+    rho = NA
   }
 
   # separated plotting from logic: create distanceplot here
