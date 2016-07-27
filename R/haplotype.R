@@ -47,7 +47,7 @@ GetChromosomeBAFs_SNP6 = function(chrom, alleleFreqFile, haplotypeFile, samplena
 #' @param minCounts An integer describing the minimum number of reads covering this position to be included in the output.
 #' @author dw9
 #' @export
-GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile, chr_names, minCounts=10) {
+GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile, chr_names, minCounts=1) {
   # Read in the SNP and haplotype info
   snp_data = read.table(SNP_file, comment.char="", sep="\t", header=T, stringsAsFactors=F)
   variant_data = read.table(haplotypeFile, header=F)
