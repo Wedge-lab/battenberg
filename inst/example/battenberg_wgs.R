@@ -43,6 +43,7 @@ MIN_RHO = 0.1
 MIN_GOODNESS_OF_FIT = 0.63
 BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
+MIN_TUMOUR_DEPTH = 1
 MIN_BASE_QUAL = 20
 MIN_MAP_QUAL = 35
 
@@ -132,7 +133,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.
                     samplename=TUMOURNAME, 
                     outfile=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                     chr_names=chrom_names, 
-                    minCounts=MIN_NORMAL_DEPTH)
+                    minCounts=MIN_TUMOUR_DEPTH)
 
   # Plot what we have until this point
   plot.haplotype.data(haplotyped.baf.file=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
@@ -142,7 +143,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.
                       chr_names=chrom_names)
 
   # Cleanup temp Impute output
-  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "*K.txt*", sep=""))
+  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "_*K.txt*", sep=""))
 }
 
 # Kill the threads as from here its all single core
