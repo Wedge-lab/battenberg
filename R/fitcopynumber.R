@@ -184,6 +184,9 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param output.figures.prefix Prefix of the filenames for the chromosome specific copy number figures
 #' @param output.gw.figures.prefix Prefix of the filenames for the genome wide copy number figures
 #' @param chr_names Vector of allowed chromosome names
+#' @param masking_output_file Filename of where the masking details need to be written. Masking is performed to remove very high copy number state segments
+#' @param max_allowed_state The maximum CN state allowed (Default 100)
+#' @param sv_breakpoints_file A two column file with breakpoints from structural variants. These are used when making the figures
 #' @param gamma Technology specific scaling parameter for LogR (Default 1)
 #' @param segmentation.gamma Legacy parameter that is no longer used (Default NA)
 #' @param siglevel Threshold under which a p-value becomes significant. When it is significant a second copy number state will be fitted (Default 0.05)
@@ -191,7 +194,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param noperms The number of permutations to be run when bootstrapping the confidence intervals on the copy number state of each segment (Default 1000)
 #' @author dw9, sd11
 #' @export
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, sv_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time())) {
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=100, sv_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time())) {
   
   set.seed(seed)
   
@@ -236,23 +239,32 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # = as.vector(ctrans.logR[as.vector(LogRvals[,1])]*1000000000+LogRvals[,2])
   BAFpos = as.vector(ctrans[as.vector(BAFvals[,1])]*1000000000+BAFvals[,2])
  
-  save(file="subclones_temp.RData", BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
+  #save(file="subclones_temp.RData", BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
   
   ################################################################################################
   # Determine copy number for each segment
   ################################################################################################
   res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
   subcloneres = res$subcloneres
-  #write.table(subcloneres, gsub(".txt", "_1.txt", output.file), quote=F, col.names=T, row.names=F, sep="\t")
+  write.table(subcloneres, gsub(".txt", "_1.txt", output.file), quote=F, col.names=T, row.names=F, sep="\t")
 
   # Scan the segments for cases that should be merged
   res = merge_segments(subcloneres, BAFvals, LogRvals, rho, psi, gamma)
   BAFvals = res$bafsegmented
-  write.table(BAFvals, file=baf.segmented.file, sep="\t", row.names=F, col.names=T, quote=F)
   
   res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
   subcloneres = res$subcloneres
   BAFpvals = res$BAFpvals
+  
+  # Scan for very high copy number segments and set those to NA - This is in part an artifact of small segments
+  res = mask_high_cn_segments(subcloneres, BAFvals, max_allowed_state)
+  subcloneres = res$subclones
+  BAFvals = res$bafsegmented
+  write.table(BAFvals, file=baf.segmented.file, sep="\t", row.names=F, col.names=T, quote=F)
+  # Write the masking details to file
+  masking_details = data.frame(samplename=sample.name, masked_count=res$masked_count, masked_size=res$masked_size, max_allowed_state=max_allowed_state)
+  write.table(masking_details, file=masking_output_file, quote=F, col.names=T, row.names=F, sep="\t")
+  # Write the final copy number profile
   write.table(subcloneres, output.file, quote=F, col.names=T, row.names=F, sep="\t")
   
   ################################################################################################
@@ -477,7 +489,6 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
       
     }
   }
-  print(head(subcloneres))
   colnames(subcloneres) = c("chr","startpos","endpos","BAF","pval","LogR","ntot",
                             "nMaj1_A","nMin1_A","frac1_A","nMaj2_A","nMin2_A","frac2_A","SDfrac_A","SDfrac_A_BS","frac1_A_0.025","frac1_A_0.975",
                             "nMaj1_B","nMin1_B","frac1_B","nMaj2_B","nMin2_B","frac2_B","SDfrac_B","SDfrac_B_BS","frac1_B_0.025","frac1_B_0.975",
@@ -561,9 +572,9 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
         new_entry = data.frame(subclones[i-1,])
         new_entry$endpos = subclones[i,]$endpos
         new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
-                               bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]))
+                               bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
         new_entry$LogR = mean(c(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3], 
-                                logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3]))
+                                logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3]), na.rm=T)
         subclones_cleaned = rbind(subclones_cleaned, new_entry)
         
         # Set BAFseg to reflect the current segment
@@ -614,9 +625,9 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
         new_entry = data.frame(subclones[i-1,])
         new_entry$endpos = subclones$endpos[i]
         new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
-                               bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]))
+                               bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
         new_entry$LogR = mean(c(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3], 
-                                logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3]))
+                                logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3]), na.rm=T)
         subclones_cleaned = rbind(subclones_cleaned, new_entry)
         
         # Set BAFseg to reflect the current segment
@@ -641,6 +652,31 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
     counter = counter+1
   }
   return(list(bafsegmented=bafsegmented, subclones=subclones))
+}
+
+#' Mask segments that have a too high CN state
+#' @param subclones
+#' @param bafsegmented
+#' @param max_allowed_state
+#' @return A list with the masked subclones, bafsegmented and the number of segments masked and their total genome size
+#' @author sd11
+mask_high_cn_segments = function(subclones, bafsegmented, max_allowed_state) {
+  count = 0
+  masked_size = 0
+  for (i in 1:nrow(subclones)) {
+    if (subclones$nMaj1_A[i] > max_allowed_state | subclones$nMin1_A[i] > max_allowed_state) {
+      # Mask this segment
+      subclones[i, "nMaj1_A"] = NA
+      subclones[i, "nMin1_A"] = NA
+      subclones[i, "nMaj2_A"] = NA
+      subclones[i, "nMin2_A"] = NA
+      # Mask the BAFsegmented
+      bafsegmented[subclones$chr[i] == bafsegmented$Chromosome & subclones$startpos[i] < bafsegmented$Position & subclones$endpos[i] >= bafsegmented$Position,c("BAFseg")] = NA
+      count = count+1
+      masked_size = masked_size + (subclones$endpos[i]-subclones$startpos[i])
+    }
+  }
+  return(list(subclones=subclones, bafsegmented=bafsegmented, masked_count=count, masked_size=masked_size))
 }
   
 
