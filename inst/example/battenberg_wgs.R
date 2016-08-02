@@ -10,8 +10,8 @@ library(Battenberg)
 library(doParallel)
 
 ###############################################################################
-# 2015-04-12
-# A pure R Battenberg v2.0.0 SNP6 pipeline implementation.
+# 2016-08-03
+# A pure R Battenberg v2.0.1 WGS pipeline implementation.
 # sd11@sanger.ac.uk
 ###############################################################################
 
@@ -37,12 +37,14 @@ PHASING_GAMMA = 1
 SEGMENTATION_GAMMA = 10
 CLONALITY_DIST_METRIC = 0
 ASCAT_DIST_METRIC = 1
-MIN_PLOIDY = 1.6
-MAX_PLOIDY = 4.8
-MIN_RHO = 0.1
+MIN_PLOIDY = 1.6 #1.6
+MAX_PLOIDY = 4.8 #4.8
+MIN_RHO = 0.13 #0.1
+MAX_RHO = 1.02 #1
 MIN_GOODNESS_OF_FIT = 0.63
 BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
+MIN_TUMOUR_DEPTH = 1
 MIN_BASE_QUAL = 20
 MIN_MAP_QUAL = 35
 
@@ -132,7 +134,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.
                     samplename=TUMOURNAME, 
                     outfile=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                     chr_names=chrom_names, 
-                    minCounts=MIN_NORMAL_DEPTH)
+                    minCounts=MIN_TUMOUR_DEPTH)
 
   # Plot what we have until this point
   plot.haplotype.data(haplotyped.baf.file=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
@@ -142,7 +144,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.
                       chr_names=chrom_names)
 
   # Cleanup temp Impute output
-  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "*K.txt*", sep=""))
+  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "_*K.txt*", sep=""))
 }
 
 # Kill the threads as from here its all single core
@@ -155,6 +157,7 @@ combine.baf.files(inputfile.prefix=paste(TUMOURNAME, "_chr", sep=""),
                   no.chrs=length(chrom_names))
 
 # Segment the phased and haplotyped BAF data
+# Call segment.baf.phased.sv when SVs are available
 segment.baf.phased(samplename=TUMOURNAME,
                      inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
                      outputfile=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""),
@@ -174,6 +177,7 @@ fit.copy.number(samplename=TUMOURNAME,
                 min.ploidy=MIN_PLOIDY, 
                 max.ploidy=MAX_PLOIDY, 
                 min.rho=MIN_RHO, 
+                max.rho=MAX_RHO,
                 min.goodness=MIN_GOODNESS_OF_FIT, 
                 uninformative_BAF_threshold=BALANCED_THRESHOLD, 
                 gamma_param=PLATFORM_GAMMA, 
@@ -190,9 +194,12 @@ callSubclones(sample.name=TUMOURNAME,
               output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
               output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
               output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""),
+              masking_output_file=paste(TUMOURNAME,"_segment_masking_details.txt", sep=""),
               chr_names=chrom_names, 
               gamma=PLATFORM_GAMMA, 
               segmentation.gamma=NA, 
               siglevel=0.05, 
               maxdist=0.01, 
-              noperms=1000)
+              noperms=1000,
+              max_allowed_state=250, 
+              sv_breakpoints_file=NULL)

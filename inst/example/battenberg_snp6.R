@@ -4,7 +4,7 @@ NORMALCEL = toString(args[2])
 TUMOURCEL = toString(args[3])
 RUN_DIR = toString(args[4])
 
-library(Battenberg, lib="~/R/x86_64-unknown-linux-gnu-library/3.2/")
+library(Battenberg)
 library(doParallel)
 
 ###############################################################################
@@ -42,9 +42,10 @@ PHASING_GAMMA = 1
 SEGMENTATION_GAMMA = 10
 CLONALITY_DIST_METRIC = 0
 ASCAT_DIST_METRIC = 1
-MIN_PLOIDY = 1.6
-MAX_PLOIDY = 4.8
-MIN_RHO = 0.1
+MIN_PLOIDY = 1.6 #1.6
+MAX_PLOIDY = 4.8 #4.8
+MIN_RHO = 0.13 #0.1
+MAX_RHO = 1.02 #1
 MIN_GOODNESS_OF_FIT = 0.63
 BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
@@ -128,7 +129,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run
                       chr_names=chrom_names)
   
   # Cleanup temp Impute output
-  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "*K.txt*", sep=""))
+  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "_*K.txt*", sep=""))
 }
 
 # Kill the threads as from here its all single core
@@ -141,6 +142,7 @@ combine.baf.files(inputfile.prefix=paste(TUMOURNAME, "_chr", sep=""),
                   no.chrs=length(chrom_names))
 
 # Segment the phased and haplotyped BAF data
+# Call segment.baf.phased.sv when SVs are available
 segment.baf.phased(samplename=TUMOURNAME,
                    inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
                    outputfile=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""),
@@ -154,12 +156,13 @@ fit.copy.number(samplename=TUMOURNAME,
                 outputfile.prefix=paste(TUMOURNAME, "_", sep=""),
                 inputfile.baf.segmented=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
                 inputfile.baf=paste(TUMOURNAME,"_mutantBAF.tab", sep=""), 
-                inputfile.logr=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
+                inputfile.logr=paste(TUMOURNAME,"_mutantLogR_gcCorrected.tab", sep=""), 
                 dist_choice=CLONALITY_DIST_METRIC, 
                 ascat_dist_choice=ASCAT_DIST_METRIC, 
                 min.ploidy=MIN_PLOIDY, 
                 max.ploidy=MAX_PLOIDY, 
                 min.rho=MIN_RHO, 
+                max.rho=MAX_RHO,
                 min.goodness=MIN_GOODNESS_OF_FIT, 
                 uninformative_BAF_threshold=BALANCED_THRESHOLD, 
                 gamma_param=PLATFORM_GAMMA, 
@@ -171,14 +174,17 @@ fit.copy.number(samplename=TUMOURNAME,
 # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
 callSubclones(sample.name=TUMOURNAME, 
               baf.segmented.file=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
-              logr.file=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
+              logr.file=paste(TUMOURNAME,"_mutantLogR_gcCorrected.tab", sep=""), 
               rho.psi.file=paste(TUMOURNAME, "_rho_and_psi.txt",sep=""), 
               output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
               output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
               output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""),
+              masking_output_file=paste(TUMOURNAME,"_segment_masking_details.txt", sep=""),
               chr_names=chrom_names, 
               gamma=PLATFORM_GAMMA, 
               segmentation.gamma=NA, 
               siglevel=0.05, 
               maxdist=0.01, 
-              noperms=1000)
+              noperms=1000,
+              max_allowed_state=250, 
+              sv_breakpoints_file=NULL)

@@ -6,8 +6,9 @@
 \usage{
 runASCAT(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice,
   distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA,
-  gamma = 0.55, allow100percent, reliabilityFile = NA, min.ploidy = 1.6,
-  max.ploidy = 4.8, min.rho = 0.1, max.rho = 1.05, min.goodness = 63,
+  cnaStatusFile = "copynumber_solution_status.txt", gamma = 0.55,
+  allow100percent, reliabilityFile = NA, min.ploidy = 1.6,
+  max.ploidy = 4.8, min.rho = 0.1, max.rho = 1, min.goodness = 63,
   uninformative_BAF_threshold = 0.51)
 }
 \arguments{
@@ -29,6 +30,8 @@ runASCAT(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice,
 
 \item{nonroundedprofilepng}{if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)}
 
+\item{cnaStatusFile}{File where the copy number profile status is written to. This contains either the message "No suitable copy number solution found" or "X copy number solutions found" (Default copynumber_solution_status.txt)}
+
 \item{gamma}{technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)}
 
 \item{allow100percent}{A boolean whether to allow a 100"\%" cellularity solution}
@@ -40,6 +43,8 @@ runASCAT(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice,
 \item{max.ploidy}{The maximum ploidy to consider (Default 4.8)}
 
 \item{min.rho}{The minimum cellularity to consider (Default 0.1)}
+
+\item{max.rho}{The maximum cellularity to consider (Default 1.0)}
 
 \item{min.goodness}{The minimum goodness of fit for a solution to have to be considered (Default 63)}
 
