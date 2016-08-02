@@ -45,5 +45,30 @@ parse_svs_1 = function(vcffile, ref_genome="hg19") {
   output = with(output, output[order(chromosome, position),])
   output$chromosome = as.character(output$chromosome)
   output = unique(output)
+  output = output[with(output, order(chromosome, position)),]
   return(output)
 }
+
+#' Helper function that works on cases where SVs have been encoded as such:
+#' 
+#' #CHROM  POS     ...      INFO
+#' 1       123     ...     ...CHR2=1;END=143274758...
+#' 1       234     ...     ...CHR2=1;END=143274758...
+#' 1       280     ...     ...CHR2=1;END=143274758...
+parse_svs_2 = function(vcffile, ref_genome="hg19") {
+  v = readVcf(vcffile, ref_genome)
+  output = data.frame(chromosome=seqnames(v), position=start(v))
+  output = rbind(output, data.frame(chromosome=info(v)$CHR2, position=info(v)$END))
+  return(output)
+}
+
+parse_delly_svs = function(vcffile, outfile, ref_genome="hg19") {
+  svs = parse_svs_2(vcffile, ref_genome)
+  write_svs(svs, outfile)
+  return(svs)
+}
+
+
+
+
+
