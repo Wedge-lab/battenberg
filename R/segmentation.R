@@ -102,9 +102,10 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
 #' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default 3)
 #' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default 3)
 #' @param phasekmin Kmin parameter used when correcting phasing mistakes (Default 3)
+#' @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
 #' @author sd11, dw9
 #' @export
-segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=10, phasegamma=3, kmin=3, phasekmin=3) {
+segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F) {
   
   #' Function that takes SNPs that belong to a single segment and looks for big holes between
   #' each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
@@ -195,8 +196,9 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
   #' @param phasegamma
   #' @param kmin
   #' @param gamma
+  #' @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
   #' @return A data.frame with columns Chromosome,Position,BAF,BAFphased,BAFseg
-  run_pcf = function(BAFrawchr, presegment_chrom_start, presegment_chrom_end, phasekmin, phasegamma, kmin, gamma) {
+  run_pcf = function(BAFrawchr, presegment_chrom_start, presegment_chrom_end, phasekmin, phasegamma, kmin, gamma, no_segmentation=F) {
     row.indices = which(BAFrawchr$Position >= presegment_chrom_start & 
                           BAFrawchr$Position <= presegment_chrom_end)
     
@@ -227,7 +229,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     
     BAFphased = ifelse(BAFsegm>0.5,BAF,1-BAF)
     
-    if(length(BAFphased)<50){
+    if(length(BAFphased)<50 | no_segmentation){
       BAFphseg = rep(mean(BAFphased),length(BAFphased))
     }else{
       res = Battenberg:::selectFastPcf(BAFphased,kmin,gamma*sdev,T)
@@ -259,7 +261,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     
     for (r in 1:nrow(breakpoints_chrom)) {
       print(breakpoints_chrom[r,])
-      BAFoutput_preseg = run_pcf(BAFrawchr, breakpoints_chrom$start[r], breakpoints_chrom$end[r], phasekmin, phasegamma, kmin, gamma)
+      BAFoutput_preseg = run_pcf(BAFrawchr, breakpoints_chrom$start[r], breakpoints_chrom$end[r], phasekmin, phasegamma, kmin, gamma, no_segmentation)
       BAFoutputchr = rbind(BAFoutputchr, BAFoutput_preseg)
     }
     
