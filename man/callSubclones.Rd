@@ -6,9 +6,9 @@
 \usage{
 callSubclones(sample.name, baf.segmented.file, logr.file, rho.psi.file,
   output.file, output.figures.prefix, output.gw.figures.prefix, chr_names,
-  sv_breakpoints_file = NULL, gamma = 1, segmentation.gamma = NA,
-  siglevel = 0.05, maxdist = 0.01, noperms = 1000,
-  seed = as.integer(Sys.time()))
+  masking_output_file, max_allowed_state = 100, sv_breakpoints_file = NULL,
+  gamma = 1, segmentation.gamma = NA, siglevel = 0.05, maxdist = 0.01,
+  noperms = 1000, seed = as.integer(Sys.time()))
 }
 \arguments{
 \item{sample.name}{Name of the sample, used in figures}
@@ -26,6 +26,12 @@ callSubclones(sample.name, baf.segmented.file, logr.file, rho.psi.file,
 \item{output.gw.figures.prefix}{Prefix of the filenames for the genome wide copy number figures}
 
 \item{chr_names}{Vector of allowed chromosome names}
+
+\item{masking_output_file}{Filename of where the masking details need to be written. Masking is performed to remove very high copy number state segments}
+
+\item{max_allowed_state}{The maximum CN state allowed (Default 100)}
+
+\item{sv_breakpoints_file}{A two column file with breakpoints from structural variants. These are used when making the figures}
 
 \item{gamma}{Technology specific scaling parameter for LogR (Default 1)}
 

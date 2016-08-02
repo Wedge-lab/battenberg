@@ -115,19 +115,10 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 	selection = c(selection, matched.segmented.BAF.data.chr[,2] %in% logR.data.chr[,2])
   }
 
-  print(dim(matched.segmented.BAF.data))
-  print(dim(segmented.logR.data))
-
   matched.segmented.BAF.data = matched.segmented.BAF.data[selection,]
   segmented.logR.data = segmented.logR.data[selection,]
-
-  print(dim(matched.segmented.BAF.data))
-  print(dim(segmented.logR.data))
-  print(dim(logR.data))
-
   row.names(segmented.logR.data) = row.names(matched.segmented.BAF.data)
   row.names(logR.data) = row.names(matched.segmented.BAF.data)
-  
   write.table(segmented.logR.data,paste(samplename,".logRsegmented.txt",sep=""),sep="\t",quote=F,col.names=F,row.names=F)
   
   segBAF = 1-matched.segmented.BAF.data[,5]
@@ -136,7 +127,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   names(segBAF) = rownames(matched.segmented.BAF.data)
   names(segLogR) = rownames(matched.segmented.BAF.data)
   names(logR) = rownames(matched.segmented.BAF.data)
-  print(unique(logR.data[,1]))
+  
   chr.segs = NULL
   for(ch in 1:length(chr.names)){
     chr.segs[[ch]] = which(logR.data[,1]==chr.names[ch])
@@ -194,7 +185,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param noperms The number of permutations to be run when bootstrapping the confidence intervals on the copy number state of each segment (Default 1000)
 #' @author dw9, sd11
 #' @export
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=100, sv_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time())) {
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, sv_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time())) {
   
   set.seed(seed)
   
@@ -357,9 +348,6 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
   pval = NULL
   BAFpvals = vector(length=length(BAFseg))
   subcloneres = NULL
-
-  print(head(BAFvals))
-  print(head(LogRvals))
 
   for (i in 1:length(BAFlevels)) {
     # subcloneres = rbind(subcloneres, fit_segment(BAFpos, LogRpos, BAFlevels, BAFphased, LogRvals, switchpoints, rho, psi, gamma, i))
@@ -526,6 +514,7 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
   counter = 1
   previous_merged = F
   
+  print("Merging segments")
   while(merged) {
     print(paste0("Iter: ",counter))
     merged = F
@@ -539,7 +528,6 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
 
       # Don't do any double merging. This needs to happen at the next iteration, as we've just merged i with i-1 we don't add i again
       if (previous_merged) {
-        print("previous merged, skip next")
         previous_merged = F
         #subclones_cleaned = rbind(subclones_cleaned, subclones[i-1,])
         next
@@ -565,10 +553,6 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
       # It would be nice to store the baf and logr values for this segment temporarily, but the memory allocation time is too great, therefore the selection happens a couple of times inline below
       if (not_subclonal & nmin_equals & nmaj_equals) {
         # MERGE
-        print("MERGING 3")
-        print(subclones[i-1,1:11])
-        print(subclones[i,1:11])
-        
         new_entry = data.frame(subclones[i-1,])
         new_entry$endpos = subclones[i,]$endpos
         new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
@@ -602,8 +586,6 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
       nmin_prev = round(calc_nmin(rho, psi, subclones$BAF[i-1], subclones$LogR[i-1], platform_gamma))
       nmaj_prev = round(calc_nmaj(rho, psi, subclones$BAF[i-1], subclones$LogR[i-1], platform_gamma))
       
-      print(paste(i, " ", rho, " ", psi, " ", subclones$BAF[i-1], " ", subclones$LogR[i-1], sep=""))
-      
       # Perform t-test on the BAFphased
       if (sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]])) > 10 & 
           sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]])) > 10) {
@@ -614,14 +596,8 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
         baf_significant = T
       }
       
-      print(paste(baf_significant, " & ", nmin_curr, "==", nmin_prev, " & ", nmaj_curr, "==", nmaj_prev, sep=""))
-      
       if (!baf_significant & nmin_curr==nmin_prev & nmaj_curr==nmaj_prev) {
         # MERGE
-        print("MERGING 4")
-        print(subclones[i-1,1:11])
-        print(subclones[i,1:11])
-        
         new_entry = data.frame(subclones[i-1,])
         new_entry$endpos = subclones$endpos[i]
         new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 

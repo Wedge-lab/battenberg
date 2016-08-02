@@ -256,11 +256,9 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     svs_chrom = svs[svs$chromosome==chr,]
     
     breakpoints_chrom = svs_to_presegment_breakpoints(chr, svs_chrom, BAFrawchr, addin_bigholes=T)
-    print(breakpoints_chrom)
     BAFoutputchr = NULL
     
     for (r in 1:nrow(breakpoints_chrom)) {
-      print(breakpoints_chrom[r,])
       BAFoutput_preseg = run_pcf(BAFrawchr, breakpoints_chrom$start[r], breakpoints_chrom$end[r], phasekmin, phasegamma, kmin, gamma, no_segmentation)
       BAFoutputchr = rbind(BAFoutputchr, BAFoutput_preseg)
     }

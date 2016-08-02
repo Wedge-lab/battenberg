@@ -5,7 +5,7 @@
 \title{Segment BAF with the inclusion of structural variant breakpoints}
 \usage{
 segment.baf.phased.sv(samplename, inputfile, outputfile, svs, gamma = 10,
-  phasegamma = 3, kmin = 3, phasekmin = 3)
+  phasegamma = 3, kmin = 3, phasekmin = 3, no_segmentation = F)
 }
 \arguments{
 \item{samplename}{Name of the sample, which is used to name output figures}
@@ -23,6 +23,8 @@ segment.baf.phased.sv(samplename, inputfile, outputfile, svs, gamma = 10,
 \item{kmin}{Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default 3)}
 
 \item{phasekmin}{Kmin parameter used when correcting phasing mistakes (Default 3)}
+
+\item{no_segmentation}{Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm}
 }
 \description{
 This function takes the SV breakpoints as initial segments and runs PCF on each
