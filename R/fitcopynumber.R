@@ -272,7 +272,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ################################################################################################
   # Collapse the BAFsegmented into breakpoints to be used in plotting
   segment_breakpoints = collapse_bafsegmented_to_segments(BAFvals)
-  if (!is.null(sv_breakpoints_file)) {
+  if (!is.null(sv_breakpoints_file) & !sv_breakpoints_file=="NA") {
     svs = read.table(sv_breakpoints_file, header=T, stringsAsFactors=F)
   }
   
