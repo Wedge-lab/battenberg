@@ -10,8 +10,8 @@ library(Battenberg)
 library(doParallel)
 
 ###############################################################################
-# 2015-04-12
-# A pure R Battenberg v2.0.0 SNP6 pipeline implementation.
+# 2016-08-03
+# A pure R Battenberg v2.0.1 WGS pipeline implementation.
 # sd11@sanger.ac.uk
 ###############################################################################
 
@@ -157,6 +157,7 @@ combine.baf.files(inputfile.prefix=paste(TUMOURNAME, "_chr", sep=""),
                   no.chrs=length(chrom_names))
 
 # Segment the phased and haplotyped BAF data
+# Call segment.baf.phased.sv when SVs are available
 segment.baf.phased(samplename=TUMOURNAME,
                      inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
                      outputfile=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""),
@@ -176,6 +177,7 @@ fit.copy.number(samplename=TUMOURNAME,
                 min.ploidy=MIN_PLOIDY, 
                 max.ploidy=MAX_PLOIDY, 
                 min.rho=MIN_RHO, 
+                max.rho=MAX_RHO,
                 min.goodness=MIN_GOODNESS_OF_FIT, 
                 uninformative_BAF_threshold=BALANCED_THRESHOLD, 
                 gamma_param=PLATFORM_GAMMA, 
@@ -192,9 +194,12 @@ callSubclones(sample.name=TUMOURNAME,
               output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
               output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
               output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""),
+              masking_output_file=paste(TUMOURNAME,"_segment_masking_details.txt", sep=""),
               chr_names=chrom_names, 
               gamma=PLATFORM_GAMMA, 
               segmentation.gamma=NA, 
               siglevel=0.05, 
               maxdist=0.01, 
-              noperms=1000)
+              noperms=1000,
+              max_allowed_state=250, 
+              sv_breakpoints_file=NULL)
