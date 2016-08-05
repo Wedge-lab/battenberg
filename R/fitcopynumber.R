@@ -273,7 +273,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     #if no points to plot, skip
     if (length(pos)==0) { next }
     
-    if (!is.null(sv_breakpoints_file)) {
+    if (!is.null(sv_breakpoints_file) & !sv_breakpoints_file=="NA") {
       svs_pos = svs[svs$chromosome==chr,]$position / 1000000
     } else {
       svs_pos = NULL
@@ -315,7 +315,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   is_subclonal_min[is.na(is_subclonal_min)] = F
   segment_states_min = subclones$nMin1_A * ifelse(is_subclonal_min, subclones$frac1_A, 1)  + ifelse(is_subclonal_min, subclones$nMin2_A, 0) * ifelse(is_subclonal_min, subclones$frac2_A, 0) 
   segment_states_maj = subclones$nMaj1_A * ifelse(is_subclonal_maj, subclones$frac1_A, 1)  + ifelse(is_subclonal_maj, subclones$nMaj2_A, 0) * ifelse(is_subclonal_maj, subclones$frac2_A, 0) 
-  ploidy = sum((segment_states_min+segment_states_maj) * seg_length) / sum(seg_length)
+  ploidy = sum((segment_states_min+segment_states_maj) * seg_length, na.rm=T) / sum(seg_length, na.rm=T)
   
   # Plot genome wide figures
   plot.gw.subclonal.cn(subclones=subclones, BAFvals=BAFvals, rho=rho, ploidy=ploidy, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix, chr.names=chr_names)
