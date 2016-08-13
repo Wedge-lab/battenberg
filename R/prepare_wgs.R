@@ -290,6 +290,14 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
   GCcorrected[,3] = model$residuals
     
   corr = data.frame(windowsize=names(corr), correlation=corr)
-  write.table(corr, file=correlations_outfile, sep="\t", quote=F, row.names=F)
+  write.table(corr, file=gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
   write.table(GCcorrected, file=outfile, sep="\t", quote=F, row.names=F)
+  
+  # Recalculate the correlations to see how much there is left
+  flag_nona = is.finite(GCcorrected[,3])
+  corr = cor(GC_data[flag_nona, 3:ncol(GC_data)], GCcorrected[flag_nona,3], use="complete.obs")
+  length = nrow(GCcorrected)
+  corr = apply(corr, 1, function(x) sum(abs(x*length))/sum(length))
+  corr = data.frame(windowsize=names(corr), correlation=corr)
+  write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
 }
