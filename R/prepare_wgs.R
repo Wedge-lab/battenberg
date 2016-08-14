@@ -288,8 +288,23 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
   
   GCcorrected = Tumor_LogR[!flag_NA,]
   GCcorrected[,3] = model$residuals
-    
+  rm(Tumor_LogR)
+  
   corr = data.frame(windowsize=names(corr), correlation=corr)
-  write.table(corr, file=correlations_outfile, sep="\t", quote=F, row.names=F)
+  write.table(corr, file=gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
   write.table(GCcorrected, file=outfile, sep="\t", quote=F, row.names=F)
+  
+  # Recalculate the correlations to see how much there is left
+  snps_gccorrected = paste(GCcorrected[,1], GCcorrected[,2], sep="_")
+  snps_gcdata = paste(GC_data[,1], GC_data[,2], sep="_")
+  snps_intersect = intersect(snps_gccorrected, snps_gcdata)
+  GCcorrected = GCcorrected[snps_gccorrected %in% snps_intersect, ]
+  GC_data = GC_data[snps_gcdata %in% snps_intersect, ]
+  
+  flag_nona = is.finite(GCcorrected[,3])
+  corr = cor(GC_data[flag_nona, 3:ncol(GC_data)], GCcorrected[flag_nona,3], use="complete.obs")
+  length = nrow(GCcorrected)
+  corr = apply(corr, 1, function(x) sum(abs(x*length))/sum(length))
+  corr = data.frame(windowsize=names(corr), correlation=corr)
+  write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
 }
