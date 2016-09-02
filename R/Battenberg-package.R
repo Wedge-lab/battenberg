@@ -4,4 +4,5 @@
 #' @author Stefan Dentro, \email{sd11@@sanger.ac.uk}
 #' @keywords package
 #' @importFrom RColorBrewer brewer.pal
+#' @importFrom readr read_table
 NA
