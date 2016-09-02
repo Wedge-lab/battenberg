@@ -38,9 +38,12 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   }
   
   # Read in the required data
-  segmented.BAF.data = read.table(inputfile.baf.segmented, sep="\t", header=T, stringsAsFactors=F) #, row.names=1
-  raw.BAF.data = read.table(inputfile.baf, sep="\t", header=T, stringsAsFactors=F)
-  raw.logR.data = read.table(inputfile.logr, sep="\t", header=T, stringsAsFactors=F)
+  # segmented.BAF.data = read.table(inputfile.baf.segmented, sep="\t", header=T, stringsAsFactors=F) #, row.names=1
+  segmented.BAF.data = read_table_generic(inputfile.baf.segmented)
+  # raw.BAF.data = read.table(inputfile.baf, sep="\t", header=T, stringsAsFactors=F)
+  raw.BAF.data = read_table_generic(inputfile.baf)
+  # raw.logR.data = read.table(inputfile.logr, sep="\t", header=T, stringsAsFactors=F)
+  raw.logR.data = read_table_generic(inputfile.logr)
   
   # Assign rownames as those are required by various clonal_ascat.R functions
   # If there are duplicates (possible with old versions of BB) then remove those
@@ -197,7 +200,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   goodness = res$goodness
   
   # Load the BAF segmented data
-  BAFvals = read.table(baf.segmented.file, sep="\t", header=T, stringsAsFactors=F) #, row.names=F
+  # BAFvals = read.table(baf.segmented.file, sep="\t", header=T, stringsAsFactors=F) #, row.names=F
+  BAFvals = read_table_generic(baf.segmented.file)
   if (colnames(BAFvals)[1] == "X") {
 	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
 	  BAFvals = BAFvals[,-1]
@@ -211,7 +215,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   SNPpos = BAFvals[,c(1,2)]
   
   # Load the raw LogR data
-  LogRvals = read.table(logr.file,sep="\t", header=T, stringsAsFactors=F)
+  # LogRvals = read.table(logr.file,sep="\t", header=T, stringsAsFactors=F)
+  LogRvals = read_table_generic(logr.file)
   if (colnames(LogRvals)[1] == "X") {
 	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
 	  LogRvals = LogRvals[,-1]

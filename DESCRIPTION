@@ -15,6 +15,7 @@ Depends:
   R (>= 2.13.0),
   RColorBrewer,
   ASCAT,
-  ggplot2
+  ggplot2,
+  readr
 URL: https://github.com/sdentro/Battenberg
 LazyLoad: yes
