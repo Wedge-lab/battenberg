@@ -1,3 +1,29 @@
+
+#' Helper function to adjust the BAF segmented values. By default the segmentation
+#' takes the mean BAFphased for each segment, but that doesn't work very well with
+#' outliers (i.e. badly phased regions). This function is then called to adjust
+#' the segmented BAF. By default this now takes the median
+#' @param baf_chrom A data frame with columns BAFphased and BAFseg. BAFseg will be overwritten.
+#' @return A data frame with columns BAFphased and BAFseg.
+#' @author sd11
+#' @noRd
+adjustSegmValues = function(baf_chrom) {
+  segs = rle(baf_chrom$BAFseg)
+  for (i in 1:length(segs$lengths)) {
+    end = cumsum(segs$lengths[1:i])
+    end = end[length(end)]
+    start = (end-segs$lengths[i]) + 1 # segs$lengths contains end points
+    # baf_chrom$bafmean[start:end] = mean(baf_chrom$BAFphased[start:end])
+    baf_chrom$BAFseg[start:end] = median(baf_chrom$BAFphased[start:end])
+    # This needs the ASCAT version of PCF
+    # datwins = madWins(baf_chrom$BAFphased[start:end], 2.5, 25)$ywin
+    # baf_chrom$madwins_mean[start:end] = mean(datwins)
+    # baf_chrom$madwins_median[start:end] = median(datwins)
+  }
+  return(baf_chrom)
+}
+
+
 #' Segment the haplotyped and phased data using fastPCF.
 #' 
 #' This function performs segmentation. This is done in two steps. First a segmentation step
@@ -67,6 +93,9 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
       res = selectFastPcf(BAFphased,kmin,gamma*sdev,T)
       BAFphseg = res$yhat
     }
+    
+    # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
+    BAFphseg = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
     
     png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
     create.baf.plot(chrom.position=pos/1000000, 
@@ -234,6 +263,11 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     }else{
       res = Battenberg:::selectFastPcf(BAFphased,kmin,gamma*sdev,T)
       BAFphseg = res$yhat
+    }
+    
+    if (length(BAF) > 0) {
+      # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
+      BAFphseg = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
     }
     
     return(data.frame(Chromosome=rep(chr, length(row.indices)), 
