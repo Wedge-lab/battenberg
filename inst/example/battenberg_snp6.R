@@ -21,16 +21,19 @@ library(doParallel)
 # RUN_DIR = "/lustre/scratch110/sanger/sd11/battenberg_package_test/NASCR-0016_bb_v2.0_singlecore"
 
 # Parallelism parameters
-NTHREADS = 6
+NTHREADS = 8
 
 # General static
-IMPUTEINFOFILE = "/srv/data/vanloo/pipeline-files/human/references/1000genomes/1000genomes_2012_v3_impute/impute_info.txt"
-G1000PREFIX = "/srv/data/vanloo/pipeline-files/human/references/1000genomes/1000genomes_2012_v3_loci/1000genomesAlleles2012_chr"
+# IMPUTEINFOFILE = "/srv/data/vanloo/pipeline-files/human/references/1000genomes/1000genomes_2012_v3_impute/impute_info.txt"
+# G1000PREFIX = "/srv/data/vanloo/pipeline-files/human/references/1000genomes/1000genomes_2012_v3_loci/1000genomesAlleles2012_chr"
+IMPUTEINFOFILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt"
+G1000PREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
 IMPUTE_EXE = "impute2"
 
 # General SNP6 specific
 PROBLEMLOCI = NA
-SNP6_REF_INFO_FILE = "/srv/data/vanloo/pipeline-files/human/references/battenberg/battenberg_snp6/snp6_ref_info_file.txt"
+# SNP6_REF_INFO_FILE = "/srv/data/vanloo/pipeline-files/human/references/battenberg/battenberg_snp6/snp6_ref_info_file.txt"
+SNP6_REF_INFO_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/snp6_ref_info_file.txt"
 APT_PROBESET_GENOTYPE_EXE = "apt-probeset-genotype"
 APT_PROBESET_SUMMARIZE_EXE = "apt-probeset-summarize"
 NORM_GENO_CLUST_EXE = "normalize_affy_geno_cluster.pl"
@@ -53,7 +56,7 @@ MIN_NORMAL_DEPTH = 10
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
 chrom_names = get.chrom.names(IMPUTEINFOFILE, TRUE)
-
+if (F) {
 # Setup for parallel computing
 clp = makeCluster(NTHREADS)
 registerDoParallel(clp)
@@ -129,7 +132,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run
                       chr_names=chrom_names)
   
   # Cleanup temp Impute output
-  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "_*K.txt*", sep=""))
+  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, ".txt_*K.txt*", sep=""))
 }
 
 # Kill the threads as from here its all single core
@@ -156,7 +159,7 @@ fit.copy.number(samplename=TUMOURNAME,
                 outputfile.prefix=paste(TUMOURNAME, "_", sep=""),
                 inputfile.baf.segmented=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
                 inputfile.baf=paste(TUMOURNAME,"_mutantBAF.tab", sep=""), 
-                inputfile.logr=paste(TUMOURNAME,"_mutantLogR_gcCorrected.tab", sep=""), 
+                inputfile.logr=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
                 dist_choice=CLONALITY_DIST_METRIC, 
                 ascat_dist_choice=ASCAT_DIST_METRIC, 
                 min.ploidy=MIN_PLOIDY, 
@@ -170,11 +173,11 @@ fit.copy.number(samplename=TUMOURNAME,
                 preset_rho=NA, 
                 preset_psi=NA, 
                 read_depth=30)
-
+}
 # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
 callSubclones(sample.name=TUMOURNAME, 
               baf.segmented.file=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
-              logr.file=paste(TUMOURNAME,"_mutantLogR_gcCorrected.tab", sep=""), 
+              logr.file=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
               rho.psi.file=paste(TUMOURNAME, "_rho_and_psi.txt",sep=""), 
               output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
               output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
@@ -187,4 +190,4 @@ callSubclones(sample.name=TUMOURNAME,
               maxdist=0.01, 
               noperms=1000,
               max_allowed_state=250, 
-              sv_breakpoints_file=NULL)
+              sv_breakpoints_file="NA")
