@@ -8,13 +8,13 @@ library(Battenberg)
 library(doParallel)
 
 ###############################################################################
-# 2015-05-05
-# A pure R Battenberg v2.1.0 SNP6 pipeline implementation.
+# 2016-10-06
+# A pure R Battenberg v2.2.2 SNP6 pipeline implementation.
 # sd11@sanger.ac.uk
 ###############################################################################
 
 # Sample specific
-#IS.MALE = F
+# IS.MALE = F
 # TUMOURNAME = "NASCR-0016"
 # NORMALCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016B1.CEL"
 # TUMOURCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016.CEL"
@@ -24,15 +24,12 @@ library(doParallel)
 NTHREADS = 8
 
 # General static
-# IMPUTEINFOFILE = "/srv/data/vanloo/pipeline-files/human/references/1000genomes/1000genomes_2012_v3_impute/impute_info.txt"
-# G1000PREFIX = "/srv/data/vanloo/pipeline-files/human/references/1000genomes/1000genomes_2012_v3_loci/1000genomesAlleles2012_chr"
 IMPUTEINFOFILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt"
 G1000PREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
 IMPUTE_EXE = "impute2"
 
 # General SNP6 specific
 PROBLEMLOCI = NA
-# SNP6_REF_INFO_FILE = "/srv/data/vanloo/pipeline-files/human/references/battenberg/battenberg_snp6/snp6_ref_info_file.txt"
 SNP6_REF_INFO_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/snp6_ref_info_file.txt"
 APT_PROBESET_GENOTYPE_EXE = "apt-probeset-genotype"
 APT_PROBESET_SUMMARIZE_EXE = "apt-probeset-summarize"
@@ -56,7 +53,7 @@ MIN_NORMAL_DEPTH = 10
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
 chrom_names = get.chrom.names(IMPUTEINFOFILE, TRUE)
-if (F) {
+
 # Setup for parallel computing
 clp = makeCluster(NTHREADS)
 registerDoParallel(clp)
@@ -86,8 +83,6 @@ gender = infer_gender_birdseed(BIRDSEED_REPORT_FILE)
 is_male = gender == "male"
 chrom_names = get.chrom.names(IMPUTEINFOFILE, is_male)
 
-# for (chrom in 1:length(chrom_names)) {
-#, .export=c("generate.impute.input.snp6","run.impute","combine.impute.output","GetChromosomeBAFs_SNP6","plot.haplotype.data")
 foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run.impute","combine.impute.output","GetChromosomeBAFs_SNP6","plot.haplotype.data")) %dopar% {
   # Transform input into a format that Impute2 takes
   generate.impute.input.snp6(infile.probeBAF=paste(TUMOURNAME, "_probeBAF.txt", sep=""), 
@@ -145,7 +140,7 @@ combine.baf.files(inputfile.prefix=paste(TUMOURNAME, "_chr", sep=""),
                   no.chrs=length(chrom_names))
 
 # Segment the phased and haplotyped BAF data
-# Call segment.baf.phased.sv when SVs are available
+# Call segment.baf.phased.sv when SVs are available - not relevant for SNP6 data
 segment.baf.phased(samplename=TUMOURNAME,
                    inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
                    outputfile=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""),
@@ -173,7 +168,7 @@ fit.copy.number(samplename=TUMOURNAME,
                 preset_rho=NA, 
                 preset_psi=NA, 
                 read_depth=30)
-}
+
 # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
 callSubclones(sample.name=TUMOURNAME, 
               baf.segmented.file=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
