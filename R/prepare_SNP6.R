@@ -188,12 +188,12 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   Tumor_LogR = round(Tumor_LogR,4)
   Normal_LogR = round(Normal_LogR,4)
   
-  write.table(cbind(SNPpos,Tumor_BAF), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Normal_BAF), paste(outfile.normal.BAF, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Tumor_BAF), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, quote=F)
+  write.table(cbind(SNPpos,Normal_BAF), paste(outfile.normal.BAF, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, quote=F)
   
   # read into ASCAT and make GC corrected input:
-  write.table(cbind(SNPpos,Tumor_LogR), paste(outfile.tumor.LogR, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
-  write.table(cbind(SNPpos,Normal_LogR), paste(outfile.normal.LogR, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, col.names=NA, quote=F)
+  write.table(cbind(SNPpos,Tumor_LogR), paste(outfile.tumor.LogR, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, quote=F)
+  write.table(cbind(SNPpos,Normal_LogR), paste(outfile.normal.LogR, "_noGCcorr.txt", sep=""), sep="\t", row.names=T, quote=F)
   
   # ======================================= above previous prepareGCcorrect, below runGCcorrect ==============================================
   
@@ -216,12 +216,12 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_LogR, 4))
   dat = dat[which(is.het),]
   colnames(dat) = c("Chromosome", "Position", samplename)
-  write.table(dat, file=outfile.normal.LogR, row.names=T, quote=F, sep="\t")
+  write.table(dat, file=outfile.normal.LogR, row.names=F, quote=F, sep="\t")
 
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_BAF, 4))
   dat = dat[which(is.het),]
   colnames(dat) = c("Chromosome", "Position", samplename)
-  write.table(dat, file=outfile.normal.BAF, row.names=T, quote=F, sep="\t")
+  write.table(dat, file=outfile.normal.BAF, row.names=F, quote=F, sep="\t")
 
   # Save the probe ids plus their BAF for only the germline heterozygous mutations
   select = !is.na(ascat.bc$Tumor_BAF)
@@ -232,14 +232,14 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_BAF, 4))
   dat = dat[which(select),]
   colnames(dat) = c("Chromosome", "Position", samplename)
-  write.table(dat, file=outfile.tumor.BAF, row.names=T, quote=F, sep="\t")
+  write.table(dat, file=outfile.tumor.BAF, row.names=F, quote=F, sep="\t")
 
   # Save tumour BAF and LogR directly. Include homozygous SNPs here.
   select = !is.na(ascat.bc$Tumor_LogR)
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_LogR, 4))
   dat = dat[which(select),]
   colnames(dat) = c("Chromosome", "Position", samplename)
-  write.table(dat, file=outfile.tumor.LogR, row.names=T, quote=F, sep="\t")
+  write.table(dat, file=outfile.tumor.LogR, row.names=F, quote=F, sep="\t")
 }
 
 #' Prepares data for impute
