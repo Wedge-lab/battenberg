@@ -361,6 +361,10 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   nB = (rho-1+BAFreq*2^(LogR/gamma_param)*((1-rho)*2+rho*psi))/rho
   nMajor = max(nA,nB)
   nMinor = min(nA,nB)
+
+  # TODO remove
+  #print(paste0("nMaj ", nMajor))
+  #print(paste0("nMin ", nMinor))
     
 	# check for big shifts in nMajor - if there's a big shift, we shouldn't trust a clonal call
 	nMajor.saved = nMajor
@@ -402,6 +406,14 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   #DCW - just test corners on the nearest edge to determine clonality
   #If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
   all.edges = orderEdges(BAF_levels, BAFreq, ntot,x,y)
+
+  # TODO remove
+  # print(all.edges)
+  # print(ntot)
+  # print(x)
+  # print(y)
+
+
   nMaj.test = all.edges[1,c(1,3)]
   nMin.test = all.edges[1,c(2,4)]
   test.BAF_levels = (1-rho+rho*nMaj.test)/(2-2*rho+rho*(nMaj.test+nMin.test))
@@ -416,7 +428,15 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   }else{
   	#pval[i] = t.test(BAFreq,alternative="two.sided",mu=BAF_levels[whichclosestlevel])$p.value
   	#pval = t.test(BAFreq,alternative="two.sided",mu=test.BAF_levels[whichclosestlevel.test])$p.value
+	  # TODO remove
+	  #print("\tBEFORE call")
+	  #print(test.BAF_levels)
+	  #print(whichclosestlevel.test)
+	  #print(test.BAF_levels-BAFreq)
+	  #print(test.BAF_levels[whichclosestlevel.test])
+	  #print(maxdist_BAF)
   	pval = calc_Pvalue_t_twotailed( BAF.size, BAFreq, BAF.sd, test.BAF_levels[whichclosestlevel.test], maxdist_BAF)
+	#print("AFTER call")
   }
   #not necessary, because checked in calc_Pvalue_t_twotailed
   #if(min(abs(l-test.BAF_levels[whichclosestlevel.test]))<maxdist_BAF) {
@@ -1638,6 +1658,10 @@ recalc_psi_t = function(psi, rho, gamma_param, lrrsegmented, segBAF.table, sigle
   # Fetch all segments, if required check which ones are clonal with this rho/psi configuration
   segs = list()
   for (i in 1:nrow(s)) {
+    print(i)
+    print(paste0("data ", s[i,]))
+    print(rho)
+    print(psi)
     read_depth = NA # Unused parameter
     maxdist_LogR = NA # Unused parameter
     siglevel_LogR = NA # Unused parameter
