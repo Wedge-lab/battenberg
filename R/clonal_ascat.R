@@ -332,8 +332,14 @@ get.psi.rho.from.ref.seg <-function( ref_seg, s, nA_ref, nB_ref, gamma_param = 1
 	nB = (rho-1+s[,"b"]*2^(s[,"r"]/gamma_param)*((1-rho)*2+rho*psi))/rho
 	ploidy = sum((nA+nB) * s[,"length"]) / sum(s[,"length"])
 		
+	# TODO DEBUG
+	if (rho > 0) {
+		ref_segment_info = list( psi = psi, rho = rho, ploidy = ploidy )
+	} else {
+		ref_segment_info = list( psi = NA, rho = NA, ploidy = NA )
+	}
+
 	
-	ref_segment_info = list( psi = psi, rho = rho, ploidy = ploidy )
 	
 	return( ref_segment_info )	
 }
@@ -362,10 +368,6 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   nMajor = max(nA,nB)
   nMinor = min(nA,nB)
 
-  # TODO remove
-  #print(paste0("nMaj ", nMajor))
-  #print(paste0("nMin ", nMinor))
-    
 	# check for big shifts in nMajor - if there's a big shift, we shouldn't trust a clonal call
 	nMajor.saved = nMajor
 	## to make sure we're always in a positive square:
@@ -407,13 +409,6 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   #If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
   all.edges = orderEdges(BAF_levels, BAFreq, ntot,x,y)
 
-  # TODO remove
-  # print(all.edges)
-  # print(ntot)
-  # print(x)
-  # print(y)
-
-
   nMaj.test = all.edges[1,c(1,3)]
   nMin.test = all.edges[1,c(2,4)]
   test.BAF_levels = (1-rho+rho*nMaj.test)/(2-2*rho+rho*(nMaj.test+nMin.test))
@@ -428,15 +423,7 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   }else{
   	#pval[i] = t.test(BAFreq,alternative="two.sided",mu=BAF_levels[whichclosestlevel])$p.value
   	#pval = t.test(BAFreq,alternative="two.sided",mu=test.BAF_levels[whichclosestlevel.test])$p.value
-	  # TODO remove
-	  #print("\tBEFORE call")
-	  #print(test.BAF_levels)
-	  #print(whichclosestlevel.test)
-	  #print(test.BAF_levels-BAFreq)
-	  #print(test.BAF_levels[whichclosestlevel.test])
-	  #print(maxdist_BAF)
   	pval = calc_Pvalue_t_twotailed( BAF.size, BAFreq, BAF.sd, test.BAF_levels[whichclosestlevel.test], maxdist_BAF)
-	#print("AFTER call")
   }
   #not necessary, because checked in calc_Pvalue_t_twotailed
   #if(min(abs(l-test.BAF_levels[whichclosestlevel.test]))<maxdist_BAF) {
@@ -1227,10 +1214,16 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
 		rho_opt1 = ref_segment_info$rho
 		ploidy_opt1 = ref_segment_info$ploidy
 		
+		# TODO DEBUG
+		if (!is.na(rho_opt1)) {
 		#goodness of fit is the same as the distance measure for fraction of genome that is clonal
   		distance.info = calc_distance_clonal( s, dist_choice, rho_opt1, psi_opt1, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold)
   		goodnessOfFit_opt1 = distance.info$distance_value		
 		#goodnessOfFit_opt1 = ref_segment_info$goodnessOfFit_opt1
+		} else {
+			goodnessOfFit_opt1 = Inf
+		}
+
 	} 
 
 	# store optima for plotting later
@@ -1497,7 +1490,6 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 #' @export
 run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA, psi_min_initial=1.0, psi_max_initial=5.4, rho_min_initial=0.1, rho_max_initial=1.05) # kjd 10-1-2014
 {
-  
   siglevel_BAF = 0.05 # kjd 21-2-2014
   # siglevel_BAF = 0.005 # kjd 21-2-2014
   
@@ -1562,10 +1554,12 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   distance.from.ref.seg = goodnessOfFit_opt1
   
   is.ref.better = F
-  if(psi_opt1>= psi_min_initial & psi_opt1<= psi_max_initial & rho_opt1>= rho_min_initial & rho_opt1<= rho_max_initial & ((minimise & distance.from.ref.seg<best.distance)|(!minimise & distance.from.ref.seg>best.distance))){
+  if (is.na(rho_opt1)) {
+	  print("reference segment did not provide a possible solution")
+  } else if(psi_opt1>= psi_min_initial & psi_opt1<= psi_max_initial & rho_opt1>= rho_min_initial & rho_opt1<= rho_max_initial & ((minimise & distance.from.ref.seg<best.distance)|(!minimise & distance.from.ref.seg>best.distance))){
 	  is.ref.better = T
 	  print("reference segment gives better results than grid search")
-  }else{
+  } else {
 	  print("reference segment gives no better results than grid search. Reverting to grid search solution")
   }
 
@@ -1658,10 +1652,6 @@ recalc_psi_t = function(psi, rho, gamma_param, lrrsegmented, segBAF.table, sigle
   # Fetch all segments, if required check which ones are clonal with this rho/psi configuration
   segs = list()
   for (i in 1:nrow(s)) {
-    print(i)
-    print(paste0("data ", s[i,]))
-    print(rho)
-    print(psi)
     read_depth = NA # Unused parameter
     maxdist_LogR = NA # Unused parameter
     siglevel_LogR = NA # Unused parameter
