@@ -9,7 +9,7 @@
 #' @param sep Column separator (Default: \t)
 #' @param chrom_col The column number that contains chromosome denominations. This column will automatically be cast as a character. Should be counted including the row.names (Default: 1)
 #' @param skip The number of rows to skip before reading (Default: 0)
-#' @return: A data frame with contents of the file 
+#' @return A data frame with contents of the file 
 #' @export
 read_table_generic = function(file, header=T, row.names=F, stringsAsFactor=F, sep="\t", chrom_col=1, skip=0) {
   # stringsAsFactor is not needed here, but kept for legacy purposes

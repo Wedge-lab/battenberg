@@ -264,11 +264,12 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
       res = Battenberg:::selectFastPcf(BAFphased,kmin,gamma*sdev,T)
       BAFphseg = res$yhat
     }
-    
-    if (length(BAF) > 0) {
-      # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
-      BAFphseg = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
-    }
+
+    # Adjusting the BAFseg values is commented out for now as it is introducing a bias in the purity
+    # if (length(BAF) > 0) {
+    #   # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
+    #   BAFphseg = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
+    # }
     
     return(data.frame(Chromosome=rep(chr, length(row.indices)), 
                       Position=BAFrawchr[row.indices,1], 
