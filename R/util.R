@@ -83,7 +83,7 @@ concatenateAlleleCountFiles = function(inputStart, inputEnd, no.chrs) {
       infiles = c(infiles, filename)
     }
   }
-  return(do.call(rbind, lapply(infiles, FUN=function(x) { read.table(x, header=T, sep="\t", comment.char="") })))
+  return(do.call(rbind, lapply(infiles, FUN=function(x) { readr::read_tsv(x, progress=F) })))
 }
 
 #' Function to concatenate 1000 Genomes SNP reference files
@@ -97,8 +97,7 @@ concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs) {
       infiles = c(infiles, filename)
     }
   }
-  #infiles = paste(inputStart, 1:no.chrs, inputEnd, sep="")
-  return(do.call(rbind, lapply(infiles, FUN=function(x) { read.table(x, sep="\t", header=T) })))
+  return(do.call(rbind, lapply(infiles, FUN=function(x) { readr::read_tsv(x, progress=F) })))
 }
 
 #' Check if a file exists, if it doesn't, exit non-clean
