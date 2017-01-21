@@ -154,7 +154,7 @@ calc_ln_likelihood_ratio <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mea
   #	nMinor = 0.01
   #}
   #DCW - increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
-  if(nMinor<0){
+  if(nMinor<0 | is.na(nMinor)){
     if(BAFreq==1){
       #avoid calling infinite copy number
       nMajor = 1000
@@ -163,38 +163,44 @@ calc_ln_likelihood_ratio <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mea
     }
     nMinor = 0.01		
   }
+
+  if (!is.finite(nMajor)) {
+    nMajor = 0.01
+  }
+
+  # Check if there is a viable solution
+  if (!is.na(BAFreq)) { 
+    nearest_edge = GetNearestCorners_bestOption( rho, psi, BAFreq, nMajor, nMinor ) # kjd 14-2-2014
+    nMaj = nearest_edge$nMaj # kjd 14-2-2014
+    nMin = nearest_edge$nMin # kjd 14-2-2014
   
-  nearest_edge = GetNearestCorners_bestOption( rho, psi, BAFreq, nMajor, nMinor ) # kjd 14-2-2014
-  nMaj = nearest_edge$nMaj # kjd 14-2-2014
-  nMin = nearest_edge$nMin # kjd 14-2-2014
   
+    BAF_levels = (1-rho+rho*nMaj)/(2-2*rho+rho*(nMaj+nMin))
   
-  BAF_levels = (1-rho+rho*nMaj)/(2-2*rho+rho*(nMaj+nMin))
+    index_vect = which( is.finite(BAF_levels) ) # kjd 14-2-2014
+    BAF_levels = BAF_levels[ index_vect ] # kjd 14-2-2014
   
-  index_vect = which( is.finite(BAF_levels) ) # kjd 14-2-2014
-  BAF_levels = BAF_levels[ index_vect ] # kjd 14-2-2014
-  
-  if( length( BAF_levels ) > 1 ) # kjd 14-2-2014
-  {
-    likelihood_vect = sapply( BAF_levels , function(x){ calc_binomial_prob( BAF.mean, pooled_BAF.size, x ) } )
-    likelihood_vect = sort( likelihood_vect, decreasing = TRUE )
-    
-    if( ( likelihood_vect[1] > 0 ) && ( likelihood_vect[2] > 0 ) )
+    if( length( BAF_levels ) > 1 ) # kjd 14-2-2014
     {
-      ln_lratio = log( likelihood_vect[1] ) - log( likelihood_vect[2] )
+      likelihood_vect = sapply( BAF_levels , function(x){ calc_binomial_prob( BAF.mean, pooled_BAF.size, x ) } )
+      likelihood_vect = sort( likelihood_vect, decreasing = TRUE )
+    
+      if( ( likelihood_vect[1] > 0 ) && ( likelihood_vect[2] > 0 ) )
+      {
+        ln_lratio = log( likelihood_vect[1] ) - log( likelihood_vect[2] )
       
-      
+      }else
+      {
+        ln_lratio = 0
+      }
+    
     }else
     {
       ln_lratio = 0
-      
     }
-    
-  }else
-  {
+  } else {
     ln_lratio = 0
-    
-  }	
+  }
   
   return( ln_lratio )
   
@@ -365,8 +371,18 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   
   nA = (rho-1-(BAFreq-1)*2^(LogR/gamma_param)*((1-rho)*2+rho*psi))/rho
   nB = (rho-1+BAFreq*2^(LogR/gamma_param)*((1-rho)*2+rho*psi))/rho
-  nMajor = max(nA,nB)
-  nMinor = min(nA,nB)
+
+  if (any(is.na(nA) | is.na(nB)) | any(nA < 0 | nB < 0)) {
+    # Reset any negative copy number to 0
+    index = which(is.na(nA) | is.na(nB) | nA < 0 | nB < 0)
+    print(paste("is.segment.clonal: Found negative copy number for segment", index, "BAF:", BAFreq[index], "logR:", LogR[index], "seg size:", BAF.size[index], "baf.sd:", BAF.sd[index]))
+    nA[nA < 0 | is.na(nA)] = 0
+    nB[nB < 0 | is.na(nB)] = 0
+  }
+
+
+  nMajor = max(nA,nB, na.rm=T)
+  nMinor = min(nA,nB, na.rm=T)
 
 	# check for big shifts in nMajor - if there's a big shift, we shouldn't trust a clonal call
 	nMajor.saved = nMajor
@@ -456,11 +472,11 @@ calc_standardised_error <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean
 	nMinor = (rho-1+(1-BAFreq)*psi*2^(LogR/gamma_param))/rho
 	
 	# to make sure we're always in a positive square:
-	if(nMajor < 0) {
+	if(nMajor < 0 | is.na(nMajor)) {
 		nMajor = 0.01
 	}
 	
-	if(nMinor < 0) {
+	if(nMinor < 0 | is.na(nMinor)) {
 		nMinor = 0.01
 	}
 	
@@ -489,7 +505,8 @@ calc_standardised_error <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean
 	mu=BAF_levels[whichclosestlevel] # kjd 28-1-2014
 	included_segment = 0 # kjd 31-1-2014
 	if( BAF.size>0 ) { # kjd 13-1-2014
-		if( BAF.sd==0 ) {
+
+		if( BAF.sd==0 | length(mu)==0) {
 			# pval=0 # kjd 31-1-2014
 			tvar=0 # kjd 31-1-2014
 			
@@ -959,7 +976,6 @@ create_distance_matrix = function(s, dist_choice, gamma_param, uninformative_BAF
 #' @noRd
 create_distance_matrix_clonal = function( segs, dist_choice, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold, new_bounds) # kjd 18-12-2013
 {
-  
   psi_min = new_bounds$psi_min
   psi_max = new_bounds$psi_max
   rho_min = new_bounds$rho_min
@@ -1137,7 +1153,7 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
       }     
     }
   }	  
-  
+
   #
   # Find a "centroid" of the set of global minima:
   #
