@@ -63,7 +63,7 @@ concatenateBAFfiles<-function(inputStart, inputEnd, outputFile, no.chrs) {
     filename = paste(inputStart,i,inputEnd,sep="")
     if(file.exists(filename) && file.info(filename)$size>0)
     {
-      data<-as.data.frame(readr::read_tsv(filename))
+      data<-as.data.frame(read_table_generic(filename))
       all_data<-rbind(all_data,data)
       colNames<-names(data)
     }
@@ -83,7 +83,7 @@ concatenateAlleleCountFiles = function(inputStart, inputEnd, no.chrs) {
       infiles = c(infiles, filename)
     }
   }
-  return(as.data.frame(do.call(rbind, lapply(infiles, FUN=function(x) { readr::read_tsv(x, progress=F) }))))
+  return(as.data.frame(do.call(rbind, lapply(infiles, FUN=function(x) { read_table_generic(x, progress=F) }))))
 }
 
 #' Function to concatenate 1000 Genomes SNP reference files
@@ -97,7 +97,7 @@ concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs) {
       infiles = c(infiles, filename)
     }
   }
-  return(as.data.frame(do.call(rbind, lapply(infiles, FUN=function(x) { readr::read_tsv(x, progress=F) }))))
+  return(as.data.frame(do.call(rbind, lapply(infiles, FUN=function(x) { read_table_generic(x, progress=F) }))))
 }
 
 #' Check if a file exists, if it doesn't, exit non-clean
