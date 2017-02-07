@@ -33,7 +33,7 @@ GetChromosomeBAFs_SNP6 = function(chrom, alleleFreqFile, haplotypeFile, samplena
   print(paste(nrow(variant_data),length(alleleFreqs),sep=","))
   # Combine the allele frequencies and variant info and save output
   knownMutBAFs = cbind(chr_name,variant_data[,3],alleleFreqs)
-  write.table(knownMutBAFs,outputfile,sep="\t",row.names=paste("snp",1:nrow(knownMutBAFs),sep=""),col.names=c("Chromosome","Position",samplename),quote=F)	
+  write.table(knownMutBAFs, outputfile, sep="\t", row.names=F, col.names=c("Chromosome", "Position", samplename), quote=F)	
 }
 
 #' Morphs phased SNPs from WGS input into haplotype blocks
