@@ -8,8 +8,8 @@ library(Battenberg)
 library(doParallel)
 
 ###############################################################################
-# 2016-10-06
-# A pure R Battenberg v2.2.2 SNP6 pipeline implementation.
+# 2017-02-07
+# A pure R Battenberg v2.2.3 SNP6 pipeline implementation.
 # sd11@sanger.ac.uk
 ###############################################################################
 
@@ -18,19 +18,19 @@ library(doParallel)
 # TUMOURNAME = "NASCR-0016"
 # NORMALCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016B1.CEL"
 # TUMOURCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016.CEL"
-# RUN_DIR = "/lustre/scratch110/sanger/sd11/battenberg_package_test/NASCR-0016_bb_v2.0_singlecore"
+# RUN_DIR = getwd()
 
 # Parallelism parameters
 NTHREADS = 8
 
 # General static
-IMPUTEINFOFILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute/impute_info.txt"
-G1000PREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
+IMPUTEINFOFILE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_impute/impute_info.txt"
+G1000PREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012/1000genomesAlleles2012_chr"
 IMPUTE_EXE = "impute2"
 
 # General SNP6 specific
 PROBLEMLOCI = NA
-SNP6_REF_INFO_FILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_snp6/snp6_ref_info_file.txt"
+SNP6_REF_INFO_FILE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_snp6/snp6_ref_info_file.txt"
 APT_PROBESET_GENOTYPE_EXE = "apt-probeset-genotype"
 APT_PROBESET_SUMMARIZE_EXE = "apt-probeset-summarize"
 NORM_GENO_CLUST_EXE = "normalize_affy_geno_cluster.pl"
@@ -84,6 +84,7 @@ is_male = gender == "male"
 chrom_names = get.chrom.names(IMPUTEINFOFILE, is_male)
 
 foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run.impute","combine.impute.output","GetChromosomeBAFs_SNP6","plot.haplotype.data")) %dopar% {
+
   # Transform input into a format that Impute2 takes
   generate.impute.input.snp6(infile.probeBAF=paste(TUMOURNAME, "_probeBAF.txt", sep=""), 
                              outFileStart=paste(TUMOURNAME, "_impute_input_chr", sep=""), 
@@ -110,7 +111,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run
                         imputeinfofile=IMPUTEINFOFILE,
                         region.size=5000000,
                         chrom=chrom)
-  
+
   # Transform the impute output into haplotyped BAFs
   GetChromosomeBAFs_SNP6(chrom=chrom,
                          alleleFreqFile=paste(TUMOURNAME, "_impute_input_chr", chrom, "_withAlleleFreq.csv", sep=""),

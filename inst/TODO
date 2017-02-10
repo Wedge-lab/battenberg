@@ -1,8 +1,3 @@
 Additions to consider
 * Functions to check whether impute2 and other dependencies are available
-* complete example BB WGS
-* pre-proc SNP6
-* segmentation and fitting SNP6
-* pre-proc WGS
-* segmentation and fitting WGS
-* Code to obtain gender from data for WGS and SNP6
+* Code to obtain sex from data for WGS

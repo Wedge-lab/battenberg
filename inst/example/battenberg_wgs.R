@@ -10,8 +10,8 @@ library(Battenberg)
 library(doParallel)
 
 ###############################################################################
-# 2016-08-03
-# A pure R Battenberg v2.0.1 WGS pipeline implementation.
+# 2017-02-07
+# A pure R Battenberg v2.2.3 WGS pipeline implementation.
 # sd11@sanger.ac.uk
 ###############################################################################
 
@@ -22,35 +22,36 @@ library(doParallel)
 #IS.MALE = F
 #TUMOURBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422a.bam"
 #NORMALBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422b.bam"
+#RUN_DIR = getwd()
 
 # Parallelism parameters
 NTHREADS = 6
 
 # General static
-IMPUTEINFOFILE = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_impute_v3/impute_info.txt"
-G1000PREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
-G1000PREFIX_AC = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
-GCCORRECTPREFIX = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_"
+IMPUTEINFOFILE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_impute_v3/impute_info.txt"
+G1000PREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
+G1000PREFIX_AC = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
+GCCORRECTPREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_"
+IMPUTE_EXE = "impute2"
+
 
 PLATFORM_GAMMA = 1
 PHASING_GAMMA = 1
 SEGMENTATION_GAMMA = 10
 CLONALITY_DIST_METRIC = 0
 ASCAT_DIST_METRIC = 1
-MIN_PLOIDY = 1.6 #1.6
-MAX_PLOIDY = 4.8 #4.8
-MIN_RHO = 0.13 #0.1
-MAX_RHO = 1.02 #1
+MIN_PLOIDY = 1.6
+MAX_PLOIDY = 4.8
+MIN_RHO = 0.1
 MIN_GOODNESS_OF_FIT = 0.63
 BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
-MIN_TUMOUR_DEPTH = 1
 MIN_BASE_QUAL = 20
 MIN_MAP_QUAL = 35
 
 # WGS specific static
 ALLELECOUNTER = "alleleCounter"
-PROBLEMLOCI = "/lustre/scratch110/sanger/sd11/Documents/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
+PROBLEMLOCI = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
 
 chrom_names = get.chrom.names(IMPUTEINFOFILE, IS.MALE)
 
@@ -74,8 +75,8 @@ foreach(i=1:length(chrom_names), .export=c("getAlleleCounts")) %dopar% {
                   min.base.qual=MIN_BASE_QUAL,
                   min.map.qual=MIN_MAP_QUAL,
                   allelecounter.exe=ALLELECOUNTER)
-}
 
+}
 # Obtain BAF and LogR from the raw allele counts
 getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(TUMOURNAME,"_alleleFrequencies_chr", sep=""), 
                 normalAlleleCountsFile.prefix=paste(NORMALNAME,"_alleleFrequencies_chr", sep=""),
@@ -89,13 +90,13 @@ getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(TUMOURNAME,"_alleleFrequenci
                 g1000file.prefix=G1000PREFIX, 
                 minCounts=MIN_NORMAL_DEPTH, 
                 samplename=TUMOURNAME)
-
 # Perform GC correction
 gc.correct.wgs(Tumour_LogR_file=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
                outfile=paste(TUMOURNAME,"_mutantLogR_gcCorrected.tab", sep=""),
                correlations_outfile=paste(TUMOURNAME, "_GCwindowCorrelations.txt", sep=""),
                gc_content_file_prefix=GCCORRECTPREFIX, 
                chrom_names=chrom_names)
+
 
 # These steps are independent and can be run in parallel. This could be done through multi-threading or splitting these up into separate jobs on a cluster.
 foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.impute","combine.impute.output","GetChromosomeBAFs","plot.haplotype.data")) %dopar% {
@@ -115,7 +116,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.
              outputfile.prefix=paste(TUMOURNAME, "_impute_output_chr", chrom, ".txt", sep=""), 
              is.male=IS.MALE, 
              imputeinfofile=IMPUTEINFOFILE, 
-             impute.exe="impute2", 
+             impute.exe=IMPUTE_EXE, 
              region.size=5000000, 
              chrom=chrom)
   
@@ -134,7 +135,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.
                     samplename=TUMOURNAME, 
                     outfile=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                     chr_names=chrom_names, 
-                    minCounts=MIN_TUMOUR_DEPTH)
+                    minCounts=MIN_NORMAL_DEPTH)
 
   # Plot what we have until this point
   plot.haplotype.data(haplotyped.baf.file=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
@@ -144,7 +145,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.wgs","run.
                       chr_names=chrom_names)
 
   # Cleanup temp Impute output
-  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "_*K.txt*", sep=""))
+  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, "*K.txt*", sep=""))
 }
 
 # Kill the threads as from here its all single core
@@ -157,7 +158,6 @@ combine.baf.files(inputfile.prefix=paste(TUMOURNAME, "_chr", sep=""),
                   no.chrs=length(chrom_names))
 
 # Segment the phased and haplotyped BAF data
-# Call segment.baf.phased.sv when SVs are available
 segment.baf.phased(samplename=TUMOURNAME,
                      inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
                      outputfile=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""),
@@ -177,7 +177,6 @@ fit.copy.number(samplename=TUMOURNAME,
                 min.ploidy=MIN_PLOIDY, 
                 max.ploidy=MAX_PLOIDY, 
                 min.rho=MIN_RHO, 
-                max.rho=MAX_RHO,
                 min.goodness=MIN_GOODNESS_OF_FIT, 
                 uninformative_BAF_threshold=BALANCED_THRESHOLD, 
                 gamma_param=PLATFORM_GAMMA, 
@@ -194,12 +193,11 @@ callSubclones(sample.name=TUMOURNAME,
               output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
               output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
               output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""),
-              masking_output_file=paste(TUMOURNAME,"_segment_masking_details.txt", sep=""),
+              masking_output_file=paste(TUMOURNAME, "_segment_masking_details.txt", sep=""),
+              sv_breakpoints_file="NA",
               chr_names=chrom_names, 
               gamma=PLATFORM_GAMMA, 
               segmentation.gamma=NA, 
               siglevel=0.05, 
               maxdist=0.01, 
-              noperms=1000,
-              max_allowed_state=250, 
-              sv_breakpoints_file=NULL)
+              noperms=1000)
