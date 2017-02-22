@@ -23,7 +23,6 @@ getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, 
 
 #' Obtain BAF and LogR from the allele counts
 #'
-#' @param outputdir Directory where ASCAT plots should be written.
 #' @param tumourAlleleCountsFile.prefix Prefix of the allele counts files for the tumour.
 #' @param normalAlleleCountsFile.prefix Prefix of the allele counts files for the normal.
 #' @param BAFnormalFile File where BAF from the normal will be written.
@@ -35,6 +34,7 @@ getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, 
 #' @param g1000file.prefix Prefix to where 1000 Genomes reference files can be found.
 #' @param minCounts Integer, minimum depth required for a SNP to be included (optional, default=NA).
 #' @param samplename String, name of the sample (optional, default=sample1).
+#' @param seed A seed to be set
 #' @author dw9, sd11
 #' @export
 getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile.prefix, figuresFile.prefix, BAFnormalFile, BAFmutantFile, logRnormalFile, logRmutantFile, combinedAlleleCountsFile, chr_names, g1000file.prefix, minCounts=NA, samplename="sample1", seed=as.integer(Sys.time())) {
@@ -136,7 +136,7 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
                   SNPpos=tumor.LogR[,1:2], chrs=chr_names, samples=c(samplename), chrom=split_genome(tumor.LogR[,1:2]),
                   ch=ch)
   # TODO: On PD7422a this produces different plots than before (see streak on chrom 14)
-  ascat.plotRawData(ascat.bc) #, parentDir=figuresFile.prefix)
+  ASCAT::ascat.plotRawData(ascat.bc) #, parentDir=figuresFile.prefix)
 }
 
 #' Prepare data for impute
@@ -240,6 +240,7 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
 #' found. These files should be split per chromosome and this prefix must contain the full path until
 #' chr in its name. The .txt extension is automatically added.
 #' @param chrom_names A vector containing chromosome names to be considered
+#' @param recalc_corr_afterwards Set to TRUE to recalculate correlations with GC content after correction
 #' @author sd11
 #' @export
 gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, chrom_names, recalc_corr_afterwards=F) {

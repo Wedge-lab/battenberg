@@ -22,6 +22,8 @@ run.impute(inputfile, outputfile.prefix, is.male, imputeinfofile,
 \item{region.size}{An integer describing the region size to be used by impute (optional).}
 
 \item{chrom}{The name of a chromosome on which this function should run (names are used, supply X as 'X') (optional).}
+
+\item{seed}{The seed to be set}
 }
 \description{
 This function runs impute across the input using the specified region.size.

@@ -402,7 +402,7 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
     
     #DCW - just test corners on the nearest edge to determine clonality
     # If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
-    all.edges = Battenberg:::orderEdges(levels, l, ntot,x,y)
+    all.edges = orderEdges(levels, l, ntot,x,y)
     nMaj.test = all.edges[1,c(1,3)]
     nMin.test = all.edges[1,c(2,4)]
     test.levels = (1-rho+rho*nMaj.test)/(2-2*rho+rho*(nMaj.test+nMin.test))
@@ -424,7 +424,7 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
     # If the difference is significant, call subclonal level
     if (pval[i] <= siglevel) {
       
-      all.edges = Battenberg:::orderEdges(levels, l, ntot,x,y)
+      all.edges = orderEdges(levels, l, ntot,x,y)
       # Switch order, so that negative copy numbers are at the end
       na.indices = which(is.na(rowSums(all.edges)))
       if (length(na.indices)>0) {
@@ -633,9 +633,9 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
 }
 
 #' Mask segments that have a too high CN state
-#' @param subclones
-#' @param bafsegmented
-#' @param max_allowed_state
+#' @param subclones Subclones output data
+#' @param bafsegmented BAFsegmented data
+#' @param max_allowed_state The maximum state allowed before overruling takes place
 #' @return A list with the masked subclones, bafsegmented and the number of segments masked and their total genome size
 #' @author sd11
 mask_high_cn_segments = function(subclones, bafsegmented, max_allowed_state) {

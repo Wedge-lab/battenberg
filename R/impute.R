@@ -8,6 +8,7 @@
 #' @param impute.exe Pointer to where the impute2 executable can be found (optional).
 #' @param region.size An integer describing the region size to be used by impute (optional).
 #' @param chrom The name of a chromosome on which this function should run (names are used, supply X as 'X') (optional).
+#' @param seed The seed to be set
 #' @author dw9
 #' @export
 run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, impute.exe="impute2", region.size=5000000, chrom=NA, seed=as.integer(Sys.time())) {

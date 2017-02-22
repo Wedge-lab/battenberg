@@ -32,7 +32,7 @@ getBAFsAndLogRs(tumourAlleleCountsFile.prefix, normalAlleleCountsFile.prefix,
 
 \item{samplename}{String, name of the sample (optional, default=sample1).}
 
-\item{outputdir}{Directory where ASCAT plots should be written.}
+\item{seed}{A seed to be set}
 }
 \description{
 Obtain BAF and LogR from the allele counts

@@ -5,7 +5,7 @@
 \title{Function to correct LogR for waivyness that correlates with GC content}
 \usage{
 gc.correct.wgs(Tumour_LogR_file, outfile, correlations_outfile,
-  gc_content_file_prefix, chrom_names)
+  gc_content_file_prefix, chrom_names, recalc_corr_afterwards = F)
 }
 \arguments{
 \item{Tumour_LogR_file}{String pointing to the tumour LogR output}
@@ -19,6 +19,8 @@ found. These files should be split per chromosome and this prefix must contain t
 chr in its name. The .txt extension is automatically added.}
 
 \item{chrom_names}{A vector containing chromosome names to be considered}
+
+\item{recalc_corr_afterwards}{Set to TRUE to recalculate correlations with GC content after correction}
 }
 \description{
 Function to correct LogR for waivyness that correlates with GC content

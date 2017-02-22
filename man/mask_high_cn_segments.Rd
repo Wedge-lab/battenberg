@@ -7,11 +7,11 @@
 mask_high_cn_segments(subclones, bafsegmented, max_allowed_state)
 }
 \arguments{
-\item{subclones}{}
+\item{subclones}{Subclones output data}
 
-\item{bafsegmented}{}
+\item{bafsegmented}{BAFsegmented data}
 
-\item{max_allowed_state}{}
+\item{max_allowed_state}{The maximum state allowed before overruling takes place}
 }
 \value{
 A list with the masked subclones, bafsegmented and the number of segments masked and their total genome size

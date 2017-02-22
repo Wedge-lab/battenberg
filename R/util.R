@@ -6,7 +6,7 @@
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @param row.names Whether the file contains row names (Default: FALSE)
 #' @param stringsAsFactor Legacy parameter that is no longer used (Default: FALSE)
-#' @param sep Column separator (Default: \t)
+#' @param sep Column separator (Default: \\t)
 #' @param chrom_col The column number that contains chromosome denominations. This column will automatically be cast as a character. Should be counted including the row.names (Default: 1)
 #' @param skip The number of rows to skip before reading (Default: 0)
 #' @return A data frame with contents of the file 

@@ -43,6 +43,14 @@ run_clonal_ASCAT(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
 \item{allow100percent}{A boolean whether to allow a 100"\%" cellularity solution}
 
 \item{reliabilityFile}{String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)}
+
+\item{psi_min_initial}{Minimum psi value to be considered (Default: 1.0)}
+
+\item{psi_max_initial}{Maximum psi value to be considered (Default: 5.4)}
+
+\item{rho_min_initial}{Minimum rho value to be considered (Default: 0.1)}
+
+\item{rho_max_initial}{Maximum rho value to be considered (Default: 1.05)}
 }
 \value{
 A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is.ref.better

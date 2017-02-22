@@ -6,6 +6,9 @@
 \usage{
 infer_gender_birdseed(birdseed_report_file)
 }
+\arguments{
+\item{birdseed_report_file}{The birdseed report file}
+}
 \description{
 Infer the gender using the birdseed report file
 }

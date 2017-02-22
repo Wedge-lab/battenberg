@@ -108,7 +108,7 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
 #' Plot haplotyped SNPs
 #' 
 #' This function takes haplotyped SNPs and plots them to a png file.
-#' @param mutFile File containing the haplotyped SNP info.
+#' @param haplotyped.baf.file File containing the haplotyped SNP info.
 #' @param imageFileName Filename as which the png will be saved.
 #' @param samplename Name of the sample to be used in image title.
 #' @param chrom The chromosome that is plotted.
@@ -116,20 +116,10 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
 #' @author dw9
 #' @export
 plot.haplotype.data = function(haplotyped.baf.file, imageFileName, samplename, chrom, chr_names) {
-  #impute.info = read.table(imputeInfoFile,header=F,row.names=NULL,sep="\t",stringsAsFactors=F)
-  # TODO: is this really required?
-  #chr_names = unique(parse.imputeinfofile(imputeinfofile, FALSE)$chrom)
   chr_name = chr_names[chrom]
-  #imageFileName = paste(samplename,"_chr",chr_name,"_heterozygousData.png",sep="")
-  
   mut_data = read.table(haplotyped.baf.file,sep="\t",header=T)
   
   png(filename = imageFileName, width = 10000, height = 2500, res = 500)
-  # TODO: This should move to the plotting script
-#   par(pch = ".", cex=1, cex.main=0.8, cex.axis = 0.6, cex.lab=0.7,yaxp=c(-0.05,1.05,6))
-#   plot(c(min(mut_data$Position,na.rm=T),max(mut_data$Position,na.rm=T)),c(0,1),type="n",,main=paste(samplename,", chromosome",mut_data[1,1],sep=" "),xlab="pos", ylab="BAF")
-#   points(mut_data$Position,mut_data[,3],col="blue")
-#   points(mut_data$Position,1-mut_data[,3],col="red")
   create.haplotype.plot(chrom.position=mut_data$Position, 
                         points.blue=mut_data[,3], 
                         points.red=1-mut_data[,3], 

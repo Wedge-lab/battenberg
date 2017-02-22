@@ -236,7 +236,6 @@ clonal_findcentroid.plot = function(minimise, dist_choice, d, psis, rhos, new_bo
 #' @author jd
 #' @export
 squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_gamma=1, pdf=0, binwidth_baf=0.25, xylimits=c(-0.2,5)) {
-  require(ggplot2)
   
   if (pdf)
     pdf(file = paste(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".pdf", sep=""), width = 7, height = 7)

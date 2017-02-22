@@ -16,7 +16,7 @@ read_table_generic(file, header = T, row.names = F, stringsAsFactor = F,
 
 \item{stringsAsFactor}{Legacy parameter that is no longer used (Default: FALSE)}
 
-\item{sep}{Column separator (Default: \t)}
+\item{sep}{Column separator (Default: \\t)}
 
 \item{chrom_col}{The column number that contains chromosome denominations. This column will automatically be cast as a character. Should be counted including the row.names (Default: 1)}
 

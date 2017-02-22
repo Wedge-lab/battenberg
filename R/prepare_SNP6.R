@@ -89,6 +89,8 @@
 
 
 #' Parse the reference info file
+#' @param snp6_reference_info_file A SNP6 reference info master file
+#' @noRd
 parseSNP6refFile = function(snp6_reference_info_file) {
   return(read.table(snp6_reference_info_file, header=T, stringsAsFactors=F))
 }
@@ -204,9 +206,9 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   sex[sex == "male"] <- "XY"
   sex[sex == "unknown"] <- NA
   
-  ascat.bc <- ascat.loadData(paste(outfile.tumor.LogR, "_noGCcorr.txt", sep=""), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep=""),paste(outfile.normal.LogR, "_noGCcorr.txt", sep=""), paste(outfile.normal.BAF, "_noGCcorr.txt", sep=""), chrs=chr_names, gender=sex)
-  ascat.plotRawData(ascat.bc)
-  ascat.bc <- ascat.GCcorrect(ascat.bc, GC_SNP6)
+  ascat.bc <- ASCAT::ascat.loadData(paste(outfile.tumor.LogR, "_noGCcorr.txt", sep=""), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep=""),paste(outfile.normal.LogR, "_noGCcorr.txt", sep=""), paste(outfile.normal.BAF, "_noGCcorr.txt", sep=""), chrs=chr_names, gender=sex)
+  ASCAT::ascat.plotRawData(ascat.bc)
+  ascat.bc <- ASCAT::ascat.GCcorrect(ascat.bc, GC_SNP6)
 
   # Make sure the right column names are added here, because these are expected by fitcopynumber
   colnames(ascat.bc$SNPpos) = c("Chromosome", "Position")
@@ -379,6 +381,7 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
 }
 
 #' Infer the gender using the birdseed report file
+#' @param birdseed_report_file The birdseed report file
 #' @export
 infer_gender_birdseed = function(birdseed_report_file) {
   z = read.table(birdseed_report_file, header=T)

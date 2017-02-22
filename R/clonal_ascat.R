@@ -1295,7 +1295,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   dist_min_rho = max(min.rho-0.03, 0.05)
   dist_max_rho = max.rho+0.03
   
-  s = make_segments(r,b)
+  s = ASCAT::make_segments(r,b)
   dist_matrix_info <- create_distance_matrix( s, dist_choice, gamma, uninformative_BAF_threshold=uninformative_BAF_threshold, min_psi=dist_min_psi, max_psi=dist_max_psi, min_rho=dist_min_rho, max_rho=dist_max_rho)  
   d = dist_matrix_info$distance_matrix
   minimise = dist_matrix_info$minimise
@@ -1502,6 +1502,10 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 #' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative
 #' @param allow100percent A boolean whether to allow a 100"\%" cellularity solution
 #' @param reliabilityFile String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)
+#' @param psi_min_initial Minimum psi value to be considered (Default: 1.0)
+#' @param psi_max_initial Maximum psi value to be considered (Default: 5.4)
+#' @param rho_min_initial Minimum rho value to be considered (Default: 0.1)
+#' @param rho_max_initial Maximum rho value to be considered (Default: 1.05)
 #' @return A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is.ref.better
 #' @export
 run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA, psi_min_initial=1.0, psi_max_initial=5.4, rho_min_initial=0.1, rho_max_initial=1.05) # kjd 10-1-2014

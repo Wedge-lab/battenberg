@@ -236,7 +236,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     # names(BAF) = rownames(BAFrawchr[row.indices])
     # names(pos) = rownames(BAFrawchr[row.indices])
     
-    sdev <- Battenberg:::getMad(ifelse(BAF<0.5,BAF,1-BAF),k=25)
+    sdev <- getMad(ifelse(BAF<0.5,BAF,1-BAF),k=25)
     # Standard deviation is not defined for a single value
     if (is.na(sdev)) {
       sdev = 0
@@ -252,7 +252,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     if(length(BAF)<50){
       BAFsegm = rep(mean(BAF),length(BAF))
     }else{
-      res= Battenberg:::selectFastPcf(BAF,phasekmin,phasegamma*sdev,T)
+      res = selectFastPcf(BAF,phasekmin,phasegamma*sdev,T)
       BAFsegm = res$yhat
     }
     
@@ -261,7 +261,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     if(length(BAFphased)<50 | no_segmentation){
       BAFphseg = rep(mean(BAFphased),length(BAFphased))
     }else{
-      res = Battenberg:::selectFastPcf(BAFphased,kmin,gamma*sdev,T)
+      res = selectFastPcf(BAFphased,kmin,gamma*sdev,T)
       BAFphseg = res$yhat
     }
     

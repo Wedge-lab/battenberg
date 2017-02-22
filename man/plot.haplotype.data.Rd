@@ -8,6 +8,8 @@
   chrom, chr_names)
 }
 \arguments{
+\item{haplotyped.baf.file}{File containing the haplotyped SNP info.}
+
 \item{imageFileName}{Filename as which the png will be saved.}
 
 \item{samplename}{Name of the sample to be used in image title.}
@@ -15,8 +17,6 @@
 \item{chrom}{The chromosome that is plotted.}
 
 \item{chr_names}{A list of allowed chromosome names.}
-
-\item{mutFile}{File containing the haplotyped SNP info.}
 }
 \description{
 This function takes haplotyped SNPs and plots them to a png file.
