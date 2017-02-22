@@ -14,7 +14,7 @@ Description: Estimate subclonal copy number from whole genome sequencing or SNP6
 Depends: 
   R (>= 2.13.0),
   RColorBrewer,
-  ASCAT (== 2.4.1),
+  ASCAT (>= 2.4.1),
   ggplot2,
   readr
 URL: https://github.com/sdentro/Battenberg
