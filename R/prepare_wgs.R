@@ -242,7 +242,7 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
 #' @param chrom_names A vector containing chromosome names to be considered
 #' @author sd11
 #' @export
-gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, chrom_names) {
+gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, chrom_names, recalc_corr_afterwards=F) {
 
   Tumor_LogR = read.table(Tumour_LogR_file, stringsAsFactors=F, header=T)
 
@@ -294,17 +294,22 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
   write.table(corr, file=gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
   write.table(GCcorrected, file=outfile, sep="\t", quote=F, row.names=F)
   
-  # Recalculate the correlations to see how much there is left
-  snps_gccorrected = paste(GCcorrected[,1], GCcorrected[,2], sep="_")
-  snps_gcdata = paste(GC_data[,1], GC_data[,2], sep="_")
-  snps_intersect = intersect(snps_gccorrected, snps_gcdata)
-  GCcorrected = GCcorrected[snps_gccorrected %in% snps_intersect, ]
-  GC_data = GC_data[snps_gcdata %in% snps_intersect, ]
-  
-  flag_nona = is.finite(GCcorrected[,3])
-  corr = cor(GC_data[flag_nona, 3:ncol(GC_data)], GCcorrected[flag_nona,3], use="complete.obs")
-  length = nrow(GCcorrected)
-  corr = apply(corr, 1, function(x) sum(abs(x*length))/sum(length))
-  corr = data.frame(windowsize=names(corr), correlation=corr)
-  write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
+  if (recalc_corr_afterwards) {
+  	# Recalculate the correlations to see how much there is left
+  	snps_gccorrected = paste(GCcorrected[,1], GCcorrected[,2], sep="_")
+  	snps_gcdata = paste(GC_data[,1], GC_data[,2], sep="_")
+  	snps_intersect = intersect(snps_gccorrected, snps_gcdata)
+  	GCcorrected = GCcorrected[snps_gccorrected %in% snps_intersect, ]
+  	GC_data = GC_data[snps_gcdata %in% snps_intersect, ]
+  	
+  	flag_nona = is.finite(GCcorrected[,3])
+  	corr = cor(GC_data[flag_nona, 3:ncol(GC_data)], GCcorrected[flag_nona,3], use="complete.obs")
+  	length = nrow(GCcorrected)
+  	corr = apply(corr, 1, function(x) sum(abs(x*length))/sum(length))
+  	corr = data.frame(windowsize=names(corr), correlation=corr)
+  	write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
+  } else {
+	  corr = data.frame(windowsize=names(corr), correlation=rep(NA, length(corr)))
+	  write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
+  }
 }
