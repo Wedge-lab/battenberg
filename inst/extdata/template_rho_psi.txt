@@ -1,0 +1,4 @@
+rho	psi	distance	is.best
+ASCAT	NA	NA	NA	NA
+FRAC_GENOME	NA	NA	NA	TRUE
+REF_SEG	NA	NA	0	FALSE
