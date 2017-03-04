@@ -49,6 +49,7 @@ MAX_RHO = 1.02 #1
 MIN_GOODNESS_OF_FIT = 0.63
 BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
+CALC_SEG_BAF_OPTION = 1
 
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
@@ -148,7 +149,8 @@ segment.baf.phased(samplename=TUMOURNAME,
                    gamma=SEGMENTATION_GAMMA,
                    phasegamma=PHASING_GAMMA,
                    kmin=3,
-                   phasekmin=1)
+                   phasekmin=1,
+                   calc_seg_baf_option=CALC_SEG_BAF_OPTION)
 
 # Fit a clonal copy number profile
 fit.copy.number(samplename=TUMOURNAME,
@@ -186,4 +188,5 @@ callSubclones(sample.name=TUMOURNAME,
               maxdist=0.01, 
               noperms=1000,
               max_allowed_state=250, 
-              sv_breakpoints_file="NA")
+              sv_breakpoints_file="NA",
+              calc_seg_baf_option=CALC_SEG_BAF_OPTION)

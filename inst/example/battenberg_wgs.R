@@ -48,6 +48,7 @@ BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
 MIN_BASE_QUAL = 20
 MIN_MAP_QUAL = 35
+CALC_SEG_BAF_OPTION = 1
 
 # WGS specific static
 ALLELECOUNTER = "alleleCounter"
@@ -164,7 +165,8 @@ segment.baf.phased(samplename=TUMOURNAME,
                      gamma=SEGMENTATION_GAMMA,
                      phasegamma=PHASING_GAMMA,
                      kmin=3,
-                     phasekmin=1)
+                     phasekmin=1,
+                     calc_seg_baf_option=CALC_SEG_BAF_OPTION)
 
 # Fit a clonal copy number profile
 fit.copy.number(samplename=TUMOURNAME,
@@ -200,4 +202,5 @@ callSubclones(sample.name=TUMOURNAME,
               segmentation.gamma=NA, 
               siglevel=0.05, 
               maxdist=0.01, 
-              noperms=1000)
+              noperms=1000,
+              calc_seg_baf_option=CALC_SEG_BAF_OPTION)

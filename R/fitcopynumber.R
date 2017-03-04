@@ -183,9 +183,10 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param siglevel Threshold under which a p-value becomes significant. When it is significant a second copy number state will be fitted (Default 0.05)
 #' @param maxdist Slack in BAF space to allow a segment to be off it's optimum before becoming significant. A segment becomes significant very quickly when a breakpoint is missed, this parameter alleviates the effect (Default 0.01)
 #' @param noperms The number of permutations to be run when bootstrapping the confidence intervals on the copy number state of each segment (Default 1000)
+#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
 #' @author dw9, sd11
 #' @export
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, sv_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time())) {
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, sv_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=1) {
   
   set.seed(seed)
   
@@ -242,7 +243,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   write.table(subcloneres, gsub(".txt", "_1.txt", output.file), quote=F, col.names=T, row.names=F, sep="\t")
 
   # Scan the segments for cases that should be merged
-  res = merge_segments(subcloneres, BAFvals, LogRvals, rho, psi, gamma)
+  res = merge_segments(subcloneres, BAFvals, LogRvals, rho, psi, gamma, calc_seg_baf_option)
   BAFvals = res$bafsegmented
   
   res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
@@ -505,12 +506,13 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
 #' @param rho The rho estimate that the profile was fit with
 #' @param psi the psi estimate that the profile was fit with
 #' @param platform_gamma The gamma parameter for this platform
+#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
 #' @return A list with two fields: bafsegmented and subclones. The subclones field contains a data.frame in 
 #' Battenberg output format with the merged segments. The bafsegmented field contains the BAFsegmented data
 #' corresponding to the provided subclones data.frame.
 #' @author sd11
 #' @noRd
-merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamma) {
+merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamma, calc_seg_baf_option=1) {
   subclones_cleaned = data.frame()
   merged = T
   counter = 1
@@ -557,15 +559,25 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
         # MERGE
         new_entry = data.frame(subclones[i-1,])
         new_entry$endpos = subclones[i,]$endpos
-        new_entry$BAF = median(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
-                               bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
+        
+        if (calc_seg_baf_option==1) {
+          new_entry$BAF = median(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
+                                 bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
+        } else if (calc_seg_baf_option==2 | ! calc_seg_baf_option %in% c(1,2)) {
+          new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
+                                   bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
+          if (! calc_seg_baf_option %in% c(1,2)) {
+            warning("Supplied calc_seg_baf_option to callSubclones not valid, using mean BAF by default")
+          }
+        }
+        
         new_entry$LogR = mean(c(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3], 
                                 logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3]), na.rm=T)
         subclones_cleaned = rbind(subclones_cleaned, new_entry)
         
         # Set BAFseg to reflect the current segment
         bafsegmented$BAFseg[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i]] = new_entry$BAF
-        # TODO Update the logRseg as well
+        # TODO The logRseg is currently not updated
         
         previous_merged = T
         merged = T
