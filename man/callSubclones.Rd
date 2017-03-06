@@ -8,7 +8,7 @@ callSubclones(sample.name, baf.segmented.file, logr.file, rho.psi.file,
   output.file, output.figures.prefix, output.gw.figures.prefix, chr_names,
   masking_output_file, max_allowed_state = 250, sv_breakpoints_file = NULL,
   gamma = 1, segmentation.gamma = NA, siglevel = 0.05, maxdist = 0.01,
-  noperms = 1000, seed = as.integer(Sys.time()))
+  noperms = 1000, seed = as.integer(Sys.time()), calc_seg_baf_option = 1)
 }
 \arguments{
 \item{sample.name}{Name of the sample, used in figures}
@@ -42,6 +42,8 @@ callSubclones(sample.name, baf.segmented.file, logr.file, rho.psi.file,
 \item{maxdist}{Slack in BAF space to allow a segment to be off it's optimum before becoming significant. A segment becomes significant very quickly when a breakpoint is missed, this parameter alleviates the effect (Default 0.01)}
 
 \item{noperms}{The number of permutations to be run when bootstrapping the confidence intervals on the copy number state of each segment (Default 1000)}
+
+\item{calc_seg_baf_option}{Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)}
 }
 \description{
 This function fits a subclonal copy number profile where a clonal profile is unlikely.

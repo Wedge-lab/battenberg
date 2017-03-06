@@ -28,5 +28,6 @@ export(segment.baf.phased.sv)
 export(squaresplot)
 importFrom(RColorBrewer,brewer.pal)
 importFrom(readr,read_table)
-import(ASCAT)
 import(ggplot2)
+import(ASCAT)
+

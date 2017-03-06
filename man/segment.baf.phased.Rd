@@ -5,7 +5,7 @@
 \title{Segment the haplotyped and phased data using fastPCF.}
 \usage{
 segment.baf.phased(samplename, inputfile, outputfile, gamma = 10,
-  phasegamma = 3, kmin = 3, phasekmin = 3)
+  phasegamma = 3, kmin = 3, phasekmin = 3, calc_seg_baf_option = 1)
 }
 \arguments{
 \item{samplename}{Name of the sample, which is used to name output figures}
@@ -14,13 +14,15 @@ segment.baf.phased(samplename, inputfile, outputfile, gamma = 10,
 
 \item{outputfile}{String where the segmentation output will be written}
 
-\item{gamma}{The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)}
+\item{gamma}{The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 10)}
 
-\item{phasegamma}{Gamma parameter used when correcting phasing mistakes (Default 3)}
+\item{phasegamma}{Gamma parameter used when correcting phasing mistakes (Default: 3)}
 
-\item{kmin}{Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default 3)}
+\item{kmin}{Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)}
 
-\item{phasekmin}{Kmin parameter used when correcting phasing mistakes (Default 3)}
+\item{phasekmin}{Kmin parameter used when correcting phasing mistakes (Default: 3)}
+
+\item{calc_seg_baf_option}{Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)}
 }
 \description{
 This function performs segmentation. This is done in two steps. First a segmentation step
