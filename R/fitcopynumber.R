@@ -38,7 +38,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   }
   
   # Read in the required data
-  segmented.BAF.data = as.data.frame(read_table_generic(inputfile.baf.segmented))
+  segmented.BAF.data = read.table(inputfile.baf.segmented, header=T, stringsAsFactors=F)
   raw.BAF.data = as.data.frame(read_table_generic(inputfile.baf))
   raw.logR.data = as.data.frame(read_table_generic(inputfile.logr))
   
@@ -198,8 +198,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   goodness = res$goodness
   
   # Load the BAF segmented data
-  # BAFvals = read.table(baf.segmented.file, sep="\t", header=T, stringsAsFactors=F) #, row.names=F
-  BAFvals = as.data.frame(read_table_generic(baf.segmented.file))
+  BAFvals = read.table(baf.segmented.file, sep="\t", header=T, stringsAsFactors=F) #, row.names=F
   if (colnames(BAFvals)[1] == "X") {
 	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
 	  BAFvals = BAFvals[,-1]
