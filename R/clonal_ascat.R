@@ -372,13 +372,13 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   nA = (rho-1-(BAFreq-1)*2^(LogR/gamma_param)*((1-rho)*2+rho*psi))/rho
   nB = (rho-1+BAFreq*2^(LogR/gamma_param)*((1-rho)*2+rho*psi))/rho
 
-  if (any(is.na(nA) | is.na(nB)) | any(nA < 0 | nB < 0)) {
-    # Reset any negative copy number to 0
-    index = which(is.na(nA) | is.na(nB) | nA < 0 | nB < 0)
-    print(paste("is.segment.clonal: Found negative copy number for segment", index, "BAF:", BAFreq[index], "logR:", LogR[index], "seg size:", BAF.size[index], "baf.sd:", BAF.sd[index]))
-    nA[nA < 0 | is.na(nA)] = 0
-    nB[nB < 0 | is.na(nB)] = 0
-  }
+  # if (any(is.na(nA) | is.na(nB)) | any(nA < 0 | nB < 0)) {
+  #   # Reset any negative copy number to 0
+  #   index = which(is.na(nA) | is.na(nB) | nA < 0 | nB < 0)
+  #   print(paste("is.segment.clonal: Found negative copy number for segment", index, "BAF:", BAFreq[index], "logR:", LogR[index], "seg size:", BAF.size[index], "baf.sd:", BAF.sd[index]))
+  #   nA[nA < 0 | is.na(nA)] = 0
+  #   nB[nB < 0 | is.na(nB)] = 0
+  # }
 
 
   nMajor = max(nA,nB, na.rm=T)
