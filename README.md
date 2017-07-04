@@ -3,12 +3,12 @@
 
 ## Advised installation and running instructions
 
-Please visit the [cgpBattenberg page](https://github.com/cancerit/cgpBattenberg), download the code from there and run the setup.sh script. The battenberg.pl script can then be used to run the pipeline
+Please visit the [cgpBattenberg page](https://github.com/cancerit/cgpBattenberg), download the code from there and run the setup.sh script. The battenberg.pl script can then be used to run the pipeline.
 
 
 ## Advanced installation instructions
 
-At the moment Battenberg can only be installed directly from Github. The instructions below will install the latest development version, which might not always work out of the box.
+The instructions below will install the latest stable Battenberg version. Please take this approach only when you'd like to do something not covered by cgpBattenberg.
 
 ### Prerequisites
 
@@ -28,10 +28,10 @@ To install Battenberg, run the following from the command line:
 Battenberg requires a number of reference files that should be downloaded.
 
   * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_impute_1000G_v1.tar.gz
+  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/probloci_270415.txt.gz
+  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_wgs_gc_correction_1000g_v3.tar.gz
   * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_snp6_exe.tgz (SNP6 only)
   * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_snp6_ref.tgz (SNP6 only)
-  * GC content file to be added
-  * ignore loci file to be added
   
 ### Pipeline
 
