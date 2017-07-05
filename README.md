@@ -21,7 +21,7 @@ Installing from Github requires devtools and Battenberg requires readr, RColorBr
 
 To install Battenberg, run the following from the command line:
 
-  > R -q -e 'devtools::install_github("sdentro/battenberg")'
+  > R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
 
 ### Required reference files
 
