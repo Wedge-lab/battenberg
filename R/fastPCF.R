@@ -70,7 +70,7 @@ exactPcf <- function(y, kmin=5, gamma, yest) {
 			antInt <- antInt+1
  		}
  	}
-	n <- N  #nProbes   Spør Knut, fant ikke nProbes noe sted..
+	n <- N  #nProbes   Spr Knut, fant ikke nProbes noe sted..
 	lengde <- rep(0,antInt)
 	start <- rep(0,antInt)
 	verdi <- rep(0,antInt)
