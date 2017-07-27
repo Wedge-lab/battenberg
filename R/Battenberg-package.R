@@ -5,4 +5,5 @@
 #' @keywords package
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom readr read_table
+#' @importFrom gridExtra grid.arrange arrangeGrob
 NA

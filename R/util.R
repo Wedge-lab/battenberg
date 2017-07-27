@@ -100,6 +100,98 @@ concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs) {
   return(as.data.frame(do.call(rbind, lapply(infiles, FUN=function(x) { read_table_generic(x) }))))
 }
 
+########################################################################################
+# Various functions for calculating from data
+########################################################################################
+#' Calc copy number of major allele per segment from a subclones data.frame
+#' @noRd
+calc_total_cn_major = function(bb) {
+  return(bb$nMaj1_A*bb$frac1_A + ifelse(bb$frac1_A < 1, bb$nMaj2_A*bb$frac2_A, 0))
+}
+
+#' Calc copy number of minor allele per segment from a subclones data.frame
+#' @noRd
+calc_total_cn_minor = function(bb) {
+  return(bb$nMin1_A*bb$frac1_A + ifelse(bb$frac1_A < 1, bb$nMin2_A*bb$frac2_A, 0))
+}
+
+#' Calc total copy number per segment from a subclones data.frame
+#' @noRd
+calculate_bb_total_cn = function(bb) {
+  return((bb$nMaj1_A+bb$nMin1_A)*bb$frac1_A + ifelse(!is.na(bb$frac2_A), (bb$nMaj2_A+bb$nMin2_A)*bb$frac2_A, 0))
+}
+
+#' Calc ploidy from a subclones data.frame
+#' @noRd
+calc_ploidy = function(bb) {
+  bb$len = bb$endpos/1000-bb$startpos/1000
+  bb$total_cn = calculate_bb_total_cn(bb)
+  ploidy = sum(bb$total_cn*bb$len) / sum(bb$len)
+  return(ploidy)
+}
+
+#' Transform logR into an estimate of total copy number given purity and total ploidy (tumour+normal)
+#' @noRd
+logr2tumcn = function(cellularity, total_ploidy, logR) {
+  return(((total_ploidy*(2^logR)) - 2*(1-cellularity)) / cellularity)
+}
+
+#' Calc psi from psi_t and rho
+#' @noRd
+psit2psi = function(rho, psi_t) {
+  return(rho*psi_t + 2*(1-rho))
+}
+
+#' Calc psi_t from psi and rho
+#' @noRd
+psi2psit = function(rho, psi) {
+  return((psi-2*(1-rho))/rho)
+}
+
+#' Calculate rho and psi values from a refit suggestion
+#' 
+#' Use this function to calculate the refit values from a refit suggestion.
+#' @param refBAF BAF of the segment
+#' @param refLogR logR of the segment
+#' @param refMajor Major allele copy number
+#' @param refMinor Minor allele copy number
+#' @param rho Sample rho parameter
+#' @param gamma_param Platform gamma parameter
+#' @return A list with a field for rho and psi_t
+#' @author sd11
+#' @export
+calc_rho_psi_refit = function(refBAF, refLogR, refMajor, refMinor, rho, gamma_param) {
+  rho = (2*refBAF-1)/(2*refBAF-refBAF*(refMajor+refMinor)-1+refMajor)
+  psi = (rho*(refMajor+refMinor)+2-2*rho)/(2^(refLogR/gamma_param))
+  psi_t = psi2psit(rho, psi)
+  return(list(rho=rho, psi_t=psi_t))
+}
+
+#' Calculate refit values from a refit suggestion
+#' 
+#' Use this function to calculate the refit values from a refit suggestion.
+#' @param subclones_file A Battenberg subclones.txt file
+#' @param segment_chrom Chromsome of the segment to use for refitting
+#' @param segment_pos Position within the start/end coordinates of the segment to use for refitting
+#' @param new_nMaj Major allele copy number
+#' @param new_nMin Minor allele copy number
+#' @param rho Sample rho parameter
+#' @param gamma_param Platform gamma parameter
+#' @return A list with a field for rho and psi_t
+#' @author sd11
+#' @export
+suggest_refit = function(subclones_file, segment_chrom, segment_pos, new_nMaj, new_nMin, rho, gamma_param) {
+  # segment_pos = as.numeric(gsub("M", "000000", segment_pos))
+  subclones = read.table(subclones_file, header=T, stringsAsFactors=F)
+  segment = subclones[subclones$chr==segment_chrom & subclones$startpos<=segment_pos & subclones$endpos>=segment_pos,]
+  segment_BAF = segment$BAF
+  segment_LogR = segment$LogR
+  return(calc_rho_psi_refit(segment_BAF, segment_LogR, new_nMaj, new_nMin, rho, gamma_param))
+}
+
+########################################################################################
+# Other
+########################################################################################
 #' Check if a file exists, if it doesn't, exit non-clean
 #' @noRd
 assert.file.exists = function(filename) {

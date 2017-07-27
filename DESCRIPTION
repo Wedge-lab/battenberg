@@ -16,6 +16,9 @@ Depends:
   RColorBrewer,
   ASCAT (>= 2.4.1),
   ggplot2,
-  readr
+  readr,
+  gtools,
+  gridExtra
 URL: https://github.com/Wedge-Oxford/battenberg
 LazyLoad: yes
+RoxygenNote: 6.0.1

@@ -141,7 +141,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     nonroundedprofile.outfile=paste(outputfile.prefix, "nonroundedprofile.png", sep="", collapse="") # kjd 20-2-2014
     cnaStatusFile = paste(outputfile.prefix, "copynumber_solution_status.txt", sep="", collapse="")
     
-    ascat_optimum_pair = runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, cnaStatusFile=cnaStatusFile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness) # kjd 4-2-2014
+    ascat_optimum_pair = runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, cnaStatusFile=cnaStatusFile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness, chr.names=chr.names) # kjd 4-2-2014
   }
   
   distance.outfile=paste(outputfile.prefix,"second_distance.png",sep="",collapse="") # kjd 20-2-2014
@@ -732,7 +732,8 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, ploidy, goodness, outpu
                             pos_max=pos_max, 
                             segment_states_min=segment_states_min, 
                             segment_states_tot=segment_states_tot, 
-                            chr.segs=chr.segs)
+                            chr.segs=chr.segs,
+                            chr.names=chr.names)
   dev.off()
   
   # Plot subclonal copy number as two separate states
@@ -747,9 +748,10 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, ploidy, goodness, outpu
                              subcl_min=subcl_min, 
                              subcl_max=subcl_max, 
                              is_subclonal=is_subclonal,
-			     is_subclonal_maj=is_subclonal_maj,
-			     is_subclonal_min=is_subclonal_min,
-			     chr.segs=chr.segs)
+                  			     is_subclonal_maj=is_subclonal_maj,
+                  			     is_subclonal_min=is_subclonal_min,
+                  			     chr.segs=chr.segs,
+                  			     chr.names=chr.names)
   dev.off()
 }
 

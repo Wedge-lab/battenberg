@@ -190,3 +190,19 @@ callSubclones(sample.name=TUMOURNAME,
               max_allowed_state=250, 
               sv_breakpoints_file="NA",
               calc_seg_baf_option=CALC_SEG_BAF_OPTION)
+
+#' Make some post-hoc plots
+logr = Battenberg::read_table_generic(paste0(TUMOURNAME, "_mutantLogR_gcCorrected.tab.gz"))
+subclones = Battenberg::read_table_generic(paste0(TUMOURNAME, "_subclones.txt"))
+rho_psi = read.table(paste0(TUMOURNAME, "_rho_and_psi.txt"), header=T, stringsAsFactors=F)
+purity = rho_psi["FRAC_GENOME", "rho"]
+totalcn_chrom_plot(TUMOURNAME, subclones, logr, paste0(TUMOURNAME, "_totalcn_chrom_plot.png"), purity)
+
+allelecounts = as.data.frame(Battenberg::read_table_generic(paste0(TUMOURNAME, "_alleleCounts.tab.gz")))
+bafsegmented = as.data.frame(Battenberg::read_table_generic(paste0(TUMOURNAME, ".BAFsegmented.txt")))
+logrsegmented = as.data.frame(Battenberg::read_table_generic(paste0(TUMOURNAME, ".logRsegmented.txt")))
+outputfile = paste0(TUMOURNAME, "_alleleratio.png")
+allele_ratio_plot(TUMOURNAME, allelecounts, bafsegmented, logrsegmented, outputfile, max.plot.cn=8)
+
+outputfile = paste0(TUMOURNAME, "_coverage.png")
+coverage_plot(TUMOURNAME, allelecounts, outputfile)

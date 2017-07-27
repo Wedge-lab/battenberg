@@ -1281,10 +1281,11 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
 #' @param max.rho The maximum cellularity to consider (Default 1.0)
 #' @param min.goodness The minimum goodness of fit for a solution to have to be considered (Default 63)
 #' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative (Default 0.51)
+#' @param chr.names A vector with chromosome names used for plotting
 #' @return A list with fields psi, rho and ploidy
 #' @export
 #the limit on rho is lenient and may lead to spurious solutions
-runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, cnaStatusFile = "copynumber_solution_status.txt", gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,max.rho=1.0,min.goodness=63, uninformative_BAF_threshold = 0.51) {
+runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, cnaStatusFile = "copynumber_solution_status.txt", gamma = 0.55, allow100percent,reliabilityFile=NA,min.ploidy=1.6,max.ploidy=4.8,min.rho=0.1,max.rho=1.0,min.goodness=63, uninformative_BAF_threshold = 0.51, chr.names) {
   ch = chromosomes
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
@@ -1456,13 +1457,11 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 	}
     confidence = ifelse(is.na(rConf),bConf,ifelse(is.na(bConf),rConf,(rConf+bConf)/2))    
 
-	# replaced plotting-extracted versions for the new ASCAT plotting functions (+ removed aberration reliability plot)
-	# separated plotting from logic: create copy number profile plot here
+	# Create plot
 	if (!is.na(copynumberprofilespng)) {
 	  png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200)
 	}
-	# clonal_runascat.plot2(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence)
-	ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented)
+	ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented, chrs=chr.names)
 	if (!is.na(copynumberprofilespng)) { dev.off() }
 	
 	# separated plotting from logic: create nonrounded copy number profile plot here
@@ -1470,7 +1469,7 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 	  png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
 	}
 	# clonal_runascat.plot3(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented)
-	ASCAT::ascat.plotNonRounded(ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr)
+	ASCAT::ascat.plotNonRounded(ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs=chr.names)
 	if (!is.na(nonroundedprofilepng)) { dev.off() }
   
   }
@@ -1506,9 +1505,10 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 #' @param psi_max_initial Maximum psi value to be considered (Default: 5.4)
 #' @param rho_min_initial Minimum rho value to be considered (Default: 0.1)
 #' @param rho_max_initial Maximum rho value to be considered (Default: 1.05)
+#' @param chr.names A vector with chromosome names used for plotting
 #' @return A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is.ref.better
 #' @export
-run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA, psi_min_initial=1.0, psi_max_initial=5.4, rho_min_initial=0.1, rho_max_initial=1.05) # kjd 10-1-2014
+run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, segBAF.table, input_optimum_pair, dist_choice, distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA, gamma_param, read_depth, uninformative_BAF_threshold, allow100percent, reliabilityFile=NA, psi_min_initial=1.0, psi_max_initial=5.4, rho_min_initial=0.1, rho_max_initial=1.05, chr.names) # kjd 10-1-2014
 {
   siglevel_BAF = 0.05 # kjd 21-2-2014
   # siglevel_BAF = 0.005 # kjd 21-2-2014
@@ -1619,28 +1619,21 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
     bConf = ifelse(bBacktransform!=0.5,pmin(100,pmax(0,ifelse(b==0.5,100,100*(1-abs(bBacktransform-b)/abs(b-0.5))))),NA)
     #DCW 150711 - get deviations from expected values
     if(!is.na(reliabilityFile)){
-		write.table(data.frame(segmentedBAF=b,backTransformedBAF=bBacktransform,confidenceBAF=bConf,segmentedR=r,backTransformedR=rBacktransform,confidenceR=rConf,nA=nA,nB=nB,nAfull=nAfull,nBfull=nBfull), reliabilityFile,sep=",",row.names=F)
-	}
+		  write.table(data.frame(segmentedBAF=b,backTransformedBAF=bBacktransform,confidenceBAF=bConf,segmentedR=r,backTransformedR=rBacktransform,confidenceR=rConf,nA=nA,nB=nB,nAfull=nAfull,nBfull=nBfull), reliabilityFile,sep=",",row.names=F)
+	  }
     confidence = ifelse(is.na(rConf),bConf,ifelse(is.na(bConf),rConf,(rConf+bConf)/2))
 
-	# separated plotting from logic: create copy number profile plot here
-	# replaced plotting-extracted versions for the new ASCAT plotting functions (+ removed aberration reliability plot)
-	if (!is.na(copynumberprofilespng)) {
-	  png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200)
-	}
-	# clonal_runascat.plot2(rho, goodnessOfFit, ploidy, nA, nB, ch, lrr, bafsegmented, rConf, bConf, confidence)
-	ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy, rho = rho, goodnessOfFit = goodnessOfFit, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented)
-	if (!is.na(copynumberprofilespng)) { dev.off() }
-    
-	# separated plotting from logic: create nonrounded copy number profile plot here
-	if (!is.na(nonroundedprofilepng)) {
-	  png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
-	}
-	# clonal_runascat.plot3(rho, goodnessOfFit, ploidy, nAfull, nBfull, ch, lrr, bafsegmented)
-	ASCAT::ascat.plotNonRounded(ploidy = ploidy, rho = rho, goodnessOfFit = goodnessOfFit, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr)
-	if (!is.na(nonroundedprofilepng)) { dev.off() }
-  
-  } 
+	
+  	# Make plots
+  	if (!is.na(copynumberprofilespng)) { png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200) }
+  	ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy, rho = rho, goodnessOfFit = goodnessOfFit, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented, chrs=chr.names)
+  	if (!is.na(copynumberprofilespng)) { dev.off() }
+      
+  	# separated plotting from logic: create nonrounded copy number profile plot here
+  	if (!is.na(nonroundedprofilepng)) { png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200) }
+  	ASCAT::ascat.plotNonRounded(ploidy = ploidy, rho = rho, goodnessOfFit = goodnessOfFit, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs=chr.names)
+  	if (!is.na(nonroundedprofilepng)) { dev.off() }
+  }
 
   # Recalculate the psi_t for this rho using only clonal segments 
   psi_t = recalc_psi_t(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments=F)

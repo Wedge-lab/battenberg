@@ -95,7 +95,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
       BAFphseg = res$yhat
     }
     
-    #' Recalculate the BAF of each segment, if required
+    # Recalculate the BAF of each segment, if required
     if (calc_seg_baf_option==1) {
       # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
       BAFphseg = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
@@ -275,7 +275,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     }
     
     if (length(BAF) > 0) {
-      #' Recalculate the BAF of each segment, if required
+      # Recalculate the BAF of each segment, if required
       if (calc_seg_baf_option==1) {
         # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
         BAFphseg = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
