@@ -50,6 +50,7 @@ MIN_GOODNESS_OF_FIT = 0.63
 BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
 CALC_SEG_BAF_OPTION = 1
+HETEROZYGOUSFILTER = "none"
 
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
@@ -87,7 +88,8 @@ chrom_names = get.chrom.names(IMPUTEINFOFILE, is_male)
 foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run.impute","combine.impute.output","GetChromosomeBAFs_SNP6","plot.haplotype.data")) %dopar% {
 
   # Transform input into a format that Impute2 takes
-  generate.impute.input.snp6(infile.probeBAF=paste(TUMOURNAME, "_probeBAF.txt", sep=""), 
+  generate.impute.input.snp6(infile.germlineBAF=paste(TUMOURNAME, "_germlineBAF.tab", sep=""), 
+                             infile.tumourBAF=paste(TUMOURNAME, "_mutantBAF.tab", sep=""),
                              outFileStart=paste(TUMOURNAME, "_impute_input_chr", sep=""), 
                              chrom=chrom, 
                              chr_names=chrom_names,
@@ -95,7 +97,7 @@ foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run
                              snp6_reference_info_file=SNP6_REF_INFO_FILE, 
                              imputeinfofile=IMPUTEINFOFILE,
                              is.male=is_male,
-                             heterozygousFilter="none")
+                             heterozygousFilter=HETEROZYGOUSFILTER)
   
   # Run impute on the files
   run.impute(inputfile=paste(TUMOURNAME, "_impute_input_chr", chrom, ".txt", sep=""),

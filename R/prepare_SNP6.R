@@ -220,10 +220,10 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   colnames(dat) = c("Chromosome", "Position", samplename)
   write.table(dat, file=outfile.normal.LogR, row.names=F, quote=F, sep="\t")
 
+  select = !is.na(ascat.bc$Germline_BAF)
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_BAF, 4))
-  dat = dat[which(is.het),]
   colnames(dat) = c("Chromosome", "Position", samplename)
-  write.table(dat, file=outfile.normal.BAF, row.names=F, quote=F, sep="\t")
+  write.table(dat[which(select),], file=outfile.normal.BAF, row.names=F, quote=F, sep="\t")
 
   # Save the probe ids plus their BAF for only the germline heterozygous mutations
   select = !is.na(ascat.bc$Tumor_BAF)
@@ -231,18 +231,19 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   dat = dat[which(select & is.het),]
   write.table(dat, file=outfile.probeBAF, row.names=F, quote=F, col.names=F, sep="\t")
 
+  # Save tumour BAF and LogR directly. Include homozygous SNPs here.
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_BAF, 4))
   dat = dat[which(select),]
   colnames(dat) = c("Chromosome", "Position", samplename)
   write.table(dat, file=outfile.tumor.BAF, row.names=F, quote=F, sep="\t")
 
-  # Save tumour BAF and LogR directly. Include homozygous SNPs here.
   select = !is.na(ascat.bc$Tumor_LogR)
   dat = cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_LogR, 4))
   dat = dat[which(select),]
   colnames(dat) = c("Chromosome", "Position", samplename)
   write.table(dat, file=outfile.tumor.LogR, row.names=F, quote=F, sep="\t")
 }
+
 
 #' Prepares data for impute
 #'
@@ -258,10 +259,10 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
 #' @param snp6_reference_info_file String to the SNP6 reference info file that comes with Battenberg SNP6
 #' @param imputeinfofile String to the impute 1000 genomes reference info file that comes with Battenberg
 #' @param is.male Boolean that is True if the donor is male, False when female
-#' @param heterozygousFilter Legacy parameter that is no longer used (Default none)
-#' @author dw9
+#' @param heterozygousFilter BAF cutoff for calling homozygous SNPs
+#' @author dw9 jd
 #' @export
-generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_names, problemLociFile, snp6_reference_info_file, imputeinfofile, is.male, heterozygousFilter="none") {
+generate.impute.input.snp6 = function(infile.germlineBAF, infile.tumourBAF, outFileStart, chrom, chr_names, problemLociFile, snp6_reference_info_file, imputeinfofile, is.male, heterozygousFilter="none") {
   # Obtain pointer to SNP6 specific reference file
   ref.files = parseSNP6refFile(snp6_reference_info_file)
   ANNO_FILE = ref.files[ref.files$variable == "ANNO_FILE",]$reference_file
@@ -324,53 +325,79 @@ generate.impute.input.snp6 = function(infile.probeBAF, outFileStart, chrom, chr_
   knownSNP6data$Allele.A = factor(knownSNP6data$Allele.A,levels=c("A","C","G","T"))
   knownSNP6data$Allele.B = factor(knownSNP6data$Allele.B,levels=c("A","C","G","T"))
   
-  snp_data = read.table(infile.probeBAF,sep="\t",header=F,row.names=NULL,stringsAsFactors=F)
-  print(paste("first datum=",snp_data[1,1],sep=""))
-  
-  indices = match(snp_data[,1],knownSNP6data$Probe.Set.ID)
+  # Read in the BAFs and see which 1000 genomes SNPs are covered
+  germline_snp_data = read.table(infile.germlineBAF,sep="\t",header=T, stringsAsFactors=F)[,3,drop=F]
+  tumour_snp_data = read.table(infile.tumourBAF,sep="\t",header=T, stringsAsFactors=F)[,3,drop=F]
+  snp_matches = match(rownames(germline_snp_data), rownames(tumour_snp_data))
+  snp_data = na.omit(cbind(nBAF = germline_snp_data, tBAF = tumour_snp_data[snp_matches,]))
+
+  print(paste("first datum=",rownames(snp_data[1,]),sep=""))
+
+  indices = match(rownames(snp_data),knownSNP6data$Probe.Set.ID)
   if(sum(!is.na(indices))==0){
-    indices = match(snp_data[,1],knownSNP6data$dbSNP.RS.ID)
+    indices = match(rownames(snp_data),knownSNP6data$dbSNP.RS.ID)
   }
+
   print(paste("found SNPs=",sum(!is.na(indices)),sep=""))
   print(paste("class=",class(knownSNP6data$Physical.Position),sep=""))
-  matched.info = cbind(knownSNP6data[indices[!is.na(indices)],c("Physical.Position","Allele.A","Allele.B")],snp_data[!is.na(indices),2])
+  matched.info = cbind(knownSNP6data[indices[!is.na(indices)],c("Physical.Position","Allele.A","Allele.B")],snp_data[!is.na(indices),1:2])
   print(paste("class2=",class(matched.info[,1]),sep=""))
-  
+
   print(paste("first row of matched.info=",paste(matched.info[1,],sep=","),sep=""))
   print(paste("first Allele.A=",matched.info$Allele.A[1],sep=""))
   print(paste("first Allele.B=",matched.info$Allele.B[1],sep=""))
   
   print(paste("class 1a =",class(known_SNPs[,2]),sep=""))
   print(paste("class 2a =",class(as.numeric(known_SNPs[,2])),sep=""))
-  
+
   indices2 = match(matched.info[,1],known_SNPs[,2])
-  combined.info = cbind(matched.info[!is.na(indices2),],known_SNPs[indices2[!is.na(indices2)],1:4])
+  combined.info = na.omit(cbind(matched.info[!is.na(indices2),],known_SNPs[indices2[!is.na(indices2)],1:4]))
   print(paste("first row of combined.info=",paste(combined.info[1,],sep=","),sep=""))
   lev2 = levels(combined.info[,2])
   print(paste("levels[2]=",paste(lev2,sep=","),sep=""))
   lev3 = levels(combined.info[,3])
   print(paste("levels[3]=",paste(lev3,sep=","),sep=""))
-  lev7 = levels(combined.info[,7])
-  print(paste("levels[7]=",paste(lev7,sep=","),sep=""))
   lev8 = levels(combined.info[,8])
   print(paste("levels[8]=",paste(lev8,sep=","),sep=""))
-  
-  combined.info1 = combined.info[(combined.info[,2]==combined.info[,7] & combined.info[,3]==combined.info[,8]),]
+  lev9 = levels(combined.info[,9])
+  print(paste("levels[9]=",paste(lev9,sep=","),sep=""))
+
+  combined.info1 = combined.info[(combined.info[,2]==combined.info[,8] & combined.info[,3]==combined.info[,9]),]
   #alleles are reversed
-  combined.info2 = cbind(combined.info[(combined.info[,2]==combined.info[,8] & combined.info[,3]==combined.info[,7]),1:3],1.0-combined.info[(combined.info[,2]==combined.info[,8] & combined.info[,3]==combined.info[,7]),4],combined.info[(combined.info[,2]==combined.info[,8] & combined.info[,3]==combined.info[,7]),5:8])
+  combined.info2 = cbind(combined.info[(combined.info[,2]==combined.info[,9] & combined.info[,3]==combined.info[,8]),1:3],1.0-combined.info[(combined.info[,2]==combined.info[,9] & combined.info[,3]==combined.info[,8]),4:5],combined.info[(combined.info[,2]==combined.info[,9] & combined.info[,3]==combined.info[,8]),6:9])
   names(combined.info2) = names(combined.info1)
-  
+
   all.info = rbind(combined.info1,combined.info2)
-  
   print(paste("norows all.info=",nrow(all.info),sep=""))
-  
+
   all.info = all.info[order(as.numeric(all.info[,1])),]
-  names(all.info)[4]="allele.frequency"
-  write.csv(all.info, file=paste(outFileStart,chrom,"_withAlleleFreq.csv",sep=""), quote=F, row.names=F)
-  
-  no.rows = nrow(all.info)
-  snp.names = paste("snp",1:no.rows,sep="")
-  out.data = cbind(snp.names,all.info[5:8], matrix(data=c(0,1,0), nrow=no.rows, ncol=3, byrow=T))
+
+  is.het = (all.info[,4] >= 0.3 & all.info[,4] <= 0.7)
+  names(all.info)[5]="allele.frequency"
+  write.csv(all.info[is.het,-4], file=paste(outFileStart,chrom,"_withAlleleFreq.csv",sep=""), quote=F, row.names=F)
+
+  out.data = data.frame()
+  if (heterozygousFilter!="none") {
+    # Set the minimum level to use for calling homozygous SNPs
+    minBaf = min(heterozygousFilter, 1.0-heterozygousFilter)
+    maxBaf = max(heterozygousFilter, 1.0-heterozygousFilter)
+
+    is.hom.ref = (all.info[,4] <= minBaf)
+    is.hom.alt = (all.info[,4] >= maxBaf)
+
+    # Obtain genotypes that impute2 is able to understand
+    genotypes = array(0,c(nrow(all.info),3))
+    genotypes[is.hom.ref,1] = 1
+    genotypes[is.het,2] = 1
+    genotypes[is.hom.alt,3] = 1
+    is.genotyped = (is.het | is.hom.ref | is.hom.alt)
+
+    snp.names = paste("snp",1:sum(is.genotyped),sep="")
+    out.data = cbind(snp.names,all.info[is.genotyped,6:9], genotypes[is.genotyped,])
+  } else {
+    snp.names = paste("snp",1:sum(is.het),sep="")
+    out.data = cbind(snp.names,all.info[is.het,6:9], matrix(data=c(0,1,0), nrow=sum(is.het), ncol=3, byrow=T))
+  }
   write.table(out.data,file=outfile,row.names=F,col.names=F,quote=F)
   
   if (chrom==23) {
