@@ -28,18 +28,6 @@ segment.baf.phased.sv(samplename, inputfile, outputfile, svs, gamma = 10,
 \item{no_segmentation}{Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm}
 
 \item{calc_seg_baf_option}{Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)}
-
-\item{svs_chrom}{Structural variant breakpoints for a single chromosome}
-
-\item{BAFrawchr}{Raw BAF values of germline heterozygous SNPs on a single chromosome}
-
-\item{no_segmentation}{Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm}
-}
-\value{
-A data.frame with chrom, start and end columns
-
-A data.frame with columns Chromosome,Position,BAF,BAFphased,BAFseg
-Recalculate the BAF of each segment, if required
 }
 \description{
 This function takes the SV breakpoints as initial segments and runs PCF on each
@@ -47,8 +35,5 @@ of those independently. The SVs must be supplied as a simple data.frame with col
 chromosome and position
 }
 \author{
-sd11, dw9
-
 sd11
-Run PCF on presegmented data
 }

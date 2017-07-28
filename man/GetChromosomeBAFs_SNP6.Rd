@@ -17,6 +17,8 @@ GetChromosomeBAFs_SNP6(chrom, alleleFreqFile, haplotypeFile, samplename,
 \item{samplename}{Identifier for the sample (used in header of output file).}
 
 \item{outputfile}{Full path pointing to where output should be written.}
+
+\item{chr_names}{Vector of chromosome names}
 }
 \description{
 This function matches allele frequencies and halplotype info, reverses frequencies by haplotype, combines the output and saves it to disk.

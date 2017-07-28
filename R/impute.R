@@ -54,12 +54,12 @@ run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, imp
 #'   end : End of the chromosome
 #'   is_par : 1 when pseudo autosomal region, 0 when not
 #'   
-#'   @param imputeinfofile Path to the imputeinfofile on disk.
-#'   @param is.male A boolean describing whether the sample under study is male.
-#'   @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
-#'   @return A data.frame with 7 columns: Chromosome, impute_legend, genetic_map, impute_hap, start, end, is_par
-#'   @author sd11
-#'   @export
+#' @param imputeinfofile Path to the imputeinfofile on disk.
+#' @param is.male A boolean describing whether the sample under study is male.
+#' @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
+#' @return A data.frame with 7 columns: Chromosome, impute_legend, genetic_map, impute_hap, start, end, is_par
+#' @author sd11
+#' @export
 parse.imputeinfofile = function(imputeinfofile, is.male, chrom=NA) {
   impute.info = read.table(imputeinfofile, stringsAsFactors=F)
   colnames(impute.info) = c("chrom", "impute_legend", "genetic_map", "impute_hap", "start", "end", "is_par")
@@ -74,12 +74,12 @@ parse.imputeinfofile = function(imputeinfofile, is.male, chrom=NA) {
 }
 
 #' Returns the chromosome names that are supported
-#'   @param imputeinfofile Path to the imputeinfofile on disk.
-#'   @param is.male A boolean describing whether the sample under study is male.
-#'   @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
-#'   @return A vector containing the supported chromosome names
-#'   @author sd11
-#'   @export
+#' @param imputeinfofile Path to the imputeinfofile on disk.
+#' @param is.male A boolean describing whether the sample under study is male.
+#' @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
+#' @return A vector containing the supported chromosome names
+#' @author sd11
+#' @export
 get.chrom.names = function(imputeinfofile, is.male, chrom=NA) {
   return(unique(parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)$chrom))
 }

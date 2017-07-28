@@ -141,12 +141,11 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
 #' @param phasekmin Kmin parameter used when correcting phasing mistakes (Default 3)
 #' @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
-#' @author sd11, dw9
+#' @author sd11
 #' @export
 segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=1) {
-  
-  #' Function that takes SNPs that belong to a single segment and looks for big holes between
-  #' each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
+  # Function that takes SNPs that belong to a single segment and looks for big holes between
+  # each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
   addin_bigholes = function(breakpoints, positions, chrom, startpos, maxsnpdist) {
     # If there is a big hole (i.e. centromere), add it in as a separate set of breakpoints
     
@@ -162,11 +161,12 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     return(list(breakpoints=breakpoints, startpos=startpos))
   }
   
-  #' Helper function that creates segment breakpoints from SV calls
-  #' @param svs_chrom Structural variant breakpoints for a single chromosome
-  #' @param BAFrawchr Raw BAF values of germline heterozygous SNPs on a single chromosome
-  #' @return A data.frame with chrom, start and end columns
-  #' @author sd11
+  # Helper function that creates segment breakpoints from SV calls
+  # @param svs_chrom Structural variant breakpoints for a single chromosome
+  # @param BAFrawchr Raw BAF values of germline heterozygous SNPs on a single chromosome
+  # @param addin_bigholes Flag whether bog holes in data are to be added as breakpoints
+  # @return A data.frame with chrom, start and end columns
+  # @author sd11
   svs_to_presegment_breakpoints = function(chrom, svs_chrom, BAFrawchr, addin_bigholes) {
     maxsnpdist = 3000000
     
@@ -226,16 +226,16 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     return(breakpoints)
   }
   
-  #' Run PCF on presegmented data
-  #' @param BAFrawchr
-  #' @param presegment_chrom_start
-  #' @param presegment_chrom_end
-  #' @param phasekmin
-  #' @param phasegamma
-  #' @param kmin
-  #' @param gamma
-  #' @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
-  #' @return A data.frame with columns Chromosome,Position,BAF,BAFphased,BAFseg
+  # Run PCF on presegmented data
+  # @param BAFrawchr Raw BAF for this chromosome
+  # @param presegment_chrom_start
+  # @param presegment_chrom_end
+  # @param phasekmin
+  # @param phasegamma
+  # @param kmin
+  # @param gamma
+  # @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
+  # @return A data.frame with columns Chromosome,Position,BAF,BAFphased,BAFseg
   run_pcf = function(BAFrawchr, presegment_chrom_start, presegment_chrom_end, phasekmin, phasegamma, kmin, gamma, no_segmentation=F) {
     row.indices = which(BAFrawchr$Position >= presegment_chrom_start & 
                           BAFrawchr$Position <= presegment_chrom_end)

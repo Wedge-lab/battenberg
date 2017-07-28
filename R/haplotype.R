@@ -6,6 +6,7 @@
 #' @param haplotypeFile File containing haplotype information.
 #' @param samplename Identifier for the sample (used in header of output file).
 #' @param outputfile Full path pointing to where output should be written.
+#' @param chr_names Vector of chromosome names
 #' @author dw9
 #' @export
 GetChromosomeBAFs_SNP6 = function(chrom, alleleFreqFile, haplotypeFile, samplename, outputfile, chr_names) {
@@ -20,10 +21,6 @@ GetChromosomeBAFs_SNP6 = function(chrom, alleleFreqFile, haplotypeFile, samplena
   select = match(alleleFreqData[,1], variant_data[,3])
   variant_data = variant_data[select,]
   
-#   chr_name = toString(chrom)
-#   if(chr_name == "23"){
-#     chr_name = "X"
-#   }
   chr_name = chr_names[as.numeric(chrom)]
   print(chr_name)
 

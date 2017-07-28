@@ -2,22 +2,23 @@
 % Please edit documentation in R/impute.R
 \name{get.chrom.names}
 \alias{get.chrom.names}
-\title{Returns the chromosome names that are supported
-  @param imputeinfofile Path to the imputeinfofile on disk.
-  @param is.male A boolean describing whether the sample under study is male.
-  @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
-  @return A vector containing the supported chromosome names
-  @author sd11
-  @export}
+\title{Returns the chromosome names that are supported}
 \usage{
 get.chrom.names(imputeinfofile, is.male, chrom = NA)
 }
+\arguments{
+\item{imputeinfofile}{Path to the imputeinfofile on disk.}
+
+\item{is.male}{A boolean describing whether the sample under study is male.}
+
+\item{chrom}{The name of a chromosome to subset the contents of the imputeinfofile with (optional)}
+}
+\value{
+A vector containing the supported chromosome names
+}
 \description{
 Returns the chromosome names that are supported
-  @param imputeinfofile Path to the imputeinfofile on disk.
-  @param is.male A boolean describing whether the sample under study is male.
-  @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
-  @return A vector containing the supported chromosome names
-  @author sd11
-  @export
+}
+\author{
+sd11
 }

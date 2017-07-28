@@ -12,6 +12,8 @@ coverage_plot(samplename, allelecounts, outputfile, max.y = 4)
 \item{allelecounts}{Combined allele counts of tumour and normal, read in as a data.frame}
 
 \item{outputfile}{Full path of file where the figure is to be stored}
+
+\item{max.y}{The max Y-axis value to be plotted}
 }
 \description{
 Plot relative coverage of tumour and normal

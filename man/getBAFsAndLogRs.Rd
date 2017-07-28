@@ -14,6 +14,8 @@ getBAFsAndLogRs(tumourAlleleCountsFile.prefix, normalAlleleCountsFile.prefix,
 
 \item{normalAlleleCountsFile.prefix}{Prefix of the allele counts files for the normal.}
 
+\item{figuresFile.prefix}{Prefix for output figures file names.}
+
 \item{BAFnormalFile}{File where BAF from the normal will be written.}
 
 \item{BAFmutantFile}{File where BAF from the tumour will be written.}

@@ -32,6 +32,8 @@ fit.copy.number(samplename, outputfile.prefix, inputfile.baf.segmented,
 
 \item{min.rho}{The minimum cellularity to consider (Default 0.1)}
 
+\item{max.rho}{The maximum cellularity to consider (Default 1.0)}
+
 \item{min.goodness}{The minimum goodness of fit for a solution to have to be considered (Default 63)}
 
 \item{uninformative_BAF_threshold}{The threshold beyond which BAF becomes uninformative (Default 0.51)}

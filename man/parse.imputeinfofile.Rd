@@ -6,6 +6,16 @@
 \usage{
 parse.imputeinfofile(imputeinfofile, is.male, chrom = NA)
 }
+\arguments{
+\item{imputeinfofile}{Path to the imputeinfofile on disk.}
+
+\item{is.male}{A boolean describing whether the sample under study is male.}
+
+\item{chrom}{The name of a chromosome to subset the contents of the imputeinfofile with (optional)}
+}
+\value{
+A data.frame with 7 columns: Chromosome, impute_legend, genetic_map, impute_hap, start, end, is_par
+}
 \description{
 Reads in a file with the following columns: 
   chromosome : 1-X
@@ -15,11 +25,7 @@ Reads in a file with the following columns:
   start : Start of the chromosome 
   end : End of the chromosome
   is_par : 1 when pseudo autosomal region, 0 when not
-  
-  @param imputeinfofile Path to the imputeinfofile on disk.
-  @param is.male A boolean describing whether the sample under study is male.
-  @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
-  @return A data.frame with 7 columns: Chromosome, impute_legend, genetic_map, impute_hap, start, end, is_par
-  @author sd11
-  @export
+}
+\author{
+sd11
 }

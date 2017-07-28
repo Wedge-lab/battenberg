@@ -3,7 +3,7 @@
 #' @noRd
 create.haplotype.plot = function(chrom.position, points.blue, points.red, x.min, x.max, title, xlab, ylab) {
   par(pch=".", cex=1, cex.main=0.8, cex.axis = 0.6, cex.lab=0.7,yaxp=c(-0.05,1.05,6))
-  plot(c(x.min,x.max), c(0,1), type="n",, main=title, xlab=xlab, ylab=ylab)
+  plot(c(x.min,x.max), c(0,1), type="n", main=title, xlab=xlab, ylab=ylab)
   points(chrom.position, points.blue, col="blue")
   points(chrom.position, points.red, col="red")
 }
@@ -212,8 +212,8 @@ clonal_findcentroid.plot = function(minimise, dist_choice, d, psis, rhos, new_bo
   rho_max_label_standardised = ( rho_max_label - rho_min ) / rho_range
   rho_label_interval_standardised = rho_label_interval / rho_range
   
-  axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), label = seq(psi_min_label, psi_max_label, by = psi_label_interval))
-  axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), label = seq(rho_min_label, rho_max_label, by = rho_label_interval))
+  axis(1, at = seq(psi_min_label_standardised, psi_max_label_standardised, by = psi_label_interval_standardised), labels = seq(psi_min_label, psi_max_label, by = psi_label_interval))
+  axis(2, at = seq(rho_min_label_standardised, rho_max_label_standardised, by = rho_label_interval_standardised), labels = seq(rho_min_label, rho_max_label, by = rho_label_interval))
   
   points( ( psis - psi_min ) / psi_range , ( rhos - rho_min ) / rho_range , col=c("green", "darkgreen"), pch="X", cex = 2 )
 }
@@ -273,7 +273,8 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
   q <- q + ggplot2::stat_function(fun = isobafline, args = list(cstbaf = subclone$BAF), colour="green")
   
   # add isologrline
-  q <- q + ggplot2::geom_segment(data = data.frame(flnMaj = floor(nMajcalc)-0.2, cnMin = ceiling(nMincalc)+0.2, cnMaj = ceiling(nMajcalc)+0.2, flnMin = floor(nMincalc)-0.2),
+  df = data.frame(flnMaj = floor(nMajcalc)-0.2, cnMin = ceiling(nMincalc)+0.2, cnMaj = ceiling(nMajcalc)+0.2, flnMin = floor(nMincalc)-0.2)
+  q <- q + ggplot2::geom_segment(data = df,
                         aes(x = flnMaj, y = cnMin, xend = cnMaj, yend = flnMin), colour="red", alpha = 0.6)
   
   # if clonal segment, only plot clonal solution
@@ -323,6 +324,7 @@ runmed_data = function(chromosome, data, k=101) {
 #' @author sd11
 #' @export
 totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
+  
   # Smooth the logR
   colnames(logr)[3] = "raw_logr"
   logr$logr_smoothed = runmed_data(logr$Chromosome, logr$raw_logr, 101)
@@ -419,6 +421,7 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
 #' @author sd11
 #' @export
 allele_ratio_plot = function(samplename, allelecounts, bafsegmented, logrsegmented, outputfile, max.plot.cn=5) {
+  
   # allelecounts = as.data.frame(Battenberg::read_table_generic(combined_counts))
 
   # print("Reading BAF segmented..")
@@ -472,10 +475,12 @@ allele_ratio_plot = function(samplename, allelecounts, bafsegmented, logrsegment
     copyratio_binnedLogR$ratioBAFseg_alt[ratio_sel] = (-(baf_chrom$BAFseg[baf_sel]-1)*(2^logrseg_chrom$logRseg[logrseg_sel]))
   }
   
+  background = data.frame(y=seq(0,max.plot.cn,0.5))
+  
   print("Plotting..")
   plot_title = samplename
   copy_ratio = ggplot(allelecounts[seq(1, nrow(allelecounts), 100),]) +
-    geom_hline(data=data.frame(y=seq(0,max.plot.cn,0.5)), mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
+    geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=copy_ratio_binned), alpha=0.5, size=0.9, colour="darkgreen") +
     facet_grid(~Chromosome, scales="free_x", space = "free_x") +
     scale_x_continuous(expand=c(0, 0)) +
@@ -490,7 +495,7 @@ allele_ratio_plot = function(samplename, allelecounts, bafsegmented, logrsegment
                        plot.title = element_text(colour="black",size=36,face="plain",hjust = 0.5))
 
   as_copy_ratio_seg = ggplot(copyratio_binnedLogR[seq(1, nrow(copyratio_binnedLogR), 100),]) +
-    geom_hline(data=data.frame(y=seq(0,max.plot.cn,0.5)), mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
+    geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=ratioBAFseg_alt), alpha=0.5, size=0.9, colour="darkblue") +
     geom_point(mapping=aes(x=Position, y=ratioBAFseg), alpha=0.5, size=0.9, colour="purple") +
     facet_grid(~Chromosome, scales="free_x", space = "free_x") +
@@ -517,6 +522,7 @@ allele_ratio_plot = function(samplename, allelecounts, bafsegmented, logrsegment
 #' @author sd11
 #' @export
 coverage_plot = function(samplename, allelecounts, outputfile, max.y=4) {
+  
   print("Normalising allele counts..")
   allelecounts$tumour = allelecounts$mutCountT1+allelecounts$mutCountT2
   allelecounts$tumour = allelecounts$tumour / median(allelecounts$tumour, na.rm=T)
@@ -534,9 +540,10 @@ coverage_plot = function(samplename, allelecounts, outputfile, max.y=4) {
   allelecounts$normal_binned = runmed_data(allelecounts$Chromosome, allelecounts$normal)
   allelecounts$Chromosome = factor(allelecounts$Chromosome, levels=gtools::mixedsort(unique(allelecounts$Chromosome)))
   
+  background = data.frame(y=seq(0,2,0.5))
   plot_title = samplename
   p = ggplot(allelecounts[seq(1, nrow(allelecounts), 100),]) +
-    geom_hline(data=data.frame(y=seq(0,2,0.5)), mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
+    geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=normal_binned), alpha=0.5, size=0.5, colour="darkgreen") +
     facet_grid(~Chromosome, scales="free_x", space = "free_x") +
     scale_x_continuous(expand=c(0, 0)) +
@@ -550,8 +557,9 @@ coverage_plot = function(samplename, allelecounts, outputfile, max.y=4) {
                        strip.text.x = element_text(colour="black",size=16,face="plain"),
                        plot.title = element_text(colour="black",size=36,face="plain",hjust = 0.5))
   
+  background = data.frame(y=seq(0,max.y,0.5))
   p3 = ggplot(allelecounts[seq(1, nrow(allelecounts), 100),]) +
-    geom_hline(data=data.frame(y=seq(0,max.y,0.5)), mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
+    geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=tumour_binned), alpha=0.5, size=0.5, colour="darkgreen") +
     facet_grid(~Chromosome, scales="free_x", space = "free_x") +
     scale_x_continuous(expand=c(0, 0)) +

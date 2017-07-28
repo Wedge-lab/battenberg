@@ -25,6 +25,7 @@ getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, 
 #'
 #' @param tumourAlleleCountsFile.prefix Prefix of the allele counts files for the tumour.
 #' @param normalAlleleCountsFile.prefix Prefix of the allele counts files for the normal.
+#' @param figuresFile.prefix Prefix for output figures file names.
 #' @param BAFnormalFile File where BAF from the normal will be written.
 #' @param BAFmutantFile File where BAF from the tumour will be written.
 #' @param logRnormalFile File where LogR from the normal will be written.
