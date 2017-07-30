@@ -150,7 +150,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   nonroundedprofile.outfile=paste(outputfile.prefix,"second_nonroundedprofile.png",sep="",collapse="") # kjd 20-2-2014
   
   # All is set up, now run ASCAT to obtain a clonal copynumber profile
-  out = run_clonal_ASCAT( logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, matched.segmented.BAF.data, ascat_optimum_pair, dist_choice, distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma_param=gamma_param, read_depth, uninformative_BAF_threshold, allow100percent=T, reliabilityFile=NA,  psi_min_initial=min.ploidy, psi_max_initial=max.ploidy, rho_min_initial=min.rho, rho_max_initial=max.rho) # kjd 21-2-2014
+  out = run_clonal_ASCAT( logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, matched.segmented.BAF.data, ascat_optimum_pair, dist_choice, distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, gamma_param=gamma_param, read_depth, uninformative_BAF_threshold, allow100percent=T, reliabilityFile=NA,  psi_min_initial=min.ploidy, psi_max_initial=max.ploidy, rho_min_initial=min.rho, rho_max_initial=max.rho, chr.names=chr.names) # kjd 21-2-2014
   
   ascat_optimum_pair_fraction_of_genome = out$output_optimum_pair_without_ref
   ascat_optimum_pair_ref_seg = out$output_optimum_pair
@@ -798,3 +798,35 @@ collapse_bafsegmented_to_segments = function(bafsegmented) {
   return(segments_collapsed)
 }
 
+#' Function to make additional figures
+#' 
+#' @param samplename Name of the sample for the plot title
+#' @param logr_file File containing all logR data
+#' @param subclones_file File with the copy number fit
+#' @param rho_psi_file File with rho and psi parameters
+#' @param bafsegmented_file File containing the BAFsegmented data
+#' @param logrsegmented_file File with the logRsegmented data
+#' @param allelecounts_file Optional file with raw allele counts (Default: NULL)
+#' @author sd11
+#' @export
+make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_file, bafsegmented_file, logrsegmented_file, allelecounts_file=NULL) {
+  # Make some post-hoc plots
+  logr = Battenberg::read_table_generic(logr_file)
+  subclones = Battenberg::read_table_generic(subclones_file)
+  rho_psi = read.table(rho_psi_file, header=T, stringsAsFactors=F)
+  purity = rho_psi["FRAC_GENOME", "rho"]
+  totalcn_chrom_plot(samplename, subclones, logr, paste0(samplename, "_totalcn_chrom_plot.png"), purity)
+  
+  if (!is.null(allelecounts_file)) {
+    allelecounts = as.data.frame(Battenberg::read_table_generic(allelecounts_file))
+  }
+  bafsegmented = as.data.frame(Battenberg::read_table_generic(bafsegmented_file))
+  logrsegmented = as.data.frame(Battenberg::read_table_generic(logrsegmented_file))
+  outputfile = paste0(samplename, "_alleleratio.png")
+  allele_ratio_plot(samplename=samplename, logr=logr, bafsegmented=bafsegmented, logrsegmented=logrsegmented, outputfile=outputfile, max.plot.cn=8)
+  
+  if (!is.null(allelecounts_file)) {
+    outputfile = paste0(samplename, "_coverage.png")
+    coverage_plot(samplename, allelecounts, outputfile)
+  }
+}

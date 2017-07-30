@@ -327,16 +327,22 @@ generate.impute.input.snp6 = function(infile.germlineBAF, infile.tumourBAF, outF
   knownSNP6data$Allele.B = factor(knownSNP6data$Allele.B,levels=c("A","C","G","T"))
   
   # Read in the BAFs and see which 1000 genomes SNPs are covered
-  germline_snp_data = read.table(infile.germlineBAF,sep="\t",header=T, stringsAsFactors=F)[,3,drop=F]
-  tumour_snp_data = read.table(infile.tumourBAF,sep="\t",header=T, stringsAsFactors=F)[,3,drop=F]
-  snp_matches = match(rownames(germline_snp_data), rownames(tumour_snp_data))
-  snp_data = na.omit(cbind(nBAF = germline_snp_data, tBAF = tumour_snp_data[snp_matches,]))
+  germline_snp_data = read.table(infile.germlineBAF,sep="\t",header=T, stringsAsFactors=F) #[,3,drop=F]
+  germline_snp_data = germline_snp_data[germline_snp_data[,1]==chr_name,]
+  tumour_snp_data = read.table(infile.tumourBAF,sep="\t",header=T, stringsAsFactors=F) #[,3,drop=F]
+  tumour_snp_data = tumour_snp_data[tumour_snp_data[,1]==chr_name,]
+  # snp_matches = match(rownames(germline_snp_data), rownames(tumour_snp_data))
+  snp_matches = match(germline_snp_data[,2], tumour_snp_data[,2])
+  snp_data = na.omit(cbind(nBAF = germline_snp_data[,3], tBAF = tumour_snp_data[snp_matches,3]))
 
   print(paste("first datum=",rownames(snp_data[1,]),sep=""))
 
-  indices = match(rownames(snp_data),knownSNP6data$Probe.Set.ID)
+  #indices = match(rownames(snp_data),knownSNP6data$Probe.Set.ID)
+  indices = match(germline_snp_data[,2], knownSNP6data$Physical.Position)
   if(sum(!is.na(indices))==0){
-    indices = match(rownames(snp_data),knownSNP6data$dbSNP.RS.ID)
+    print("Did not find any positional matches of the provided data to the reference")
+    # indices = match(rownames(snp_data),knownSNP6data$dbSNP.RS.ID)
+    q(save="no", status=1)
   }
 
   print(paste("found SNPs=",sum(!is.na(indices)),sep=""))

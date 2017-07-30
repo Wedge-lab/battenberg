@@ -360,8 +360,10 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
   logr_plot$Chromosome = factor(logr_plot$Chromosome, levels=gtools::mixedsort(unique(logr_plot$Chromosome)))
   subclones$Chromosome = factor(subclones$chr, levels=levels(logr_plot$Chromosome))
   
-  # Set plot boundaries for x and y
-  max_cn_plot = ceiling(quantile(logr_plot$total_cn_psi, c(.98), na.rm=T))
+  # Set plot boundaries for x and y - take as y value the maximum between the data and the fit
+  max_cn_plot_data = ceiling(quantile(logr_plot$total_cn_psi, c(.98), na.rm=T))
+  max_cn_plot_fit = ceiling(quantile(unlist(lapply(1:nrow(subclones), function(i) rep(subclones$total_cn[i], subclones$len[i]))), c(.98), na.rm=T))
+  max_cn_plot = ifelse(max_cn_plot_fit > max_cn_plot_data, max_cn_plot_fit, max_cn_plot_data)
   maxpos = max(logr$Position)
   
   # These are the grey lines in the background
@@ -375,26 +377,20 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
   prop_subclonal = round(sum(subclones$len[subclones$is_subclonal]) / sum(subclones$len), 2)
   homdel = sum(subclones$len[subclones$total_cn == 0]/1000)
   plot_title = samplename
-  plot_subtitle = paste0("purity: ", round(purity, 2), " - ploidy: ", round(ploidy, 2), " - Hom del: ", round(homdel, 2), "Mb - Prop. subclonal: ", prop_subclonal, " - Subclonal 50/50: ", round(genome_50_50, 2), "Mb")
+  plot_subtitle = paste0("Purity: ", round(purity, 2), " - Ploidy: ", round(ploidy, 2), " - Hom del: ", round(homdel, 2), "Mb - Prop. subclonal: ", prop_subclonal, " - Subclonal 50/50: ", round(genome_50_50, 2), "Mb")
+  
+  rect_height_padding = 0.2
   
   # Build the actual plot - CNA segments are drawn separately depending on their category as categories have different colours
   p = ggplot() + 
     geom_rect(data=background, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill='gray80', alpha=0.5) +
     geom_point(data=logr_plot, mapping=aes(x=Position, y=total_cn_psi), size=0.5) + 
-    # Minor allele - Normal clonal copy number
-    geom_rect(data=subclones[!subclones$is_subclonal, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_minor-0.2, ymax=total_minor+0.2), fill="#2f4f4f") +
-    # Minor allele - Normal subclonal copy number
-    geom_rect(data=subclones[subclones$is_subclonal & !subclones$is_50_50, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_minor-0.2, ymax=total_minor+0.2), fill="#2f3f4f") +
-    # Minor allele - Subclonal segments right in between two clonal states
-    geom_rect(data=subclones[subclones$is_subclonal & subclones$is_50_50, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_minor-0.2, ymax=total_minor+0.2), fill="#2f3f4f", colour="red") +
-    # Major allele - clonal copy number
-    geom_rect(data=subclones[!subclones$is_subclonal, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_cn-0.2, ymax=total_cn+0.2), fill="#E69F00") + 
-    # Major allele - subclonal copy number
-    geom_rect(data=subclones[subclones$is_subclonal, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_cn-0.2, ymax=total_cn+0.2), fill="#E55300") +
     ylab("Copy Number") +
-    scale_y_continuous(breaks=seq(0, max_cn_plot, 2), limits=c(-0.25, max_cn_plot)) + 
+    scale_y_continuous(breaks=seq(0, max_cn_plot, 2)) +  #, limits=c(-rect_height_padding, max_cn_plot+rect_height_padding)
     # Axis ticks every 10Mb
     scale_x_continuous(breaks=seq(1, max(logr$Position), 10000000)[-1], labels=round(seq(0, maxpos, 10000000) / 1000000)[-1], expand=c(0, 0)) +
+    # Don't restrict the plotting area, zoom. that way segments that go outside the limits are partially plotted still
+    coord_cartesian(ylim=c(-rect_height_padding, max_cn_plot+rect_height_padding)) +
     facet_wrap(~Chromosome, ncol=2, strip.position="right") + 
     # ggtitle(plot_title) +
     ggtitle(bquote(atop(.(plot_title), atop(.(plot_subtitle), "")))) +
@@ -405,6 +401,33 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
                        strip.text.y = element_text(colour="black",size=20,face="plain"),
                        plot.title = element_text(colour="black",size=36,face="plain",hjust = 0.5))
   
+  # Plot the copy number segments - some of the data.frames may be empty, so check for that first before adding to the plot
+  sel = !subclones$is_subclonal
+  if (any(sel)) {
+    # Minor allele - Normal clonal copy number
+    p = p + geom_rect(data=subclones[sel, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_minor-rect_height_padding, ymax=total_minor+rect_height_padding), fill="#2f4f4f")
+  }
+  sel = subclones$is_subclonal & !subclones$is_50_50
+  if (any(sel)) {
+    # Minor allele - Normal subclonal copy number
+    p = p + geom_rect(data=subclones[sel, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_minor-rect_height_padding, ymax=total_minor+rect_height_padding), fill="#2f3f4f")
+  }
+  sel = subclones$is_subclonal & subclones$is_50_50
+  if (any(sel)) {
+    # Minor allele - Subclonal segments right in between two clonal states
+    p = p + geom_rect(data=subclones[sel, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_minor-rect_height_padding, ymax=total_minor+rect_height_padding), fill="#2f3f4f", colour="red")
+  }
+  sel = !subclones$is_subclonal
+  if (any(sel)) {
+    # Major allele - clonal copy number
+    p = p + geom_rect(data=subclones[sel, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_cn-rect_height_padding, ymax=total_cn+rect_height_padding), fill="#E69F00")
+  }
+  sel = subclones$is_subclonal
+  if (any(sel)) {
+    # Major allele - subclonal copy number
+    p = p + geom_rect(data=subclones[sel, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_cn-rect_height_padding, ymax=total_cn+rect_height_padding), fill="#E55300")
+  }
+  
   png(outputfile, width=2000, height=1300)
   print(p)
   dev.off()
@@ -413,15 +436,23 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
 #' Plot allele ratios from raw segmented data
 #' 
 #' @param samplename Name of the sample for the plot title
-#' @param allelecounts A data.frame with the combined allele counts from tumour and normal
 #' @param bafsegmented The BAFsegmented data read in as a data.frame
 #' @param logrsegmented The logRsegmented data read in as a data.frame
 #' @param outputfile Full path of file where the figure is to be stored
+#' @param logr A data.frame with the logr, either logr or allelecounts must be supplied
 #' @param max.plot.cn Maximum y-axis value to plot (Default: 5)
 #' @author sd11
 #' @export
-allele_ratio_plot = function(samplename, allelecounts, bafsegmented, logrsegmented, outputfile, max.plot.cn=5) {
-  
+allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile, logr, max.plot.cn=5) {
+  # if (is.null(logr) & is.null(allelecounts)) {
+  #   print("Please supply either logr or allelecounts as input to allele_ratio_plot")
+  #   q(save="no", status=1)
+  # }
+  # 
+  # if (!is.null(logr) & !is.null(allelecounts)) {
+  #   print("Both logr and allelecounts are supplied to allele_ratio_plot, using allelecounts")
+  # }
+    
   # allelecounts = as.data.frame(Battenberg::read_table_generic(combined_counts))
 
   # print("Reading BAF segmented..")
@@ -436,24 +467,31 @@ allele_ratio_plot = function(samplename, allelecounts, bafsegmented, logrsegment
   colnames(logrsegmented) = c("Chromosome", "Position", "logRseg")
   logrsegmented$Chromosome = factor(logrsegmented$Chromosome, levels=levels(bafsegmented$Chromosome))
   
-  print("Normalising allele counts..")
-  allelecounts$tumour = allelecounts$mutCountT1+allelecounts$mutCountT2
-  allelecounts$tumour = allelecounts$tumour / median(allelecounts$tumour, na.rm=T)
-  allelecounts$normal = allelecounts$mutCountN1+allelecounts$mutCountN2
-  allelecounts$normal = allelecounts$normal / median(allelecounts$normal, na.rm=T)
-
-  print("Smoothing data..")
-  # res = bin_coverage_tumour(allelecounts, binsize=10000)
-  # allelecounts$tumour_binned = res$tumour_binned
-  allelecounts$tumour_binned = runmed_data(allelecounts$Chromosome, allelecounts$tumour)
-
-  # res = bin_coverage_normal(allelecounts, binsize=10000)
-  # allelecounts$normal_binned = res$normal_binned
-  # rm(res)
-  allelecounts$normal_binned = runmed_data(allelecounts$Chromosome, allelecounts$normal)
-
-  allelecounts$copy_ratio_binned = allelecounts$tumour_binned / allelecounts$normal_binned
-  allelecounts$Chromosome = factor(allelecounts$Chromosome, levels=levels(bafsegmented$Chromosome))
+  # if (!is.null(allelecounts)) {
+  #   print("Normalising allele counts..")
+  #   allelecounts$tumour = allelecounts$mutCountT1+allelecounts$mutCountT2
+  #   allelecounts$tumour = allelecounts$tumour / median(allelecounts$tumour, na.rm=T)
+  #   allelecounts$normal = allelecounts$mutCountN1+allelecounts$mutCountN2
+  #   allelecounts$normal = allelecounts$normal / median(allelecounts$normal, na.rm=T)
+  # 
+  #   print("Smoothing data..")
+  #   # res = bin_coverage_tumour(allelecounts, binsize=10000)
+  #   # allelecounts$tumour_binned = res$tumour_binned
+  #   allelecounts$tumour_binned = runmed_data(allelecounts$Chromosome, allelecounts$tumour)
+  # 
+  #   # res = bin_coverage_normal(allelecounts, binsize=10000)
+  #   # allelecounts$normal_binned = res$normal_binned
+  #   # rm(res)
+  #   allelecounts$normal_binned = runmed_data(allelecounts$Chromosome, allelecounts$normal)
+  # 
+  #   allelecounts$copy_ratio_binned = allelecounts$tumour_binned / allelecounts$normal_binned
+  #   allelecounts$Chromosome = factor(allelecounts$Chromosome, levels=levels(bafsegmented$Chromosome))
+  # } else {
+  colnames(logr)[3] = "raw_logr"
+  logr$copy_ratio_binned = runmed_data(logr$Chromosome, exp(logr$raw_logr))
+  logr$Chromosome = factor(logr$Chromosome, levels=levels(bafsegmented$Chromosome))
+  allelecounts = logr
+  # }
 
   copyratio_binnedLogR = as.data.frame(array(NA, c(nrow(bafsegmented), 8)))
   colnames(copyratio_binnedLogR) = c("Chromosome", "Position", "ratioBAF", "ratioBAFphased", "ratioBAF_alt", "ratioBAFphased_alt", "ratioBAFseg", "ratioBAFseg_alt")

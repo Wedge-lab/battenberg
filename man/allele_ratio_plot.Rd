@@ -4,19 +4,19 @@
 \alias{allele_ratio_plot}
 \title{Plot allele ratios from raw segmented data}
 \usage{
-allele_ratio_plot(samplename, allelecounts, bafsegmented, logrsegmented,
-  outputfile, max.plot.cn = 5)
+allele_ratio_plot(samplename, bafsegmented, logrsegmented, outputfile, logr,
+  max.plot.cn = 5)
 }
 \arguments{
 \item{samplename}{Name of the sample for the plot title}
-
-\item{allelecounts}{A data.frame with the combined allele counts from tumour and normal}
 
 \item{bafsegmented}{The BAFsegmented data read in as a data.frame}
 
 \item{logrsegmented}{The logRsegmented data read in as a data.frame}
 
 \item{outputfile}{Full path of file where the figure is to be stored}
+
+\item{logr}{A data.frame with the logr, either logr or allelecounts must be supplied}
 
 \item{max.plot.cn}{Maximum y-axis value to plot (Default: 5)}
 }

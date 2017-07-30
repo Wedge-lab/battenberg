@@ -193,18 +193,17 @@ callSubclones(sample.name=TUMOURNAME,
               sv_breakpoints_file="NA",
               calc_seg_baf_option=CALC_SEG_BAF_OPTION)
 
-#' Make some post-hoc plots
-logr = Battenberg::read_table_generic(paste0(TUMOURNAME, "_mutantLogR_gcCorrected.tab.gz"))
-subclones = Battenberg::read_table_generic(paste0(TUMOURNAME, "_subclones.txt"))
-rho_psi = read.table(paste0(TUMOURNAME, "_rho_and_psi.txt"), header=T, stringsAsFactors=F)
-purity = rho_psi["FRAC_GENOME", "rho"]
-totalcn_chrom_plot(TUMOURNAME, subclones, logr, paste0(TUMOURNAME, "_totalcn_chrom_plot.png"), purity)
+# Make some post-hoc plots
+make_posthoc_plots(samplename=TUMOURNAME, 
+                   logr_file=paste(TUMOURNAME, "_mutantLogR.tab", sep=""), 
+                   subclones_file=paste(TUMOURNAME, "_subclones.txt", sep=""), 
+                   rho_psi_file=paste(TUMOURNAME, "_rho_and_psi.txt", sep=""), 
+                   bafsegmented_file=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
+                   logrsegmented_file=paste(TUMOURNAME, ".logRsegmented.txt", sep=""), 
+                   allelecounts_file=NULL)
 
-allelecounts = as.data.frame(Battenberg::read_table_generic(paste0(TUMOURNAME, "_alleleCounts.tab.gz")))
-bafsegmented = as.data.frame(Battenberg::read_table_generic(paste0(TUMOURNAME, ".BAFsegmented.txt")))
-logrsegmented = as.data.frame(Battenberg::read_table_generic(paste0(TUMOURNAME, ".logRsegmented.txt")))
-outputfile = paste0(TUMOURNAME, "_alleleratio.png")
-allele_ratio_plot(TUMOURNAME, allelecounts, bafsegmented, logrsegmented, outputfile, max.plot.cn=8)
-
-outputfile = paste0(TUMOURNAME, "_coverage.png")
-coverage_plot(TUMOURNAME, allelecounts, outputfile)
+# Save refit suggestions for a future rerun
+cnfit_to_refit_suggestions(samplename=TUMOURNAME, 
+                           subclones_file=paste(TUMOURNAME, "_subclones.txt", sep=""),
+                           rho_psi_file=paste(TUMOURNAME, "_rho_and_psi.txt", sep=""),
+                           gamma_param=PLATFORM_GAMMA)

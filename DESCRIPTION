@@ -3,7 +3,7 @@ Maintainer: Stefan Dentro <sd11@sanger.ac.uk>
 License: GPL-3
 Type: Package
 Title: Battenberg subclonal copy number caller
-Version: 2.2.6
+Version: 2.2.7
 Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
     person("Peter", "Van Loo", role=c("aut")),
     person("Stefan","Dentro", email="sd11@sanger.ac.uk", role=c("aut", "cre")),
@@ -19,7 +19,7 @@ Depends:
   grDevices
 Imports:
   RColorBrewer,
-  ASCAT (>= 2.4.1),
+  ASCAT (>= 2.5),
   ggplot2,
   readr,
   gtools,
