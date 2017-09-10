@@ -444,6 +444,14 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
 #' @author sd11
 #' @export
 allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile, logr, max.plot.cn=5) {
+
+
+  if (nrow(logr) > 2000000) {
+	  platform = "SNP6"
+  } else {
+	  platform = "WGS"
+  }
+
   # if (is.null(logr) & is.null(allelecounts)) {
   #   print("Please supply either logr or allelecounts as input to allele_ratio_plot")
   #   q(save="no", status=1)
@@ -516,8 +524,14 @@ allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile
   background = data.frame(y=seq(0,max.plot.cn,0.5))
   
   print("Plotting..")
+  if (platform == "WGS") {
+  	sel = allelecounts[seq(1, nrow(allelecounts), 100),]
+  } else {
+	sel = rep(T, nrow(allelecounts))
+  }
+
   plot_title = samplename
-  copy_ratio = ggplot(allelecounts[seq(1, nrow(allelecounts), 100),]) +
+  copy_ratio = ggplot(allelecounts[sel,]) +
     geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=copy_ratio_binned), alpha=0.5, size=0.9, colour="darkgreen") +
     facet_grid(~Chromosome, scales="free_x", space = "free_x") +
@@ -532,7 +546,12 @@ allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile
                        strip.text.x = element_text(colour="black",size=16,face="plain"),
                        plot.title = element_text(colour="black",size=36,face="plain",hjust = 0.5))
 
-  as_copy_ratio_seg = ggplot(copyratio_binnedLogR[seq(1, nrow(copyratio_binnedLogR), 100),]) +
+  if (platform == "WGS") {
+	  sel = seq(1, nrow(copyratio_binnedLogR), 100)
+  } else {
+	  sel = rep(T, nrow(copyratio_binnedLogR))
+  }
+  as_copy_ratio_seg = ggplot(copyratio_binnedLogR[sel,]) +
     geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=ratioBAFseg_alt), alpha=0.5, size=0.9, colour="darkblue") +
     geom_point(mapping=aes(x=Position, y=ratioBAFseg), alpha=0.5, size=0.9, colour="purple") +
