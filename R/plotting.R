@@ -445,61 +445,20 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
 #' @export
 allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile, logr, max.plot.cn=5) {
 
-
-  if (nrow(logr) > 2000000) {
+  if (nrow(logr) < 2000000) {
 	  platform = "SNP6"
   } else {
 	  platform = "WGS"
   }
 
-  # if (is.null(logr) & is.null(allelecounts)) {
-  #   print("Please supply either logr or allelecounts as input to allele_ratio_plot")
-  #   q(save="no", status=1)
-  # }
-  # 
-  # if (!is.null(logr) & !is.null(allelecounts)) {
-  #   print("Both logr and allelecounts are supplied to allele_ratio_plot, using allelecounts")
-  # }
-    
-  # allelecounts = as.data.frame(Battenberg::read_table_generic(combined_counts))
-
-  # print("Reading BAF segmented..")
-  # bafsegmented = read.table(bafsegmfile, header=T, stringsAsFactors=F)
-  # print("Binning BAFphased..")
-  # bafsegmented_binned = bin_bafphased(bafsegmented, binsize=10000)
-  # bafsegmented$BAFphased = bafsegmented_binned$BAFphased_binned
   bafsegmented$Chromosome = factor(bafsegmented$Chromosome, levels=gtools::mixedsort(unique(bafsegmented$Chromosome)))
-
-  print("Reading logR segmented..")
-  # logrsegmented = read_table_generic(logrsegmfile, header=F)
   colnames(logrsegmented) = c("Chromosome", "Position", "logRseg")
   logrsegmented$Chromosome = factor(logrsegmented$Chromosome, levels=levels(bafsegmented$Chromosome))
   
-  # if (!is.null(allelecounts)) {
-  #   print("Normalising allele counts..")
-  #   allelecounts$tumour = allelecounts$mutCountT1+allelecounts$mutCountT2
-  #   allelecounts$tumour = allelecounts$tumour / median(allelecounts$tumour, na.rm=T)
-  #   allelecounts$normal = allelecounts$mutCountN1+allelecounts$mutCountN2
-  #   allelecounts$normal = allelecounts$normal / median(allelecounts$normal, na.rm=T)
-  # 
-  #   print("Smoothing data..")
-  #   # res = bin_coverage_tumour(allelecounts, binsize=10000)
-  #   # allelecounts$tumour_binned = res$tumour_binned
-  #   allelecounts$tumour_binned = runmed_data(allelecounts$Chromosome, allelecounts$tumour)
-  # 
-  #   # res = bin_coverage_normal(allelecounts, binsize=10000)
-  #   # allelecounts$normal_binned = res$normal_binned
-  #   # rm(res)
-  #   allelecounts$normal_binned = runmed_data(allelecounts$Chromosome, allelecounts$normal)
-  # 
-  #   allelecounts$copy_ratio_binned = allelecounts$tumour_binned / allelecounts$normal_binned
-  #   allelecounts$Chromosome = factor(allelecounts$Chromosome, levels=levels(bafsegmented$Chromosome))
-  # } else {
   colnames(logr)[3] = "raw_logr"
   logr$copy_ratio_binned = runmed_data(logr$Chromosome, exp(logr$raw_logr))
   logr$Chromosome = factor(logr$Chromosome, levels=levels(bafsegmented$Chromosome))
   allelecounts = logr
-  # }
 
   copyratio_binnedLogR = as.data.frame(array(NA, c(nrow(bafsegmented), 8)))
   colnames(copyratio_binnedLogR) = c("Chromosome", "Position", "ratioBAF", "ratioBAFphased", "ratioBAF_alt", "ratioBAFphased_alt", "ratioBAFseg", "ratioBAFseg_alt")
@@ -532,7 +491,7 @@ allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile
 
   plot_title = samplename
   copy_ratio = ggplot(allelecounts[sel,]) +
-    geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
+    geom_hline(data=background, mapping=aes(yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=copy_ratio_binned), alpha=0.5, size=0.9, colour="darkgreen") +
     facet_grid(~Chromosome, scales="free_x", space = "free_x") +
     scale_x_continuous(expand=c(0, 0)) +
@@ -552,7 +511,7 @@ allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile
 	  sel = rep(T, nrow(copyratio_binnedLogR))
   }
   as_copy_ratio_seg = ggplot(copyratio_binnedLogR[sel,]) +
-    geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
+    geom_hline(data=background, mapping=aes(yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=ratioBAFseg_alt), alpha=0.5, size=0.9, colour="darkblue") +
     geom_point(mapping=aes(x=Position, y=ratioBAFseg), alpha=0.5, size=0.9, colour="purple") +
     facet_grid(~Chromosome, scales="free_x", space = "free_x") +
@@ -600,7 +559,7 @@ coverage_plot = function(samplename, allelecounts, outputfile, max.y=4) {
   background = data.frame(y=seq(0,2,0.5))
   plot_title = samplename
   p = ggplot(allelecounts[seq(1, nrow(allelecounts), 100),]) +
-    geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
+    geom_hline(data=background, mapping=aes(yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=normal_binned), alpha=0.5, size=0.5, colour="darkgreen") +
     facet_grid(~Chromosome, scales="free_x", space = "free_x") +
     scale_x_continuous(expand=c(0, 0)) +
@@ -616,7 +575,7 @@ coverage_plot = function(samplename, allelecounts, outputfile, max.y=4) {
   
   background = data.frame(y=seq(0,max.y,0.5))
   p3 = ggplot(allelecounts[seq(1, nrow(allelecounts), 100),]) +
-    geom_hline(data=background, mapping=aes(slope=0, yintercept=y), colour="black", alpha=0.3) +
+    geom_hline(data=background, mapping=aes(yintercept=y), colour="black", alpha=0.3) +
     geom_point(mapping=aes(x=Position, y=tumour_binned), alpha=0.5, size=0.5, colour="darkgreen") +
     facet_grid(~Chromosome, scales="free_x", space = "free_x") +
     scale_x_continuous(expand=c(0, 0)) +

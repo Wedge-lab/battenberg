@@ -818,7 +818,8 @@ make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_fil
   totalcn_chrom_plot(samplename, subclones, logr, paste0(samplename, "_totalcn_chrom_plot.png"), purity)
   
   bafsegmented = as.data.frame(Battenberg::read_table_generic(bafsegmented_file))
-  logrsegmented = as.data.frame(Battenberg::read_table_generic(logrsegmented_file))
+  logrsegmented = as.data.frame(Battenberg::read_table_generic(logrsegmented_file, header=F))
+  colnames(logrsegmented) = c("Chromosome", "Position", "logRseg")
   outputfile = paste0(samplename, "_alleleratio.png")
   allele_ratio_plot(samplename=samplename, logr=logr, bafsegmented=bafsegmented, logrsegmented=logrsegmented, outputfile=outputfile, max.plot.cn=8)
   
