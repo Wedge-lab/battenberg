@@ -10,19 +10,10 @@ library(Battenberg)
 library(doParallel)
 
 ###############################################################################
-# 2017-02-07
-# A pure R Battenberg v2.2.3 WGS pipeline implementation.
+# 2017-10-03
+# A pure R Battenberg v2.2.7 WGS pipeline implementation.
 # sd11@sanger.ac.uk
 ###############################################################################
-
-
-# Sample specific
-#TUMOURNAME = "PD7422a"
-#NORMALNAME = "PD7422b"
-#IS.MALE = F
-#TUMOURBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422a.bam"
-#NORMALBAM = "/lustre/scratch110/sanger/sd11/epitax/bam/PD7422b.bam"
-#RUN_DIR = getwd()
 
 # Parallelism parameters
 NTHREADS = 6
@@ -61,7 +52,6 @@ clp = makeCluster(NTHREADS)
 registerDoParallel(clp)
 
 # Obtain allele counts for 1000 Genomes locations for both tumour and normal
-#for (i in 1:length(chrom_names)) {
 foreach(i=1:length(chrom_names), .export=c("getAlleleCounts")) %dopar% {
   getAlleleCounts(bam.file=TUMOURBAM,
                   output.file=paste(TUMOURNAME,"_alleleFrequencies_chr", i, ".txt", sep=""),

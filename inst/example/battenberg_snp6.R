@@ -8,20 +8,13 @@ library(Battenberg)
 library(doParallel)
 
 ###############################################################################
-# 2017-02-07
-# A pure R Battenberg v2.2.3 SNP6 pipeline implementation.
+# 2017-10-03
+# A pure R Battenberg v2.2.7 SNP6 pipeline implementation.
 # sd11@sanger.ac.uk
 ###############################################################################
 
-# Sample specific
-# IS.MALE = F
-# TUMOURNAME = "NASCR-0016"
-# NORMALCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016B1.CEL"
-# TUMOURCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016.CEL"
-# RUN_DIR = getwd()
-
 # Parallelism parameters
-NTHREADS = 8
+NTHREADS = 6
 
 # General static
 IMPUTEINFOFILE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_impute/impute_info.txt"
