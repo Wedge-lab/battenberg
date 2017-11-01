@@ -258,12 +258,15 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
     colnames(GC_newlist)[c(1,2)] = c("Chr","Position")
     GC_newlist = GC_newlist[GC_newlist$Position %in% Tumor_LogR_chr$Position,]
     GC_data[[length(GC_data)+1]] = GC_newlist
-    Tumor_LogR_new[[length(Tumor_LogR_new)+1]] = Tumor_LogR_chr[!is.na(match(Tumor_LogR_chr$Position, GC_newlist$Position)),]
+    umor_LogR_new[[length(Tumor_LogR_new)+1]] = Tumor_LogR_chr[Tumor_LogR_chr$Position %in% GC_newlist$Position,]
   }
   Tumor_LogR = do.call(rbind, Tumor_LogR_new)
   rm(Tumor_LogR_new)
   GC_data = do.call(rbind, GC_data)
-  
+ 
+  print(dim(Tumor_LogR))
+  print(dim(GC_data))
+
   flag_nona = is.finite(Tumor_LogR[,3])
   corr = cor(GC_data[flag_nona, 3:ncol(GC_data)], Tumor_LogR[flag_nona,3], use="complete.obs")
   length = nrow(Tumor_LogR)
