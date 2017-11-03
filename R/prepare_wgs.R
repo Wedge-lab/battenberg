@@ -258,7 +258,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
     colnames(GC_newlist)[c(1,2)] = c("Chr","Position")
     GC_newlist = GC_newlist[GC_newlist$Position %in% Tumor_LogR_chr$Position,]
     GC_data[[length(GC_data)+1]] = GC_newlist
-    umor_LogR_new[[length(Tumor_LogR_new)+1]] = Tumor_LogR_chr[Tumor_LogR_chr$Position %in% GC_newlist$Position,]
+    Tumor_LogR_new[[length(Tumor_LogR_new)+1]] = Tumor_LogR_chr[!is.na(match(Tumor_LogR_chr$Position, GC_newlist$Position)),]
   }
   Tumor_LogR = do.call(rbind, Tumor_LogR_new)
   rm(Tumor_LogR_new)
