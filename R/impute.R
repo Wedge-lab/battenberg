@@ -112,3 +112,65 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
   impute.output = concatenateImputeFiles(inputfile.prefix, all.boundaries)
   write.table(impute.output, file=outputfile, row.names=F, col.names=F, quote=F, sep=" ")
 }
+
+
+#' Construct haplotypes for a chromosome
+#' 
+#' This function takes preprocessed data and performs haplotype reconstruction.
+#' 
+#' @param chrom
+#' @param tumourname
+#' @param normalname
+#' @param ismale
+#' @param imputeinfofile
+#' @param problemloci
+#' @param impute_exe
+#' @param min_normal_depth
+#' @author sd11
+#' @export
+run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth) {
+  generate.impute.input.wgs(chrom=chrom,
+                            tumour.allele.counts.file=paste(tumourname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
+                            normal.allele.counts.file=paste(normalname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
+                            output.file=paste(tumourname, "_impute_input_chr", chrom, ".txt", sep=""),
+                            imputeinfofile=imputeinfofile,
+                            is.male=ismale,
+                            problemLociFile=problemloci,
+                            useLociFile=NA)
+
+  # Run impute on the files
+  run.impute(inputfile=paste(tumourname, "_impute_input_chr", chrom, ".txt", sep=""),
+             outputfile.prefix=paste(tumourname, "_impute_output_chr", chrom, ".txt", sep=""),
+             is.male=ismale,
+             imputeinfofile=imputeinfofile,
+             impute.exe=impute_exe,
+             region.size=5000000,
+             chrom=chrom)
+
+  # As impute runs in windows across a chromosome we need to assemble the output
+  combine.impute.output(inputfile.prefix=paste(tumourname, "_impute_output_chr", chrom, ".txt", sep=""),
+                        outputfile=paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep=""),
+                        is.male=ismale,
+                        imputeinfofile=imputeinfofile,
+                        region.size=5000000,
+                        chrom=chrom)
+
+  # Transform the impute output into haplotyped BAFs
+  GetChromosomeBAFs(chrom=chrom,
+                    SNP_file=paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep=""),
+                    haplotypeFile=paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep=""),
+                    samplename=tumourname,
+                    outfile=paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
+                    chr_names=chrom_names,
+                    minCounts=min_normal_depth)
+
+  # Plot what we have until this point
+  plot.haplotype.data(haplotyped.baf.file=paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
+                      imageFileName=paste(tumourname,"_chr",chrom,"_heterozygousData.png",sep=""),
+                      samplename=tumourname,
+                      chrom=chrom,
+                      chr_names=chrom_names)
+
+  # Cleanup temp Impute output
+  unlink(paste(tumourname, "_impute_output_chr", chrom, "*K.txt*", sep=""))
+}

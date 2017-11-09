@@ -315,3 +315,68 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 	  write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
   }
 }
+
+#' Prepare WGS data for haplotype construction
+#' 
+#' This function performs part of the Battenberg WGS pipeline: Counting alleles, constructing BAF and logR 
+#' and performing GC content correction.
+#' 
+#' @param chrom_names
+#' @param tumourbam
+#' @param normalbam
+#' @param tumourname
+#' @param normalname
+#' @param g1000allelesprefix
+#' @param g1000prefix
+#' @param gccorrectprefix
+#' @param min_base_qual
+#' @param min_map_qual
+#' @param allelecounter_exe
+#' @param min_normal_depth
+#' @param skip_allele_counting
+#' @author sd11
+#' @export
+prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname, g1000allelesprefix, g1000prefix, gccorrectprefix, 
+                       min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
+  
+  if (!skip_allele_counting) {
+    # Obtain allele counts for 1000 Genomes locations for both tumour and normal
+    # foreach(i=1:length(chrom_names), .export=c("getAlleleCounts")) %dopar% {
+    mclapply(1:length(chrom_names), function(chrom) {
+      getAlleleCounts(bam.file=tumourbam,
+                      output.file=paste(tumourname,"_alleleFrequencies_chr", i, ".txt", sep=""),
+                      g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
+                      min.base.qual=min_base_qual,
+                      min.map.qual=min_map_qual,
+                      allelecounter.exe=allelecounter_exe)
+  
+      getAlleleCounts(bam.file=normalbam,
+                      output.file=paste(normalname,"_alleleFrequencies_chr", i, ".txt",  sep=""),
+                      g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
+                      min.base.qual=min_base_qual,
+                      min.map.qual=min_map_qual,
+                      allelecounter.exe=allelecounter_exe)
+  
+    }, mc.cores=nthreads)
+  }
+
+  # Obtain BAF and LogR from the raw allele counts
+  getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(tumourname,"_alleleFrequencies_chr", sep=""),
+                  normalAlleleCountsFile.prefix=paste(normalname,"_alleleFrequencies_chr", sep=""),
+                  figuresFile.prefix=paste(tumourname, "_", sep=''),
+                  BAFnormalFile=paste(tumourname,"_normalBAF.tab", sep=""),
+                  BAFmutantFile=paste(tumourname,"_mutantBAF.tab", sep=""),
+                  logRnormalFile=paste(tumourname,"_normalLogR.tab", sep=""),
+                  logRmutantFile=paste(tumourname,"_mutantLogR.tab", sep=""),
+                  combinedAlleleCountsFile=paste(tumourname,"_alleleCounts.tab", sep=""),
+                  chr_names=chrom_names,
+                  g1000file.prefix=g1000prefix,
+                  minCounts=min_normal_depth,
+                  samplename=tumourname)
+  # Perform GC correction
+  gc.correct.wgs(Tumour_LogR_file=paste(tumourname,"_mutantLogR.tab", sep=""),
+                 outfile=paste(tumourname,"_mutantLogR_gcCorrected.tab", sep=""),
+                 correlations_outfile=paste(tumourname, "_GCwindowCorrelations.txt", sep=""),
+                 gc_content_file_prefix=gccorrectprefix,
+                 chrom_names=chrom_names)
+}

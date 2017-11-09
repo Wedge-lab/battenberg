@@ -23,7 +23,8 @@ Imports:
   ggplot2,
   readr,
   gtools,
-  gridExtra
+  gridExtra,
+  parallel
 URL: https://github.com/Wedge-Oxford/battenberg
 LazyLoad: yes
 License: file LICENSE
