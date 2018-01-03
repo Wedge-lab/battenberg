@@ -28,7 +28,7 @@ To install Battenberg, run the following from the command line:
 
 Battenberg requires a number of reference files that should be downloaded.
 
-  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_impute_1000G_v1.tar.gz
+  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_impute_1000G_v3.tar.gz
   * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/probloci_270415.txt.gz
   * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_wgs_gc_correction_1000g_v3.tar.gz
   * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_snp6_exe.tgz (SNP6 only)
@@ -39,3 +39,14 @@ Battenberg requires a number of reference files that should be downloaded.
 Go into inst/example for example WGS and SNP6 R-only pipelines.
   
   
+### Building a release
+
+In RStudio: In the Build tab, click Check Package
+
+Then open the NAMESPACE file and edit:
+
+  > S3method(plot,haplotype.data)
+  
+to:
+
+  > export(plot.haplotype.data)

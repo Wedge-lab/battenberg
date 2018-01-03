@@ -3,8 +3,8 @@
 #' 
 #' @param tumourname
 #' @param normalname
-#' @param tumourbam
-#' @param normalbam
+#' @param tumour_data_file A BAM or CEL file
+#' @param normal_data_file A BAM or CEL file
 #' @param ismale
 #' @param imputeinfofile
 #' @param g1000prefix
@@ -33,13 +33,20 @@
 #' @param calc_seg_baf_option Default: 1
 #' @param skip_allele_counting Default: FALSE
 #' @param skip_preprocessing Default: FALSE
+#' @param snp6_reference_info_file SNP6 pipeline only Default: NA
+#' @param apt.probeset.genotype.exe SNP6 pipeline only Default: apt-probeset-genotype
+#' @param apt.probeset.summarize.exe SNP6 pipeline only Default: apt-probeset-summarize
+#' @param norm.geno.clust.exe SNP6 pipeline only Default: normalize_affy_geno_cluster.pl
+#' @param birdseed_report_file SNP6 pipeline only Default: birdseed.report.txt
 #' @author sd11
 #' @export
-battenberg = function(tumourname, normalname, tumourbam, normalbam, ismale, imputeinfofile, g1000prefix, g1000allelesprefix, gccorrectprefix, problemloci, 
+battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, ismale, imputeinfofile, g1000prefix, g1000allelesprefix, gccorrectprefix, problemloci, 
                       data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
                       segmentation_gamma=10, segmentation_kmin=3, phasing_kmin=1, clonality_dist_metric=0, ascat_dist_metric=1, min_ploidy=1.6,
                       max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20, 
-                      min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F) {
+                      min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F,
+                      snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize", 
+                      norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt") {
 
   # Parallelism parameters
   # NTHREADS = 6
@@ -81,8 +88,8 @@ battenberg = function(tumourname, normalname, tumourbam, normalbam, ismale, impu
     if (data_type=="wgs" | data_type=="WGS") {
       
       prepare_wgs(chrom_names=chrom_names, 
-                  tumourbam=tumourbam, 
-                  normalbam=normalbam, 
+                  tumourbam=tumour_data_file, 
+                  normalbam=normal_data_file, 
                   tumourname=tumourname, 
                   normalname=normalname, 
                   g1000allelesprefix=g1000allelesprefix, 
@@ -97,7 +104,15 @@ battenberg = function(tumourname, normalname, tumourbam, normalbam, ismale, impu
       
     } else if (data_type=="snp6" | data_type=="SNP6") {
       
-      # prepare_snp6()
+      prepare_snp6(tumour_cel_file=tumour_data_file, 
+                   normal_cel_file=normal_data_file, 
+                   tumourname=tumourname, 
+                   chrom_names=chrom_names, 
+                   snp6_reference_info_file=snp6_reference_info_file, 
+                   apt.probeset.genotype.exe=apt.probeset.genotype.exe, 
+                   apt.probeset.summarize.exe=apt.probeset.summarize.exe,
+                   norm.geno.clust.exe=norm.geno.clust.exe, 
+                   birdseed_report_file=birdseed_report_file)
       # # Extract the LogR and BAF from both tumour and normal cel files.
       # cel2baf.logr(normal_cel_file=NORMALCEL, 
       #              tumour_cel_file=TUMOURCEL, 

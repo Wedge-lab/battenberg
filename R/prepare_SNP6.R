@@ -421,3 +421,46 @@ infer_gender_birdseed = function(birdseed_report_file) {
   z = read.table(birdseed_report_file, header=T)
   return(as.character(z$em.cluster.chrX.het.contrast_gender))
 }
+
+
+#' Prepare SNP6 data for haplotype construction
+#' 
+#' This function performs part of the Battenberg SNP6 pipeline: Extract BAF and logR from the CEL files 
+#' and performing GC content correction.
+#'
+#' @param tumour_cel_file
+#' @param normal_cel_file
+#' @param tumourname
+#' @param chrom_names
+#' @param snp6_reference_info_file
+#' @param apt.probeset.genotype.exe
+#' @param apt.probeset.summarize.exe
+#' @param norm.geno.clust.exe
+#' @param birdseed_report_file
+#' @author sd11
+#' @export
+prepare_snp6 = function(tumour_cel_file, normal_cel_file, tumourname, chrom_names, 
+                        snp6_reference_info_file, apt.probeset.genotype.exe, apt.probeset.summarize.exe,
+                        norm.geno.clust.exe, birdseed_report_file) {
+  
+  # Extract the LogR and BAF from both tumour and normal cel files.
+  cel2baf.logr(normal_cel_file=normal_cel_file,
+               tumour_cel_file=tumour_cel_file,
+               output_file=paste(tumourname, "_lrr_baf.txt", sep=""),
+               snp6_reference_info_file=snp6_reference_info_file,
+               apt.probeset.genotype.exe=apt.probeset.genotype.exe,
+               apt.probeset.summarize.exe=apt.probeset.summarize.exe,
+               norm.geno.clust.exe=norm.geno.clust.exe)
+
+  gc.correct(samplename=tumourname,
+             infile.logr.baf=paste(tumourname, "_lrr_baf.txt", sep=""),
+             outfile.tumor.LogR=paste(tumourname, "_mutantLogR.tab", sep=""),
+             outfile.tumor.BAF=paste(tumourname, "_mutantBAF.tab", sep=""),
+             outfile.normal.LogR=paste(tumourname, "_germlineLogR.tab", sep=""),
+             outfile.normal.BAF=paste(tumourname, "_germlineBAF.tab", sep=""),
+             outfile.probeBAF=paste(tumourname, "_probeBAF.txt", sep=""),
+             snp6_reference_info_file=snp6_reference_info_file,
+             birdseed_report_file=birdseed_report_file,
+             chr_names=chrom_names)
+  
+}
