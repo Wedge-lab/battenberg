@@ -128,7 +128,7 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
 #' @param min_normal_depth
 #' @author sd11
 #' @export
-run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth) {
+run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names) {
   generate.impute.input.wgs(chrom=chrom,
                             tumour.allele.counts.file=paste(tumourname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
                             normal.allele.counts.file=paste(normalname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
