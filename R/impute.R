@@ -126,17 +126,34 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
 #' @param problemloci
 #' @param impute_exe
 #' @param min_normal_depth
+#' @param snp6_reference_info_file SNP6 only parameter Default: NA
+#' @param heterozygousFilter SNP6 only parameter Default: NA
 #' @author sd11
 #' @export
-run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names) {
-  generate.impute.input.wgs(chrom=chrom,
-                            tumour.allele.counts.file=paste(tumourname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
-                            normal.allele.counts.file=paste(normalname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
-                            output.file=paste(tumourname, "_impute_input_chr", chrom, ".txt", sep=""),
-                            imputeinfofile=imputeinfofile,
-                            is.male=ismale,
-                            problemLociFile=problemloci,
-                            useLociFile=NA)
+run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names,
+                           snp6_reference_info_file=NA, heterozygousFilter=NA) {
+  
+  if (file.exists(paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep=""))) {
+    generate.impute.input.wgs(chrom=chrom,
+                              tumour.allele.counts.file=paste(tumourname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
+                              normal.allele.counts.file=paste(normalname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
+                              output.file=paste(tumourname, "_impute_input_chr", chrom, ".txt", sep=""),
+                              imputeinfofile=imputeinfofile,
+                              is.male=ismale,
+                              problemLociFile=problemloci,
+                              useLociFile=NA)
+  } else {
+    generate.impute.input.snp6(infile.germlineBAF=paste(tumourname, "_germlineBAF.tab", sep=""),
+                               infile.tumourBAF=paste(tumourname, "_mutantBAF.tab", sep=""),
+                               outFileStart=paste(tumourname, "_impute_input_chr", sep=""),
+                               chrom=chrom,
+                               chr_names=chrom_names,
+                               problemLociFile=problemloci,
+                               snp6_reference_info_file=snp6_reference_info_file,
+                               imputeinfofile=imputeinfofile,
+                               is.male=ismale,
+                               heterozygousFilter=heterozygousFilter)
+  }
 
   # Run impute on the files
   run.impute(inputfile=paste(tumourname, "_impute_input_chr", chrom, ".txt", sep=""),
@@ -156,6 +173,8 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                         chrom=chrom)
 
   # If an allele counts file exists we assume this is a WGS sample and run the corresponding step, otherwise it must be SNP6
+  print(paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep=""))
+  print(file.exists(paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep="")))
   if (file.exists(paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep=""))) {
     # WGS - Transform the impute output into haplotyped BAFs
     GetChromosomeBAFs(chrom=chrom,
@@ -166,6 +185,7 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                       chr_names=chrom_names,
                       minCounts=min_normal_depth)
   } else {
+    print("SNP6 get BAFs")
     # SNP6 - Transform the impute output into haplotyped BAFs
     GetChromosomeBAFs_SNP6(chrom=chrom,
                            alleleFreqFile=paste(tumourname, "_impute_input_chr", chrom, "_withAlleleFreq.csv", sep=""),

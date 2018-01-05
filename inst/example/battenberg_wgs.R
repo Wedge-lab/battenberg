@@ -49,11 +49,13 @@ CALC_SEG_BAF_OPTION = 1
 ALLELECOUNTER = "alleleCounter"
 PROBLEMLOCI = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
 
+# Change to work directory and load the chromosome information
+setwd(RUN_DIR)
 
 battenberg(tumourname=TUMOURNAME, 
            normalname=NORMALNAME, 
-           tumourbam=TUMOURBAM, 
-           normalbam=NORMALBAM, 
+           tumour_data_file=TUMOURBAM, 
+           normal_data_file=NORMALBAM, 
            ismale=IS.MALE, 
            imputeinfofile=IMPUTEINFOFILE, 
            g1000prefix=G1000PREFIX, 

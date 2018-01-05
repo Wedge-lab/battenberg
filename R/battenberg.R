@@ -5,12 +5,12 @@
 #' @param normalname
 #' @param tumour_data_file A BAM or CEL file
 #' @param normal_data_file A BAM or CEL file
-#' @param ismale
 #' @param imputeinfofile
 #' @param g1000prefix
-#' @param g1000allelesprefix
-#' @param gccorrectprefix
 #' @param problemloci
+#' @param gccorrectprefix Default: NA
+#' @param g1000allelesprefix Default: NA
+#' @param ismale Default: NA
 #' @param data_type Default: wgs
 #' @param impute_exe Default: impute2
 #' @param allelecounter_exe Default: alleleCounter
@@ -38,15 +38,31 @@
 #' @param apt.probeset.summarize.exe SNP6 pipeline only Default: apt-probeset-summarize
 #' @param norm.geno.clust.exe SNP6 pipeline only Default: normalize_affy_geno_cluster.pl
 #' @param birdseed_report_file SNP6 pipeline only Default: birdseed.report.txt
+#' @param heterozygousFilter SNP6 pipeline only Default: "none"
 #' @author sd11
 #' @export
-battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, ismale, imputeinfofile, g1000prefix, g1000allelesprefix, gccorrectprefix, problemloci, 
-                      data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
+battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, 
+                      gccorrectprefix=NA, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
                       segmentation_gamma=10, segmentation_kmin=3, phasing_kmin=1, clonality_dist_metric=0, ascat_dist_metric=1, min_ploidy=1.6,
                       max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20, 
                       min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize", 
-                      norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt") {
+                      norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none") {
+  
+  if (data_type=="wgs" & is.na(ismale)) {
+    print("Please provide a boolean denominator whether this sample represents a male donor")
+    q(save="no", status=1)
+  }
+  
+  if (data_type=="wgs" & is.na(g1000allelesprefix)) {
+    print("Please provide a path to 1000 Genomes allele reference files")
+    q(save="no", status=1)
+  }
+  
+  if (data_type=="wgs" & is.na(gccorrectprefix)) {
+    print("Please provide a path to GC content reference files")
+    q(save="no", status=1)
+  }
 
   # Parallelism parameters
   # NTHREADS = 6
@@ -78,14 +94,20 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   # ALLELECOUNTER = "alleleCounter"
   # PROBLEMLOCI = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
   
-  chrom_names = get.chrom.names(imputeinfofile, ismale)
+  if (data_type=="wgs" | data_type=="WGS") {
+    chrom_names = get.chrom.names(imputeinfofile, ismale)
+  } else if (data_type=="snp6" | data_type=="SNP6") {
+    chrom_names = get.chrom.names(imputeinfofile, TRUE)
+  }
   
   # Setup for parallel computing
   clp = makeCluster(nthreads)
-  registerDoParallel(clp)
+  # registerDoParallel(clp)
   
   if (!skip_preprocessing) {
     if (data_type=="wgs" | data_type=="WGS") {
+
+      logr_file = paste(tumourname, "_mutantLogR_gcCorrected.tab", sep="")
       
       prepare_wgs(chrom_names=chrom_names, 
                   tumourbam=tumour_data_file, 
@@ -103,6 +125,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                   skip_allele_counting=skip_allele_counting)
       
     } else if (data_type=="snp6" | data_type=="SNP6") {
+      logr_file = paste(tumourname, "_mutantLogR.tab", sep="")
       
       prepare_snp6(tumour_cel_file=tumour_data_file, 
                    normal_cel_file=normal_data_file, 
@@ -133,13 +156,16 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
       #            birdseed_report_file=BIRDSEED_REPORT_FILE,
       #            chr_names=chrom_names)
       
-      
-      
-      
     } else {
       print("Unknown data type provided, please provide wgs or snp6")
       q(save="no", status=1)
     }
+  }
+  
+  if (data_type=="snp6" | data_type=="SNP6") {
+    # Infer what the gender is - WGS requires it to be specified
+    gender = infer_gender_birdseed(birdseed_report_file)
+    ismale = gender == "male"
   }
  
   # Reconstruct haplotypes 
@@ -154,7 +180,9 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                     problemloci=problemloci, 
                     impute_exe=impute_exe, 
                     min_normal_depth=min_normal_depth,
-		    chrom_names=chrom_names)
+		                chrom_names=chrom_names,
+		                snp6_reference_info_file=snp6_reference_info_file,
+		                heterozygousFilter=heterozygousFilter)
   }, mc.cores=nthreads)
   
   # Kill the threads as from here its all single core
@@ -181,7 +209,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                   outputfile.prefix=paste(tumourname, "_", sep=""),
                   inputfile.baf.segmented=paste(tumourname, ".BAFsegmented.txt", sep=""), 
                   inputfile.baf=paste(tumourname,"_mutantBAF.tab", sep=""), 
-                  inputfile.logr=paste(tumourname,"_mutantLogR_gcCorrected.tab", sep=""), 
+                  inputfile.logr=logr_file, 
                   dist_choice=clonality_dist_metric, 
                   ascat_dist_choice=ascat_dist_metric, 
                   min.ploidy=min_ploidy, 
@@ -198,7 +226,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
   callSubclones(sample.name=tumourname, 
                 baf.segmented.file=paste(tumourname, ".BAFsegmented.txt", sep=""), 
-                logr.file=paste(tumourname,"_mutantLogR_gcCorrected.tab", sep=""), 
+                logr.file=logr_file, 
                 rho.psi.file=paste(tumourname, "_rho_and_psi.txt",sep=""), 
                 output.file=paste(tumourname,"_subclones.txt", sep=""), 
                 output.figures.prefix=paste(tumourname,"_subclones_chr", sep=""), 
@@ -215,7 +243,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   
   # Make some post-hoc plots
   make_posthoc_plots(samplename=tumourname, 
-                     logr_file=paste(tumourname, "_mutantLogR_gcCorrected.tab", sep=""), 
+                     logr_file=logr_file, 
                      subclones_file=paste(tumourname, "_subclones.txt", sep=""), 
                      rho_psi_file=paste(tumourname, "_rho_and_psi.txt", sep=""), 
                      bafsegmented_file=paste(tumourname, ".BAFsegmented.txt", sep=""), 

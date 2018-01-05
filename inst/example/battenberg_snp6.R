@@ -4,11 +4,10 @@ NORMALCEL = toString(args[2])
 TUMOURCEL = toString(args[3])
 RUN_DIR = toString(args[4])
 
-SKIP_ALLELECOUNTING = F
+NORMALNAME = NA
 SKIP_PREPROCESSING = F
 
 library(Battenberg)
-# library(doParallel)
 
 ###############################################################################
 # 2017-10-03
@@ -36,6 +35,8 @@ BIRDSEED_REPORT_FILE = "birdseed.report.txt" # No control over the name of this 
 PLATFORM_GAMMA = 0.55
 PHASING_GAMMA = 1
 SEGMENTATION_GAMMA = 10
+SEGMENTATIIN_KMIN = 3
+PHASING_KMIN = 1
 CLONALITY_DIST_METRIC = 0
 ASCAT_DIST_METRIC = 1
 MIN_PLOIDY = 1.6 #1.6
@@ -48,21 +49,18 @@ MIN_NORMAL_DEPTH = 10
 CALC_SEG_BAF_OPTION = 1
 HETEROZYGOUSFILTER = "none"
 
-
+# Change to work directory and load the chromosome information
+setwd(RUN_DIR)
 
 battenberg(tumourname=TUMOURNAME, 
            normalname=NORMALNAME, 
-           tumourbam=TUMOURBAM, 
-           normalbam=NORMALBAM, 
-           ismale=IS.MALE, 
+           tumour_data_file=TUMOURCEL, 
+           normal_data_file=NORMALCEL, 
            imputeinfofile=IMPUTEINFOFILE, 
            g1000prefix=G1000PREFIX, 
-           g1000allelesprefix=G1000PREFIX_AC, 
-           gccorrectprefix=GCCORRECTPREFIX, 
            problemloci=PROBLEMLOCI, 
            data_type="snp6",
            impute_exe=IMPUTE_EXE,
-           allelecounter_exe=ALLELECOUNTER,
            nthreads=NTHREADS,
            platform_gamma=PLATFORM_GAMMA,
            phasing_gamma=PHASING_GAMMA,
@@ -77,13 +75,13 @@ battenberg(tumourname=TUMOURNAME,
            min_goodness=MIN_GOODNESS_OF_FIT,
            uninformative_BAF_threshold=BALANCED_THRESHOLD,
            calc_seg_baf_option=CALC_SEG_BAF_OPTION,
-           skip_allele_counting=SKIP_ALLELECOUNTING,
            skip_preprocessing=SKIP_PREPROCESSING,
            snp6_reference_info_file=SNP6_REF_INFO_FILE, 
            apt.probeset.genotype.exe=APT_PROBESET_GENOTYPE_EXE, 
-           apt.probeset.summarize.exe,
+           apt.probeset.summarize.exe=APT_PROBESET_SUMMARIZE_EXE,
            norm.geno.clust.exe=NORM_GENO_CLUST_EXE, 
-           birdseed_report_file=BIRDSEED_REPORT_FILE)
+           birdseed_report_file=BIRDSEED_REPORT_FILE,
+           heterozygousFilter=HETEROZYGOUSFILTER)
 
 
 
