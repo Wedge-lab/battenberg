@@ -108,6 +108,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     if (data_type=="wgs" | data_type=="WGS") {
 
       logr_file = paste(tumourname, "_mutantLogR_gcCorrected.tab", sep="")
+      allelecounts_file = paste(tumourname, "_alleleCounts.tab", sep="")
       
       prepare_wgs(chrom_names=chrom_names, 
                   tumourbam=tumour_data_file, 
@@ -126,6 +127,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
       
     } else if (data_type=="snp6" | data_type=="SNP6") {
       logr_file = paste(tumourname, "_mutantLogR.tab", sep="")
+      allelecounts_file = NULL
       
       prepare_snp6(tumour_cel_file=tumour_data_file, 
                    normal_cel_file=normal_data_file, 
@@ -248,7 +250,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                      rho_psi_file=paste(tumourname, "_rho_and_psi.txt", sep=""), 
                      bafsegmented_file=paste(tumourname, ".BAFsegmented.txt", sep=""), 
                      logrsegmented_file=paste(tumourname, ".logRsegmented.txt", sep=""), 
-                     allelecounts_file=paste(tumourname, "_alleleCounts.tab", sep=""))
+                     allelecounts_file=allelecounts_file)
   
   # Save refit suggestions for a future rerun
   cnfit_to_refit_suggestions(samplename=tumourname, 
