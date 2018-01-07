@@ -263,7 +263,16 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
   Tumor_LogR = do.call(rbind, Tumor_LogR_new)
   rm(Tumor_LogR_new)
   GC_data = do.call(rbind, GC_data)
-  
+ 
+  print(dim(Tumor_LogR))
+  print(dim(GC_data))
+
+  print(head(Tumor_LogR))
+  print(head(GC_data))
+
+  print(unique(Tumor_LogR[,1]))
+  print(unique(GC_data[,1]))
+
   flag_nona = is.finite(Tumor_LogR[,3])
   corr = cor(GC_data[flag_nona, 3:ncol(GC_data)], Tumor_LogR[flag_nona,3], use="complete.obs")
   length = nrow(Tumor_LogR)

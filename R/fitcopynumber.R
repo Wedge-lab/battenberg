@@ -57,13 +57,13 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   raw.BAF.data = raw.BAF.data[!is.na(raw.BAF.data[,3]),]
   raw.logR.data = raw.logR.data[!is.na(raw.logR.data[,3]),]
   
-  # Chromosome names are sometimes 'chr1', etc.
-  if(length(grep("chr",raw.BAF.data[1,1]))>0){
-    raw.BAF.data[,1] = gsub("chr","",raw.BAF.data[,1])
-  }
-  if(length(grep("chr",raw.logR.data[1,1]))>0){
-    raw.logR.data[,1] = gsub("chr","",raw.logR.data[,1])
-  }
+  ## Chromosome names are sometimes 'chr1', etc.
+  #if(length(grep("chr",raw.BAF.data[1,1]))>0){
+  #  raw.BAF.data[,1] = gsub("chr","",raw.BAF.data[,1])
+  #}
+  #if(length(grep("chr",raw.logR.data[1,1]))>0){
+  #  raw.logR.data[,1] = gsub("chr","",raw.logR.data[,1])
+  #}
   
   BAF.data = NULL
   logR.data = NULL
@@ -222,9 +222,9 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   }
 
   # Chromosome names are sometimes 'chr1', etc.
-  if(length(grep("chr",LogRvals[1,1]))>0){
-	      LogRvals[,1] = gsub("chr","",LogRvals[,1])
-  }
+  #if(length(grep("chr",LogRvals[1,1]))>0){
+#	      LogRvals[,1] = gsub("chr","",LogRvals[,1])
+  #}
   
   ctrans = c(1:length(chr_names))
   names(ctrans) = chr_names
