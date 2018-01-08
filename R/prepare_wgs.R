@@ -55,6 +55,16 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
   normal_data = normal_input_data[,3:6]
   mutant_data = input_data[,3:6]
   
+  # Synchronise all the data frames
+  chrpos_allele = paste(allele_data[,1], "_", allele_data[,2], sep="")
+  chrpos_normal = paste(normal_data[,1], "_", normal_data[,2], sep="")
+  chrpos_tumour = paste(mutant_data[,1], "_", mutant_data[,2], sep="")
+  matched_data = Reduce(intersect, c(chrpos_allele, chrpos_normal, chrpos_tumour))
+  
+  allele_data = allele_data[chrpos_allele %in% matched_data,]
+  normal_data = normal_data[chrpos_tumour %in% matched_data,]
+  mutant_data = mutant_data[chrpos_tumour %in% matched_data,]
+  
   # Obtain depth for both alleles for tumour and normal
   len = nrow(normal_data)
   normCount1 = normal_data[cbind(1:len,allele_data[,2])]
