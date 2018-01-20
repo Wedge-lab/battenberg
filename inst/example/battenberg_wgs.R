@@ -8,6 +8,7 @@ RUN_DIR = toString(args[6])
 
 SKIP_ALLELECOUNTING = F
 SKIP_PREPROCESSING = F
+SKIP_PHASING = F
 
 library(Battenberg)
 
@@ -83,7 +84,8 @@ battenberg(tumourname=TUMOURNAME,
            min_map_qual=MIN_MAP_QUAL,
            calc_seg_baf_option=CALC_SEG_BAF_OPTION,
            skip_allele_counting=SKIP_ALLELECOUNTING,
-           skip_preprocessing=SKIP_PREPROCESSING)
+           skip_preprocessing=SKIP_PREPROCESSING,
+           skip_phasing=SKIP_PHASING)
 
 
 

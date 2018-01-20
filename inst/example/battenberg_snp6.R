@@ -6,7 +6,7 @@ RUN_DIR = toString(args[4])
 
 NORMALNAME = NA
 SKIP_PREPROCESSING = F
-
+SKIP_PHASING = F
 library(Battenberg)
 
 ###############################################################################
@@ -76,6 +76,7 @@ battenberg(tumourname=TUMOURNAME,
            uninformative_BAF_threshold=BALANCED_THRESHOLD,
            calc_seg_baf_option=CALC_SEG_BAF_OPTION,
            skip_preprocessing=SKIP_PREPROCESSING,
+           skip_phasing=SKIP_PHASING,
            snp6_reference_info_file=SNP6_REF_INFO_FILE, 
            apt.probeset.genotype.exe=APT_PROBESET_GENOTYPE_EXE, 
            apt.probeset.summarize.exe=APT_PROBESET_SUMMARIZE_EXE,
