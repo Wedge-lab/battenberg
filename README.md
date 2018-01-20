@@ -27,7 +27,7 @@ To do
 
 #### Run interactively
 
-These commands run the Battenberg pipeline within a Docker container in interactive mode. This command assumes the data is available locally in `$PWDdata/pcawg/HCC1143_ds` and the reference files have been placed in `$PWD/battenberg_reference`
+These commands run the Battenberg pipeline within a Docker container in interactive mode. This command assumes the data is available locally in `$PWD/data/pcawg/HCC1143_ds` and the reference files have been placed in `$PWD/battenberg_reference`
 
 ```
 docker run -it -v `pwd`/data/pcawg/HCC1143_ds:/mnt/battenberg/ -v `pwd`/battenberg_reference:/opt/battenberg_reference battenberg:2.2.8
@@ -45,15 +45,18 @@ R CMD BATCH '--no-restore-data --no-save --args HCC1143 HCC1143_BL /mnt/battenbe
 
 Installing from Github requires devtools and Battenberg requires readr, RColorBrewer and ASCAT. The pipeline requires doParallel. From the command line run:
 
-  > R -q -e 'source("http://bioconductor.org/biocLite.R"); biocLite(c("devtools", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools"));'
-  
-  > R -q -e 'devtools::install_github("Crick-CancerGenomics/ascat/ASCAT")'
+```
+R -q -e 'source("http://bioconductor.org/biocLite.R"); biocLite(c("devtools", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools"));'
+R -q -e 'devtools::install_github("Crick-CancerGenomics/ascat/ASCAT")'
+```
 
 #### Installation from Github
 
 To install Battenberg, run the following from the command line:
 
-  > R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
+```
+R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
+```
 
 #### Required reference files
 
@@ -76,8 +79,12 @@ In RStudio: In the Build tab, click Check Package
 
 Then open the NAMESPACE file and edit:
 
-  > S3method(plot,haplotype.data)
-  
+```
+S3method(plot,haplotype.data)
+```  
+
 to:
 
-  > export(plot.haplotype.data)
+```
+export(plot.haplotype.data)
+```
