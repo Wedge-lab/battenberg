@@ -609,7 +609,9 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
       
       # Perform t-test on the BAFphased
       if (sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]])) > 10 & 
-          sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]])) > 10) {
+          sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]])) > 10 &
+          sum(!is.na(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3])) > 10 &
+          sum(!is.na(logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3])) > 10) {
         baf_significant = t.test(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
                                  bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]])$p.value < 0.05
         logr_significant = t.test(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3],
