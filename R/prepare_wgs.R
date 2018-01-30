@@ -345,8 +345,8 @@ prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname
   
   if (!skip_allele_counting) {
     # Obtain allele counts for 1000 Genomes locations for both tumour and normal
-    # foreach(i=1:length(chrom_names), .export=c("getAlleleCounts")) %dopar% {
-    mclapply(1:length(chrom_names), function(chrom) {
+    foreach::foreach(i=1:length(chrom_names)) %dopar% { #, .export=c("getAlleleCounts")
+    # mclapply(1:length(chrom_names), function(chrom) {
       getAlleleCounts(bam.file=tumourbam,
                       output.file=paste(tumourname,"_alleleFrequencies_chr", i, ".txt", sep=""),
                       g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
@@ -361,7 +361,7 @@ prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname
                       min.map.qual=min_map_qual,
                       allelecounter.exe=allelecounter_exe)
   
-    }, mc.cores=nthreads)
+    }#, mc.cores=nthreads)
   }
 
   # Obtain BAF and LogR from the raw allele counts

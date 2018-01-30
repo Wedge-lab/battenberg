@@ -1,51 +1,52 @@
 
 #' Run the Battenberg pipeline
 #' 
-#' @param tumourname
-#' @param normalname
-#' @param tumour_data_file A BAM or CEL file
-#' @param normal_data_file A BAM or CEL file
-#' @param imputeinfofile
-#' @param g1000prefix
-#' @param problemloci
-#' @param gccorrectprefix Default: NA
-#' @param g1000allelesprefix Default: NA
-#' @param ismale Default: NA
-#' @param data_type Default: wgs
-#' @param impute_exe Default: impute2
-#' @param allelecounter_exe Default: alleleCounter
-#' @param nthreads Default: 8
-#' @param platform_gamma Default: 1
+#' @param tumourname Tumour identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
+#' @param normalname Matched normal identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
+#' @param tumour_data_file A BAM or CEL file for the tumour
+#' @param normal_data_file A BAM or CEL file for the normal
+#' @param imputeinfofile Full path to a Battenberg impute info file with pointers to Impute2 reference data
+#' @param g1000prefix Full prefix path to 1000 Genomes SNP loci data, as part of the Battenberg reference data
+#' @param problemloci Full path to a problem loci file that contains SNP loci that should be filtered out
+#' @param gccorrectprefix Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
+#' @param g1000allelesprefix Full prefix path to 1000 Genomes SNP alleles data, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
+#' @param ismale A boolean set to TRUE if the donor is male, set to FALSE if female, not required for SNP6 data (Default: NA)
+#' @param data_type String that contains either wgs or snp6 depending on the supplied input data (Default: wgs)
+#' @param impute_exe Pointer to the Impute2 executable (Default: impute2, i.e. expected in $PATH)
+#' @param allelecounter_exe Pointer to the alleleCounter executable (Default: alleleCounter, i.e. expected in $PATH)
+#' @param nthreads The number of concurrent processes to use while running the Battenberg pipeline (Default: 8)
+#' @param platform_gamma Platform scaling factor, suggestions are set to 1 for wgs and to 0.55 for snp6 (Default: 1)
 #' @param phasing_gamma Default: 1
 #' @param segmentation_gamma Default: 10
 #' @param segmentation_kmin Default: 3
 #' @param phasing_kmin Default: 1
-#' @param clonality_dist_metric Default: 0
-#' @param ascat_dist_metric Default: 1
-#' @param min_ploidy Default: 1.6
-#' @param max_ploidy Default: 4.8
-#' @param min_rho Default: 0.1
-#' @param min_goodness Default: 0.63
+#' @param clonality_dist_metric  Distance metric to use when choosing purity/ploidy combinations (Default: 0)
+#' @param ascat_dist_metric Distance metric to use when choosing purity/ploidy combinations (Default: 1)
+#' @param min_ploidy Minimum ploidy to be considered (Default: 1.6)
+#' @param max_ploidy Maximum ploidy to be considered (Default: 4.8)
+#' @param min_rho Minimum purity to be considered (Default: 0.1)
+#' @param min_goodness Minimum goodness of fit required for a purity/ploidy combination to be accepted as a solution (Default: 0.63)
 #' @param uninformative_BAF_threshold Default: 0.51
-#' @param min_normal_depth Default: 10
-#' @param min_base_qual Default: 20
-#' @param min_map_qual Default: 35
-#' @param calc_seg_baf_option Default: 1
-#' @param skip_allele_counting Default: FALSE
-#' @param skip_preprocessing Default: FALSE
-#' @param snp6_reference_info_file SNP6 pipeline only Default: NA
-#' @param apt.probeset.genotype.exe SNP6 pipeline only Default: apt-probeset-genotype
-#' @param apt.probeset.summarize.exe SNP6 pipeline only Default: apt-probeset-summarize
-#' @param norm.geno.clust.exe SNP6 pipeline only Default: normalize_affy_geno_cluster.pl
-#' @param birdseed_report_file SNP6 pipeline only Default: birdseed.report.txt
-#' @param heterozygousFilter SNP6 pipeline only Default: "none"
+#' @param min_normal_depth Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)
+#' @param min_base_qual Minimum base quality required for a read to be counted when allele counting (Default: 20)
+#' @param min_map_qual Minimum mapping quality required for a read to be counted when allele counting (Default: 35)
+#' @param calc_seg_baf_option Sets way to calculate BAF per segment: 1=mean, 2=median (Default: 1)
+#' @param skip_allele_counting Provide TRUE when allele counting can be skipped (i.e. its already done) (Default: FALSE)
+#' @param skip_preprocessing Provide TRUE when preprocessing is already complete (Default: FALSE)
+#' @param skip_phasing  Provide TRUE when phasing is already complete (Default: FALSE)
+#' @param snp6_reference_info_file Reference files for the SNP6 pipeline only (Default: NA)
+#' @param apt.probeset.genotype.exe Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)
+#' @param apt.probeset.summarize.exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-summarize)
+#' @param norm.geno.clust.exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)
+#' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
+#' @param heterozygousFilter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
 #' @author sd11
 #' @export
 battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, 
                       gccorrectprefix=NA, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
                       segmentation_gamma=10, segmentation_kmin=3, phasing_kmin=1, clonality_dist_metric=0, ascat_dist_metric=1, min_ploidy=1.6,
                       max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20, 
-                      min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F,
+                      min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize", 
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none") {
   
@@ -64,52 +65,22 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     q(save="no", status=1)
   }
 
-  # Parallelism parameters
-  # NTHREADS = 6
-  
-  # General static
-  # IMPUTEINFOFILE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_impute_v3/impute_info.txt"
-  # G1000PREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
-  # G1000PREFIX_AC = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
-  # GCCORRECTPREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_"
-  # IMPUTE_EXE = "impute2"
-  
-  
-  # PLATFORM_GAMMA = 1
-  # PHASING_GAMMA = 1
-  # SEGMENTATION_GAMMA = 10
-  # CLONALITY_DIST_METRIC = 0
-  # ASCAT_DIST_METRIC = 1
-  # MIN_PLOIDY = 1.6
-  # MAX_PLOIDY = 4.8
-  # MIN_RHO = 0.1
-  # MIN_GOODNESS_OF_FIT = 0.63
-  # BALANCED_THRESHOLD = 0.51
-  # MIN_NORMAL_DEPTH = 10
-  # MIN_BASE_QUAL = 20
-  # MIN_MAP_QUAL = 35
-  # CALC_SEG_BAF_OPTION = 1
-  
-  # WGS specific static
-  # ALLELECOUNTER = "alleleCounter"
-  # PROBLEMLOCI = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
-  
   if (data_type=="wgs" | data_type=="WGS") {
     chrom_names = get.chrom.names(imputeinfofile, ismale)
+    logr_file = paste(tumourname, "_mutantLogR_gcCorrected.tab", sep="")
+    allelecounts_file = paste(tumourname, "_alleleCounts.tab", sep="")
   } else if (data_type=="snp6" | data_type=="SNP6") {
     chrom_names = get.chrom.names(imputeinfofile, TRUE)
+    logr_file = paste(tumourname, "_mutantLogR.tab", sep="")
+    allelecounts_file = NULL
   }
-  
-  # Setup for parallel computing
-  clp = makeCluster(nthreads)
-  # registerDoParallel(clp)
-  
+ 
   if (!skip_preprocessing) {
     if (data_type=="wgs" | data_type=="WGS") {
-
-      logr_file = paste(tumourname, "_mutantLogR_gcCorrected.tab", sep="")
-      allelecounts_file = paste(tumourname, "_alleleCounts.tab", sep="")
-      
+      # Setup for parallel computing
+      clp = parallel::makeCluster(nthreads)
+      doParallel::registerDoParallel(clp)
+            
       prepare_wgs(chrom_names=chrom_names, 
                   tumourbam=tumour_data_file, 
                   normalbam=normal_data_file, 
@@ -125,9 +96,10 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                   nthreads=nthreads,
                   skip_allele_counting=skip_allele_counting)
       
+      # Kill the threads
+      stopCluster(clp)
+      
     } else if (data_type=="snp6" | data_type=="SNP6") {
-      logr_file = paste(tumourname, "_mutantLogR.tab", sep="")
-      allelecounts_file = NULL
       
       prepare_snp6(tumour_cel_file=tumour_data_file, 
                    normal_cel_file=normal_data_file, 
@@ -138,25 +110,6 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                    apt.probeset.summarize.exe=apt.probeset.summarize.exe,
                    norm.geno.clust.exe=norm.geno.clust.exe, 
                    birdseed_report_file=birdseed_report_file)
-      # # Extract the LogR and BAF from both tumour and normal cel files.
-      # cel2baf.logr(normal_cel_file=NORMALCEL, 
-      #              tumour_cel_file=TUMOURCEL, 
-      #              output_file=paste(tumourname, "_lrr_baf.txt", sep=""), 
-      #              snp6_reference_info_file=SNP6_REF_INFO_FILE, 
-      #              apt.probeset.genotype.exe=APT_PROBESET_GENOTYPE_EXE, 
-      #              apt.probeset.summarize.exe=APT_PROBESET_SUMMARIZE_EXE, 
-      #              norm.geno.clust.exe=NORM_GENO_CLUST_EXE)
-      # 
-      # gc.correct(samplename=tumourname, 
-      #            infile.logr.baf=paste(tumourname, "_lrr_baf.txt", sep=""), 
-      #            outfile.tumor.LogR=paste(tumourname, "_mutantLogR.tab", sep=""), 
-      #            outfile.tumor.BAF=paste(tumourname, "_mutantBAF.tab", sep=""), 
-      #            outfile.normal.LogR=paste(tumourname, "_germlineLogR.tab", sep=""), 
-      #            outfile.normal.BAF=paste(tumourname, "_germlineBAF.tab", sep=""), 
-      #            outfile.probeBAF=paste(tumourname, "_probeBAF.txt", sep=""),
-      #            snp6_reference_info_file=SNP6_REF_INFO_FILE,
-      #            birdseed_report_file=BIRDSEED_REPORT_FILE,
-      #            chr_names=chrom_names)
       
     } else {
       print("Unknown data type provided, please provide wgs or snp6")
@@ -170,31 +123,38 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     ismale = gender == "male"
   }
  
-  # Reconstruct haplotypes 
-  mclapply(1:length(chrom_names), function(chrom) {
-    print(chrom)
+  if (!skip_phasing) {
+    # Setup for parallel computing
+    clp = parallel::makeCluster(nthreads)
+    doParallel::registerDoParallel(clp)
     
-    run_haplotyping(chrom=chrom, 
-                    tumourname=tumourname, 
-                    normalname=normalname, 
-                    ismale=ismale, 
-                    imputeinfofile=imputeinfofile, 
-                    problemloci=problemloci, 
-                    impute_exe=impute_exe, 
-                    min_normal_depth=min_normal_depth,
-		                chrom_names=chrom_names,
-		                snp6_reference_info_file=snp6_reference_info_file,
-		                heterozygousFilter=heterozygousFilter)
-  }, mc.cores=nthreads)
-  
-  # Kill the threads as from here its all single core
-  stopCluster(clp)
-  
-  # Combine all the BAF output into a single file
-  combine.baf.files(inputfile.prefix=paste(tumourname, "_chr", sep=""), 
-                    inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt", 
-                    outputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                    no.chrs=length(chrom_names))
+    # Reconstruct haplotypes 
+    # mclapply(1:length(chrom_names), function(chrom) {
+    foreach::foreach (chrom=1:length(chrom_names)) %dopar% {
+      print(chrom)
+      
+      run_haplotyping(chrom=chrom, 
+                      tumourname=tumourname, 
+                      normalname=normalname, 
+                      ismale=ismale, 
+                      imputeinfofile=imputeinfofile, 
+                      problemloci=problemloci, 
+                      impute_exe=impute_exe, 
+                      min_normal_depth=min_normal_depth,
+  		                chrom_names=chrom_names,
+  		                snp6_reference_info_file=snp6_reference_info_file,
+  		                heterozygousFilter=heterozygousFilter)
+    }#, mc.cores=nthreads)
+    
+    # Kill the threads as from here its all single core
+    stopCluster(clp)
+    
+    # Combine all the BAF output into a single file
+    combine.baf.files(inputfile.prefix=paste(tumourname, "_chr", sep=""), 
+                      inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt", 
+                      outputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
+                      no.chrs=length(chrom_names))
+  }
   
   # Segment the phased and haplotyped BAF data
   segment.baf.phased(samplename=tumourname,

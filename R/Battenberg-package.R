@@ -5,4 +5,5 @@
 #' @importFrom ASCAT make_segments ascat.plotSunrise ascat.plotAscatProfile ascat.plotNonRounded
 #' @importFrom gtools mixedsort
 #' @importFrom parallel mclapply makeCluster stopCluster
+#' @importFrom doParallel foreach registerDoParallel %dopar%
 NULL

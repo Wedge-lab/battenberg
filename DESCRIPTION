@@ -24,7 +24,7 @@ Imports:
   readr,
   gtools,
   gridExtra,
-  parallel
+  doParallel
 URL: https://github.com/Wedge-Oxford/battenberg
 LazyLoad: yes
 License: file LICENSE
