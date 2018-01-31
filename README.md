@@ -62,6 +62,7 @@ R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
 
 Battenberg requires a number of reference files that should be downloaded.
 
+  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_1000genomesloci2012_v3.tar.gz
   * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_impute_1000G_v3.tar.gz
   * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/probloci_270415.txt.gz
   * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_wgs_gc_correction_1000g_v3.tar.gz
