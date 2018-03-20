@@ -5,8 +5,30 @@
 \title{Prepare SNP6 data for haplotype construction}
 \usage{
 prepare_snp6(tumour_cel_file, normal_cel_file, tumourname, chrom_names,
-  snp6_reference_info_file, apt.probeset.genotype.exe,
-  apt.probeset.summarize.exe, norm.geno.clust.exe, birdseed_report_file)
+  snp6_reference_info_file,
+  apt.probeset.genotype.exe = "apt-probeset-genotype",
+  apt.probeset.summarize.exe = "apt-probeset-summarize",
+  norm.geno.clust.exe = "normalize_affy_geno_cluster.pl",
+  birdseed_report_file = "birdseed.report.txt")
+}
+\arguments{
+\item{tumour_cel_file}{Full path to a CEL file containing the tumour raw data}
+
+\item{normal_cel_file}{Full path to a CEL file containing the normal raw data}
+
+\item{tumourname}{Identifier to be used for tumour output files}
+
+\item{chrom_names}{A vector containing the names of chromosomes to be included}
+
+\item{snp6_reference_info_file}{Full path to the SNP6 reference info file}
+
+\item{apt.probeset.genotype.exe}{Full path to the apt.probeset.genotype executable (Default: expected in $PATH)}
+
+\item{apt.probeset.summarize.exe}{Full path to the apt.probeset.summarize executable (Default: expected in $PATH)}
+
+\item{norm.geno.clust.exe}{Full path to the norm.geno.clust.exe executable (Default: expected in $PATH)}
+
+\item{birdseed_report_file}{Name of the birdseed output file. This is a temp output file of one of the internally called functions of which the name cannot be defined. Don't change this parameter. (Default: birdseed.report.txt)}
 }
 \description{
 This function performs part of the Battenberg SNP6 pipeline: Extract BAF and logR from the CEL files 

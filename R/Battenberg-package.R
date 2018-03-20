@@ -4,7 +4,7 @@
 #' @importFrom gridExtra grid.arrange arrangeGrob
 #' @importFrom ASCAT make_segments ascat.plotSunrise ascat.plotAscatProfile ascat.plotNonRounded
 #' @importFrom gtools mixedsort
-#' @importFrom parallel mclapply makeCluster stopCluster
-#' @importFrom doParallel foreach registerDoParallel
+#' @importFrom parallel makeCluster stopCluster
+#' @importFrom doParallel registerDoParallel
 #' @importFrom foreach foreach %dopar%
 NULL

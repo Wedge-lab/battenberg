@@ -16,17 +16,17 @@
 #' @param allelecounter_exe Pointer to the alleleCounter executable (Default: alleleCounter, i.e. expected in $PATH)
 #' @param nthreads The number of concurrent processes to use while running the Battenberg pipeline (Default: 8)
 #' @param platform_gamma Platform scaling factor, suggestions are set to 1 for wgs and to 0.55 for snp6 (Default: 1)
-#' @param phasing_gamma Default: 1
-#' @param segmentation_gamma Default: 10
-#' @param segmentation_kmin Default: 3
-#' @param phasing_kmin Default: 1
+#' @param phasing_gamma Gamma parameter used when correcting phasing mistakes (Default: 1)
+#' @param segmentation_gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 10)
+#' @param segmentation_kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)
+#' @param phasing_kmin Kmin used when correcting for phasing mistakes (Default: 3)
 #' @param clonality_dist_metric  Distance metric to use when choosing purity/ploidy combinations (Default: 0)
 #' @param ascat_dist_metric Distance metric to use when choosing purity/ploidy combinations (Default: 1)
 #' @param min_ploidy Minimum ploidy to be considered (Default: 1.6)
 #' @param max_ploidy Maximum ploidy to be considered (Default: 4.8)
 #' @param min_rho Minimum purity to be considered (Default: 0.1)
 #' @param min_goodness Minimum goodness of fit required for a purity/ploidy combination to be accepted as a solution (Default: 0.63)
-#' @param uninformative_BAF_threshold Default: 0.51
+#' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative (Default: 0.51)
 #' @param min_normal_depth Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)
 #' @param min_base_qual Minimum base quality required for a read to be counted when allele counting (Default: 20)
 #' @param min_map_qual Minimum mapping quality required for a read to be counted when allele counting (Default: 35)
@@ -49,6 +49,10 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize", 
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none") {
+  
+  requireNamespace("foreach")
+  requireNamespace("doParallel")
+  requireNamespace("parallel")
   
   if (data_type=="wgs" & is.na(ismale)) {
     print("Please provide a boolean denominator whether this sample represents a male donor")
@@ -97,7 +101,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                   skip_allele_counting=skip_allele_counting)
       
       # Kill the threads
-      stopCluster(clp)
+      parallel::stopCluster(clp)
       
     } else if (data_type=="snp6" | data_type=="SNP6") {
       
@@ -147,7 +151,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     }#, mc.cores=nthreads)
     
     # Kill the threads as from here its all single core
-    stopCluster(clp)
+    parallel::stopCluster(clp)
     
     # Combine all the BAF output into a single file
     combine.baf.files(inputfile.prefix=paste(tumourname, "_chr", sep=""), 
@@ -201,7 +205,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                 siglevel=0.05, 
                 maxdist=0.01, 
                 noperms=1000,
-                calc_seg_baf_option=CALC_SEG_BAF_OPTION)
+                calc_seg_baf_option=calc_seg_baf_option)
   
   # Make some post-hoc plots
   make_posthoc_plots(samplename=tumourname, 
@@ -216,7 +220,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   cnfit_to_refit_suggestions(samplename=tumourname, 
                              subclones_file=paste(tumourname, "_subclones.txt", sep=""),
                              rho_psi_file=paste(tumourname, "_rho_and_psi.txt", sep=""),
-                             gamma_param=PLATFORM_GAMMA)
+                             gamma_param=platform_gamma)
   
   
   
