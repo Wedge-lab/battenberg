@@ -34,7 +34,7 @@ getBAFsAndLogRs(tumourAlleleCountsFile.prefix, normalAlleleCountsFile.prefix,
 
 \item{samplename}{String, name of the sample (optional, default=sample1).}
 
-\item{seed}{A seed to be set}
+\item{seed}{A seed to be set for when randomising the alleles.}
 }
 \description{
 Obtain BAF and LogR from the allele counts

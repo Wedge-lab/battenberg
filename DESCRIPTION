@@ -3,7 +3,7 @@ Maintainer: Stefan Dentro <sd11@sanger.ac.uk>
 License: GPL-3
 Type: Package
 Title: Battenberg subclonal copy number caller
-Version: 2.2.7
+Version: 2.2.8
 Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
     person("Peter", "Van Loo", role=c("aut")),
     person("Stefan","Dentro", email="sd11@sanger.ac.uk", role=c("aut", "cre")),
@@ -23,7 +23,10 @@ Imports:
   ggplot2,
   readr,
   gtools,
-  gridExtra
+  gridExtra,
+  doParallel,
+  parallel,
+  foreach
 URL: https://github.com/Wedge-Oxford/battenberg
 LazyLoad: yes
 License: file LICENSE

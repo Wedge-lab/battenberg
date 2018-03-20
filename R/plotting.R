@@ -484,7 +484,7 @@ allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile
   
   print("Plotting..")
   if (platform == "WGS") {
-  	sel = allelecounts[seq(1, nrow(allelecounts), 100),]
+  	sel = seq(1, nrow(allelecounts), 100)
   } else {
 	sel = rep(T, nrow(allelecounts))
   }

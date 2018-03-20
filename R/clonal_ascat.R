@@ -298,14 +298,11 @@ calc_LogR_Pvalue <-function( LogR, maxdist_LogR, LogR_level ) # kjd 27-2-2014
 	
 }
 
-#' Helper function to estimate rho from a given copy number state and it's BAF and LogR
+#' Helper function to estimate rho from a given copy number state and it's BAF. The LogR is not used.
 #' @noRd
 estimate_rho <-function( LogR_value, BAFreq_value, nA_value, nB_value ) # kjd 10-3-2014
 {
-  temp_value = BAFreq_value * ( 2 - nA_value - nB_value )
-  temp_value = nB_value - 1 - temp_value
-  rho_value =  ( ( 2 * BAFreq_value ) - 1 ) / temp_value
-  
+  rho_value = (2*BAFreq_value-1)/(2*BAFreq_value-BAFreq_value*(nA_value+nB_value)-1+nA_value)
   return( rho_value )
   
 }

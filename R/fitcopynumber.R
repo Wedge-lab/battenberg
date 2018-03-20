@@ -57,13 +57,13 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   raw.BAF.data = raw.BAF.data[!is.na(raw.BAF.data[,3]),]
   raw.logR.data = raw.logR.data[!is.na(raw.logR.data[,3]),]
   
-  # Chromosome names are sometimes 'chr1', etc.
-  if(length(grep("chr",raw.BAF.data[1,1]))>0){
-    raw.BAF.data[,1] = gsub("chr","",raw.BAF.data[,1])
-  }
-  if(length(grep("chr",raw.logR.data[1,1]))>0){
-    raw.logR.data[,1] = gsub("chr","",raw.logR.data[,1])
-  }
+  ## Chromosome names are sometimes 'chr1', etc.
+  #if(length(grep("chr",raw.BAF.data[1,1]))>0){
+  #  raw.BAF.data[,1] = gsub("chr","",raw.BAF.data[,1])
+  #}
+  #if(length(grep("chr",raw.logR.data[1,1]))>0){
+  #  raw.logR.data[,1] = gsub("chr","",raw.logR.data[,1])
+  #}
   
   BAF.data = NULL
   logR.data = NULL
@@ -222,9 +222,9 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   }
 
   # Chromosome names are sometimes 'chr1', etc.
-  if(length(grep("chr",LogRvals[1,1]))>0){
-	      LogRvals[,1] = gsub("chr","",LogRvals[,1])
-  }
+  #if(length(grep("chr",LogRvals[1,1]))>0){
+#	      LogRvals[,1] = gsub("chr","",LogRvals[,1])
+  #}
   
   ctrans = c(1:length(chr_names))
   names(ctrans) = chr_names
@@ -267,7 +267,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ################################################################################################
   # Collapse the BAFsegmented into breakpoints to be used in plotting
   segment_breakpoints = collapse_bafsegmented_to_segments(BAFvals)
-  if (!is.null(sv_breakpoints_file) & !sv_breakpoints_file=="NA") {
+  if (!is.null(sv_breakpoints_file) & !ifelse(is.null(sv_breakpoints_file), TRUE, sv_breakpoints_file=="NA") & !ifelse(is.null(sv_breakpoints_file), TRUE, is.na(sv_breakpoints_file))) {
     svs = read.table(sv_breakpoints_file, header=T, stringsAsFactors=F)
   }
   
@@ -277,7 +277,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     #if no points to plot, skip
     if (length(pos)==0) { next }
     
-    if (!is.null(sv_breakpoints_file) & !sv_breakpoints_file=="NA") {
+    if (!is.null(sv_breakpoints_file) & !ifelse(is.null(sv_breakpoints_file), TRUE, sv_breakpoints_file=="NA") & !ifelse(is.null(sv_breakpoints_file), TRUE, is.na(sv_breakpoints_file))) {
       svs_pos = svs[svs$chromosome==chr,]$position / 1000000
     } else {
       svs_pos = NULL
@@ -609,7 +609,9 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
       
       # Perform t-test on the BAFphased
       if (sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]])) > 10 & 
-          sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]])) > 10) {
+          sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]])) > 10 &
+          sum(!is.na(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3])) > 10 &
+          sum(!is.na(logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3])) > 10) {
         baf_significant = t.test(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
                                  bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]])$p.value < 0.05
         logr_significant = t.test(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3],

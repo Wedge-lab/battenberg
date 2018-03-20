@@ -35,7 +35,7 @@ getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, 
 #' @param g1000file.prefix Prefix to where 1000 Genomes reference files can be found.
 #' @param minCounts Integer, minimum depth required for a SNP to be included (optional, default=NA).
 #' @param samplename String, name of the sample (optional, default=sample1).
-#' @param seed A seed to be set
+#' @param seed A seed to be set for when randomising the alleles.
 #' @author dw9, sd11
 #' @export
 getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile.prefix, figuresFile.prefix, BAFnormalFile, BAFmutantFile, logRnormalFile, logRmutantFile, combinedAlleleCountsFile, chr_names, g1000file.prefix, minCounts=NA, samplename="sample1", seed=as.integer(Sys.time())) {
@@ -44,11 +44,19 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
   
   input_data = concatenateAlleleCountFiles(tumourAlleleCountsFile.prefix, ".txt", length(chr_names))
   normal_input_data = concatenateAlleleCountFiles(normalAlleleCountsFile.prefix, ".txt", length(chr_names))
-  allele_data = concatenateG1000SnpFiles(g1000file.prefix, ".txt", length(chr_names))
+  allele_data = concatenateG1000SnpFiles(g1000file.prefix, ".txt", length(chr_names), chr_names)
   
-  #save(file=paste(samplename, "_BAFLogR_concatenated_input.RData", sep=""), input_data, normal_input_data, allele_data)
-  #load(paste(samplename, "_BAFLogR_concatenated_input.RData", sep=""))
+  # Synchronise all the data frames
+  chrpos_allele = paste(allele_data[,1], "_", allele_data[,2], sep="")
+  chrpos_normal = paste(normal_input_data[,1], "_", normal_input_data[,2], sep="")
+  chrpos_tumour = paste(input_data[,1], "_", input_data[,2], sep="")
+  matched_data = Reduce(intersect, list(chrpos_allele, chrpos_normal, chrpos_tumour))
+
+  allele_data = allele_data[chrpos_allele %in% matched_data,]
+  normal_input_data = normal_input_data[chrpos_tumour %in% matched_data,]
+  input_data = input_data[chrpos_tumour %in% matched_data,]
   
+  # Clean up and reduce amount of unneeded data
   names(input_data)[1] = "CHR"
   names(normal_input_data)[1] = "CHR"
   
@@ -57,11 +65,11 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
   
   # Obtain depth for both alleles for tumour and normal
   len = nrow(normal_data)
-  normCount1 = normal_data[cbind(1:len,allele_data[,2])]
-  normCount2 = normal_data[cbind(1:len,allele_data[,3])]
+  normCount1 = normal_data[cbind(1:len,allele_data[,3])]
+  normCount2 = normal_data[cbind(1:len,allele_data[,4])]
   totalNormal = normCount1 + normCount2
-  mutCount1 = mutant_data[cbind(1:len,allele_data[,2])]
-  mutCount2 = mutant_data[cbind(1:len,allele_data[,3])]
+  mutCount1 = mutant_data[cbind(1:len,allele_data[,3])]
+  mutCount2 = mutant_data[cbind(1:len,allele_data[,4])]
   totalMutant = mutCount1 + mutCount2
 
   # Clean up a few unused variables to save some memory
@@ -76,10 +84,6 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
     
     totalNormal = totalNormal[indices]
     totalMutant = totalMutant[indices]
-    # These variables are cleaned
-    #normal_data = normal_data[indices,]
-    #mutant_data = mutant_data[indices,]
-    
     normCount1 = normCount1[indices]
     normCount2 = normCount2[indices]
     mutCount1 = mutCount1[indices]
@@ -118,7 +122,6 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
   write.table(alleleCounts, file=combinedAlleleCountsFile, row.names=F, quote=F, sep="\t")
   
   # Plot the raw data using ASCAT
-  #ascat.bc = ascat.loadData(logRmutantFile, BAFmutantFile, logRnormalFile, BAFnormalFile)
   # Manually create an ASCAT object, which saves reading in the above files again
   SNPpos = germline.BAF[,c("Chromosome", "Position")]
   ch = list()
@@ -136,7 +139,7 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
                   Tumor_LogR_segmented=NULL, Tumor_BAF_segmented=NULL, Tumor_counts=NULL, Germline_counts=NULL,
                   SNPpos=tumor.LogR[,1:2], chrs=chr_names, samples=c(samplename), chrom=split_genome(tumor.LogR[,1:2]),
                   ch=ch)
-  # TODO: On PD7422a this produces different plots than before (see streak on chrom 14)
+
   ASCAT::ascat.plotRawData(ascat.bc) #, parentDir=figuresFile.prefix)
 }
 
@@ -248,6 +251,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 
   Tumor_LogR = read.table(Tumour_LogR_file, stringsAsFactors=F, header=T)
 
+  print("Processing GC content data")
   GC_data = list()
   Tumor_LogR_new = list()
   for (chrindex in 1:length(chrom_names)) {
@@ -263,15 +267,15 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
   Tumor_LogR = do.call(rbind, Tumor_LogR_new)
   rm(Tumor_LogR_new)
   GC_data = do.call(rbind, GC_data)
-  
+ 
   flag_nona = is.finite(Tumor_LogR[,3])
   corr = cor(GC_data[flag_nona, 3:ncol(GC_data)], Tumor_LogR[flag_nona,3], use="complete.obs")
   length = nrow(Tumor_LogR)
   
   corr = apply(corr, 1, function(x) sum(abs(x*length))/sum(length))
   index_1M = c(which(names(corr)=="X1M"), which(names(corr)=="X1Mb"))
-  maxGCcol_short = which(corr[1:(index_1M-1)]==max(corr[1:(index_1M-1)]))
-  maxGCcol_long = which(corr[index_1M:length(corr)]==max(corr[index_1M:length(corr)]))
+  maxGCcol_short = which(corr[1:(index_1M-1)]==max(corr[1:(index_1M-1)]))[1]
+  maxGCcol_long = which(corr[index_1M:length(corr)]==max(corr[index_1M:length(corr)]))[1]
   maxGCcol_long = maxGCcol_long+(index_1M-1)
   
   cat("weighted correlation: ",paste(names(corr),format(corr,digits=2), ";"),"\n")   
@@ -314,4 +318,72 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 	  corr = data.frame(windowsize=names(corr), correlation=rep(NA, length(corr)))
 	  write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
   }
+}
+
+#' Prepare WGS data for haplotype construction
+#' 
+#' This function performs part of the Battenberg WGS pipeline: Counting alleles, constructing BAF and logR 
+#' and performing GC content correction.
+#' 
+#' @param chrom_names A vector containing the names of chromosomes to be included
+#' @param tumourbam Full path to the tumour BAM file
+#' @param normalbam Full path to the normal BAM file
+#' @param tumourname Identifier to be used for tumour output files
+#' @param normalname Identifier to be used for normal output files
+#' @param g1000allelesprefix Prefix path to the 1000 Genomes alleles reference files
+#' @param g1000prefix Prefix path to the 1000 Genomes SNP reference files
+#' @param gccorrectprefix Prefix path to GC content reference data
+#' @param min_base_qual Minimum base quality required for a read to be counted
+#' @param min_map_qual Minimum mapping quality required for a read to be counted
+#' @param allelecounter_exe Path to the allele counter executable (can be found in $PATH)
+#' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
+#' @param nthreads The number of paralel processes to run
+#' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
+#' @author sd11
+#' @export
+prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname, g1000allelesprefix, g1000prefix, gccorrectprefix, 
+                       min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
+  
+  requireNamespace("foreach")
+  requireNamespace("doParallel")
+  requireNamespace("parallel")
+  
+  if (!skip_allele_counting) {
+    # Obtain allele counts for 1000 Genomes locations for both tumour and normal
+    foreach::foreach(i=1:length(chrom_names)) %dopar% {
+      getAlleleCounts(bam.file=tumourbam,
+                      output.file=paste(tumourname,"_alleleFrequencies_chr", i, ".txt", sep=""),
+                      g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
+                      min.base.qual=min_base_qual,
+                      min.map.qual=min_map_qual,
+                      allelecounter.exe=allelecounter_exe)
+  
+      getAlleleCounts(bam.file=normalbam,
+                      output.file=paste(normalname,"_alleleFrequencies_chr", i, ".txt",  sep=""),
+                      g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
+                      min.base.qual=min_base_qual,
+                      min.map.qual=min_map_qual,
+                      allelecounter.exe=allelecounter_exe)
+    }
+  }
+
+  # Obtain BAF and LogR from the raw allele counts
+  getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(tumourname,"_alleleFrequencies_chr", sep=""),
+                  normalAlleleCountsFile.prefix=paste(normalname,"_alleleFrequencies_chr", sep=""),
+                  figuresFile.prefix=paste(tumourname, "_", sep=''),
+                  BAFnormalFile=paste(tumourname,"_normalBAF.tab", sep=""),
+                  BAFmutantFile=paste(tumourname,"_mutantBAF.tab", sep=""),
+                  logRnormalFile=paste(tumourname,"_normalLogR.tab", sep=""),
+                  logRmutantFile=paste(tumourname,"_mutantLogR.tab", sep=""),
+                  combinedAlleleCountsFile=paste(tumourname,"_alleleCounts.tab", sep=""),
+                  chr_names=chrom_names,
+                  g1000file.prefix=g1000prefix,
+                  minCounts=min_normal_depth,
+                  samplename=tumourname)
+  # Perform GC correction
+  gc.correct.wgs(Tumour_LogR_file=paste(tumourname,"_mutantLogR.tab", sep=""),
+                 outfile=paste(tumourname,"_mutantLogR_gcCorrected.tab", sep=""),
+                 correlations_outfile=paste(tumourname, "_GCwindowCorrelations.txt", sep=""),
+                 gc_content_file_prefix=gccorrectprefix,
+                 chrom_names=chrom_names)
 }

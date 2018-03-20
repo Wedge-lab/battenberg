@@ -88,16 +88,17 @@ concatenateAlleleCountFiles = function(inputStart, inputEnd, no.chrs) {
 
 #' Function to concatenate 1000 Genomes SNP reference files
 #' @noRd
-concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs) {
-  infiles = c()
+concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs, chr_names) {
+  data = list()
   for(chrom in 1:no.chrs) {
     filename = paste(inputStart, chrom, inputEnd, sep="")
     # Only add files that exist and have data
     if(file.exists(filename) && file.info(filename)$size>0) {
-      infiles = c(infiles, filename)
+      # infiles = c(infiles, filename)
+      data[[chrom]] = cbind(chromosome=chr_names[chrom], read_table_generic(filename))
     }
   }
-  return(as.data.frame(do.call(rbind, lapply(infiles, FUN=function(x) { read_table_generic(x) }))))
+  return(as.data.frame(do.call(rbind, data)))
 }
 
 ########################################################################################
