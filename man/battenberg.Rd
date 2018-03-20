@@ -52,13 +52,13 @@ battenberg(tumourname, normalname, tumour_data_file, normal_data_file,
 
 \item{platform_gamma}{Platform scaling factor, suggestions are set to 1 for wgs and to 0.55 for snp6 (Default: 1)}
 
-\item{phasing_gamma}{Default: 1}
+\item{phasing_gamma}{Gamma parameter used when correcting phasing mistakes (Default: 1)}
 
-\item{segmentation_gamma}{Default: 10}
+\item{segmentation_gamma}{The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 10)}
 
-\item{segmentation_kmin}{Default: 3}
+\item{segmentation_kmin}{Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)}
 
-\item{phasing_kmin}{Default: 1}
+\item{phasing_kmin}{Kmin used when correcting for phasing mistakes (Default: 3)}
 
 \item{clonality_dist_metric}{Distance metric to use when choosing purity/ploidy combinations (Default: 0)}
 
@@ -72,7 +72,7 @@ battenberg(tumourname, normalname, tumour_data_file, normal_data_file,
 
 \item{min_goodness}{Minimum goodness of fit required for a purity/ploidy combination to be accepted as a solution (Default: 0.63)}
 
-\item{uninformative_BAF_threshold}{Default: 0.51}
+\item{uninformative_BAF_threshold}{The threshold beyond which BAF becomes uninformative (Default: 0.51)}
 
 \item{min_normal_depth}{Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)}
 
