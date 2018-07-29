@@ -65,20 +65,24 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   #  raw.logR.data[,1] = gsub("chr","",raw.logR.data[,1])
   #}
   
-  BAF.data = NULL
-  logR.data = NULL
-  segmented.logR.data = NULL
-  matched.segmented.BAF.data = NULL
+  BAF.data = list()
+  logR.data = list()
+  segmented.logR.data = list()
+  matched.segmented.BAF.data = list()
   chr.names = unique(segmented.BAF.data[,1])
+  
+  baf_segmented_split = split(segmented.BAF.data, f=segmented.BAF.data$Chromosome)
+  baf_split = split(raw.BAF.data, f=raw.BAF.data$Chromosome)
+  logr_split = split(raw.logR.data, f=raw.logR.data$Chromosome)
   
   # For each chromosome 
   for(chr in chr.names){
-    chr.BAF.data = raw.BAF.data[raw.BAF.data$Chromosome==chr,]
+    chr.BAF.data = baf_split[[chr]]
+    
     # Skip the rest if there is no data for this chromosome
     if(nrow(chr.BAF.data)==0){ next }
     # Match segments with chromosome position
-    # TODO: Make sure there are column names for this file at the output of segmentation
-    chr.segmented.BAF.data = segmented.BAF.data[segmented.BAF.data[,1]==chr,]
+    chr.segmented.BAF.data = baf_segmented_split[[chr]]
     indices = match(chr.segmented.BAF.data[,2],chr.BAF.data$Position )
 
     if (sum(is.na(indices))==length(indices) | length(indices)==0) {
@@ -89,13 +93,13 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     chr.segmented.BAF.data = chr.segmented.BAF.data[!is.na(indices),]
     
     # Append the segmented data
-    matched.segmented.BAF.data = rbind(matched.segmented.BAF.data, chr.segmented.BAF.data)
-    BAF.data = rbind(BAF.data, chr.BAF.data[indices[!is.na(indices)],])
+    matched.segmented.BAF.data[[chr]] = chr.segmented.BAF.data
+    BAF.data[[chr]] = chr.BAF.data[indices[!is.na(indices)],]
     
     # Append raw LogR
-    chr.logR.data = raw.logR.data[raw.logR.data$Chromosome==chr,]
+    chr.logR.data = logr_split[[chr]]
     indices = match(chr.segmented.BAF.data[,2],chr.logR.data$Position)
-    logR.data = rbind(logR.data, chr.logR.data[indices[!is.na(indices)],])
+    logR.data[[chr]] = chr.logR.data[indices[!is.na(indices)],]
     chr.segmented.logR.data = chr.logR.data[indices[!is.na(indices)],]
     
     # Append segmented LogR
@@ -104,24 +108,33 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     for(s in 1:length(segs)){
       chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3] = mean(chr.segmented.logR.data[(cum.segs[s]+1):cum.segs[s+1],3], na.rm=T)
     }
-    segmented.logR.data = rbind(segmented.logR.data,chr.segmented.logR.data)
+    segmented.logR.data[[chr]] = chr.segmented.logR.data
   }
-  names(matched.segmented.BAF.data)[5] = samplename
-
+  
   # Sync the dataframes
   selection = c()
   for (chrom in chr.names) {
-	matched.segmented.BAF.data.chr = matched.segmented.BAF.data[matched.segmented.BAF.data[,1]==chrom,]
-  	logR.data.chr = logR.data[logR.data[,1]==chrom,]
-	selection = c(selection, matched.segmented.BAF.data.chr[,2] %in% logR.data.chr[,2])
+    matched.segmented.BAF.data.chr = matched.segmented.BAF.data[[chrom]] #matched.segmented.BAF.data[matched.segmented.BAF.data[,1]==chrom,]
+    logR.data.chr = logR.data[[chrom]] #logR.data[logR.data[,1]==chrom,]
+    
+    selection = matched.segmented.BAF.data.chr[,2] %in% logR.data.chr[,2]
+    matched.segmented.BAF.data[[chrom]] = matched.segmented.BAF.data.chr[selection,]
+    segmented.logR.data[[chrom]] = segmented.logR.data[[chrom]][selection,]
   }
+  
+  # Combine the split data frames into a single for the subsequent steps
+  matched.segmented.BAF.data = do.call(rbind, matched.segmented.BAF.data)
+  segmented.logR.data = do.call(rbind, segmented.logR.data)
+  BAF.data = do.call(rbind, BAF.data)
+  logR.data = do.call(rbind, logR.data)
+  names(matched.segmented.BAF.data)[5] = samplename 
 
-  matched.segmented.BAF.data = matched.segmented.BAF.data[selection,]
-  segmented.logR.data = segmented.logR.data[selection,]
+  # write out the segmented logR data
   row.names(segmented.logR.data) = row.names(matched.segmented.BAF.data)
   row.names(logR.data) = row.names(matched.segmented.BAF.data)
   write.table(segmented.logR.data,paste(samplename,".logRsegmented.txt",sep=""),sep="\t",quote=F,col.names=F,row.names=F)
   
+  # Prepare the data for going into the runASCAT functions
   segBAF = 1-matched.segmented.BAF.data[,5]
   segLogR = segmented.logR.data[,3]
   logR = logR.data[,3]
