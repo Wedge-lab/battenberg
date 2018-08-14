@@ -88,18 +88,180 @@ concatenateAlleleCountFiles = function(inputStart, inputEnd, no.chrs) {
 
 #' Function to concatenate 1000 Genomes SNP reference files
 #' @noRd
-concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs) {
-  infiles = c()
+concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs, chr_names) {
+  data = list()
   for(chrom in 1:no.chrs) {
     filename = paste(inputStart, chrom, inputEnd, sep="")
     # Only add files that exist and have data
     if(file.exists(filename) && file.info(filename)$size>0) {
-      infiles = c(infiles, filename)
+      # infiles = c(infiles, filename)
+      data[[chrom]] = cbind(chromosome=chr_names[chrom], read_table_generic(filename))
     }
   }
-  return(as.data.frame(do.call(rbind, lapply(infiles, FUN=function(x) { read_table_generic(x) }))))
+  return(as.data.frame(do.call(rbind, data)))
 }
 
+########################################################################################
+# Various functions for calculating from data
+########################################################################################
+#' Calc copy number of major allele per segment from a subclones data.frame
+#' @noRd
+calc_total_cn_major = function(bb) {
+  return(bb$nMaj1_A*bb$frac1_A + ifelse(bb$frac1_A < 1, bb$nMaj2_A*bb$frac2_A, 0))
+}
+
+#' Calc copy number of minor allele per segment from a subclones data.frame
+#' @noRd
+calc_total_cn_minor = function(bb) {
+  return(bb$nMin1_A*bb$frac1_A + ifelse(bb$frac1_A < 1, bb$nMin2_A*bb$frac2_A, 0))
+}
+
+#' Calc total copy number per segment from a subclones data.frame
+#' @noRd
+calculate_bb_total_cn = function(bb) {
+  return((bb$nMaj1_A+bb$nMin1_A)*bb$frac1_A + ifelse(!is.na(bb$frac2_A), (bb$nMaj2_A+bb$nMin2_A)*bb$frac2_A, 0))
+}
+
+#' Calc ploidy from a subclones data.frame
+#' @noRd
+calc_ploidy = function(bb) {
+  bb$len = bb$endpos/1000-bb$startpos/1000
+  bb$total_cn = calculate_bb_total_cn(bb)
+  ploidy = sum(bb$total_cn*bb$len) / sum(bb$len)
+  return(ploidy)
+}
+
+#' Transform logR into an estimate of total copy number given purity and total ploidy (tumour+normal)
+#' @noRd
+logr2tumcn = function(cellularity, total_ploidy, logR) {
+  return(((total_ploidy*(2^logR)) - 2*(1-cellularity)) / cellularity)
+}
+
+#' Calc psi from psi_t and rho
+#' @noRd
+psit2psi = function(rho, psi_t) {
+  return(rho*psi_t + 2*(1-rho))
+}
+
+#' Calc psi_t from psi and rho
+#' @noRd
+psi2psit = function(rho, psi) {
+  return((psi-2*(1-rho))/rho)
+}
+
+########################################################################################
+# Refitting functions
+########################################################################################
+#' Calculate rho and psi values from a refit suggestion
+#' 
+#' Use this function to calculate the refit values from a refit suggestion.
+#' @param refBAF BAF of the segment
+#' @param refLogR logR of the segment
+#' @param refMajor Major allele copy number
+#' @param refMinor Minor allele copy number
+#' @param rho Sample rho parameter
+#' @param gamma_param Platform gamma parameter
+#' @return A list with a field for rho and psi_t
+#' @author sd11
+#' @export
+calc_rho_psi_refit = function(refBAF, refLogR, refMajor, refMinor, rho, gamma_param) {
+  rho = (2*refBAF-1)/(2*refBAF-refBAF*(refMajor+refMinor)-1+refMajor)
+  psi = (rho*(refMajor+refMinor)+2-2*rho)/(2^(refLogR/gamma_param))
+  psi_t = psi2psit(rho, psi)
+  return(list(rho=rho, psi_t=psi_t))
+}
+
+#' Calculate refit values from a refit suggestion
+#' 
+#' Use this function to calculate the refit values from a refit suggestion.
+#' @param subclones_file A Battenberg subclones.txt file
+#' @param segment_chrom Chromsome of the segment to use for refitting
+#' @param segment_pos Position within the start/end coordinates of the segment to use for refitting
+#' @param new_nMaj Major allele copy number
+#' @param new_nMin Minor allele copy number
+#' @param rho Sample rho parameter
+#' @param gamma_param Platform gamma parameter
+#' @return A list with a field for rho and psi_t
+#' @author sd11
+#' @export
+suggest_refit = function(subclones_file, segment_chrom, segment_pos, new_nMaj, new_nMin, rho, gamma_param) {
+  # segment_pos = as.numeric(gsub("M", "000000", segment_pos))
+  subclones = read.table(subclones_file, header=T, stringsAsFactors=F)
+  segment = subclones[subclones$chr==segment_chrom & subclones$startpos<=segment_pos & subclones$endpos>=segment_pos,]
+  segment_BAF = segment$BAF
+  segment_LogR = segment$LogR
+  return(calc_rho_psi_refit(segment_BAF, segment_LogR, new_nMaj, new_nMin, rho, gamma_param))
+}
+
+#' Create refit suggestions for a fit copy number profile
+#' 
+#' This function takes a fit copy number profile and generates refit suggestions for a future rerun.
+#' If there are clonal alterations above a specified size, then those written out as supplied as suggestions,
+#' otherwise a refit suggestion of an external purity value will be saved.
+#' @param samplename Samplename for the output file
+#' @param subclones_file File containing a fit copy number profile
+#' @param rho_psi_file File with rho and psi values
+#' @param gamma_param Platform gamma parameter
+#' @param min_segment_size_mb Minimum size of a segment in Mb to be considered for a refit suggestion (Default: 2)
+#' @author sd11
+#' @export
+cnfit_to_refit_suggestions = function(samplename, subclones_file, rho_psi_file, gamma_param, min_segment_size_mb=2) {
+  # samplename = "NASCR-0016"
+  # subclones_file = "NASCR-0016_subclones.txt"
+  subclones = Battenberg::read_table_generic(subclones_file)
+  subclones$len = subclones$endpos/1000000-subclones$startpos/1000000
+  subclones$is_cna = subclones$nMaj1_A!=subclones$nMin1_A
+  
+  if (any(subclones$len > min_segment_size_mb & subclones$is_cna)) {
+    # There are large scale alterations, save the top couple as suggestions
+    rho_psi = read.table(rho_psi_file, header=T, stringsAsFactors=F)
+    rho = rho_psi["FRAC_GENOME", "rho"]
+    psi_t = rho_psi["FRAC_GENOME", "psi"]
+    
+    # Take only segments that are clonal and are an alteration
+    is_subclonal = subclones$frac1_A < 1
+    subclones_clonal_cna = subset(subclones, !is_subclonal & subclones$is_cna)
+    subclones_clonal_cna = subclones_clonal_cna[with(subclones_clonal_cna, order(len, decreasing=T)),]
+    
+    # Generate a couple of solutions, but not more than are possibly available
+    max_solutions = ifelse(nrow(subclones_clonal_cna) >= 5, 5, nrow(subclones_clonal_cna))
+    subclones_clonal_cna = subclones_clonal_cna[1:max_solutions, , drop=F]
+    
+    # Determine position in Mb within the segment
+    position = subclones_clonal_cna$startpos + (subclones_clonal_cna$endpos - subclones_clonal_cna$startpos) / 2
+    position = position / 1000000
+    position_round_up = ceiling(position)
+    position_round_down = floor(position)
+    position = ifelse(position_round_up < subclones_clonal_cna$endpos, position_round_up, position_round_down)
+    
+    output = data.frame(project=rep(NA, max_solutions),
+                        samplename=rep(samplename, max_solutions),
+                        qc=rep(NA, max_solutions),
+                        cellularity_refit=rep(F, max_solutions),
+                        chrom=subclones_clonal_cna$chr[1:max_solutions],
+                        pos=paste(position, "M", sep=""),
+                        maj=subclones_clonal_cna$nMaj1_A[1:max_solutions],
+                        min=subclones_clonal_cna$nMin1_A[1:max_solutions],
+                        baf=subclones_clonal_cna$BAF[1:max_solutions],
+                        logr=subclones_clonal_cna$LogR[1:max_solutions])
+    
+    #refBAF, refLogR, refMajor, refMinor, rho, gamma_param
+    res = calc_rho_psi_refit(output$baf, output$logr, output$maj, output$min, rho, gamma_param)
+    output$rho_estimate = res$rho
+    output$psi_t_estimate = res$psi_t
+    output$rho_diff = abs(rho-output$rho_estimate)
+    output$psi_t_diff = abs(psi_t-output$psi_t_estimate)
+    
+  } else {
+    # No large clonal alteration, save a suggestion that should use an external purity value
+    output = data.frame(project=NA, samplename=samplename, qc=NA, cellularity_refit=T, chrom=NA, pos=NA, maj=NA, min=NA, baf=NA, logr=NA, rho_estimate=NA, psi_t_estimate=NA, rho_diff=NA, psi_t_diff=NA)
+  }
+  write.table(output, file=paste0(samplename, "_refit_suggestion.txt"), quote=F, sep="\t", row.names=F)
+}
+
+########################################################################################
+# Other
+########################################################################################
 #' Check if a file exists, if it doesn't, exit non-clean
 #' @noRd
 assert.file.exists = function(filename) {

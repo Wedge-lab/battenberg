@@ -4,21 +4,16 @@ NORMALCEL = toString(args[2])
 TUMOURCEL = toString(args[3])
 RUN_DIR = toString(args[4])
 
+NORMALNAME = NA
+SKIP_PREPROCESSING = F
+SKIP_PHASING = F
 library(Battenberg)
-library(doParallel)
 
 ###############################################################################
-# 2017-02-07
-# A pure R Battenberg v2.2.3 SNP6 pipeline implementation.
+# 2017-10-03
+# A pure R Battenberg v2.2.7 SNP6 pipeline implementation.
 # sd11@sanger.ac.uk
 ###############################################################################
-
-# Sample specific
-# IS.MALE = F
-# TUMOURNAME = "NASCR-0016"
-# NORMALCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016B1.CEL"
-# TUMOURCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016.CEL"
-# RUN_DIR = getwd()
 
 # Parallelism parameters
 NTHREADS = 8
@@ -40,6 +35,8 @@ BIRDSEED_REPORT_FILE = "birdseed.report.txt" # No control over the name of this 
 PLATFORM_GAMMA = 0.55
 PHASING_GAMMA = 1
 SEGMENTATION_GAMMA = 10
+SEGMENTATIIN_KMIN = 3
+PHASING_KMIN = 1
 CLONALITY_DIST_METRIC = 0
 ASCAT_DIST_METRIC = 1
 MIN_PLOIDY = 1.6 #1.6
@@ -50,143 +47,198 @@ MIN_GOODNESS_OF_FIT = 0.63
 BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
 CALC_SEG_BAF_OPTION = 1
+HETEROZYGOUSFILTER = "none"
 
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
-chrom_names = get.chrom.names(IMPUTEINFOFILE, TRUE)
 
-# Setup for parallel computing
-clp = makeCluster(NTHREADS)
-registerDoParallel(clp)
-
-# Extract the LogR and BAF from both tumour and normal cel files.
-cel2baf.logr(normal_cel_file=NORMALCEL, 
-             tumour_cel_file=TUMOURCEL, 
-             output_file=paste(TUMOURNAME, "_lrr_baf.txt", sep=""), 
-             snp6_reference_info_file=SNP6_REF_INFO_FILE, 
-             apt.probeset.genotype.exe=APT_PROBESET_GENOTYPE_EXE, 
-             apt.probeset.summarize.exe=APT_PROBESET_SUMMARIZE_EXE, 
-             norm.geno.clust.exe=NORM_GENO_CLUST_EXE)
-
-gc.correct(samplename=TUMOURNAME, 
-           infile.logr.baf=paste(TUMOURNAME, "_lrr_baf.txt", sep=""), 
-           outfile.tumor.LogR=paste(TUMOURNAME, "_mutantLogR.tab", sep=""), 
-           outfile.tumor.BAF=paste(TUMOURNAME, "_mutantBAF.tab", sep=""), 
-           outfile.normal.LogR=paste(TUMOURNAME, "_germlineLogR.tab", sep=""), 
-           outfile.normal.BAF=paste(TUMOURNAME, "_germlineBAF.tab", sep=""), 
-           outfile.probeBAF=paste(TUMOURNAME, "_probeBAF.txt", sep=""),
-           snp6_reference_info_file=SNP6_REF_INFO_FILE,
+battenberg(tumourname=TUMOURNAME, 
+           normalname=NORMALNAME, 
+           tumour_data_file=TUMOURCEL, 
+           normal_data_file=NORMALCEL, 
+           imputeinfofile=IMPUTEINFOFILE, 
+           g1000prefix=G1000PREFIX, 
+           problemloci=PROBLEMLOCI, 
+           data_type="snp6",
+           impute_exe=IMPUTE_EXE,
+           nthreads=NTHREADS,
+           platform_gamma=PLATFORM_GAMMA,
+           phasing_gamma=PHASING_GAMMA,
+           segmentation_gamma=SEGMENTATION_GAMMA,
+           segmentation_kmin=SEGMENTATIIN_KMIN,
+           phasing_kmin=PHASING_KMIN,
+           clonality_dist_metric=CLONALITY_DIST_METRIC,
+           ascat_dist_metric=ASCAT_DIST_METRIC,
+           min_ploidy=MIN_PLOIDY,
+           max_ploidy=MAX_PLOIDY,
+           min_rho=MIN_RHO,
+           min_goodness=MIN_GOODNESS_OF_FIT,
+           uninformative_BAF_threshold=BALANCED_THRESHOLD,
+           calc_seg_baf_option=CALC_SEG_BAF_OPTION,
+           skip_preprocessing=SKIP_PREPROCESSING,
+           skip_phasing=SKIP_PHASING,
+           snp6_reference_info_file=SNP6_REF_INFO_FILE, 
+           apt.probeset.genotype.exe=APT_PROBESET_GENOTYPE_EXE, 
+           apt.probeset.summarize.exe=APT_PROBESET_SUMMARIZE_EXE,
+           norm.geno.clust.exe=NORM_GENO_CLUST_EXE, 
            birdseed_report_file=BIRDSEED_REPORT_FILE,
-           chr_names=chrom_names)
+           heterozygousFilter=HETEROZYGOUSFILTER)
 
-# Infer what the gender is
-gender = infer_gender_birdseed(BIRDSEED_REPORT_FILE)
-is_male = gender == "male"
-chrom_names = get.chrom.names(IMPUTEINFOFILE, is_male)
 
-foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run.impute","combine.impute.output","GetChromosomeBAFs_SNP6","plot.haplotype.data")) %dopar% {
 
-  # Transform input into a format that Impute2 takes
-  generate.impute.input.snp6(infile.probeBAF=paste(TUMOURNAME, "_probeBAF.txt", sep=""), 
-                             outFileStart=paste(TUMOURNAME, "_impute_input_chr", sep=""), 
-                             chrom=chrom, 
-                             chr_names=chrom_names,
-                             problemLociFile=PROBLEMLOCI, 
-                             snp6_reference_info_file=SNP6_REF_INFO_FILE, 
-                             imputeinfofile=IMPUTEINFOFILE,
-                             is.male=is_male,
-                             heterozygousFilter="none")
-  
-  # Run impute on the files
-  run.impute(inputfile=paste(TUMOURNAME, "_impute_input_chr", chrom, ".txt", sep=""),
-             outputfile.prefix=paste(TUMOURNAME, "_impute_output_chr", chrom, ".txt", sep=""),
-             is.male=is_male,
-             imputeinfofile=IMPUTEINFOFILE,
-             chrom=chrom,
-             impute.exe=IMPUTE_EXE)
-  
-  # As impute runs in windows across a chromosome we need to assemble the output
-  combine.impute.output(inputfile.prefix=paste(TUMOURNAME, "_impute_output_chr", chrom, ".txt", sep=""),
-                        outputfile=paste(TUMOURNAME, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep=""),
-                        is.male=is_male,
-                        imputeinfofile=IMPUTEINFOFILE,
-                        region.size=5000000,
-                        chrom=chrom)
 
-  # Transform the impute output into haplotyped BAFs
-  GetChromosomeBAFs_SNP6(chrom=chrom,
-                         alleleFreqFile=paste(TUMOURNAME, "_impute_input_chr", chrom, "_withAlleleFreq.csv", sep=""),
-                         haplotypeFile=paste(TUMOURNAME, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep=""),
-                         samplename=TUMOURNAME,
-                         outputfile=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                         chr_names=chrom_names)
-  
-  # Plot what we have until this point
-  plot.haplotype.data(haplotyped.baf.file=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                      imageFileName=paste(TUMOURNAME,"_chr",chrom_names[chrom],"_heterozygousData.png",sep=""), 
-                      samplename=TUMOURNAME, 
-                      chrom=chrom, 
-                      chr_names=chrom_names)
-  
-  # Cleanup temp Impute output
-  unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, ".txt_*K.txt*", sep=""))
-}
-
-# Kill the threads as from here its all single core
-stopCluster(clp)
-
-# Combine all the BAF output into a single file
-combine.baf.files(inputfile.prefix=paste(TUMOURNAME, "_chr", sep=""), 
-                  inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt", 
-                  outputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                  no.chrs=length(chrom_names))
-
-# Segment the phased and haplotyped BAF data
-# Call segment.baf.phased.sv when SVs are available - not relevant for SNP6 data
-segment.baf.phased(samplename=TUMOURNAME,
-                   inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
-                   outputfile=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""),
-                   gamma=SEGMENTATION_GAMMA,
-                   phasegamma=PHASING_GAMMA,
-                   kmin=3,
-                   phasekmin=1,
-                   calc_seg_baf_option=CALC_SEG_BAF_OPTION)
-
-# Fit a clonal copy number profile
-fit.copy.number(samplename=TUMOURNAME,
-                outputfile.prefix=paste(TUMOURNAME, "_", sep=""),
-                inputfile.baf.segmented=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
-                inputfile.baf=paste(TUMOURNAME,"_mutantBAF.tab", sep=""), 
-                inputfile.logr=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
-                dist_choice=CLONALITY_DIST_METRIC, 
-                ascat_dist_choice=ASCAT_DIST_METRIC, 
-                min.ploidy=MIN_PLOIDY, 
-                max.ploidy=MAX_PLOIDY, 
-                min.rho=MIN_RHO, 
-                max.rho=MAX_RHO,
-                min.goodness=MIN_GOODNESS_OF_FIT, 
-                uninformative_BAF_threshold=BALANCED_THRESHOLD, 
-                gamma_param=PLATFORM_GAMMA, 
-                use_preset_rho_psi=F, 
-                preset_rho=NA, 
-                preset_psi=NA, 
-                read_depth=30)
-
-# Go over all segments, determine which segements are a mixture of two states and fit a second CN state
-callSubclones(sample.name=TUMOURNAME, 
-              baf.segmented.file=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
-              logr.file=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
-              rho.psi.file=paste(TUMOURNAME, "_rho_and_psi.txt",sep=""), 
-              output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
-              output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
-              output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""),
-              masking_output_file=paste(TUMOURNAME,"_segment_masking_details.txt", sep=""),
-              chr_names=chrom_names, 
-              gamma=PLATFORM_GAMMA, 
-              segmentation.gamma=NA, 
-              siglevel=0.05, 
-              maxdist=0.01, 
-              noperms=1000,
-              max_allowed_state=250, 
-              sv_breakpoints_file="NA",
-              calc_seg_baf_option=CALC_SEG_BAF_OPTION)
+# # Change to work directory and load the chromosome information
+# setwd(RUN_DIR)
+# chrom_names = get.chrom.names(IMPUTEINFOFILE, TRUE)
+# 
+# # Setup for parallel computing
+# clp = makeCluster(NTHREADS)
+# registerDoParallel(clp)
+# 
+# # Extract the LogR and BAF from both tumour and normal cel files.
+# cel2baf.logr(normal_cel_file=NORMALCEL, 
+#              tumour_cel_file=TUMOURCEL, 
+#              output_file=paste(TUMOURNAME, "_lrr_baf.txt", sep=""), 
+#              snp6_reference_info_file=SNP6_REF_INFO_FILE, 
+#              apt.probeset.genotype.exe=APT_PROBESET_GENOTYPE_EXE, 
+#              apt.probeset.summarize.exe=APT_PROBESET_SUMMARIZE_EXE, 
+#              norm.geno.clust.exe=NORM_GENO_CLUST_EXE)
+# 
+# gc.correct(samplename=TUMOURNAME, 
+#            infile.logr.baf=paste(TUMOURNAME, "_lrr_baf.txt", sep=""), 
+#            outfile.tumor.LogR=paste(TUMOURNAME, "_mutantLogR.tab", sep=""), 
+#            outfile.tumor.BAF=paste(TUMOURNAME, "_mutantBAF.tab", sep=""), 
+#            outfile.normal.LogR=paste(TUMOURNAME, "_germlineLogR.tab", sep=""), 
+#            outfile.normal.BAF=paste(TUMOURNAME, "_germlineBAF.tab", sep=""), 
+#            outfile.probeBAF=paste(TUMOURNAME, "_probeBAF.txt", sep=""),
+#            snp6_reference_info_file=SNP6_REF_INFO_FILE,
+#            birdseed_report_file=BIRDSEED_REPORT_FILE,
+#            chr_names=chrom_names)
+# 
+# # Infer what the gender is
+# gender = infer_gender_birdseed(BIRDSEED_REPORT_FILE)
+# is_male = gender == "male"
+# chrom_names = get.chrom.names(IMPUTEINFOFILE, is_male)
+# 
+# foreach(chrom=1:length(chrom_names), .export=c("generate.impute.input.snp6","run.impute","combine.impute.output","GetChromosomeBAFs_SNP6","plot.haplotype.data")) %dopar% {
+# 
+#   # Transform input into a format that Impute2 takes
+#   generate.impute.input.snp6(infile.germlineBAF=paste(TUMOURNAME, "_germlineBAF.tab", sep=""), 
+#                              infile.tumourBAF=paste(TUMOURNAME, "_mutantBAF.tab", sep=""),
+#                              outFileStart=paste(TUMOURNAME, "_impute_input_chr", sep=""), 
+#                              chrom=chrom, 
+#                              chr_names=chrom_names,
+#                              problemLociFile=PROBLEMLOCI, 
+#                              snp6_reference_info_file=SNP6_REF_INFO_FILE, 
+#                              imputeinfofile=IMPUTEINFOFILE,
+#                              is.male=is_male,
+#                              heterozygousFilter=HETEROZYGOUSFILTER)
+#   
+#   # Run impute on the files
+#   run.impute(inputfile=paste(TUMOURNAME, "_impute_input_chr", chrom, ".txt", sep=""),
+#              outputfile.prefix=paste(TUMOURNAME, "_impute_output_chr", chrom, ".txt", sep=""),
+#              is.male=is_male,
+#              imputeinfofile=IMPUTEINFOFILE,
+#              chrom=chrom,
+#              impute.exe=IMPUTE_EXE)
+#   
+#   # As impute runs in windows across a chromosome we need to assemble the output
+#   combine.impute.output(inputfile.prefix=paste(TUMOURNAME, "_impute_output_chr", chrom, ".txt", sep=""),
+#                         outputfile=paste(TUMOURNAME, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep=""),
+#                         is.male=is_male,
+#                         imputeinfofile=IMPUTEINFOFILE,
+#                         region.size=5000000,
+#                         chrom=chrom)
+# 
+#   # Transform the impute output into haplotyped BAFs
+#   GetChromosomeBAFs_SNP6(chrom=chrom,
+#                          alleleFreqFile=paste(TUMOURNAME, "_impute_input_chr", chrom, "_withAlleleFreq.csv", sep=""),
+#                          haplotypeFile=paste(TUMOURNAME, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep=""),
+#                          samplename=TUMOURNAME,
+#                          outputfile=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
+#                          chr_names=chrom_names)
+#   
+#   # Plot what we have until this point
+#   plot.haplotype.data(haplotyped.baf.file=paste(TUMOURNAME, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
+#                       imageFileName=paste(TUMOURNAME,"_chr",chrom_names[chrom],"_heterozygousData.png",sep=""), 
+#                       samplename=TUMOURNAME, 
+#                       chrom=chrom, 
+#                       chr_names=chrom_names)
+#   
+#   # Cleanup temp Impute output
+#   unlink(paste(TUMOURNAME, "_impute_output_chr", chrom, ".txt_*K.txt*", sep=""))
+# }
+# 
+# # Kill the threads as from here its all single core
+# stopCluster(clp)
+# 
+# # Combine all the BAF output into a single file
+# combine.baf.files(inputfile.prefix=paste(TUMOURNAME, "_chr", sep=""), 
+#                   inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt", 
+#                   outputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
+#                   no.chrs=length(chrom_names))
+# 
+# # Segment the phased and haplotyped BAF data
+# # Call segment.baf.phased.sv when SVs are available - not relevant for SNP6 data
+# segment.baf.phased(samplename=TUMOURNAME,
+#                    inputfile=paste(TUMOURNAME, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
+#                    outputfile=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""),
+#                    gamma=SEGMENTATION_GAMMA,
+#                    phasegamma=PHASING_GAMMA,
+#                    kmin=3,
+#                    phasekmin=1,
+#                    calc_seg_baf_option=CALC_SEG_BAF_OPTION)
+# 
+# # Fit a clonal copy number profile
+# fit.copy.number(samplename=TUMOURNAME,
+#                 outputfile.prefix=paste(TUMOURNAME, "_", sep=""),
+#                 inputfile.baf.segmented=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
+#                 inputfile.baf=paste(TUMOURNAME,"_mutantBAF.tab", sep=""), 
+#                 inputfile.logr=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
+#                 dist_choice=CLONALITY_DIST_METRIC, 
+#                 ascat_dist_choice=ASCAT_DIST_METRIC, 
+#                 min.ploidy=MIN_PLOIDY, 
+#                 max.ploidy=MAX_PLOIDY, 
+#                 min.rho=MIN_RHO, 
+#                 max.rho=MAX_RHO,
+#                 min.goodness=MIN_GOODNESS_OF_FIT, 
+#                 uninformative_BAF_threshold=BALANCED_THRESHOLD, 
+#                 gamma_param=PLATFORM_GAMMA, 
+#                 use_preset_rho_psi=F, 
+#                 preset_rho=NA, 
+#                 preset_psi=NA, 
+#                 read_depth=30)
+# 
+# # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
+# callSubclones(sample.name=TUMOURNAME, 
+#               baf.segmented.file=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
+#               logr.file=paste(TUMOURNAME,"_mutantLogR.tab", sep=""), 
+#               rho.psi.file=paste(TUMOURNAME, "_rho_and_psi.txt",sep=""), 
+#               output.file=paste(TUMOURNAME,"_subclones.txt", sep=""), 
+#               output.figures.prefix=paste(TUMOURNAME,"_subclones_chr", sep=""), 
+#               output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""),
+#               masking_output_file=paste(TUMOURNAME,"_segment_masking_details.txt", sep=""),
+#               chr_names=chrom_names, 
+#               gamma=PLATFORM_GAMMA, 
+#               segmentation.gamma=NA, 
+#               siglevel=0.05, 
+#               maxdist=0.01, 
+#               noperms=1000,
+#               max_allowed_state=250, 
+#               sv_breakpoints_file="NA",
+#               calc_seg_baf_option=CALC_SEG_BAF_OPTION)
+# 
+# # Make some post-hoc plots
+# make_posthoc_plots(samplename=TUMOURNAME, 
+#                    logr_file=paste(TUMOURNAME, "_mutantLogR.tab", sep=""), 
+#                    subclones_file=paste(TUMOURNAME, "_subclones.txt", sep=""), 
+#                    rho_psi_file=paste(TUMOURNAME, "_rho_and_psi.txt", sep=""), 
+#                    bafsegmented_file=paste(TUMOURNAME, ".BAFsegmented.txt", sep=""), 
+#                    logrsegmented_file=paste(TUMOURNAME, ".logRsegmented.txt", sep=""), 
+#                    allelecounts_file=NULL)
+# 
+# # Save refit suggestions for a future rerun
+# cnfit_to_refit_suggestions(samplename=TUMOURNAME, 
+#                            subclones_file=paste(TUMOURNAME, "_subclones.txt", sep=""),
+#                            rho_psi_file=paste(TUMOURNAME, "_rho_and_psi.txt", sep=""),
+#                            gamma_param=PLATFORM_GAMMA)

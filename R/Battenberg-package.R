@@ -1,8 +1,10 @@
-#' @name Battenberg
-#' @docType package
-#' @title Battenberg subclonal copy number R Package
-#' @author Stefan Dentro, \email{sd11@@sanger.ac.uk}
-#' @keywords package
+#' @import stats graphics grDevices utils ggplot2
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom readr read_table
-NA
+#' @importFrom gridExtra grid.arrange arrangeGrob
+#' @importFrom ASCAT make_segments ascat.plotSunrise ascat.plotAscatProfile ascat.plotNonRounded
+#' @importFrom gtools mixedsort
+#' @importFrom parallel makeCluster stopCluster
+#' @importFrom doParallel registerDoParallel
+#' @importFrom foreach foreach %dopar%
+NULL
