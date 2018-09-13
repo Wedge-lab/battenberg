@@ -26,6 +26,7 @@ IMPUTEINFOFILE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/bat
 G1000PREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
 G1000PREFIX_AC = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
 GCCORRECTPREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_"
+REPLICCORRECTPREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_wgs_replic_correction_1000g_v3/1000_genomes_replication_timing_chr_"
 IMPUTE_EXE = "impute2"
 
 
@@ -62,6 +63,7 @@ battenberg(tumourname=TUMOURNAME,
            g1000prefix=G1000PREFIX, 
            g1000allelesprefix=G1000PREFIX_AC, 
            gccorrectprefix=GCCORRECTPREFIX, 
+           repliccorrectprefix=REPLICCORRECTPREFIX, 
            problemloci=PROBLEMLOCI, 
            data_type="wgs",
            impute_exe=IMPUTE_EXE,

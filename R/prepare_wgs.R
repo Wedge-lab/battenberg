@@ -245,10 +245,10 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
 #' chr in its name. The .txt extension is automatically added.
 #' @param replic_timing_file_prefix Like the gc_content_file_prefix, containing replication timing info
 #' @param chrom_names A vector containing chromosome names to be considered
-#' @param recalc_corr_afterwards Set to TRUE to recalculate correlations with GC content after correction
+#' @param recalc_corr_afterwards Set to TRUE to recalculate correlations after correction
 #' @author jonas demeulemeester, sd11
 #' @export
-gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards=F, GC_data = NULL, replic_data = NULL) {
+gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards=F) {
   
   Tumor_LogR = readr::read_tsv(file = Tumour_LogR_file, col_names = T, col_types = "cin")
   
@@ -336,6 +336,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' @param g1000allelesprefix Prefix path to the 1000 Genomes alleles reference files
 #' @param g1000prefix Prefix path to the 1000 Genomes SNP reference files
 #' @param gccorrectprefix Prefix path to GC content reference data
+#' @param repliccorrectprefix Prefix path to replication timing reference data
 #' @param min_base_qual Minimum base quality required for a read to be counted
 #' @param min_map_qual Minimum mapping quality required for a read to be counted
 #' @param allelecounter_exe Path to the allele counter executable (can be found in $PATH)
@@ -345,7 +346,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' @author sd11
 #' @export
 prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname, g1000allelesprefix, g1000prefix, gccorrectprefix, 
-                       min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
+                       repliccorrectprefix, min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
   
   requireNamespace("foreach")
   requireNamespace("doParallel")
@@ -388,5 +389,6 @@ prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname
                  outfile=paste(tumourname,"_mutantLogR_gcCorrected.tab", sep=""),
                  correlations_outfile=paste(tumourname, "_GCwindowCorrelations.txt", sep=""),
                  gc_content_file_prefix=gccorrectprefix,
+                 replic_timing_file_prefix=repliccorrectprefix,
                  chrom_names=chrom_names)
 }
