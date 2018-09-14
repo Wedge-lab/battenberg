@@ -255,10 +255,10 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
   print("Processing GC content data")
   chrom_idx = 1:length(chrom_names)
   gc_files = paste0(gc_content_file_prefix, chrom_idx, ".txt")
-  GC_data = do.call(rbind, lapply(gc_files, readr::read_tsv, skip = 1, col_names = F, col_types = "icinnnnnnnnnnnnnnnnnn"))[, -1]
+  GC_data = do.call(rbind, lapply(gc_files, readr::read_tsv, skip = 1, col_names = F, col_types = "-cinnnnnnnnnnnn------"))
   colnames(GC_data) = c("chr", "Position", paste0(c(25,50,100,200,500), "bp"),
-                        paste0(c(1,2,5,10,20,50,100,200,500), "kb"),
-                        paste0(c(1,2,5,10), "Mb"))
+                        paste0(c(1,2,5,10,20,50,100), "kb"))#,200,500), "kb"),
+                        # paste0(c(1,2,5,10), "Mb"))
 
   print("Processing replciation timing data")
   replic_files = paste0(replic_timing_file_prefix, chrom_idx, ".txt")
