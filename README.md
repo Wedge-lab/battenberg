@@ -5,11 +5,6 @@
 
 Please visit the [cgpBattenberg page](https://github.com/cancerit/cgpBattenberg), download the code from there and run the setup.sh script. The battenberg.pl script can then be used to run the pipeline.
 
-
-## Advanced installation instructions
-
-The instructions below will install the latest stable Battenberg version. Please take this approach only when you'd like to do something not covered by cgpBattenberg.
-
 ## Description of the output
 
 Battenberg produces a number of output files. The copy number profile is saved in a file that ends with `_subclones.txt`, which is a tab delimited file in BED format. Within this file there is a line for each segment in the tumour genome.
@@ -41,6 +36,10 @@ The following columns are available in the Battenberg output:
   * frac1_A_0.975 - Associated 95% confidence interval of the bootstrap measure of uncertainty.
 
 Followed by possible equivalent solutions B to F with the same columns as defined above for solution A (due to the way a profile is fit Battenberg can generate a series of equivalent solutions that are reported separately in the output).
+
+## Advanced installation instructions
+
+The instructions below will install the latest stable Battenberg version. Please take this approach only when you'd like to do something not covered by cgpBattenberg.
 
 ### Standalone
 
