@@ -280,7 +280,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ################################################################################################
   # Collapse the BAFsegmented into breakpoints to be used in plotting
   segment_breakpoints = collapse_bafsegmented_to_segments(BAFvals)
-  if (!is.null(sv_breakpoints_file) & !sv_breakpoints_file=="NA") {
+  if (!is.null(sv_breakpoints_file) & !ifelse(is.null(sv_breakpoints_file), TRUE, sv_breakpoints_file=="NA") & !ifelse(is.null(sv_breakpoints_file), TRUE, is.na(sv_breakpoints_file))) {
     svs = read.table(sv_breakpoints_file, header=T, stringsAsFactors=F)
   }
   
@@ -290,7 +290,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     #if no points to plot, skip
     if (length(pos)==0) { next }
     
-    if (!is.null(sv_breakpoints_file) & !sv_breakpoints_file=="NA") {
+    if (!is.null(sv_breakpoints_file) & !ifelse(is.null(sv_breakpoints_file), TRUE, sv_breakpoints_file=="NA") & !ifelse(is.null(sv_breakpoints_file), TRUE, is.na(sv_breakpoints_file))) {
       svs_pos = svs[svs$chromosome==chr,]$position / 1000000
     } else {
       svs_pos = NULL

@@ -1423,6 +1423,8 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     psi = NA
     ploidy = NA
     rho = NA
+    psi_opt1_plot = -1
+    rho_opt1_plot = -1
   }
 
   # separated plotting from logic: create distanceplot here

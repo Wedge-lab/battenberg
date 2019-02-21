@@ -9,6 +9,24 @@ run_haplotyping(chrom, tumourname, normalname, ismale, imputeinfofile,
   snp6_reference_info_file = NA, heterozygousFilter = NA)
 }
 \arguments{
+\item{chrom}{The chromosome for which to reconstruct haplotypes}
+
+\item{tumourname}{Identifier of the tumour, used to match data files on disk}
+
+\item{normalname}{Identifier of the normal, used to match data files on disk}
+
+\item{ismale}{Boolean, set to TRUE if the sample is male}
+
+\item{imputeinfofile}{Full path to the imputeinfo reference file}
+
+\item{problemloci}{Full path to the problematic loci reference file}
+
+\item{impute_exe}{Path to the impute executable (can be found if its in $PATH)}
+
+\item{min_normal_depth}{Minimal depth in the matched normal required for a SNP to be used}
+
+\item{chrom_names}{A vector containing the names of chromosomes to be included}
+
 \item{snp6_reference_info_file}{SNP6 only parameter Default: NA}
 
 \item{heterozygousFilter}{SNP6 only parameter Default: NA}

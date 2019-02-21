@@ -428,20 +428,21 @@ infer_gender_birdseed = function(birdseed_report_file) {
 #' This function performs part of the Battenberg SNP6 pipeline: Extract BAF and logR from the CEL files 
 #' and performing GC content correction.
 #'
-#' @param tumour_cel_file
-#' @param normal_cel_file
-#' @param tumourname
-#' @param chrom_names
-#' @param snp6_reference_info_file
-#' @param apt.probeset.genotype.exe
-#' @param apt.probeset.summarize.exe
-#' @param norm.geno.clust.exe
-#' @param birdseed_report_file
+#' @param tumour_cel_file Full path to a CEL file containing the tumour raw data
+#' @param normal_cel_file Full path to a CEL file containing the normal raw data
+#' @param tumourname Identifier to be used for tumour output files
+#' @param chrom_names A vector containing the names of chromosomes to be included
+#' @param snp6_reference_info_file Full path to the SNP6 reference info file
+#' @param apt.probeset.genotype.exe Full path to the apt.probeset.genotype executable (Default: expected in $PATH)
+#' @param apt.probeset.summarize.exe Full path to the apt.probeset.summarize executable (Default: expected in $PATH)
+#' @param norm.geno.clust.exe  Full path to the norm.geno.clust.exe executable (Default: expected in $PATH)
+#' @param birdseed_report_file Name of the birdseed output file. This is a temp output file of one of the internally called functions of which the name cannot be defined. Don't change this parameter. (Default: birdseed.report.txt)
 #' @author sd11
 #' @export
 prepare_snp6 = function(tumour_cel_file, normal_cel_file, tumourname, chrom_names, 
-                        snp6_reference_info_file, apt.probeset.genotype.exe, apt.probeset.summarize.exe,
-                        norm.geno.clust.exe, birdseed_report_file) {
+                        snp6_reference_info_file, apt.probeset.genotype.exe="apt-probeset-genotype", 
+                        apt.probeset.summarize.exe="apt-probeset-summarize", norm.geno.clust.exe="normalize_affy_geno_cluster.pl",
+                        birdseed_report_file="birdseed.report.txt") {
   
   # Extract the LogR and BAF from both tumour and normal cel files.
   cel2baf.logr(normal_cel_file=normal_cel_file,

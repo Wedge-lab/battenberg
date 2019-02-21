@@ -331,28 +331,32 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' This function performs part of the Battenberg WGS pipeline: Counting alleles, constructing BAF and logR 
 #' and performing GC content correction.
 #' 
-#' @param chrom_names
-#' @param tumourbam
-#' @param normalbam
-#' @param tumourname
-#' @param normalname
-#' @param g1000allelesprefix
-#' @param g1000prefix
-#' @param gccorrectprefix
-#' @param min_base_qual
-#' @param min_map_qual
-#' @param allelecounter_exe
-#' @param min_normal_depth
-#' @param skip_allele_counting
+#' @param chrom_names A vector containing the names of chromosomes to be included
+#' @param tumourbam Full path to the tumour BAM file
+#' @param normalbam Full path to the normal BAM file
+#' @param tumourname Identifier to be used for tumour output files
+#' @param normalname Identifier to be used for normal output files
+#' @param g1000allelesprefix Prefix path to the 1000 Genomes alleles reference files
+#' @param g1000prefix Prefix path to the 1000 Genomes SNP reference files
+#' @param gccorrectprefix Prefix path to GC content reference data
+#' @param min_base_qual Minimum base quality required for a read to be counted
+#' @param min_map_qual Minimum mapping quality required for a read to be counted
+#' @param allelecounter_exe Path to the allele counter executable (can be found in $PATH)
+#' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
+#' @param nthreads The number of paralel processes to run
+#' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
 #' @author sd11
 #' @export
 prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname, g1000allelesprefix, g1000prefix, gccorrectprefix, 
                        min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
   
+  requireNamespace("foreach")
+  requireNamespace("doParallel")
+  requireNamespace("parallel")
+  
   if (!skip_allele_counting) {
     # Obtain allele counts for 1000 Genomes locations for both tumour and normal
-    foreach::foreach(i=1:length(chrom_names)) %dopar% { #, .export=c("getAlleleCounts")
-    # mclapply(1:length(chrom_names), function(chrom) {
+    foreach::foreach(i=1:length(chrom_names)) %dopar% {
       getAlleleCounts(bam.file=tumourbam,
                       output.file=paste(tumourname,"_alleleFrequencies_chr", i, ".txt", sep=""),
                       g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
@@ -366,8 +370,7 @@ prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname
                       min.base.qual=min_base_qual,
                       min.map.qual=min_map_qual,
                       allelecounter.exe=allelecounter_exe)
-  
-    }#, mc.cores=nthreads)
+    }
   }
 
   # Obtain BAF and LogR from the raw allele counts
