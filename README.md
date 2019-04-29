@@ -62,19 +62,35 @@ R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
 
 #### Required reference files
 
-Battenberg requires a number of reference files that should be downloaded.
+Battenberg requires reference files that can be downloaded from here: https://ora.ox.ac.uk/objects/uuid:2c1fec09-a504-49ab-9ce9-3f17bac531bc
 
-  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_1000genomesloci2012_v3.tar.gz
-  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_impute_1000G_v3.tar.gz
-  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/probloci_270415.txt.gz
-  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_wgs_gc_correction_1000g_v3.tar.gz
-  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_snp6_exe.tgz (SNP6 only)
-  * ftp://ftp.sanger.ac.uk/pub/teams/113/Battenberg/battenberg_snp6_ref.tgz (SNP6 only)
+The bundle contains the following files:
+
+  * battenberg_1000genomesloci2012_v3.tar.gz
+  * battenberg_impute_1000G_v3.tar.gz
+  * probloci_270415.txt.gz
+  * battenberg_wgs_gc_correction_1000g_v3.tar.gz
+  * battenberg_snp6_exe.tgz (SNP6 only)
+  * battenberg_snp6_ref.tgz (SNP6 only)
   
 #### Pipeline
 
 Go into inst/example for example WGS and SNP6 R-only pipelines.
-  
+
+### Battenberg on GRCh38
+
+The Battenberg pipeline uses reference files from [Impute2](https://mathgen.stats.ox.ac.uk/impute/impute_v2.html), which are not available for GRCh38. We therefore provide a workaround by lifting over the data to hg19. 
+
+This step requires an additional reference file, which can be downloaded here: [TO DO]
+
+Beyond the WGS example pipeline, the directory ```inst/example``` contains two additional scripts. Run these as follows:
+
+* First run ```battenberg_allelecount.R```
+* [TO DO]
+* Finally, run ```battenberg_wgs.R``` and provide it with the option ```--skip_allelecount```
+
+The final output files are all on hg19 coordinates, but can be lifted back to 
+
 ### Docker - experimental
 
 Battenberg can be run inside a Docker container. Please follow the instructions below.
@@ -87,9 +103,9 @@ cd battenberg
 docker build -t battenberg:2.2.8 .
 ```
 
-#### Download reference data
+#### Download test data
 
-To do
+This example run uses the PCAWG test sample as input, which can be downloaded from here: https://s3-eu-west-1.amazonaws.com/wtsi-pancancer/testdata/HCC1143_ds.tar
 
 #### Run interactively
 
