@@ -3,39 +3,53 @@
 
 ## Advised installation and running instructions
 
-Please visit the [cgpBattenberg page](https://github.com/cancerit/cgpBattenberg), download the code from there and run the setup.sh script. The battenberg.pl script can then be used to run the pipeline.
+Please visit the [cgpBattenberg page](https://github.com/cancerit/cgpBattenberg), download the code from there and run the ```setup.sh``` script. The ```battenberg.pl``` script can then be used to run the pipeline.
 
 ## Description of the output
 
 Battenberg produces a number of output files. The copy number profile is saved in a file that ends with `_subclones.txt`, which is a tab delimited file in BED format. Within this file there is a line for each segment in the tumour genome.
 Each segment will have either one or two copy number states:
 
-    If there is one state that line represents the clonal copy number (i.e. all tumour cells have this state)
-    If there are two states that line represents subclonal copy number (i.e. there are two populations of cells, each with a different state)
+* If there is one state that line represents the clonal copy number (i.e. all tumour cells have this state)
+* If there are two states that line represents subclonal copy number (i.e. there are two populations of cells, each with a different state)
 
 A copy number state consists of a major and a minor allele and their frequencies, which together add give the total copy number for that segment and an estimate fraction of tumour cells that carry each allele.
 
 The following columns are available in the Battenberg output:
-
-  * chr - The chromosome of the segment.
-  * startpos - Start position on the chromosome.
-  * endpos - End position on the chromosome.
-  * BAF - The B-allele frequency of the segment.
-  * pval - P-value that is obtained when testing whether this segment should be represented by one or two states. A low p-value will result in the fitting of a second copy number state.
-  * LogR - The log ratio of normalised tumour coverage versus its matched normal sequencing sample.
-  * ntot - An internal total copy number value used to determine the priority of solutions. NOTE: This is not the total copy number of this segment!
-  * nMaj1_A - The major allele copy number of state 1 from solution A.
-  * nMin1_A - The minor allele copy number of state 1 from solution A.
-  * frac1_A - Fraction of tumour cells carrying state 1 in solution A.
-  * nMaj2_A - The major allele copy number of state 2 from solution A. This value can be NA.
-  * nMin2_A - The minor allele copy number of state 2 from solution A. This value can be NA.
-  * frac2_A - Fraction of tumour cells carrying state 2 in solution A. This value can be NA.
-  * SDfrac_A - Standard deviation on the BAF of SNPs in this segment, can be used as a measure of uncertainty.
-  * SDfrac_A_BS - Bootstrapped standard deviation.
-  * frac1_A_0.025 - Associated 95% confidence interval of the bootstrap measure of uncertainty.
-  * frac1_A_0.975 - Associated 95% confidence interval of the bootstrap measure of uncertainty.
+| Column | Description |
+| ------------- | ------------- |
+| chr | The chromosome of the segment |
+| startpos | Start position on the chromosome |
+| endpos | End position on the chromosome |
+| BAF | The B-allele frequency of the segment |
+| pval | P-value that is obtained when testing whether this segment should be represented by one or two states. A low p-value will result in the fitting of a second copy number state |
+| LogR | The log ratio of normalised tumour coverage versus its matched normal sequencing sample |
+| ntot | An internal total copy number value used to determine the priority of solutions. NOTE: This is not the total copy number of this segment! |
+| nMaj1_A | The major allele copy number of state 1 from solution A |
+| nMin1_A | The minor allele copy number of state 1 from solution A |
+| frac1_A | Fraction of tumour cells carrying state 1 in solution A |
+| nMaj2_A | The major allele copy number of state 2 from solution A. This value can be NA |
+| nMin2_A | The minor allele copy number of state 2 from solution A. This value can be NA |
+| frac2_A | Fraction of tumour cells carrying state 2 in solution A. This value can be NA |
+| SDfrac_A | Standard deviation on the BAF of SNPs in this segment, can be used as a measure of uncertainty |
+| SDfrac_A_BS | Bootstrapped standard deviation |
+| frac1_A_0.025 | Associated 95% confidence interval of the bootstrap measure of uncertainty |
 
 Followed by possible equivalent solutions B to F with the same columns as defined above for solution A (due to the way a profile is fit Battenberg can generate a series of equivalent solutions that are reported separately in the output).
+
+## Battenberg on GRCh38
+
+The Battenberg pipeline uses reference files from [Impute2](https://mathgen.stats.ox.ac.uk/impute/impute_v2.html), which are not available for GRCh38. We therefore provide a workaround by lifting over the data to hg19. 
+
+This step requires an additional reference file, which can be downloaded here: [TO DO]
+
+Beyond the WGS example pipeline, the directory ```inst/example``` contains two additional scripts. Run these as follows:
+
+* First run ```battenberg_allelecount.R```
+* [TO DO]
+* Finally, run ```battenberg_wgs.R``` and provide it with the option ```--skip_allelecount```
+
+The final output files are all on hg19 coordinates, but can be lifted back to hg19.
 
 ## Advanced installation instructions
 
@@ -76,20 +90,6 @@ The bundle contains the following files:
 #### Pipeline
 
 Go into inst/example for example WGS and SNP6 R-only pipelines.
-
-### Battenberg on GRCh38
-
-The Battenberg pipeline uses reference files from [Impute2](https://mathgen.stats.ox.ac.uk/impute/impute_v2.html), which are not available for GRCh38. We therefore provide a workaround by lifting over the data to hg19. 
-
-This step requires an additional reference file, which can be downloaded here: [TO DO]
-
-Beyond the WGS example pipeline, the directory ```inst/example``` contains two additional scripts. Run these as follows:
-
-* First run ```battenberg_allelecount.R```
-* [TO DO]
-* Finally, run ```battenberg_wgs.R``` and provide it with the option ```--skip_allelecount```
-
-The final output files are all on hg19 coordinates, but can be lifted back to 
 
 ### Docker - experimental
 
