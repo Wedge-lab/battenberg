@@ -16,6 +16,7 @@ Each segment will have either one or two copy number states:
 A copy number state consists of a major and a minor allele and their frequencies, which together add give the total copy number for that segment and an estimate fraction of tumour cells that carry each allele.
 
 The following columns are available in the Battenberg output:
+
 | Column | Description |
 | ------------- | ------------- |
 | chr | The chromosome of the segment |
@@ -41,7 +42,7 @@ Followed by possible equivalent solutions B to F with the same columns as define
 
 The Battenberg pipeline uses reference files from [Impute2](https://mathgen.stats.ox.ac.uk/impute/impute_v2.html), which are not available for GRCh38. We therefore provide a workaround by lifting over the data to hg19. 
 
-This step requires an additional reference file, which can be downloaded here: [TO DO]
+This step requires the Standalone pipeline (see installation instructions right below) and an additional reference file, which can be downloaded here: [TO DO]
 
 Beyond the WGS example pipeline, the directory ```inst/example``` contains two additional scripts. Run these as follows:
 
@@ -89,7 +90,7 @@ The bundle contains the following files:
   
 #### Pipeline
 
-Go into inst/example for example WGS and SNP6 R-only pipelines.
+Go into ```inst/example``` for example WGS and SNP6 R-only pipelines.
 
 ### Docker - experimental
 
@@ -103,9 +104,14 @@ cd battenberg
 docker build -t battenberg:2.2.8 .
 ```
 
-#### Download test data
+#### Reference data
 
-This example run uses the PCAWG test sample as input, which can be downloaded from here: https://s3-eu-west-1.amazonaws.com/wtsi-pancancer/testdata/HCC1143_ds.tar
+First, download the Battenberg reference data from the URL provided further in this README. Then in the ```impute_info.txt``` file, replace the paths to the reference files with ```/opt/battenberg_reference```. I.e. the path to the first legend file should become:
+
+```
+/opt/battenberg_reference/1000genomes_2012_v3_impute/ALL_1000G_phase1integrated_v3_chr1_impute.legend
+```
+
 
 #### Run interactively
 
@@ -125,7 +131,7 @@ R CMD BATCH '--no-restore-data --no-save --args HCC1143 HCC1143_BL /mnt/battenbe
 
 In RStudio: In the Build tab, click Check Package
 
-Then open the NAMESPACE file and edit:
+Then open the ```NAMESPACE``` file and edit:
 
 ```
 S3method(plot,haplotype.data)
