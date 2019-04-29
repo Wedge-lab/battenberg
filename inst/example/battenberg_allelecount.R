@@ -21,7 +21,7 @@ nthreads = opt$cpu
 
 ###############################################################################
 # 2019-04-29
-# A pure Battenberg v2.2.9 allele counting pipeline implementation.
+# A pure R Battenberg v2.2.9 allele counting pipeline implementation.
 # sd11 [at] sanger.ac.uk
 ###############################################################################
 
@@ -30,8 +30,8 @@ imputeinfofile = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/bat
 g1000allelesprefix = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
 
 # allele counter parameters
-min_base_qual=20
-min_map_qual=35
+min_base_qual = 20
+min_map_qual = 35
 allelecounter_exe = "alleleCounter"
 
 setwd(run_dir)
