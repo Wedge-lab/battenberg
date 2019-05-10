@@ -132,7 +132,7 @@ plot.haplotype.data = function(haplotyped.baf.file, imageFileName, samplename, c
                         points.red=1-mut_data[,3], 
                         x.min=x_min, 
                         x.max=x_max, 
-                        title=paste(samplename,", chromosome",chrom_name, sep=" "), 
+                        title=paste(samplename,", chromosome",chr_name, sep=" "), 
                         xlab="pos", 
                         ylab="BAF")
   dev.off()
