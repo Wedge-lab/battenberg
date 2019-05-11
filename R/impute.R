@@ -204,5 +204,5 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                       chr_names=chrom_names)
 
   # Cleanup temp Impute output
-  unlink(paste(tumourname, "_impute_output_chr", chrom, "*K.txt*", sep=""))
+  unlink(paste(tumourname, "_impute_output_chr", chrom, ".txt*K.txt*", sep=""))
 }

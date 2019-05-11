@@ -4,8 +4,10 @@
 create.haplotype.plot = function(chrom.position, points.blue, points.red, x.min, x.max, title, xlab, ylab) {
   par(pch=".", cex=1, cex.main=0.8, cex.axis = 0.6, cex.lab=0.7,yaxp=c(-0.05,1.05,6))
   plot(c(x.min,x.max), c(0,1), type="n", main=title, xlab=xlab, ylab=ylab)
-  points(chrom.position, points.blue, col="blue")
-  points(chrom.position, points.red, col="red")
+  if (length(chrom.position) > 0) {
+    points(chrom.position, points.blue, col="blue")
+    points(chrom.position, points.red, col="red")
+  }
 }
 
 #' Function that plots two types of data points against it's chromosomal location.
