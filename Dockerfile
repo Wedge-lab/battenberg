@@ -46,6 +46,10 @@ RUN cat /opt/battenberg/inst/example/battenberg_wgs.R | \
     sed 's|GCCORRECTPREFIX = \".*|GCCORRECTPREFIX = \"/opt/battenberg_reference/1000genomes_2012_v3_gcContent/1000_genomes_GC_corr_chr_\"|' | \
     sed 's|PROBLEMLOCI = \".*|PROBLEMLOCI = \"/opt/battenberg_reference/battenberg_problem_loci/probloci_270415.txt.gz\"|' > /usr/local/bin/battenberg_wgs.R
 
+
+
+COPY /opt/battenberg/inst/example/filter_sv_brass.R /usr/local/bin/filter_sv_brass.R
+
 #RUN cat /opt/battenberg/inst/example/battenberg_snp6.R | \
 #    sed 's|IMPUTEINFOFILE = \".*|IMPUTEINFOFILE = \"/opt/battenberg_reference/1000genomes_2012_v3_impute/impute_info.txt\"|' | \
 #    sed 's|G1000PREFIX = \".*|G1000PREFIX = \"/opt/battenberg_reference/1000genomes_2012_v3_loci/1000genomesAlleles2012_chr\"|' | \

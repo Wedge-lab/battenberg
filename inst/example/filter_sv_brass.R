@@ -4,8 +4,7 @@ library(gtools)
 
 option_list = list(
   make_option(c("-i", "--input"), type="character", default=NULL, help="Input VCF file", metavar="character"),
-  make_option(c("-o", "--output"), type="character", default=NULL, help="Output VCF file", metavar="character"),
-  make_option(c("--genome"), type="character", default="hg19", help="Reference genome name", metavar="character")
+  make_option(c("-o", "--output"), type="character", default=NULL, help="Output VCF file", metavar="character")
 )
 
 opt_parser = OptionParser(option_list=option_list)
