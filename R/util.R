@@ -15,7 +15,7 @@ read_table_generic = function(file, header=T, row.names=F, stringsAsFactor=F, se
   # stringsAsFactor is not needed here, but kept for legacy purposes
   
   # Read in first line to obtain the header
-  d = readr::read_delim(file=file, delim=sep, col_names=header, n_max=1, skip=skip)
+  d = readr::read_delim(file=file, delim=sep, col_names=header, n_max=1, skip=skip, col_types = cols())
   
   # fetch the name of the first column to set its col_type for reading in the whole file
   # this is needed as readr does not understand the chromosome column properly
