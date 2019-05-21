@@ -40,6 +40,7 @@
 #' @param norm.geno.clust.exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)
 #' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
 #' @param heterozygousFilter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
+#' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
 #' @author sd11
 #' @export
 battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, 
@@ -48,7 +49,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20, 
                       min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize", 
-                      norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none") {
+                      norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
+                      prior_breakpoints_file=NULL) {
   
   requireNamespace("foreach")
   requireNamespace("doParallel")
@@ -160,15 +162,32 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       no.chrs=length(chrom_names))
   }
   
-  # Segment the phased and haplotyped BAF data
-  segment.baf.phased(samplename=tumourname,
-                     inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
-                     outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
-                     gamma=segmentation_gamma,
-                     phasegamma=phasing_gamma,
-                     kmin=segmentation_kmin,
-                     phasekmin=phasing_kmin,
-                     calc_seg_baf_option=calc_seg_baf_option)
+  if (!is.null(prior_breakpoints_file)) {
+    prior_breakpoints = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F)
+    if (ncol(prior_breakpoints)!=2) { stop("Prior breakpoints should be a two column file: chromosome and position") }
+    colnames(prior_breakpoints) = c("chromosome", "position")
+    
+    # Segment the phased and haplotyped BAF data with prior breakpoints
+    segment.baf.phased.sv(samplename=tumourname,
+                         inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
+                         outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                         gamma=segmentation_gamma,
+                         phasegamma=phasing_gamma,
+                         kmin=segmentation_kmin,
+                         phasekmin=phasing_kmin,
+                         calc_seg_baf_option=calc_seg_baf_option,
+                         svs=prior_breakpoints)
+  } else {
+    # Segment the phased and haplotyped BAF data
+    segment.baf.phased(samplename=tumourname,
+                       inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
+                       outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                       gamma=segmentation_gamma,
+                       phasegamma=phasing_gamma,
+                       kmin=segmentation_kmin,
+                       phasekmin=phasing_kmin,
+                       calc_seg_baf_option=calc_seg_baf_option)
+  }
   
   # Fit a clonal copy number profile
   fit.copy.number(samplename=tumourname,
