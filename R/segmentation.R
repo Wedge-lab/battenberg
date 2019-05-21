@@ -43,7 +43,7 @@ adjustSegmValues = function(baf_chrom) {
 #' @author dw9
 #' @export
 segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3, calc_seg_baf_option=1) {
-  BAFraw = read.table(inputfile,sep="\t",header=T, stringsAsFactors=F)
+  BAFraw = as.data.frame(read_baf(inputfile))
   
   BAFoutput = NULL
   for (chr in unique(BAFraw[,1])) {
@@ -294,8 +294,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
                       tempBAFsegm=BAFsegm)) # Keep track of BAFsegm for the plot below
   }
   
-  # bafsegments, breakpoints, kmin, gamma_param, samplename, filename_suffix="jabba_aspcf"
-  BAFraw = read.table(inputfile,sep="\t",header=T, stringsAsFactors=F)
+  BAFraw = as.data.frame(read_baf(inputfile))
   
   BAFoutput = NULL
   for (chr in unique(BAFraw[,1])) {

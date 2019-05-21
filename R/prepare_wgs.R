@@ -256,19 +256,19 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
 #' @export
 gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards=F) {
   
-  Tumor_LogR = readr::read_tsv(file = Tumour_LogR_file, col_names = T, col_types = "cin")
+  Tumor_LogR = read_logr(Tumour_LogR_file)
   
   print("Processing GC content data")
   chrom_idx = 1:length(chrom_names)
   gc_files = paste0(gc_content_file_prefix, chrom_idx, ".txt")
-  GC_data = do.call(rbind, lapply(gc_files, readr::read_tsv, skip = 1, col_names = F, col_types = "-cinnnnnnnnnnnn------"))
+  GC_data = do.call(rbind, lapply(gc_files, read_gccontent))
   colnames(GC_data) = c("chr", "Position", paste0(c(25,50,100,200,500), "bp"),
                         paste0(c(1,2,5,10,20,50,100), "kb"))#,200,500), "kb"),
                         # paste0(c(1,2,5,10), "Mb"))
 
   print("Processing replciation timing data")
   replic_files = paste0(replic_timing_file_prefix, chrom_idx, ".txt")
-  replic_data = do.call(rbind, lapply(replic_files, readr::read_tsv, col_types = paste0("ci", paste0(rep("n", 15), collapse = ""))))
+  replic_data = do.call(rbind, lapply(replic_files, read_replication))
   
   # omit non-matching loci, replication data generated at exactly same GC loci
   locimatches = match(x = paste0(Tumor_LogR$Chromosome, "_", Tumor_LogR$Position),

@@ -39,9 +39,9 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   }
   
   # Read in the required data
-  segmented.BAF.data = read.table(inputfile.baf.segmented, header=T, stringsAsFactors=F)
-  raw.BAF.data = as.data.frame(read_table_generic(inputfile.baf))
-  raw.logR.data = as.data.frame(read_table_generic(inputfile.logr))
+  segmented.BAF.data = as.data.frame(read_bafsegmented(inputfile.baf.segmented))
+  raw.BAF.data = as.data.frame(read_baf(inputfile.baf))
+  raw.logR.data = as.data.frame(read_logr(inputfile.logr))
   
   # Assign rownames as those are required by various clonal_ascat.R functions
   # If there are duplicates (possible with old versions of BB) then remove those
@@ -213,7 +213,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   goodness = res$goodness
   
   # Load the BAF segmented data
-  BAFvals = read.table(baf.segmented.file, sep="\t", header=T, stringsAsFactors=F) #, row.names=F
+  BAFvals = as.data.frame(read_bafsegmented(baf.segmented.file))
   if (colnames(BAFvals)[1] == "X") {
 	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
 	  BAFvals = BAFvals[,-1]
@@ -227,8 +227,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   SNPpos = BAFvals[,c(1,2)]
   
   # Load the raw LogR data
-  # LogRvals = read.table(logr.file,sep="\t", header=T, stringsAsFactors=F)
-  LogRvals = as.data.frame(read_table_generic(logr.file))
+  LogRvals = as.data.frame(read_logr(logr.file))
   if (colnames(LogRvals)[1] == "X") {
 	  # If there were rownames, then delete this column. Should not be an issue with new BB runs
 	  LogRvals = LogRvals[,-1]
@@ -247,8 +246,6 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # = as.vector(ctrans.logR[as.vector(LogRvals[,1])]*1000000000+LogRvals[,2])
   BAFpos = as.vector(ctrans[as.vector(BAFvals[,1])]*1000000000+BAFvals[,2])
  
-  #save(file="subclones_temp.RData", BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
-  
   ################################################################################################
   # Determine copy number for each segment
   ################################################################################################
