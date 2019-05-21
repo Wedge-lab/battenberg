@@ -8,8 +8,8 @@
 #' @param imputeinfofile Full path to a Battenberg impute info file with pointers to Impute2 reference data
 #' @param g1000prefix Full prefix path to 1000 Genomes SNP loci data, as part of the Battenberg reference data
 #' @param problemloci Full path to a problem loci file that contains SNP loci that should be filtered out
-#' @param gccorrectprefix Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
-#' @param repliccorrectprefix Full prefix path to replication timing files, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
+#' @param gccorrectprefix Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)
+#' @param repliccorrectprefix Full prefix path to replication timing files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)
 #' @param g1000allelesprefix Full prefix path to 1000 Genomes SNP alleles data, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
 #' @param ismale A boolean set to TRUE if the donor is male, set to FALSE if female, not required for SNP6 data (Default: NA)
 #' @param data_type String that contains either wgs or snp6 depending on the supplied input data (Default: wgs)
@@ -44,8 +44,8 @@
 #' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
 #' @author sd11
 #' @export
-battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, gccorrectprefix=NA,
-                      repliccorrectprefix=NA, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
+battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, gccorrectprefix=NULL,
+                      repliccorrectprefix=NULL, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
                       segmentation_gamma=10, segmentation_kmin=3, phasing_kmin=1, clonality_dist_metric=0, ascat_dist_metric=1, min_ploidy=1.6,
                       max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20, 
                       min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F,

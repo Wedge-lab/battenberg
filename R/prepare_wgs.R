@@ -249,12 +249,16 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
 #' @param gc_content_file_prefix String pointing to where GC windows for this reference genome can be 
 #' found. These files should be split per chromosome and this prefix must contain the full path until
 #' chr in its name. The .txt extension is automatically added.
-#' @param replic_timing_file_prefix Like the gc_content_file_prefix, containing replication timing info
+#' @param replic_timing_file_prefix Like the gc_content_file_prefix, containing replication timing info (supply NULL if no replication timing correction is to be applied)
 #' @param chrom_names A vector containing chromosome names to be considered
 #' @param recalc_corr_afterwards Set to TRUE to recalculate correlations after correction
 #' @author jonas demeulemeester, sd11
 #' @export
 gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards=F) {
+  
+  if (is.null(gc_content_file_prefix)) {
+    stop("GC content reference files must be supplied to WGS GC content correction")
+  }
   
   Tumor_LogR = read_logr(Tumour_LogR_file)
   
@@ -266,62 +270,93 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
                         paste0(c(1,2,5,10,20,50,100), "kb"))#,200,500), "kb"),
                         # paste0(c(1,2,5,10), "Mb"))
 
-  print("Processing replciation timing data")
-  replic_files = paste0(replic_timing_file_prefix, chrom_idx, ".txt")
-  replic_data = do.call(rbind, lapply(replic_files, read_replication))
+  if (!is.null(replic_timing_file_prefix)) {
+    print("Processing replciation timing data")
+    replic_files = paste0(replic_timing_file_prefix, chrom_idx, ".txt")
+    replic_data = do.call(rbind, lapply(replic_files, read_replication))
+  }
   
   # omit non-matching loci, replication data generated at exactly same GC loci
   locimatches = match(x = paste0(Tumor_LogR$Chromosome, "_", Tumor_LogR$Position),
                        table = paste0(GC_data$chr, "_", GC_data$Position))
   Tumor_LogR = Tumor_LogR[which(!is.na(locimatches)), ]
   GC_data = GC_data[na.omit(locimatches), ]
-  replic_data = replic_data[na.omit(locimatches), ]
+  if (!is.null(replic_timing_file_prefix)) {
+    replic_data = replic_data[na.omit(locimatches), ]
+  }
   rm(locimatches)
   
   corr = abs(cor(GC_data[, 3:ncol(GC_data)], Tumor_LogR[,3], use="complete.obs")[,1])
-  corr_rep = abs(cor(replic_data[, 3:ncol(replic_data)], Tumor_LogR[,3], use="complete.obs")[,1])
+  if (!is.null(replic_timing_file_prefix)) {
+    corr_rep = abs(cor(replic_data[, 3:ncol(replic_data)], Tumor_LogR[,3], use="complete.obs")[,1])
+  }
   
   index_1kb = which(names(corr)=="1kb")
   maxGCcol_insert = names(which.max(corr[1:index_1kb]))
   index_100kb = which(names(corr)=="100kb")
   # start large window sizes at 5kb rather than 2kb to avoid overly correlated expl variables
   maxGCcol_amplic = names(which.max(corr[(index_1kb+2):index_100kb]))
-  maxreplic = names(which.max(corr_rep))
+  if (!is.null(replic_timing_file_prefix)) {
+    maxreplic = names(which.max(corr_rep))
+  }
   
-  cat("Replication timing correlation: ",paste(names(corr_rep),format(corr_rep,digits=2), ";"),"\n") 
-  cat("Replication dataset: " ,maxreplic,"\n")
+  if (!is.null(replic_timing_file_prefix)) {
+    cat("Replication timing correlation: ",paste(names(corr_rep),format(corr_rep,digits=2), ";"),"\n") 
+    cat("Replication dataset: " ,maxreplic,"\n")
+  }
   cat("GC correlation: ",paste(names(corr),format(corr,digits=2), ";"),"\n")   
   cat("Short window size: ",maxGCcol_insert,"\n")
   cat("Long window size: ",maxGCcol_amplic,"\n")
   
-  # Multiple regression 
-  corrdata = data.frame(logr = Tumor_LogR[,3, drop = T],
-                        GC_insert = GC_data[,maxGCcol_insert, drop = T],
-                        GC_amplic = GC_data[,maxGCcol_amplic, drop = T],
-                        replic = replic_data[, maxreplic, drop = T])
-  
-  if (!recalc_corr_afterwards)
-    rm(GC_data, replic_data)
-  
-  model = lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = T) + splines::ns(x = GC_amplic, df = 5, intercept = T) + splines::ns(x = replic, df = 5, intercept = T), y=F, model = F, data = corrdata, na.action="na.exclude")
+  if (!is.null(replic_timing_file_prefix)) {
+    # Multiple regression - with replication timing
+    corrdata = data.frame(logr = Tumor_LogR[,3, drop = T],
+                          GC_insert = GC_data[,maxGCcol_insert, drop = T],
+                          GC_amplic = GC_data[,maxGCcol_amplic, drop = T],
+                          replic = replic_data[, maxreplic, drop = T])
+    if (!recalc_corr_afterwards)
+      rm(GC_data, replic_data)
+    
+    model = lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = T) + splines::ns(x = GC_amplic, df = 5, intercept = T) + splines::ns(x = replic, df = 5, intercept = T), y=F, model = F, data = corrdata, na.action="na.exclude")
+    
+    corr = data.frame(windowsize=c(names(corr), names(corr_rep)), correlation=c(corr, corr_rep))
+    write.table(corr, file=gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
+    
+  } else {
+    # Multiple regression  - without replication timing
+    corrdata = data.frame(logr = Tumor_LogR[,3, drop = T],
+                          GC_insert = GC_data[,maxGCcol_insert, drop = T],
+                          GC_amplic = GC_data[,maxGCcol_amplic, drop = T])
+    if (!recalc_corr_afterwards)
+      rm(GC_data)
+    
+    model = lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = T) + splines::ns(x = GC_amplic, df = 5, intercept = T), y=F, model = F, data = corrdata, na.action="na.exclude")
+    
+    corr = data.frame(windowsize=c(names(corr)), correlation=cor)
+    write.table(corr, file=gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
+  }
   
   Tumor_LogR[,3] = residuals(model)
   rm(model, corrdata)
   
-  corr = data.frame(windowsize=c(names(corr), names(corr_rep)), correlation=c(corr, corr_rep))
-  write.table(corr, file=gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
   readr::write_tsv(x=Tumor_LogR[which(!is.na(Tumor_LogR[,3])), ], path=outfile)
   
   if (recalc_corr_afterwards) {
     # Recalculate the correlations to see how much there is left
     corr = abs(cor(GC_data[, 3:ncol(GC_data)], Tumor_LogR[,3], use="complete.obs")[,1])
-    corr_rep = abs(cor(replic_data[, 3:ncol(replic_data)], Tumor_LogR[,3], use="complete.obs")[,1])
-    
-    cat("Replication timing correlation post correction: ",paste(names(corr_rep),format(corr_rep,digits=2), ";"),"\n") 
+    if (!is.null(replic_timing_file_prefix)) {
+      corr_rep = abs(cor(replic_data[, 3:ncol(replic_data)], Tumor_LogR[,3], use="complete.obs")[,1])
+      cat("Replication timing correlation post correction: ",paste(names(corr_rep),format(corr_rep,digits=2), ";"),"\n") 
+    }
     cat("GC correlation post correction: ",paste(names(corr),format(corr,digits=2), ";"),"\n")   
     
-    corr = data.frame(windowsize=c(names(corr), names(corr_rep)), correlation=c(corr, corr_rep))
-    write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
+    if (!is.null(replic_timing_file_prefix)) {
+      corr = data.frame(windowsize=c(names(corr), names(corr_rep)), correlation=c(corr, corr_rep))
+      write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
+    } else {
+      corr = data.frame(windowsize=c(names(corr)), correlation=corr)
+      write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
+    }
   } else {
     corr$correlation = NA
     write.table(corr, file=gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
@@ -342,7 +377,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' @param g1000allelesprefix Prefix path to the 1000 Genomes alleles reference files
 #' @param g1000prefix Prefix path to the 1000 Genomes SNP reference files
 #' @param gccorrectprefix Prefix path to GC content reference data
-#' @param repliccorrectprefix Prefix path to replication timing reference data
+#' @param repliccorrectprefix Prefix path to replication timing reference data (supply NULL if no replication timing correction is to be applied)
 #' @param min_base_qual Minimum base quality required for a read to be counted
 #' @param min_map_qual Minimum mapping quality required for a read to be counted
 #' @param allelecounter_exe Path to the allele counter executable (can be found in $PATH)
