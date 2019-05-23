@@ -58,24 +58,25 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   requireNamespace("parallel")
   
   if (data_type=="wgs" & is.na(ismale)) {
-    print("Please provide a boolean denominator whether this sample represents a male donor")
-    q(save="no", status=1)
+    stop("Please provide a boolean denominator whether this sample represents a male donor")
   }
   
   if (data_type=="wgs" & is.na(g1000allelesprefix)) {
-    print("Please provide a path to 1000 Genomes allele reference files")
-    q(save="no", status=1)
+    stop("Please provide a path to 1000 Genomes allele reference files")
   }
   
-  if (data_type=="wgs" & is.na(gccorrectprefix)) {
-    print("Please provide a path to GC content reference files")
-    q(save="no", status=1)
+  if (data_type=="wgs" & is.null(gccorrectprefix)) {
+    stop("Please provide a path to GC content reference files")
   }
 
-  if (data_type=="wgs" & is.na(repliccorrectprefix)) {
-    print("Please provide a path to replication timing reference files")
-    q(save="no", status=1)
+  if (!file.exists(problemloci)) {
+       stop("Please provide a path to a problematic loci file")
   }
+
+  if (!file.exists(imputeinfofile)) {
+	  stop("Please provide a path to an impute info file")
+  }
+
 
   if (data_type=="wgs" | data_type=="WGS") {
     chrom_names = get.chrom.names(imputeinfofile, ismale)
