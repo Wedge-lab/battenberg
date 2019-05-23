@@ -26,7 +26,8 @@ Imports:
   gridExtra,
   doParallel,
   parallel,
-  foreach
+  foreach,
+  splines
 URL: https://github.com/Wedge-Oxford/battenberg
 LazyLoad: yes
 License: file LICENSE
