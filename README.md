@@ -7,26 +7,13 @@ Please visit the [cgpBattenberg page](https://github.com/cancerit/cgpBattenberg)
 
 ## Description of the output
 
-Battenberg produces a number of key output files. 
+### Key output files
 
 * `[samplename]_subclones.txt` contains the copy number data (see table below)
 * `[samplename]_rho_and_psi.txt` contains the purity estimate (make sure to use the FRAC_genome, rho field in the second row, first column)
 * `[samplename]_BattenbergProfile*png` shows the profile (the two variants show subclonal copy number in a different way)
 * `[samplename]_subclones_chr*.png` show detailed figures of the copy number calls per chromosome
 * `[samplename]_distance.png` This shows the purity and ploidy solution space and can be used to pick alternative solutions
-
-It also produces a number plots that show the raw data and are useful for QC (and their raw data files denoted by *.tab)
-
-* `[samplename].tumour.png` and `[samplename].germline.png` show the raw BAF and logR
-* `[samplename]_coverage.png` contains coverage divided by the mean coverage of both tumour and normal
-* `[samplename]_alleleratio.png` shows BAF*logR, a rough approximation of what the data looks like shortly before copy number calling
-
-Finally, a range of plots show intermediate steps and can occasionally be useful
-
-* `[samplename]_chr*_heterozygousData.png` shows reconstructed haplotype blocks in the characteristic Battenberg cake pattern
-* `[samplename]_RAFseg_chr*.png` and `[samplename]_segment_chr*.png` contains segmentation data for step 1 and step 2 respectively
-* `[samplename]_nonroundedprofile.png` shows the copy number profile without rounding to integers
-* `[samplename]_copynumberprofile.png` shows the copy number profile with (including subclonal copy number) rounding to integers
 
 The copy number profile saved in the `[samplename]_subclones.txt` is a tab delimited file in text format. Within this file there is a line for each segment in the tumour genome.
 Each segment will have either one or two copy number states:
@@ -58,6 +45,23 @@ The following columns are available in the Battenberg output:
 | frac1_A_0.025 | Associated 95% confidence interval of the bootstrap measure of uncertainty |
 
 Followed by possible equivalent solutions B to F with the same columns as defined above for solution A (due to the way a profile is fit Battenberg can generate a series of equivalent solutions that are reported separately in the output).
+
+### Plots for QC
+
+It also produces a number plots that show the raw data and are useful for QC (and their raw data files denoted by *.tab)
+
+* `[samplename].tumour.png` and `[samplename].germline.png` show the raw BAF and logR
+* `[samplename]_coverage.png` contains coverage divided by the mean coverage of both tumour and normal
+* `[samplename]_alleleratio.png` shows BAF*logR, a rough approximation of what the data looks like shortly before copy number calling
+
+### Intermediate figures
+
+Finally, a range of plots show intermediate steps and can occasionally be useful
+
+* `[samplename]_chr*_heterozygousData.png` shows reconstructed haplotype blocks in the characteristic Battenberg cake pattern
+* `[samplename]_RAFseg_chr*.png` and `[samplename]_segment_chr*.png` contains segmentation data for step 1 and step 2 respectively
+* `[samplename]_nonroundedprofile.png` shows the copy number profile without rounding to integers
+* `[samplename]_copynumberprofile.png` shows the copy number profile with (including subclonal copy number) rounding to integers
 
 ## Advanced installation instructions
 
