@@ -15,7 +15,7 @@ read_table_generic = function(file, header=T, row.names=F, stringsAsFactor=F, se
   # stringsAsFactor is not needed here, but kept for legacy purposes
   
   # Read in first line to obtain the header
-  d = readr::read_delim(file=file, delim=sep, col_names=header, n_max=1, skip=skip, col_types = cols())
+  d = readr::read_delim(file=file, delim=sep, col_names=header, n_max=1, skip=skip, col_types = readr::cols())
   
   # fetch the name of the first column to set its col_type for reading in the whole file
   # this is needed as readr does not understand the chromosome column properly
@@ -260,6 +260,10 @@ cnfit_to_refit_suggestions = function(samplename, subclones_file, rho_psi_file, 
     is_subclonal = subclones$frac1_A < 1
     subclones_clonal_cna = subset(subclones, !is_subclonal & subclones$is_cna)
     subclones_clonal_cna = subclones_clonal_cna[with(subclones_clonal_cna, order(len, decreasing=T)),]
+
+    if (nrow(subclones_clonal_cna)==0) {
+	output = data.frame(project=NA, samplename=samplename, qc=NA, cellularity_refit=T, chrom=NA, pos=NA, maj=NA, min=NA, baf=NA, logr=NA, rho_estimate=NA, psi_t_estimate=NA, rho_diff=NA, psi_t_diff=NA)
+    } else {
     
     # Generate a couple of solutions, but not more than are possibly available
     max_solutions = ifelse(nrow(subclones_clonal_cna) >= 5, 5, nrow(subclones_clonal_cna))
@@ -289,7 +293,7 @@ cnfit_to_refit_suggestions = function(samplename, subclones_file, rho_psi_file, 
     output$psi_t_estimate = res$psi_t
     output$rho_diff = abs(rho-output$rho_estimate)
     output$psi_t_diff = abs(psi_t-output$psi_t_estimate)
-    
+    }
   } else {
     # No large clonal alteration, save a suggestion that should use an external purity value
     output = data.frame(project=NA, samplename=samplename, qc=NA, cellularity_refit=T, chrom=NA, pos=NA, maj=NA, min=NA, baf=NA, logr=NA, rho_estimate=NA, psi_t_estimate=NA, rho_diff=NA, psi_t_diff=NA)
