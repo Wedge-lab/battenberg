@@ -314,9 +314,10 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
                           GC_insert = GC_data[,maxGCcol_insert, drop = T],
                           GC_amplic = GC_data[,maxGCcol_amplic, drop = T],
                           replic = replic_data[, maxreplic, drop = T])
+    colnames(corrdata) = c("logr", "GC_insert", "GC_amplic", "replic")
     if (!recalc_corr_afterwards)
       rm(GC_data, replic_data)
-    
+
     model = lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = T) + splines::ns(x = GC_amplic, df = 5, intercept = T) + splines::ns(x = replic, df = 5, intercept = T), y=F, model = F, data = corrdata, na.action="na.exclude")
     
     corr = data.frame(windowsize=c(names(corr), names(corr_rep)), correlation=c(corr, corr_rep))
@@ -327,12 +328,13 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
     corrdata = data.frame(logr = Tumor_LogR[,3, drop = T],
                           GC_insert = GC_data[,maxGCcol_insert, drop = T],
                           GC_amplic = GC_data[,maxGCcol_amplic, drop = T])
+    colnames(corrdata) = c("logr", "GC_insert", "GC_amplic")
     if (!recalc_corr_afterwards)
       rm(GC_data)
     
     model = lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = T) + splines::ns(x = GC_amplic, df = 5, intercept = T), y=F, model = F, data = corrdata, na.action="na.exclude")
     
-    corr = data.frame(windowsize=c(names(corr)), correlation=cor)
+    corr = data.frame(windowsize=names(corr), correlation=corr)
     write.table(corr, file=gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep="\t", quote=F, row.names=F)
   }
   
