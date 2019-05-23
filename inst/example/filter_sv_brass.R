@@ -35,7 +35,8 @@ brass_breakpoints = rbind(brass_breakpoints, data.frame(chromosome=unlist(lapply
 brass_breakpoints = unique(brass_breakpoints)
 
 # sort
-brass_breakpoints_ordered = data.frame()
+brass_breakpoints_ordered = df = data.frame(matrix(ncol = 2, nrow = 0))
+colnames(brass_breakpoints_ordered) = c("chromosome", "position")
 for (chrom in gtools::mixedsort(unique(brass_breakpoints$chromosome))) {
 	b_chrom = brass_breakpoints[brass_breakpoints$chromosome==chrom,]
 	b_chrom = b_chrom[order(b_chrom$position),]
