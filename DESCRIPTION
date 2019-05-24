@@ -30,7 +30,6 @@ Imports:
   splines
 URL: https://github.com/Wedge-Oxford/battenberg
 LazyLoad: yes
-License: file LICENSE
 Suggests:
     testthat
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1

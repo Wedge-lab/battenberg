@@ -37,7 +37,7 @@ read_table_generic = function(file, header=T, row.names=F, stringsAsFactor=F, se
 }
 
 #' Parser for logR data
-#' @param file Filename of the file to read in
+#' @param filename Filename of the file to read in
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with logR content
 read_logr = function(filename, header=T) {
@@ -45,7 +45,7 @@ read_logr = function(filename, header=T) {
 }
 
 #' Parser for BAF data
-#' @param file Filename of the file to read in
+#' @param filename Filename of the file to read in
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with BAF content
 read_baf = function(filename, header=T) {
@@ -53,21 +53,21 @@ read_baf = function(filename, header=T) {
 }
 
 #' Parser for GC content reference data
-#' @param file Filename of the file to read in
+#' @param filename Filename of the file to read in
 #' @return A data frame with GC content
 read_gccontent = function(filename) {
   return(readr::read_tsv(file=filename, skip = 1, col_names = F, col_types = "-cinnnnnnnnnnnn------"))
 }
 
 #' Parser for replication timing reference data
-#' @param file Filename of the file to read in
+#' @param filename Filename of the file to read in
 #' @return A data frame with replication timing
 read_replication = function(filename) {
   return(readr::read_tsv(file=filename, col_types = paste0("ci", paste0(rep("n", 15), collapse = ""))))
 }
 
 #' Parser for BAFsegmented data
-#' @param file Filename of the file to read in
+#' @param filename Filename of the file to read in
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with BAFsegmented content
 read_bafsegmented = function(filename, header=T) {

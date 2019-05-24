@@ -5,13 +5,14 @@
 \title{Run the Battenberg pipeline}
 \usage{
 battenberg(tumourname, normalname, tumour_data_file, normal_data_file,
-  imputeinfofile, g1000prefix, problemloci, gccorrectprefix = NA,
-  g1000allelesprefix = NA, ismale = NA, data_type = "wgs",
-  impute_exe = "impute2", allelecounter_exe = "alleleCounter",
-  nthreads = 8, platform_gamma = 1, phasing_gamma = 1,
-  segmentation_gamma = 10, segmentation_kmin = 3, phasing_kmin = 1,
-  clonality_dist_metric = 0, ascat_dist_metric = 1, min_ploidy = 1.6,
-  max_ploidy = 4.8, min_rho = 0.1, min_goodness = 0.63,
+  imputeinfofile, g1000prefix, problemloci, gccorrectprefix = NULL,
+  repliccorrectprefix = NULL, g1000allelesprefix = NA, ismale = NA,
+  data_type = "wgs", impute_exe = "impute2",
+  allelecounter_exe = "alleleCounter", nthreads = 8,
+  platform_gamma = 1, phasing_gamma = 1, segmentation_gamma = 10,
+  segmentation_kmin = 3, phasing_kmin = 1, clonality_dist_metric = 0,
+  ascat_dist_metric = 1, min_ploidy = 1.6, max_ploidy = 4.8,
+  min_rho = 0.1, min_goodness = 0.63,
   uninformative_BAF_threshold = 0.51, min_normal_depth = 10,
   min_base_qual = 20, min_map_qual = 35, calc_seg_baf_option = 1,
   skip_allele_counting = F, skip_preprocessing = F, skip_phasing = F,
@@ -19,7 +20,8 @@ battenberg(tumourname, normalname, tumour_data_file, normal_data_file,
   apt.probeset.genotype.exe = "apt-probeset-genotype",
   apt.probeset.summarize.exe = "apt-probeset-summarize",
   norm.geno.clust.exe = "normalize_affy_geno_cluster.pl",
-  birdseed_report_file = "birdseed.report.txt", heterozygousFilter = "none")
+  birdseed_report_file = "birdseed.report.txt",
+  heterozygousFilter = "none", prior_breakpoints_file = NULL)
 }
 \arguments{
 \item{tumourname}{Tumour identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.}
@@ -36,7 +38,9 @@ battenberg(tumourname, normalname, tumour_data_file, normal_data_file,
 
 \item{problemloci}{Full path to a problem loci file that contains SNP loci that should be filtered out}
 
-\item{gccorrectprefix}{Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)}
+\item{gccorrectprefix}{Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)}
+
+\item{repliccorrectprefix}{Full prefix path to replication timing files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)}
 
 \item{g1000allelesprefix}{Full prefix path to 1000 Genomes SNP alleles data, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)}
 
@@ -99,6 +103,8 @@ battenberg(tumourname, normalname, tumour_data_file, normal_data_file,
 \item{birdseed_report_file}{Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)}
 
 \item{heterozygousFilter}{Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")}
+
+\item{prior_breakpoints_file}{A two column file with prior breakpoints to be used during segmentation (Default: NULL)}
 }
 \description{
 Run the Battenberg pipeline

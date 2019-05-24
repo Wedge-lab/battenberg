@@ -6,9 +6,10 @@
 \usage{
 callSubclones(sample.name, baf.segmented.file, logr.file, rho.psi.file,
   output.file, output.figures.prefix, output.gw.figures.prefix, chr_names,
-  masking_output_file, max_allowed_state = 250, sv_breakpoints_file = NULL,
-  gamma = 1, segmentation.gamma = NA, siglevel = 0.05, maxdist = 0.01,
-  noperms = 1000, seed = as.integer(Sys.time()), calc_seg_baf_option = 1)
+  masking_output_file, max_allowed_state = 250,
+  sv_breakpoints_file = NULL, gamma = 1, segmentation.gamma = NA,
+  siglevel = 0.05, maxdist = 0.01, noperms = 1000,
+  seed = as.integer(Sys.time()), calc_seg_baf_option = 1)
 }
 \arguments{
 \item{sample.name}{Name of the sample, used in figures}
