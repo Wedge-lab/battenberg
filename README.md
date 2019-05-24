@@ -96,6 +96,7 @@ The bundle contains the following files:
   * battenberg_impute_1000G_v3.tar.gz
   * probloci_270415.txt.gz
   * battenberg_wgs_gc_correction_1000g_v3.tar.gz
+  * battenberg_wgs_replic_correction_1000g_v3.tar.gz
   * battenberg_snp6_exe.tgz (SNP6 only)
   * battenberg_snp6_ref.tgz (SNP6 only)
   
@@ -112,7 +113,7 @@ Battenberg can be run inside a Docker container. Please follow the instructions 
 ```
 git clone git@github.com:Wedge-Oxford/battenberg.git
 cd battenberg
-docker build -t battenberg:2.2.8 .
+docker build -t battenberg:2.2.9 .
 ```
 
 #### Reference data
