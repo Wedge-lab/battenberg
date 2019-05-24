@@ -11,6 +11,9 @@ option_list = list(
   make_option(c("--cpu"), type="numeric", default=8, help="The number of CPU cores to be used by the pipeline (Default: 8)", metavar="character")
 )
 
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
+
 tumourname = opt$tumourname
 normalname = opt$normalname
 normalbam = opt$nb

@@ -8,7 +8,8 @@
 #' @param imputeinfofile Full path to a Battenberg impute info file with pointers to Impute2 reference data
 #' @param g1000prefix Full prefix path to 1000 Genomes SNP loci data, as part of the Battenberg reference data
 #' @param problemloci Full path to a problem loci file that contains SNP loci that should be filtered out
-#' @param gccorrectprefix Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
+#' @param gccorrectprefix Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)
+#' @param repliccorrectprefix Full prefix path to replication timing files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)
 #' @param g1000allelesprefix Full prefix path to 1000 Genomes SNP alleles data, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
 #' @param ismale A boolean set to TRUE if the donor is male, set to FALSE if female, not required for SNP6 data (Default: NA)
 #' @param data_type String that contains either wgs or snp6 depending on the supplied input data (Default: wgs)
@@ -40,34 +41,42 @@
 #' @param norm.geno.clust.exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)
 #' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
 #' @param heterozygousFilter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
+#' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
 #' @author sd11
 #' @export
-battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, 
-                      gccorrectprefix=NA, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
+battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, gccorrectprefix=NULL,
+                      repliccorrectprefix=NULL, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
                       segmentation_gamma=10, segmentation_kmin=3, phasing_kmin=1, clonality_dist_metric=0, ascat_dist_metric=1, min_ploidy=1.6,
                       max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20, 
                       min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize", 
-                      norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none") {
+                      norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
+                      prior_breakpoints_file=NULL) {
   
   requireNamespace("foreach")
   requireNamespace("doParallel")
   requireNamespace("parallel")
   
   if (data_type=="wgs" & is.na(ismale)) {
-    print("Please provide a boolean denominator whether this sample represents a male donor")
-    q(save="no", status=1)
+    stop("Please provide a boolean denominator whether this sample represents a male donor")
   }
   
   if (data_type=="wgs" & is.na(g1000allelesprefix)) {
-    print("Please provide a path to 1000 Genomes allele reference files")
-    q(save="no", status=1)
+    stop("Please provide a path to 1000 Genomes allele reference files")
   }
   
-  if (data_type=="wgs" & is.na(gccorrectprefix)) {
-    print("Please provide a path to GC content reference files")
-    q(save="no", status=1)
+  if (data_type=="wgs" & is.null(gccorrectprefix)) {
+    stop("Please provide a path to GC content reference files")
   }
+
+  if (!file.exists(problemloci)) {
+       stop("Please provide a path to a problematic loci file")
+  }
+
+  if (!file.exists(imputeinfofile)) {
+	  stop("Please provide a path to an impute info file")
+  }
+
 
   if (data_type=="wgs" | data_type=="WGS") {
     chrom_names = get.chrom.names(imputeinfofile, ismale)
@@ -92,7 +101,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                   normalname=normalname, 
                   g1000allelesprefix=g1000allelesprefix, 
                   g1000prefix=g1000prefix, 
-                  gccorrectprefix=gccorrectprefix, 
+                  gccorrectprefix=gccorrectprefix,
+                  repliccorrectprefix=repliccorrectprefix,
                   min_base_qual=min_base_qual, 
                   min_map_qual=min_map_qual, 
                   allelecounter_exe=allelecounter_exe, 
@@ -160,15 +170,32 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       no.chrs=length(chrom_names))
   }
   
-  # Segment the phased and haplotyped BAF data
-  segment.baf.phased(samplename=tumourname,
-                     inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
-                     outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
-                     gamma=segmentation_gamma,
-                     phasegamma=phasing_gamma,
-                     kmin=segmentation_kmin,
-                     phasekmin=phasing_kmin,
-                     calc_seg_baf_option=calc_seg_baf_option)
+  if (!is.null(prior_breakpoints_file)) {
+    prior_breakpoints = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F)
+    if (ncol(prior_breakpoints)!=2) { stop("Prior breakpoints should be a two column file: chromosome and position") }
+    colnames(prior_breakpoints) = c("chromosome", "position")
+    
+    # Segment the phased and haplotyped BAF data with prior breakpoints
+    segment.baf.phased.sv(samplename=tumourname,
+                         inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
+                         outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                         gamma=segmentation_gamma,
+                         phasegamma=phasing_gamma,
+                         kmin=segmentation_kmin,
+                         phasekmin=phasing_kmin,
+                         calc_seg_baf_option=calc_seg_baf_option,
+                         svs=prior_breakpoints)
+  } else {
+    # Segment the phased and haplotyped BAF data
+    segment.baf.phased(samplename=tumourname,
+                       inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
+                       outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                       gamma=segmentation_gamma,
+                       phasegamma=phasing_gamma,
+                       kmin=segmentation_kmin,
+                       phasekmin=phasing_kmin,
+                       calc_seg_baf_option=calc_seg_baf_option)
+  }
   
   # Fit a clonal copy number profile
   fit.copy.number(samplename=tumourname,
@@ -222,9 +249,5 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                              rho_psi_file=paste(tumourname, "_rho_and_psi.txt", sep=""),
                              gamma_param=platform_gamma)
   
-  
-  
-  
-    
 }
 

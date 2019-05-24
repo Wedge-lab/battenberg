@@ -368,6 +368,11 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
   max_cn_plot = ifelse(max_cn_plot_fit > max_cn_plot_data, max_cn_plot_fit, max_cn_plot_data)
   maxpos = max(logr$Position)
   
+  # catch case when there is no clonal CNA called
+  if (is.na(max_cn_plot) | max_cn_plot < 4) {
+    max_cn_plot = 4
+  }
+  
   # These are the grey lines in the background
   background = data.frame(xmin=rep(0, (max_cn_plot/2)+1), 
                           xmax=rep(max(logr$Position), (max_cn_plot/2)+1),
