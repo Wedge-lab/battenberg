@@ -37,11 +37,11 @@ PRIOR_BREAKPOINTS_FILE = opt$bp
 ###############################################################################
 
 # General static
-IMPUTEINFOFILE = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_impute_v3/impute_info.txt"
-G1000PREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
-G1000PREFIX_AC = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
-GCCORRECTPREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_"
-REPLICCORRECTPREFIX = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_wgs_replic_correction_1000g_v3/1000_genomes_replication_timing_chr_"
+IMPUTEINFOFILE = "/lustre/scratch117/casm/team219/sd11/reference/GenomeFiles/battenberg_impute_v3/impute_info.txt"
+G1000PREFIX = "/lustre/scratch117/casm/team219/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr"
+G1000PREFIX_AC = "/lustre/scratch117/casm/team219/sd11/reference/GenomeFiles/battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr"
+GCCORRECTPREFIX = "/lustre/scratch117/casm/team219/sd11/reference/GenomeFiles/battenberg_wgs_gc_correction_1000g_v3_noNA/1000_genomes_GC_corr_chr_"
+REPLICCORRECTPREFIX = "/lustre/scratch117/casm/team219/sd11/reference/GenomeFiles/battenberg_wgs_replic_correction_1000g_v3/1000_genomes_replication_timing_chr_"
 IMPUTE_EXE = "impute2"
 
 PLATFORM_GAMMA = 1
@@ -63,7 +63,7 @@ CALC_SEG_BAF_OPTION = 1
 
 # WGS specific static
 ALLELECOUNTER = "alleleCounter"
-PROBLEMLOCI = "/lustre/scratch116/casm/team113/sd11/reference/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
+PROBLEMLOCI = "/lustre/scratch117/casm/team219/sd11/reference/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
 
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
