@@ -77,6 +77,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
 	  stop("Please provide a path to an impute info file")
   }
 
+  # check whether the impute_info.txt file contains correct paths
+  check.imputeinfofile(imputeinfofile, ismale)
 
   if (data_type=="wgs" | data_type=="WGS") {
     chrom_names = get.chrom.names(imputeinfofile, ismale)
