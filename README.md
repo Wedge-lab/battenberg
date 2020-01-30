@@ -392,6 +392,69 @@ for(chr in CHRS)
    
 ```
 
+###### Example run
+
+To run using Beagle5, simply parametrise the same way you would run
+under impute2. It should be back compatible, so you can run impute2
+by setting usebeagle=FALSE. And it uses the same input files needed for the
+pipeline, i.e. 1000G loci/alleles + ref panel + prob loci + imputeinfo file etc.
+
+```
+BEAGLEJAR <- "$PATHTOBEAGLEFILES/beagle.24Aug19.3e8.jar"
+BEAGLEREF.template <- "$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"
+BEAGLEPLINK.template <- "$PATHTOBEAGLEFILES/plink.chrCHROMNAME.GRCh37.map"
+
+timed <- system.time(battenberg(tumourname=TUMOURNAME,
+                                normalname=NORMALNAME,
+                                tumour_data_file=TUMOURBAM,
+                                normal_data_file=NORMALBAM,
+                                imputeinfofile=IMPUTEINFOFILE,
+                                g1000prefix=G1000PREFIX,
+                                problemloci=PROBLEMLOCI,
+                                gccorrectprefix=GCCORRECTPREFIX,
+                                repliccorrectprefix=REPLICCORRECTPREFIX,
+                                g1000allelesprefix=G1000PREFIX_AC,
+                                ismale=IS_MALE,
+                                data_type="wgs",
+                                impute_exe="impute2",
+                                allelecounter_exe="alleleCounter",
+                                nthreads=NTHREADS,
+                                platform_gamma=1,
+                                phasing_gamma=1,
+                                segmentation_gamma=10,
+                                segmentation_kmin=3,
+                                phasing_kmin=1,
+                                clonality_dist_metric=0,
+                                ascat_dist_metric=1,
+                                min_ploidy=1.6,
+                                max_ploidy=4.8, min_rho=0.1,
+                                min_goodness=0.63,
+                                uninformative_BAF_threshold=0.51,
+                                min_normal_depth=10,
+                                min_base_qual=20,
+                                min_map_qual=35,
+                                calc_seg_baf_option=1,
+                                skip_allele_counting=F,
+                                skip_preprocessing=F,
+                                skip_phasing=F,
+                                usebeagle=USEBEAGLE, ##set to TRUE to use beagle
+                                beaglejar=BEAGLEJAR, ##path
+                                beagleref=BEAGLEREF.template, ##pathtemplate
+                                beagleplink=BEAGLEPLINK.template, ##pathtemplate
+                                beaglemaxmem=15, 
+                                beaglenthreads=1,
+                                beaglewindow=40,
+                                beagleoverlap=4,
+                                snp6_reference_info_file=NA,
+                                apt.probeset.genotype.exe="apt-probeset-genotype",
+                                apt.probeset.summarize.exe="apt-probeset-summarize",
+                                norm.geno.clust.exe="normalize_affy_geno_cluster.pl",
+                                birdseed_report_file="birdseed.report.txt",
+                                heterozygousFilter="none",
+                                prior_breakpoints_file=NULL))
+```
+
+
 
 #### Run interactively
 
