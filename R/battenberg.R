@@ -1,6 +1,6 @@
 
 #' Run the Battenberg pipeline
-#' 
+#'
 #' @param tumourname Tumour identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
 #' @param normalname Matched normal identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
 #' @param tumour_data_file A BAM or CEL file for the tumour
@@ -8,7 +8,8 @@
 #' @param imputeinfofile Full path to a Battenberg impute info file with pointers to Impute2 reference data
 #' @param g1000prefix Full prefix path to 1000 Genomes SNP loci data, as part of the Battenberg reference data
 #' @param problemloci Full path to a problem loci file that contains SNP loci that should be filtered out
-#' @param gccorrectprefix Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
+#' @param gccorrectprefix Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)
+#' @param repliccorrectprefix Full prefix path to replication timing files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)
 #' @param g1000allelesprefix Full prefix path to 1000 Genomes SNP alleles data, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
 #' @param ismale A boolean set to TRUE if the donor is male, set to FALSE if female, not required for SNP6 data (Default: NA)
 #' @param data_type String that contains either wgs or snp6 depending on the supplied input data (Default: wgs)
@@ -34,40 +35,90 @@
 #' @param skip_allele_counting Provide TRUE when allele counting can be skipped (i.e. its already done) (Default: FALSE)
 #' @param skip_preprocessing Provide TRUE when preprocessing is already complete (Default: FALSE)
 #' @param skip_phasing  Provide TRUE when phasing is already complete (Default: FALSE)
+#' @param usebeagle Should use beagle5 instead of impute2 Default: FALSE
+#' @param beaglejar Full path to Beagle java jar file Default: NA
+#' @param beagleref.template Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA
+#' @param beagleplink.template Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA
+#' @param beaglemaxmem Integer Beagle max heap size in Gb  Default: 10
+#' @param beaglenthreads Integer number of threads used by beagle5 Default:1
+#' @param beaglewindow Integer size of the genomic window for beagle5 (cM) Default:40
+#' @param beagleoverlap Integer size of the overlap between windows beagle5 Default:4
 #' @param snp6_reference_info_file Reference files for the SNP6 pipeline only (Default: NA)
 #' @param apt.probeset.genotype.exe Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)
 #' @param apt.probeset.summarize.exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-summarize)
 #' @param norm.geno.clust.exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)
 #' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
 #' @param heterozygousFilter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
+#' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
 #' @author sd11
 #' @export
-battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, 
-                      gccorrectprefix=NA, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
-                      segmentation_gamma=10, segmentation_kmin=3, phasing_kmin=1, clonality_dist_metric=0, ascat_dist_metric=1, min_ploidy=1.6,
-                      max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20, 
-                      min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F,
-                      snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize", 
-                      norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none") {
-  
+battenberg = function(tumourname,
+                      normalname,
+                      tumour_data_file,
+                      normal_data_file,
+                      imputeinfofile,
+                      g1000prefix,
+                      problemloci,
+                      gccorrectprefix=NULL,
+                      repliccorrectprefix=NULL,
+                      g1000allelesprefix=NA,
+                      ismale=NA,
+                      data_type="wgs",
+                      impute_exe="impute2",
+                      allelecounter_exe="alleleCounter",
+                      nthreads=8,
+                      platform_gamma=1, phasing_gamma=1,
+                      segmentation_gamma=10,
+                      segmentation_kmin=3, phasing_kmin=1,
+                      clonality_dist_metric=0, ascat_dist_metric=1,
+                      min_ploidy=1.6,
+                      max_ploidy=4.8, min_rho=0.1, min_goodness=0.63,
+                      uninformative_BAF_threshold=0.51,
+                      min_normal_depth=10, min_base_qual=20,
+                      min_map_qual=35, calc_seg_baf_option=1,
+                      skip_allele_counting=F,
+                      skip_preprocessing=F,
+                      skip_phasing=F,
+                      usebeagle=FALSE,
+                      beaglejar=NA,
+                      beagleref.template=NA,
+                      beagleplink.template=NA,
+                      beaglemaxmem=10,
+                      beaglenthreads=1,
+                      beaglewindow=40,
+                      beagleoverlap=4,
+                      snp6_reference_info_file=NA,
+                      apt.probeset.genotype.exe="apt-probeset-genotype",
+                      apt.probeset.summarize.exe="apt-probeset-summarize",
+                      norm.geno.clust.exe="normalize_affy_geno_cluster.pl",
+                      birdseed_report_file="birdseed.report.txt",
+                      heterozygousFilter="none",
+                      prior_breakpoints_file=NULL) {
+
   requireNamespace("foreach")
   requireNamespace("doParallel")
   requireNamespace("parallel")
-  
+
   if (data_type=="wgs" & is.na(ismale)) {
-    print("Please provide a boolean denominator whether this sample represents a male donor")
-    q(save="no", status=1)
+    stop("Please provide a boolean denominator whether this sample represents a male donor")
   }
-  
+
   if (data_type=="wgs" & is.na(g1000allelesprefix)) {
-    print("Please provide a path to 1000 Genomes allele reference files")
-    q(save="no", status=1)
+    stop("Please provide a path to 1000 Genomes allele reference files")
   }
-  
-  if (data_type=="wgs" & is.na(gccorrectprefix)) {
-    print("Please provide a path to GC content reference files")
-    q(save="no", status=1)
+
+  if (data_type=="wgs" & is.null(gccorrectprefix)) {
+    stop("Please provide a path to GC content reference files")
   }
+
+  if (!file.exists(problemloci)) {
+       stop("Please provide a path to a problematic loci file")
+  }
+
+  if (!file.exists(imputeinfofile)) {
+	  stop("Please provide a path to an impute info file")
+  }
+
 
   if (data_type=="wgs" | data_type=="WGS") {
     chrom_names = get.chrom.names(imputeinfofile, ismale)
@@ -78,153 +129,175 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     logr_file = paste(tumourname, "_mutantLogR.tab", sep="")
     allelecounts_file = NULL
   }
- 
+
   if (!skip_preprocessing) {
     if (data_type=="wgs" | data_type=="WGS") {
       # Setup for parallel computing
       clp = parallel::makeCluster(nthreads)
       doParallel::registerDoParallel(clp)
-            
-      prepare_wgs(chrom_names=chrom_names, 
-                  tumourbam=tumour_data_file, 
-                  normalbam=normal_data_file, 
-                  tumourname=tumourname, 
-                  normalname=normalname, 
-                  g1000allelesprefix=g1000allelesprefix, 
-                  g1000prefix=g1000prefix, 
-                  gccorrectprefix=gccorrectprefix, 
-                  min_base_qual=min_base_qual, 
-                  min_map_qual=min_map_qual, 
-                  allelecounter_exe=allelecounter_exe, 
-                  min_normal_depth=min_normal_depth, 
+
+      prepare_wgs(chrom_names=chrom_names,
+                  tumourbam=tumour_data_file,
+                  normalbam=normal_data_file,
+                  tumourname=tumourname,
+                  normalname=normalname,
+                  g1000allelesprefix=g1000allelesprefix,
+                  g1000prefix=g1000prefix,
+                  gccorrectprefix=gccorrectprefix,
+                  repliccorrectprefix=repliccorrectprefix,
+                  min_base_qual=min_base_qual,
+                  min_map_qual=min_map_qual,
+                  allelecounter_exe=allelecounter_exe,
+                  min_normal_depth=min_normal_depth,
                   nthreads=nthreads,
                   skip_allele_counting=skip_allele_counting)
-      
+
       # Kill the threads
       parallel::stopCluster(clp)
-      
+
     } else if (data_type=="snp6" | data_type=="SNP6") {
-      
-      prepare_snp6(tumour_cel_file=tumour_data_file, 
-                   normal_cel_file=normal_data_file, 
-                   tumourname=tumourname, 
-                   chrom_names=chrom_names, 
-                   snp6_reference_info_file=snp6_reference_info_file, 
-                   apt.probeset.genotype.exe=apt.probeset.genotype.exe, 
+
+      prepare_snp6(tumour_cel_file=tumour_data_file,
+                   normal_cel_file=normal_data_file,
+                   tumourname=tumourname,
+                   chrom_names=chrom_names,
+                   snp6_reference_info_file=snp6_reference_info_file,
+                   apt.probeset.genotype.exe=apt.probeset.genotype.exe,
                    apt.probeset.summarize.exe=apt.probeset.summarize.exe,
-                   norm.geno.clust.exe=norm.geno.clust.exe, 
+                   norm.geno.clust.exe=norm.geno.clust.exe,
                    birdseed_report_file=birdseed_report_file)
-      
+
     } else {
       print("Unknown data type provided, please provide wgs or snp6")
       q(save="no", status=1)
     }
   }
-  
+
   if (data_type=="snp6" | data_type=="SNP6") {
     # Infer what the gender is - WGS requires it to be specified
     gender = infer_gender_birdseed(birdseed_report_file)
     ismale = gender == "male"
   }
- 
+
   if (!skip_phasing) {
     # Setup for parallel computing
-    clp = parallel::makeCluster(nthreads)
-    doParallel::registerDoParallel(clp)
-    
-    # Reconstruct haplotypes 
-    # mclapply(1:length(chrom_names), function(chrom) {
-    foreach::foreach (chrom=1:length(chrom_names)) %dopar% {
+    # clp = parallel::makeCluster(nthreads)
+    # doParallel::registerDoParallel(clp)
+
+    # Reconstruct haplotypes
+    mclapply(1:length(chrom_names), function(chrom) {
+    ##foreach::foreach (chrom=1:length(chrom_names), .export=c("run_haplotyping",ls(envir=environment()))) %dopar% {
       print(chrom)
-      
-      run_haplotyping(chrom=chrom, 
-                      tumourname=tumourname, 
-                      normalname=normalname, 
-                      ismale=ismale, 
-                      imputeinfofile=imputeinfofile, 
-                      problemloci=problemloci, 
-                      impute_exe=impute_exe, 
+
+      run_haplotyping(chrom=chrom,
+                      tumourname=tumourname,
+                      normalname=normalname,
+                      ismale=ismale,
+                      imputeinfofile=imputeinfofile,
+                      problemloci=problemloci,
+                      impute_exe=impute_exe,
                       min_normal_depth=min_normal_depth,
-  		                chrom_names=chrom_names,
-  		                snp6_reference_info_file=snp6_reference_info_file,
-  		                heterozygousFilter=heterozygousFilter)
-    }#, mc.cores=nthreads)
-    
+                      chrom_names=chrom_names,
+                      snp6_reference_info_file=snp6_reference_info_file,
+                      heterozygousFilter=heterozygousFilter,
+                      usebeagle=usebeagle,
+                      beaglejar=beaglejar,
+                      beagleref=gsub("CHROMNAME",if(chrom==23) "X" else chrom, beagleref.template),
+                      beagleplink=gsub("CHROMNAME",if(chrom==23) "X" else chrom, beagleplink.template),
+                      beaglemaxmem=beaglemaxmem,
+                      beaglenthreads=beaglenthreads,
+                      beaglewindow=beaglewindow,
+                      beagleoverlap=beagleoverlap)
+    }, mc.cores=nthreads)
+
     # Kill the threads as from here its all single core
-    parallel::stopCluster(clp)
-    
+    # parallel::stopCluster(clp)
+
     # Combine all the BAF output into a single file
-    combine.baf.files(inputfile.prefix=paste(tumourname, "_chr", sep=""), 
-                      inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt", 
+    combine.baf.files(inputfile.prefix=paste(tumourname, "_chr", sep=""),
+                      inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt",
                       outputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                       no.chrs=length(chrom_names))
   }
-  
-  # Segment the phased and haplotyped BAF data
-  segment.baf.phased(samplename=tumourname,
-                     inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
-                     outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
-                     gamma=segmentation_gamma,
-                     phasegamma=phasing_gamma,
-                     kmin=segmentation_kmin,
-                     phasekmin=phasing_kmin,
-                     calc_seg_baf_option=calc_seg_baf_option)
-  
+
+  if (!is.null(prior_breakpoints_file)) {
+    prior_breakpoints = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F)
+    if (ncol(prior_breakpoints)!=2) { stop("Prior breakpoints should be a two column file: chromosome and position") }
+    colnames(prior_breakpoints) = c("chromosome", "position")
+
+    # Segment the phased and haplotyped BAF data with prior breakpoints
+    segment.baf.phased.sv(samplename=tumourname,
+                         inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
+                         outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                         gamma=segmentation_gamma,
+                         phasegamma=phasing_gamma,
+                         kmin=segmentation_kmin,
+                         phasekmin=phasing_kmin,
+                         calc_seg_baf_option=calc_seg_baf_option,
+                         svs=prior_breakpoints)
+  } else {
+    # Segment the phased and haplotyped BAF data
+    segment.baf.phased(samplename=tumourname,
+                       inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
+                       outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                       gamma=segmentation_gamma,
+                       phasegamma=phasing_gamma,
+                       kmin=segmentation_kmin,
+                       phasekmin=phasing_kmin,
+                       calc_seg_baf_option=calc_seg_baf_option)
+  }
+
   # Fit a clonal copy number profile
   fit.copy.number(samplename=tumourname,
                   outputfile.prefix=paste(tumourname, "_", sep=""),
-                  inputfile.baf.segmented=paste(tumourname, ".BAFsegmented.txt", sep=""), 
-                  inputfile.baf=paste(tumourname,"_mutantBAF.tab", sep=""), 
-                  inputfile.logr=logr_file, 
-                  dist_choice=clonality_dist_metric, 
-                  ascat_dist_choice=ascat_dist_metric, 
-                  min.ploidy=min_ploidy, 
-                  max.ploidy=max_ploidy, 
-                  min.rho=min_rho, 
-                  min.goodness=min_goodness, 
-                  uninformative_BAF_threshold=uninformative_BAF_threshold, 
-                  gamma_param=platform_gamma, 
-                  use_preset_rho_psi=F, 
-                  preset_rho=NA, 
-                  preset_psi=NA, 
+                  inputfile.baf.segmented=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                  inputfile.baf=paste(tumourname,"_mutantBAF.tab", sep=""),
+                  inputfile.logr=logr_file,
+                  dist_choice=clonality_dist_metric,
+                  ascat_dist_choice=ascat_dist_metric,
+                  min.ploidy=min_ploidy,
+                  max.ploidy=max_ploidy,
+                  min.rho=min_rho,
+                  min.goodness=min_goodness,
+                  uninformative_BAF_threshold=uninformative_BAF_threshold,
+                  gamma_param=platform_gamma,
+                  use_preset_rho_psi=F,
+                  preset_rho=NA,
+                  preset_psi=NA,
                   read_depth=30)
-  
+
   # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
-  callSubclones(sample.name=tumourname, 
-                baf.segmented.file=paste(tumourname, ".BAFsegmented.txt", sep=""), 
-                logr.file=logr_file, 
-                rho.psi.file=paste(tumourname, "_rho_and_psi.txt",sep=""), 
-                output.file=paste(tumourname,"_subclones.txt", sep=""), 
-                output.figures.prefix=paste(tumourname,"_subclones_chr", sep=""), 
+  callSubclones(sample.name=tumourname,
+                baf.segmented.file=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                logr.file=logr_file,
+                rho.psi.file=paste(tumourname, "_rho_and_psi.txt",sep=""),
+                output.file=paste(tumourname,"_subclones.txt", sep=""),
+                output.figures.prefix=paste(tumourname,"_subclones_chr", sep=""),
                 output.gw.figures.prefix=paste(tumourname,"_BattenbergProfile", sep=""),
                 masking_output_file=paste(tumourname, "_segment_masking_details.txt", sep=""),
                 sv_breakpoints_file="NA",
-                chr_names=chrom_names, 
-                gamma=platform_gamma, 
-                segmentation.gamma=NA, 
-                siglevel=0.05, 
-                maxdist=0.01, 
+                chr_names=chrom_names,
+                gamma=platform_gamma,
+                segmentation.gamma=NA,
+                siglevel=0.05,
+                maxdist=0.01,
                 noperms=1000,
                 calc_seg_baf_option=calc_seg_baf_option)
-  
+
   # Make some post-hoc plots
-  make_posthoc_plots(samplename=tumourname, 
-                     logr_file=logr_file, 
-                     subclones_file=paste(tumourname, "_subclones.txt", sep=""), 
-                     rho_psi_file=paste(tumourname, "_rho_and_psi.txt", sep=""), 
-                     bafsegmented_file=paste(tumourname, ".BAFsegmented.txt", sep=""), 
-                     logrsegmented_file=paste(tumourname, ".logRsegmented.txt", sep=""), 
+  make_posthoc_plots(samplename=tumourname,
+                     logr_file=logr_file,
+                     subclones_file=paste(tumourname, "_subclones.txt", sep=""),
+                     rho_psi_file=paste(tumourname, "_rho_and_psi.txt", sep=""),
+                     bafsegmented_file=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                     logrsegmented_file=paste(tumourname, ".logRsegmented.txt", sep=""),
                      allelecounts_file=allelecounts_file)
-  
+
   # Save refit suggestions for a future rerun
-  cnfit_to_refit_suggestions(samplename=tumourname, 
+  cnfit_to_refit_suggestions(samplename=tumourname,
                              subclones_file=paste(tumourname, "_subclones.txt", sep=""),
                              rho_psi_file=paste(tumourname, "_rho_and_psi.txt", sep=""),
                              gamma_param=platform_gamma)
-  
-  
-  
-  
-    
+
 }
 

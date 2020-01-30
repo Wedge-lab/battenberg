@@ -5,7 +5,7 @@
 \title{Run impute on the specified inputfile}
 \usage{
 run.impute(inputfile, outputfile.prefix, is.male, imputeinfofile,
-  impute.exe = "impute2", region.size = 5e+06, chrom = NA,
+  impute.exe = "impute2", region.size = 5000000, chrom = NA,
   seed = as.integer(Sys.time()))
 }
 \arguments{

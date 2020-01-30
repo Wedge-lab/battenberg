@@ -1423,6 +1423,8 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     psi = NA
     ploidy = NA
     rho = NA
+    psi_opt1_plot = -1
+    rho_opt1_plot = -1
   }
 
   # separated plotting from logic: create distanceplot here
@@ -1634,6 +1636,12 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 
   # Recalculate the psi_t for this rho using only clonal segments 
   psi_t = recalc_psi_t(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments=F)
+
+  # If there aren't any clonally fit segments, the above yields NA. In this case, revert to the original grid search psi_t
+  if (is.na(psi_t)) {
+	  print("Recalculated psi_t was NA, reverting to grid search solution. This occurs when no segment could be fit with a clonal state, check sample for contamination")
+	  psi_t = psi_without_ref
+  }
   
   output_optimum_pair = list(psi = psi_opt1, rho = rho_opt1, ploidy = ploidy_opt1)
   #output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)

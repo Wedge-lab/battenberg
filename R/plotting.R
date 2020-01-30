@@ -4,8 +4,10 @@
 create.haplotype.plot = function(chrom.position, points.blue, points.red, x.min, x.max, title, xlab, ylab) {
   par(pch=".", cex=1, cex.main=0.8, cex.axis = 0.6, cex.lab=0.7,yaxp=c(-0.05,1.05,6))
   plot(c(x.min,x.max), c(0,1), type="n", main=title, xlab=xlab, ylab=ylab)
-  points(chrom.position, points.blue, col="blue")
-  points(chrom.position, points.red, col="red")
+  if (length(chrom.position) > 0) {
+    points(chrom.position, points.blue, col="blue")
+    points(chrom.position, points.red, col="red")
+  }
 }
 
 #' Function that plots two types of data points against it's chromosomal location.
@@ -365,6 +367,11 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
   max_cn_plot_fit = ceiling(quantile(unlist(lapply(1:nrow(subclones), function(i) rep(subclones$total_cn[i], subclones$len[i]))), c(.98), na.rm=T))
   max_cn_plot = ifelse(max_cn_plot_fit > max_cn_plot_data, max_cn_plot_fit, max_cn_plot_data)
   maxpos = max(logr$Position)
+  
+  # catch case when there is no clonal CNA called
+  if (is.na(max_cn_plot) | max_cn_plot < 4) {
+    max_cn_plot = 4
+  }
   
   # These are the grey lines in the background
   background = data.frame(xmin=rep(0, (max_cn_plot/2)+1), 
