@@ -101,7 +101,9 @@ module load HTSlib
 ## wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/*
 
 # wget for GRCh38 (liftover from hg38)
-wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/supporting/GRCh38_positions/*
+# wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/supporting/GRCh38_positions/*
+# see article: https://wellcomeopenresearch.org/articles/4-50
+wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/release/20190312_biallelic_SNV_and_INDEL/ALL.chr*
 wget http://bochet.gcc.biostat.washington.edu/beagle/1000_Genomes_phase3_v5a/utilities/filterlines.jar
 wget http://bochet.gcc.biostat.washington.edu/beagle/1000_Genomes_phase3_v5a/utilities/gtstats.jar
 wget http://bochet.gcc.biostat.washington.edu/beagle/1000_Genomes_phase3_v5a/utilities/remove.ids.jar
@@ -121,9 +123,10 @@ src="./"
 #cd -
 
 ## Go through autosomes and prepare vcf
-for chr in $(seq 1 22); do
+for chr in $(seq 4 5); do
 echo "chr${chr}"
-input="${src}ALL.chr${chr}_GRCh38.genotypes.20170504.vcf.gz"
+#input="${src}ALL.chr${chr}_GRCh38.genotypes.20170504.vcf.gz"
+input="${src}ALL.chr${chr}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
 #vcf_removefield="${input}_removedfield.vcg.gz"
 vcf="chr${chr}.1kg.phase3.v5a_GRCh38.vcf.gz"
 excl="chr${chr}.1kg.phase3.v5a_GRCh38.excl"
@@ -133,10 +136,10 @@ zcat ${input} | grep -v 'SVTYPE' | ${gts} | ${fl} \# -13 ${min_minor} 1000000 | 
 zcat ${input} | grep -v 'SVTYPE' | grep -v '^#' | cut -f3 | tr ';' '\n' | sort | uniq -d > chr${chr}.dup.id
 
 # BEGIN: add 4 duplicate markers to exclusion list
-if [ ${chr} == "8" ]; then echo "88316919"; fi >> ${excl}
+#if [ ${chr} == "8" ]; then echo "88316919"; fi >> ${excl}
 #if [ ${chr} == "12" ]; then echo ""; fi >> ${excl}
-if [ ${chr} == "14" ]; then echo "21181798"; fi  >> ${excl}
-if [ ${chr} == "17" ]; then echo "1241338"; fi  >> ${excl}
+#if [ ${chr} == "14" ]; then echo "21181798"; fi  >> ${excl}
+#if [ ${chr} == "17" ]; then echo "1241338"; fi  >> ${excl}
 # END:  add 4 duplicate markers to exclusion list
 
 zcat ${input} | grep -v 'SVTYPE' | ${fl} \# \-2 ${excl} | ${simplify} | ${rmids} chr${chr}.dup.id | bgzip -c > ${vcf}
@@ -145,7 +148,8 @@ done
 
 ## Same for chromosome X                                                                                                  
 chr="X"
-in="${src}ALL.chr${chr}_GRCh38.genotypes.20170504.vcf.gz"
+#in="${src}ALL.chr${chr}_GRCh38.genotypes.20170504.vcf.gz"
+in="${src}ALL.chr${chr}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
 vcf="chr${chr}.1kg.phase3.v5a_GRCh38.vcf.gz"
 excl="chr${chr}.1kg.phase3.v5a_GRCh38.excl"
 
@@ -165,9 +169,9 @@ echo ${chr}
   eval ${cat_in} | ${gts} | ${fl} '\#' -13 ${min_minor} 1000000 | cut -f2 > ${excl}
 
   # BEGIN: add duplicate markers to exclusion list
-  if [ ${chr} == "X" ]; then echo "5457254"; fi >> ${excl}
-  if [ ${chr} == "X" ]; then echo "32344545"; fi >> ${excl}
-  if [ ${chr} == "X" ]; then echo "68984437"; fi >> ${excl}
+  #if [ ${chr} == "X" ]; then echo "5457254"; fi >> ${excl}
+  #if [ ${chr} == "X" ]; then echo "32344545"; fi >> ${excl}
+  #if [ ${chr} == "X" ]; then echo "68984437"; fi >> ${excl}
   # END:  add duplicate markers to exclusion list
 
 eval ${cat_in} | ${fl} \# \-2 ${excl} | ${simplify} | ${rmids} chr${chr}.dup.id | bgzip -c > ${vcf}
@@ -212,7 +216,7 @@ mclapply(ffs[length(ffs):1],function(x)
 },mc.cores=MC.CORES)
 ##########################################################################
 
-ffs <- dir(full=T,pattern="1kg.phase3.v5a_GRCh38.nounref.vcf.gz$")
+ffs <- dir(full=T,pattern="1kg.phase3.v5a_GRCh38nounref.vcf.gz$")
 ## Generate Loci files
 ##########################################################################
 mclapply(ffs[length(ffs):1],function(x)
@@ -223,7 +227,7 @@ mclapply(ffs[length(ffs):1],function(x)
                   x," | grep -v '^#' | awk -v OFS='\t' '{print $1, $2}' > ",
                   out)
     system(cmd)
-},mc.cores=10)
+},mc.cores=MC.CORES)
 ##########################################################################
 ## with chr string (for BAMs that contain "chr")
 mclapply(ffs[length(ffs):1],function(x)
@@ -236,7 +240,7 @@ mclapply(ffs[length(ffs):1],function(x)
                  ,"$1, $2}' > ",
                   out)
     system(noquote(cmd))
-},mc.cores=10)
+},mc.cores=MC.CORES)
 ##########################################################################
 ## Generate Allele Files
 ##########################################################################
@@ -248,7 +252,7 @@ mclapply(ffs[length(ffs):1],function(x)
                   x," | grep -v '^#' | awk -v OFS='\t' '{print $2, $4, $5}' > ",
                   out)
     system(cmd)
-},mc.cores=10)
+},mc.cores=MC.CORES)
 ##########################################################################
 ## Convert Alleles into Indices for BB input
 indices <- c("A"=1,"C"=2,"G"=3,"T"=4)
@@ -300,7 +304,7 @@ tnull <- lapply(allfs_loci,function(x)
 })
 ##########################################################################
 ## Symlink alleles: same as for loci, symlink to change name for the
-use of prefixes
+## use of prefixes
 ##########################################################################
 allfs <- dir(full=T)
 allfs_index <- allfs[grepl("allele_index",allfs)]
@@ -332,10 +336,18 @@ gcTrack <- function(chr,
                                                c("G","C")))/window
     gc[pos]
 }
+getRefGenome <- function (fasta = FASTA, CHRS = paste0("", c(1:22, "X", "Y", 
+    "MT"))) 
+{
+    dna <- Biostrings::readDNAStringSet(fasta, format = "fasta")
+    dna <- lapply(1:length(CHRS), function(x) dna[[x]])
+    names(dna) <- CHRS
+    return(dna)
+}
 ##########################################################################
 FASTA <- "genome.fa" ## Link to genome reference fasta file 
-CHRS <- paste0("", c(1:22, "X", "Y"))
-BEAGLELOCI.template <- "chrCHROMNAME.1kg.phase3.v5a_GRCh38_loci.txt"
+CHRS <- paste0("", c(1:22, "X"))
+BEAGLELOCI.template <- "chrCHROMNAME.1kg.phase3.v5a_GRCh38nounref_loci.txt"
 ##########################################################################
 REFGENOME <- getRefGenome(fasta = FASTA, CHRS = CHRS) ## Loads genome
 in memory
@@ -377,9 +389,10 @@ writeGC <- function(gccontent,chr,outdir)
                 row.names=T,quote=F,sep="\t")
 }
 
-for(chr in CHRS)
+mclapply(CHRS,function(chr)
 {
-    snppos <- as.data.frame(data.table::fread(gsub("CHROMNAME",chr,BEAGLELOCI.template)))
+	cat(chr)
+	snppos <- as.data.frame(data.table::fread(gsub("CHROMNAME",chr,BEAGLELOCI.template)))
     gccontent <- sapply(windows,function(window) gcTrack(chr=chr,
                                                          pos=snppos[,2],
                                                          dna=REFGENOME,
@@ -388,7 +401,7 @@ for(chr in CHRS)
     colnames(gccontent)[1:2] <- c("chr","Position")
     rownames(gccontent) <- snppos[,2]
     writeGC(gccontent,chr,OUTDIR)
-}
+},mc.cores=10)
    
 ```
 
