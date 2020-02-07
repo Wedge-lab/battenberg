@@ -254,6 +254,9 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
 #	      LogRvals[,1] = gsub("chr","",LogRvals[,1])
   #}
 
+
+  if(any(grepl("chr",chr_names,))) LogRvals$Chromosome = paste0("chr",LogRvals$Chromosome)
+
   ctrans = c(1:length(chr_names))
   names(ctrans) = chr_names
   ctrans.logR = c(1:length(chr_names))
