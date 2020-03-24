@@ -23,8 +23,7 @@ adjustSegmValues = function(baf_chrom) {
   return(baf_chrom)
 }
 
-
-#' Segment the haplotyped and phased data using fastPCF.
+#' Segment the haplotyped and phased data using fastPCF. This is the legacy segmentation function as it was used in the original Battenberg versions
 #' 
 #' This function performs segmentation. This is done in two steps. First a segmentation step
 #' that aims to find short segments. These are used to find haplotype blocks that have been
@@ -42,7 +41,29 @@ adjustSegmValues = function(baf_chrom) {
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
 #' @author dw9
 #' @export
-segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3, calc_seg_baf_option=1) {
+segment.baf.phased.legacy = function(samplename, inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3, calc_seg_baf_option=1) {
+  
+  
+}
+
+#' Segment the haplotyped and phased data using fastPCF. This is the legacy segmentation function as it was used in the original Battenberg versions
+#' 
+#' This function performs segmentation. This is done in two steps. First a segmentation step
+#' that aims to find short segments. These are used to find haplotype blocks that have been
+#' switched. These blocks are switched into the correct order first after which the second
+#' segmentation step is performed. This second step aims to segment the data that will go into
+#' fit.copy.number. This function produces a BAF segmented file with 5 columns: chromosome, position,
+#' original BAF, switched BAF and BAF segment. The BAF segment column should be used subsequently
+#' @param samplename Name of the sample, which is used to name output figures
+#' @param inputfile String that points to the output from the \code{combine.baf.files} function. This contains the phased SNPs with their BAF values
+#' @param outputfile String where the segmentation output will be written
+#' @param gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 10)
+#' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)
+#' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default: 3)
+#' @param phasekmin Kmin parameter used when correcting phasing mistakes (Default: 3)
+#' @author dw9
+#' @export
+segment.baf.phased.legacy = function(samplename, inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3) {
   BAFraw = as.data.frame(read_baf(inputfile))
   
   BAFoutput = NULL
@@ -95,16 +116,6 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
       BAFphseg = res$yhat
     }
     
-    # Recalculate the BAF of each segment, if required
-    if (calc_seg_baf_option==1) {
-      # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
-      BAFphseg = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
-    } else if (calc_seg_baf_option==2) {
-      # Don't do anything, the BAF is already the mean
-    } else {
-      warning("Supplied calc_seg_baf_option to segment.baf.phased not valid, using mean BAF by default")
-    }
-    
     png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
     create.baf.plot(chrom.position=pos/1000000, 
                     points.red.blue=BAF, 
@@ -126,7 +137,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
   write.table(BAFoutput, outputfile, sep="\t", row.names=F, col.names=T, quote=F)
 }
 
-#' Segment BAF with the inclusion of structural variant breakpoints
+#' Segment BAF with the inclusion of structural variant breakpoints - This function is now deprecated, call segment.baf.phased instead
 #' 
 #' This function takes the SV breakpoints as initial segments and runs PCF on each
 #' of those independently. The SVs must be supplied as a simple data.frame with columns
@@ -134,7 +145,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
 #' @param samplename Name of the sample, which is used to name output figures
 #' @param inputfile String that points to the output from the \code{combine.baf.files} function. This contains the phased SNPs with their BAF values
 #' @param outputfile String where the segmentation output will be written
-#' @param svs Data.frame with chromosome and position columns
+#' @param svs Data.frame with chromosome and position columns (Default: NULL)
 #' @param gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)
 #' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default 3)
 #' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default 3)
@@ -143,7 +154,28 @@ segment.baf.phased = function(samplename, inputfile, outputfile, gamma=10, phase
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
 #' @author sd11
 #' @export
-segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=1) {
+segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=1) {
+  .Deprecated("segment.baf.phased")
+  segment.baf.phased(samplename, inputfile, outputfile, svs=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=1)
+}
+
+#' Segment BAF, with the possible inclusion of structural variant breakpoints
+#' 
+#' This function breaks the genome up into chromosomes, possibly further when SV breakpoints
+#' are provided, and runs PCF on each to segment the chromosomes independently. 
+#' @param samplename Name of the sample, which is used to name output figures
+#' @param inputfile String that points to the output from the \code{combine.baf.files} function. This contains the phased SNPs with their BAF values
+#' @param outputfile String where the segmentation output will be written
+#' @param svs Data.frame with chromosome and position columns (Default: NULL)
+#' @param gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)
+#' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default 3)
+#' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default 3)
+#' @param phasekmin Kmin parameter used when correcting phasing mistakes (Default 3)
+#' @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
+#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
+#' @author sd11
+#' @export
+segment.baf.phased = function(samplename, inputfile, outputfile, svs=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=1) {
   # Function that takes SNPs that belong to a single segment and looks for big holes between
   # each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
   addin_bigholes = function(breakpoints, positions, chrom, startpos, maxsnpdist) {
@@ -302,7 +334,11 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs, gamma=1
     BAFrawchr = BAFraw[BAFraw[,1]==chr,c(2,3)]
     # BAFrawchr = bafsegments[bafsegments$Chromosome==chr, c(2,3)]
     BAFrawchr = BAFrawchr[!is.na(BAFrawchr[,2]),]
-    svs_chrom = svs[svs$chromosome==chr,]
+    if (!is.null(svs)) {
+      svs_chrom = svs[svs$chromosome==chr,]
+    } else {
+      svs_chrom = data.frame(chromosome=character(), position=numeric())
+    }
     
     breakpoints_chrom = svs_to_presegment_breakpoints(chr, svs_chrom, BAFrawchr, addin_bigholes=T)
     BAFoutputchr = NULL
