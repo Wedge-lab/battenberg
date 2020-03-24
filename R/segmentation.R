@@ -172,10 +172,10 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs=NULL, ga
 #' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default 3)
 #' @param phasekmin Kmin parameter used when correcting phasing mistakes (Default 3)
 #' @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
-#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
+#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0 or 1, median, mean. (Default: 3)
 #' @author sd11
 #' @export
-segment.baf.phased = function(samplename, inputfile, outputfile, svs=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=1) {
+segment.baf.phased = function(samplename, inputfile, outputfile, svs=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=3) {
   # Function that takes SNPs that belong to a single segment and looks for big holes between
   # each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
   addin_bigholes = function(breakpoints, positions, chrom, startpos, maxsnpdist) {
@@ -313,6 +313,16 @@ segment.baf.phased = function(samplename, inputfile, outputfile, svs=NULL, gamma
         BAFphseg = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
       } else if (calc_seg_baf_option==2) {
         # Don't do anything, the BAF is already the mean
+      } else if (calc_seg_baf_option==3) {
+        # Take the median, unless the median is exactly 0 or 1. At the extreme
+        # there is no difference between lets say 40 and 41 copies and BB cannot
+        # fit a copy number state. The mean is less prone to become exactly 0 or 1
+        # but the median is generally a better estimate that is less sensitive to
+        # how well the haplotypes have been reconstructed
+        BAFphseg_median = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
+        if (BAFphseg_median!=0 & BAFphseg_median!=1) {
+          BAFphseg = BAFphseg_median
+        }
       } else {
         warning("Supplied calc_seg_baf_option to segment.baf.phased.sv not valid, using mean BAF by default")
       }
