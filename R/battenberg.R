@@ -31,7 +31,7 @@
 #' @param min_normal_depth Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)
 #' @param min_base_qual Minimum base quality required for a read to be counted when allele counting (Default: 20)
 #' @param min_map_qual Minimum mapping quality required for a read to be counted when allele counting (Default: 35)
-#' @param calc_seg_baf_option Sets way to calculate BAF per segment: 1=mean, 2=median (Default: 1)
+#' @param calc_seg_baf_option Sets way to calculate BAF per segment: 1=mean, 2=median, 3=ifelse median==0 | 1, mean, median (Default: 3)
 #' @param skip_allele_counting Provide TRUE when allele counting can be skipped (i.e. its already done) (Default: FALSE)
 #' @param skip_preprocessing Provide TRUE when preprocessing is already complete (Default: FALSE)
 #' @param skip_phasing  Provide TRUE when phasing is already complete (Default: FALSE)
@@ -48,7 +48,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       repliccorrectprefix=NULL, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
                       segmentation_gamma=10, segmentation_kmin=3, phasing_kmin=1, clonality_dist_metric=0, ascat_dist_metric=1, min_ploidy=1.6,
                       max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20, 
-                      min_map_qual=35, calc_seg_baf_option=1, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F,
+                      min_map_qual=35, calc_seg_baf_option=3, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize", 
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
                       prior_breakpoints_file=NULL) {
@@ -172,32 +172,33 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       no.chrs=length(chrom_names))
   }
   
-  if (!is.null(prior_breakpoints_file)) {
-    prior_breakpoints = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F)
-    if (ncol(prior_breakpoints)!=2) { stop("Prior breakpoints should be a two column file: chromosome and position") }
-    colnames(prior_breakpoints) = c("chromosome", "position")
+  #if (!is.null(prior_breakpoints_file)) {
+   # prior_breakpoints = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F)
+   # if (ncol(prior_breakpoints)!=2) { stop("Prior breakpoints should be a two column file: chromosome and position") }
+   # colnames(prior_breakpoints) = c("chromosome", "position")
     
     # Segment the phased and haplotyped BAF data with prior breakpoints
-    segment.baf.phased.sv(samplename=tumourname,
-                         inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
-                         outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
-                         gamma=segmentation_gamma,
-                         phasegamma=phasing_gamma,
-                         kmin=segmentation_kmin,
-                         phasekmin=phasing_kmin,
-                         calc_seg_baf_option=calc_seg_baf_option,
-                         svs=prior_breakpoints)
-  } else {
+   # segment.baf.phased.sv(samplename=tumourname,
+   #                      inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
+   #                      outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+   #                      gamma=segmentation_gamma,
+   #                      phasegamma=phasing_gamma,
+   #                      kmin=segmentation_kmin,
+   #                      phasekmin=phasing_kmin,
+   #                      calc_seg_baf_option=calc_seg_baf_option,
+   #                      svs=prior_breakpoints)
+  #} else {
     # Segment the phased and haplotyped BAF data
     segment.baf.phased(samplename=tumourname,
                        inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
                        outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+		       svfile=prior_breakpoints_file,
                        gamma=segmentation_gamma,
                        phasegamma=phasing_gamma,
                        kmin=segmentation_kmin,
                        phasekmin=phasing_kmin,
                        calc_seg_baf_option=calc_seg_baf_option)
-  }
+  #}
   
   # Fit a clonal copy number profile
   fit.copy.number(samplename=tumourname,
