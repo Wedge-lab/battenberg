@@ -156,7 +156,7 @@ segment.baf.phased.legacy = function(samplename, inputfile, outputfile, gamma=10
 #' @export
 segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=1) {
   .Deprecated("segment.baf.phased")
-  segment.baf.phased(samplename, inputfile, outputfile, svs=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=1)
+  print("Stopping now")
 }
 
 #' Segment BAF, with the possible inclusion of structural variant breakpoints
@@ -166,7 +166,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs=NULL, ga
 #' @param samplename Name of the sample, which is used to name output figures
 #' @param inputfile String that points to the output from the \code{combine.baf.files} function. This contains the phased SNPs with their BAF values
 #' @param outputfile String where the segmentation output will be written
-#' @param svs Data.frame with chromosome and position columns (Default: NULL)
+#' @param svfile String that points to a file with chromosome and position columns (Default: NULL)
 #' @param gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)
 #' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default 3)
 #' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default 3)
@@ -175,7 +175,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs=NULL, ga
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0 or 1, median, mean. (Default: 3)
 #' @author sd11
 #' @export
-segment.baf.phased = function(samplename, inputfile, outputfile, svs=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=3) {
+segment.baf.phased = function(samplename, inputfile, outputfile, svfile=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=3) {
   # Function that takes SNPs that belong to a single segment and looks for big holes between
   # each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
   addin_bigholes = function(breakpoints, positions, chrom, startpos, maxsnpdist) {
@@ -337,6 +337,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, svs=NULL, gamma
   }
   
   BAFraw = as.data.frame(read_baf(inputfile))
+  svs = ifelse(!is.null(svfile), read.table(svfile, header=T, stringsAsFactors=F), NULL)
   
   BAFoutput = NULL
   for (chr in unique(BAFraw[,1])) {
