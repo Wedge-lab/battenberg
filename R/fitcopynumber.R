@@ -191,7 +191,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param chr_names Vector of allowed chromosome names
 #' @param masking_output_file Filename of where the masking details need to be written. Masking is performed to remove very high copy number state segments
 #' @param max_allowed_state The maximum CN state allowed (Default 100)
-#' @param sv_breakpoints_file A two column file with breakpoints from structural variants. These are used when making the figures
+#' @param prior_breakpoints_file A two column file with prior breakpoints, possibly from structural variants. This file must contain two columns: chromosome and position. These are used when making the figures
 #' @param gamma Technology specific scaling parameter for LogR (Default 1)
 #' @param segmentation.gamma Legacy parameter that is no longer used (Default NA)
 #' @param siglevel Threshold under which a p-value becomes significant. When it is significant a second copy number state will be fitted (Default 0.05)
@@ -201,7 +201,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
 #' @author dw9, sd11
 #' @export
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, sv_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=1) {
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, prior_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=1) {
   
   set.seed(seed)
   
@@ -277,8 +277,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ################################################################################################
   # Collapse the BAFsegmented into breakpoints to be used in plotting
   segment_breakpoints = collapse_bafsegmented_to_segments(BAFvals)
-  if (!is.null(sv_breakpoints_file) & !ifelse(is.null(sv_breakpoints_file), TRUE, sv_breakpoints_file=="NA") & !ifelse(is.null(sv_breakpoints_file), TRUE, is.na(sv_breakpoints_file))) {
-    svs = read.table(sv_breakpoints_file, header=T, stringsAsFactors=F)
+  if (!is.null(prior_breakpoints_file) & !ifelse(is.null(prior_breakpoints_file), TRUE, prior_breakpoints_file=="NA") & !ifelse(is.null(prior_breakpoints_file), TRUE, is.na(prior_breakpoints_file))) {
+    svs = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F)
   }
   
   # Create a plot per chromosome that shows the segments with their CN state in text
@@ -287,7 +287,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     #if no points to plot, skip
     if (length(pos)==0) { next }
     
-    if (!is.null(sv_breakpoints_file) & !ifelse(is.null(sv_breakpoints_file), TRUE, sv_breakpoints_file=="NA") & !ifelse(is.null(sv_breakpoints_file), TRUE, is.na(sv_breakpoints_file))) {
+    if (!is.null(prior_breakpoints_file) & !ifelse(is.null(prior_breakpoints_file), TRUE, prior_breakpoints_file=="NA") & !ifelse(is.null(prior_breakpoints_file), TRUE, is.na(prior_breakpoints_file))) {
       svs_pos = svs[svs$chromosome==chr,]$position / 1000000
     } else {
       svs_pos = NULL

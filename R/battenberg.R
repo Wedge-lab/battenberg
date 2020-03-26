@@ -172,33 +172,16 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       no.chrs=length(chrom_names))
   }
   
-  #if (!is.null(prior_breakpoints_file)) {
-   # prior_breakpoints = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F)
-   # if (ncol(prior_breakpoints)!=2) { stop("Prior breakpoints should be a two column file: chromosome and position") }
-   # colnames(prior_breakpoints) = c("chromosome", "position")
-    
-    # Segment the phased and haplotyped BAF data with prior breakpoints
-   # segment.baf.phased.sv(samplename=tumourname,
-   #                      inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
-   #                      outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
-   #                      gamma=segmentation_gamma,
-   #                      phasegamma=phasing_gamma,
-   #                      kmin=segmentation_kmin,
-   #                      phasekmin=phasing_kmin,
-   #                      calc_seg_baf_option=calc_seg_baf_option,
-   #                      svs=prior_breakpoints)
-  #} else {
-    # Segment the phased and haplotyped BAF data
-    segment.baf.phased(samplename=tumourname,
-                       inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
-                       outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
-		       svfile=prior_breakpoints_file,
-                       gamma=segmentation_gamma,
-                       phasegamma=phasing_gamma,
-                       kmin=segmentation_kmin,
-                       phasekmin=phasing_kmin,
-                       calc_seg_baf_option=calc_seg_baf_option)
-  #}
+  # Segment the phased and haplotyped BAF data
+  segment.baf.phased(samplename=tumourname,
+                     inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
+                     outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                     prior_breakpoints_file=prior_breakpoints_file,
+                     gamma=segmentation_gamma,
+                     phasegamma=phasing_gamma,
+                     kmin=segmentation_kmin,
+                     phasekmin=phasing_kmin,
+                     calc_seg_baf_option=calc_seg_baf_option)
   
   # Fit a clonal copy number profile
   fit.copy.number(samplename=tumourname,
@@ -228,7 +211,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                 output.figures.prefix=paste(tumourname,"_subclones_chr", sep=""), 
                 output.gw.figures.prefix=paste(tumourname,"_BattenbergProfile", sep=""),
                 masking_output_file=paste(tumourname, "_segment_masking_details.txt", sep=""),
-		sv_breakpoints_file=prior_breakpoints_file,
+                prior_breakpoints_file=prior_breakpoints_file,
                 chr_names=chrom_names, 
                 gamma=platform_gamma, 
                 segmentation.gamma=NA, 

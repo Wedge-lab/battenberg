@@ -166,7 +166,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs=NULL, ga
 #' @param samplename Name of the sample, which is used to name output figures
 #' @param inputfile String that points to the output from the \code{combine.baf.files} function. This contains the phased SNPs with their BAF values
 #' @param outputfile String where the segmentation output will be written
-#' @param svfile String that points to a file with chromosome and position columns (Default: NULL)
+#' @param prior_breakpoints_file String that points to a file with prior breakpoints (from SVs for example) with chromosome and position columns (Default: NULL)
 #' @param gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)
 #' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default 3)
 #' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default 3)
@@ -175,7 +175,7 @@ segment.baf.phased.sv = function(samplename, inputfile, outputfile, svs=NULL, ga
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0 or 1, median, mean. (Default: 3)
 #' @author sd11
 #' @export
-segment.baf.phased = function(samplename, inputfile, outputfile, svfile=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=3) {
+segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoints_file=NULL, gamma=10, phasegamma=3, kmin=3, phasekmin=3, no_segmentation=F, calc_seg_baf_option=3) {
   # Function that takes SNPs that belong to a single segment and looks for big holes between
   # each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
   addin_bigholes = function(breakpoints, positions, chrom, startpos, maxsnpdist) {
@@ -194,30 +194,30 @@ segment.baf.phased = function(samplename, inputfile, outputfile, svfile=NULL, ga
   }
   
   # Helper function that creates segment breakpoints from SV calls
-  # @param svs_chrom Structural variant breakpoints for a single chromosome
+  # @param bkps_chrom Breakpoints for a single chromosome
   # @param BAFrawchr Raw BAF values of germline heterozygous SNPs on a single chromosome
   # @param addin_bigholes Flag whether bog holes in data are to be added as breakpoints
   # @return A data.frame with chrom, start and end columns
   # @author sd11
-  svs_to_presegment_breakpoints = function(chrom, svs_chrom, BAFrawchr, addin_bigholes) {
+  bkps_to_presegment_breakpoints = function(chrom, bkps_chrom, BAFrawchr, addin_bigholes) {
     maxsnpdist = 3000000
     
-    svs_breakpoints = svs_chrom$position
+    bkps_breakpoints = bkps_chrom$position
     
-    # If there are no SVs we cannot insert any breakpoints
-    if (length(svs_breakpoints) > 0) {
+    # If there are no prior breakpoints, we cannot insert any
+    if (length(bkps_breakpoints) > 0) {
       breakpoints = data.frame()
       
       # check which comes first, the breakpoint or the first SNP
-      if (BAFrawchr$Position[1] < svs_breakpoints[1]) {
+      if (BAFrawchr$Position[1] < bkps_breakpoints[1]) {
         startpos = BAFrawchr$Position[1]
         startfromsv = 1 # We're starting from SNP data, so the first SV should be added first
       } else {
-        startpos = svs_breakpoints[1]
+        startpos = bkps_breakpoints[1]
         startfromsv = 2 # We've just added the first SV, don't use it again
       }
       
-      for (svposition in svs_breakpoints[startfromsv:length(svs_breakpoints)]) {
+      for (svposition in bkps_breakpoints[startfromsv:length(bkps_breakpoints)]) {
         selectedsnps = BAFrawchr$Position >= startpos & BAFrawchr$Position <= svposition
         if (sum(selectedsnps, na.rm=T) > 0) {
           
@@ -236,13 +236,13 @@ segment.baf.phased = function(samplename, inputfile, outputfile, svfile=NULL, ga
       }
       
       # Add the remainder of the chromosome, if available
-      if (BAFrawchr$Position[nrow(BAFrawchr)] > svs_breakpoints[length(svs_breakpoints)]) {
+      if (BAFrawchr$Position[nrow(BAFrawchr)] > bkps_breakpoints[length(bkps_breakpoints)]) {
         endindex = nrow(BAFrawchr)
         breakpoints = rbind(breakpoints, data.frame(chrom=chrom, start=startpos, end=BAFrawchr$Position[endindex]))
       }
     } else {
       # There are no SVs, so create one big segment
-      print("No SVs")
+      print("No prior breakpoints found")
       startpos = BAFrawchr$Position[1]
       breakpoints = data.frame()
       
@@ -337,7 +337,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, svfile=NULL, ga
   }
   
   BAFraw = as.data.frame(read_baf(inputfile))
-  if (!is.null(svfile)) { svs = read.table(svfile, header=T, stringsAsFactors=F) } else { svs = NULL }
+  if (!is.null(prior_breakpoints_file)) { bkps = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F) } else { bkps = NULL }
   
   BAFoutput = NULL
   for (chr in unique(BAFraw[,1])) {
@@ -345,13 +345,13 @@ segment.baf.phased = function(samplename, inputfile, outputfile, svfile=NULL, ga
     BAFrawchr = BAFraw[BAFraw[,1]==chr,c(2,3)]
     # BAFrawchr = bafsegments[bafsegments$Chromosome==chr, c(2,3)]
     BAFrawchr = BAFrawchr[!is.na(BAFrawchr[,2]),]
-    if (!is.null(svs)) {
-      svs_chrom = svs[svs$chromosome==chr,]
+    if (!is.null(bkps)) {
+      bkps_chrom = bkps[bkps$chromosome==chr,]
     } else {
-      svs_chrom = data.frame(chromosome=character(), position=numeric())
+      bkps_chrom = data.frame(chromosome=character(), position=numeric())
     }
     
-    breakpoints_chrom = svs_to_presegment_breakpoints(chr, svs_chrom, BAFrawchr, addin_bigholes=T)
+    breakpoints_chrom = bkps_to_presegment_breakpoints(chr, bkps_chrom, BAFrawchr, addin_bigholes=T)
     BAFoutputchr = NULL
     
     for (r in 1:nrow(breakpoints_chrom)) {
@@ -368,7 +368,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, svfile=NULL, ga
                           title=paste(samplename,", chromosome ", chr, sep=""), 
                           xlab="Position (Mb)", 
                           ylab="BAF (phased)",
-                          svs_pos=svs_chrom$position/1000000)
+                          svs_pos=bkps_chrom$position/1000000)
     dev.off()
     
     png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
@@ -382,7 +382,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, svfile=NULL, ga
                     title=paste(samplename,", chromosome ", chr, sep=""), 
                     xlab="Position (Mb)", 
                     ylab="BAF (phased)",
-                    svs_pos=svs_chrom$position/1000000)
+                    svs_pos=bkps_chrom$position/1000000)
     dev.off()
     
     BAFoutputchr$BAFphased = ifelse(BAFoutputchr$tempBAFsegm>0.5, BAFoutputchr$BAF, 1-BAFoutputchr$BAF)
