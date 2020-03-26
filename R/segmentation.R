@@ -337,7 +337,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, svfile=NULL, ga
   }
   
   BAFraw = as.data.frame(read_baf(inputfile))
-  svs = ifelse(!is.null(svfile), read.table(svfile, header=T, stringsAsFactors=F), NULL)
+  if (!is.null(svfile)) { svs = read.table(svfile, header=T, stringsAsFactors=F) } else { svs = NULL }
   
   BAFoutput = NULL
   for (chr in unique(BAFraw[,1])) {
