@@ -228,7 +228,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                 output.figures.prefix=paste(tumourname,"_subclones_chr", sep=""), 
                 output.gw.figures.prefix=paste(tumourname,"_BattenbergProfile", sep=""),
                 masking_output_file=paste(tumourname, "_segment_masking_details.txt", sep=""),
-                sv_breakpoints_file="NA",
+		sv_breakpoints_file=prior_breakpoints_file,
                 chr_names=chrom_names, 
                 gamma=platform_gamma, 
                 segmentation.gamma=NA, 
