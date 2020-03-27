@@ -368,7 +368,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
                           title=paste(samplename,", chromosome ", chr, sep=""), 
                           xlab="Position (Mb)", 
                           ylab="BAF (phased)",
-                          svs_pos=bkps_chrom$position/1000000)
+                          prior_bkps_pos=bkps_chrom$position/1000000)
     dev.off()
     
     png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
@@ -382,7 +382,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
                     title=paste(samplename,", chromosome ", chr, sep=""), 
                     xlab="Position (Mb)", 
                     ylab="BAF (phased)",
-                    svs_pos=bkps_chrom$position/1000000)
+                    prior_bkps_pos=bkps_chrom$position/1000000)
     dev.off()
     
     BAFoutputchr$BAFphased = ifelse(BAFoutputchr$tempBAFsegm>0.5, BAFoutputchr$BAF, 1-BAFoutputchr$BAF)
