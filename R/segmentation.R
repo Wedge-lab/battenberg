@@ -307,6 +307,11 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
     }
     
     if (length(BAF) > 0) {
+      
+      #
+      # Note: When adding options, also add to merge_segments
+      #
+      
       # Recalculate the BAF of each segment, if required
       if (calc_seg_baf_option==1) {
         # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
@@ -324,7 +329,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
           BAFphseg = BAFphseg_median
         }
       } else {
-        warning("Supplied calc_seg_baf_option to segment.baf.phased.sv not valid, using mean BAF by default")
+        warning("Supplied calc_seg_baf_option to segment.baf.phased not valid, using mean BAF by default")
       }
     }
     
