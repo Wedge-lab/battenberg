@@ -6,8 +6,6 @@ This repository contains code for the whole genome sequencing subclonal copy num
 
 The instructions below will install the latest stable Battenberg version. Please take this approach only when you'd like to do something not covered by cgpBattenberg.
 
-### Standalone
-
 #### Prerequisites
 
 Installing from Github requires devtools and Battenberg requires readr, RColorBrewer and ASCAT. The pipeline requires doParallel. From the command line run:
