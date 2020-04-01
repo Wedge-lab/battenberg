@@ -4,8 +4,15 @@
 \alias{make_posthoc_plots}
 \title{Function to make additional figures}
 \usage{
-make_posthoc_plots(samplename, logr_file, subclones_file, rho_psi_file,
-  bafsegmented_file, logrsegmented_file, allelecounts_file = NULL)
+make_posthoc_plots(
+  samplename,
+  logr_file,
+  subclones_file,
+  rho_psi_file,
+  bafsegmented_file,
+  logrsegmented_file,
+  allelecounts_file = NULL
+)
 }
 \arguments{
 \item{samplename}{Name of the sample for the plot title}

@@ -4,8 +4,14 @@
 \alias{GetChromosomeBAFs_SNP6}
 \title{Morphs phased SNPs from SNP6 input into haplotype blocks}
 \usage{
-GetChromosomeBAFs_SNP6(chrom, alleleFreqFile, haplotypeFile, samplename,
-  outputfile, chr_names)
+GetChromosomeBAFs_SNP6(
+  chrom,
+  alleleFreqFile,
+  haplotypeFile,
+  samplename,
+  outputfile,
+  chr_names
+)
 }
 \arguments{
 \item{chrom}{The chromosome number for which this function should run.}

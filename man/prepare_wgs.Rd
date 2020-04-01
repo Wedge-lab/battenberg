@@ -4,10 +4,23 @@
 \alias{prepare_wgs}
 \title{Prepare WGS data for haplotype construction}
 \usage{
-prepare_wgs(chrom_names, tumourbam, normalbam, tumourname, normalname,
-  g1000allelesprefix, g1000prefix, gccorrectprefix, repliccorrectprefix,
-  min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth,
-  nthreads, skip_allele_counting)
+prepare_wgs(
+  chrom_names,
+  tumourbam,
+  normalbam,
+  tumourname,
+  normalname,
+  g1000allelesprefix,
+  g1000prefix,
+  gccorrectprefix,
+  repliccorrectprefix,
+  min_base_qual,
+  min_map_qual,
+  allelecounter_exe,
+  min_normal_depth,
+  nthreads,
+  skip_allele_counting
+)
 }
 \arguments{
 \item{chrom_names}{A vector containing the names of chromosomes to be included}

@@ -4,9 +4,17 @@
 \alias{generate.impute.input.wgs}
 \title{Prepare data for impute}
 \usage{
-generate.impute.input.wgs(chrom, tumour.allele.counts.file,
-  normal.allele.counts.file, output.file, imputeinfofile, is.male,
-  problemLociFile = NA, useLociFile = NA, heterozygousFilter = 0.1)
+generate.impute.input.wgs(
+  chrom,
+  tumour.allele.counts.file,
+  normal.allele.counts.file,
+  output.file,
+  imputeinfofile,
+  is.male,
+  problemLociFile = NA,
+  useLociFile = NA,
+  heterozygousFilter = 0.1
+)
 }
 \arguments{
 \item{chrom}{The chromosome for which impute input should be generated.}

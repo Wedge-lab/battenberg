@@ -4,9 +4,19 @@
 \alias{run_haplotyping}
 \title{Construct haplotypes for a chromosome}
 \usage{
-run_haplotyping(chrom, tumourname, normalname, ismale, imputeinfofile,
-  problemloci, impute_exe, min_normal_depth, chrom_names,
-  snp6_reference_info_file = NA, heterozygousFilter = NA)
+run_haplotyping(
+  chrom,
+  tumourname,
+  normalname,
+  ismale,
+  imputeinfofile,
+  problemloci,
+  impute_exe,
+  min_normal_depth,
+  chrom_names,
+  snp6_reference_info_file = NA,
+  heterozygousFilter = NA
+)
 }
 \arguments{
 \item{chrom}{The chromosome for which to reconstruct haplotypes}
