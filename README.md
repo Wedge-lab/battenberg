@@ -509,6 +509,10 @@ under impute2. It should be back compatible, so you can run impute2
 by setting usebeagle=FALSE. And it uses the same input files needed for the
 pipeline, i.e. 1000G loci/alleles + ref panel + prob loci + imputeinfo file etc.
 
+The map plink files for Beagle can be downloaded from:
+http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/
+
+
 ```
 BEAGLEJAR <- "$PATHTOBEAGLEFILES/beagle.24Aug19.3e8.jar"
 BEAGLEREF.template <- "$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"
