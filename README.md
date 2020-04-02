@@ -4,14 +4,14 @@ This repository contains code for the whole genome sequencing subclonal copy num
 
 ## Installation instructions
 
-The instructions below will install the latest stable Battenberg version. Please take this approach only when you'd like to do something not covered by cgpBattenberg.
+The instructions below will install the latest stable Battenberg version.
 
 #### Prerequisites
 
-Installing from Github requires devtools and Battenberg requires readr, RColorBrewer and ASCAT. The pipeline requires doParallel. From the command line run:
+Installing from Github requires devtools and Battenberg requires readr, splines, RColorBrewer and ASCAT, while the pipeline requires parallel and doParallel. From the command line run:
 
 ```
-R -q -e 'source("http://bioconductor.org/biocLite.R"); biocLite(c("devtools", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools"));'
+R -q -e 'source("http://bioconductor.org/biocLite.R"); biocLite(c("devtools", "splines", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools", "parallel"));'
 R -q -e 'devtools::install_github("Crick-CancerGenomics/ascat/ASCAT")'
 ```
 
@@ -25,7 +25,7 @@ R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
 
 #### Required reference files
 
-Battenberg requires reference files that can be downloaded from here: https://ora.ox.ac.uk/objects/uuid:2c1fec09-a504-49ab-9ce9-3f17bac531bc
+Battenberg requires reference files, for now for GRCh37 only, that can be downloaded from here: https://ora.ox.ac.uk/objects/uuid:2c1fec09-a504-49ab-9ce9-3f17bac531bc
 
 The bundle contains the following files:
 
