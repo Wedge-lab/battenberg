@@ -73,6 +73,17 @@ parse.imputeinfofile = function(imputeinfofile, is.male, chrom=NA) {
   return(impute.info)
 }
 
+#' Check impute info file consistency
+#' @param imputeinfofile Path to the imputeinfofile on disk.
+#' @author sd11
+check.imputeinfofile = function(imputeinfofile, is.male) {
+  impute.info = parse.imputeinfofile(imputeinfofile, is.male)
+  if (any(!file.exists(impute.info$impute_legend) | !file.exists(impute.info$genetic_map) | !file.exists(impute.info$impute_hap))) {
+    print("Could not find reference files, make sure paths in impute_info.txt point to the correct location")  
+    stop("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
+  }
+}
+
 #' Returns the chromosome names that are supported
 #' @param imputeinfofile Path to the imputeinfofile on disk.
 #' @param is.male A boolean describing whether the sample under study is male.
@@ -204,5 +215,5 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                       chr_names=chrom_names)
 
   # Cleanup temp Impute output
-  unlink(paste(tumourname, "_impute_output_chr", chrom, "*K.txt*", sep=""))
+  unlink(paste(tumourname, "_impute_output_chr", chrom, ".txt*K.txt*", sep=""))
 }

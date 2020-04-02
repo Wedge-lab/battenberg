@@ -4,11 +4,26 @@
 \alias{callSubclones}
 \title{Fit subclonal copy number}
 \usage{
-callSubclones(sample.name, baf.segmented.file, logr.file, rho.psi.file,
-  output.file, output.figures.prefix, output.gw.figures.prefix, chr_names,
-  masking_output_file, max_allowed_state = 250, sv_breakpoints_file = NULL,
-  gamma = 1, segmentation.gamma = NA, siglevel = 0.05, maxdist = 0.01,
-  noperms = 1000, seed = as.integer(Sys.time()), calc_seg_baf_option = 1)
+callSubclones(
+  sample.name,
+  baf.segmented.file,
+  logr.file,
+  rho.psi.file,
+  output.file,
+  output.figures.prefix,
+  output.gw.figures.prefix,
+  chr_names,
+  masking_output_file,
+  max_allowed_state = 250,
+  prior_breakpoints_file = NULL,
+  gamma = 1,
+  segmentation.gamma = NA,
+  siglevel = 0.05,
+  maxdist = 0.01,
+  noperms = 1000,
+  seed = as.integer(Sys.time()),
+  calc_seg_baf_option = 3
+)
 }
 \arguments{
 \item{sample.name}{Name of the sample, used in figures}
@@ -31,7 +46,7 @@ callSubclones(sample.name, baf.segmented.file, logr.file, rho.psi.file,
 
 \item{max_allowed_state}{The maximum CN state allowed (Default 100)}
 
-\item{sv_breakpoints_file}{A two column file with breakpoints from structural variants. These are used when making the figures}
+\item{prior_breakpoints_file}{A two column file with prior breakpoints, possibly from structural variants. This file must contain two columns: chromosome and position. These are used when making the figures}
 
 \item{gamma}{Technology specific scaling parameter for LogR (Default 1)}
 
@@ -45,7 +60,7 @@ callSubclones(sample.name, baf.segmented.file, logr.file, rho.psi.file,
 
 \item{seed}{Seed to set when performing bootstrapping (Default: Current time)}
 
-\item{calc_seg_baf_option}{Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)}
+\item{calc_seg_baf_option}{Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0|1, mean, median. (Default: 3)}
 }
 \description{
 This function fits a subclonal copy number profile where a clonal profile is unlikely.

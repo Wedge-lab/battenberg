@@ -4,8 +4,14 @@
 \alias{getAlleleCounts}
 \title{Obtain allele counts for 1000 Genomes loci through external program alleleCount}
 \usage{
-getAlleleCounts(bam.file, output.file, g1000.loci, min.base.qual = 20,
-  min.map.qual = 35, allelecounter.exe = "alleleCounter")
+getAlleleCounts(
+  bam.file,
+  output.file,
+  g1000.loci,
+  min.base.qual = 20,
+  min.map.qual = 35,
+  allelecounter.exe = "alleleCounter"
+)
 }
 \arguments{
 \item{bam.file}{A BAM alignment file on which the counter should be run.}

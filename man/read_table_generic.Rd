@@ -4,8 +4,15 @@
 \alias{read_table_generic}
 \title{Generic reading function using the readr R package, tailored for reading in genomic data}
 \usage{
-read_table_generic(file, header = T, row.names = F, stringsAsFactor = F,
-  sep = "\\t", chrom_col = 1, skip = 0)
+read_table_generic(
+  file,
+  header = T,
+  row.names = F,
+  stringsAsFactor = F,
+  sep = "\\t",
+  chrom_col = 1,
+  skip = 0
+)
 }
 \arguments{
 \item{file}{Filename of the file to read in}

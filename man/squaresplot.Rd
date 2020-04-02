@@ -4,8 +4,16 @@
 \alias{squaresplot}
 \title{Plot Battenberg copy number solutions for a segment}
 \usage{
-squaresplot(tumourname, run_dir, segment_chr, segment_pos, platform_gamma = 1,
-  pdf = 0, binwidth_baf = 0.25, xylimits = c(-0.2, 5))
+squaresplot(
+  tumourname,
+  run_dir,
+  segment_chr,
+  segment_pos,
+  platform_gamma = 1,
+  pdf = 0,
+  binwidth_baf = 0.25,
+  xylimits = c(-0.2, 5)
+)
 }
 \arguments{
 \item{tumourname}{Sample name}

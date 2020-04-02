@@ -4,8 +4,14 @@
 \alias{allele_ratio_plot}
 \title{Plot allele ratios from raw segmented data}
 \usage{
-allele_ratio_plot(samplename, bafsegmented, logrsegmented, outputfile, logr,
-  max.plot.cn = 5)
+allele_ratio_plot(
+  samplename,
+  bafsegmented,
+  logrsegmented,
+  outputfile,
+  logr,
+  max.plot.cn = 5
+)
 }
 \arguments{
 \item{samplename}{Name of the sample for the plot title}

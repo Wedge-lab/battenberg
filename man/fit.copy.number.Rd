@@ -4,12 +4,26 @@
 \alias{fit.copy.number}
 \title{Fit copy number}
 \usage{
-fit.copy.number(samplename, outputfile.prefix, inputfile.baf.segmented,
-  inputfile.baf, inputfile.logr, dist_choice, ascat_dist_choice,
-  min.ploidy = 1.6, max.ploidy = 4.8, min.rho = 0.1, max.rho = 1,
-  min.goodness = 63, uninformative_BAF_threshold = 0.51, gamma_param = 1,
-  use_preset_rho_psi = F, preset_rho = NA, preset_psi = NA,
-  read_depth = 30)
+fit.copy.number(
+  samplename,
+  outputfile.prefix,
+  inputfile.baf.segmented,
+  inputfile.baf,
+  inputfile.logr,
+  dist_choice,
+  ascat_dist_choice,
+  min.ploidy = 1.6,
+  max.ploidy = 4.8,
+  min.rho = 0.1,
+  max.rho = 1,
+  min.goodness = 63,
+  uninformative_BAF_threshold = 0.51,
+  gamma_param = 1,
+  use_preset_rho_psi = F,
+  preset_rho = NA,
+  preset_psi = NA,
+  read_depth = 30
+)
 }
 \arguments{
 \item{samplename}{Samplename used to name the segmented logr output file}

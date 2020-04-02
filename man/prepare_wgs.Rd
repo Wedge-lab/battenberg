@@ -4,9 +4,23 @@
 \alias{prepare_wgs}
 \title{Prepare WGS data for haplotype construction}
 \usage{
-prepare_wgs(chrom_names, tumourbam, normalbam, tumourname, normalname,
-  g1000allelesprefix, g1000prefix, gccorrectprefix, min_base_qual, min_map_qual,
-  allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting)
+prepare_wgs(
+  chrom_names,
+  tumourbam,
+  normalbam,
+  tumourname,
+  normalname,
+  g1000allelesprefix,
+  g1000prefix,
+  gccorrectprefix,
+  repliccorrectprefix,
+  min_base_qual,
+  min_map_qual,
+  allelecounter_exe,
+  min_normal_depth,
+  nthreads,
+  skip_allele_counting
+)
 }
 \arguments{
 \item{chrom_names}{A vector containing the names of chromosomes to be included}
@@ -24,6 +38,8 @@ prepare_wgs(chrom_names, tumourbam, normalbam, tumourname, normalname,
 \item{g1000prefix}{Prefix path to the 1000 Genomes SNP reference files}
 
 \item{gccorrectprefix}{Prefix path to GC content reference data}
+
+\item{repliccorrectprefix}{Prefix path to replication timing reference data (supply NULL if no replication timing correction is to be applied)}
 
 \item{min_base_qual}{Minimum base quality required for a read to be counted}
 
