@@ -1,9 +1,45 @@
 # Battenberg
------
 
-## Advised installation and running instructions
+This repository contains code for the whole genome sequencing subclonal copy number caller Battenberg, as described in [Nik-Zainal, Van Loo, Wedge, et al. (2012), Cell](https://www.ncbi.nlm.nih.gov/pubmed/22608083).
 
-Please visit the [cgpBattenberg page](https://github.com/cancerit/cgpBattenberg), download the code from there and run the ```setup.sh``` script. The ```battenberg.pl``` script can then be used to run the pipeline.
+## Installation instructions
+
+The instructions below will install the latest stable Battenberg version.
+
+#### Prerequisites
+
+Installing from Github requires devtools and Battenberg requires readr, splines, RColorBrewer and ASCAT, while the pipeline requires parallel and doParallel. From the command line run:
+
+```
+R -q -e 'source("http://bioconductor.org/biocLite.R"); biocLite(c("devtools", "splines", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools", "parallel"));'
+R -q -e 'devtools::install_github("Crick-CancerGenomics/ascat/ASCAT")'
+```
+
+#### Installation from Github
+
+To install Battenberg, run the following from the command line:
+
+```
+R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
+```
+
+#### Required reference files
+
+Battenberg requires reference files, for now for GRCh37 only, that can be downloaded from here: https://ora.ox.ac.uk/objects/uuid:2c1fec09-a504-49ab-9ce9-3f17bac531bc
+
+The bundle contains the following files:
+
+  * battenberg_1000genomesloci2012_v3.tar.gz
+  * battenberg_impute_1000G_v3.tar.gz
+  * probloci_270415.txt.gz
+  * battenberg_wgs_gc_correction_1000g_v3.tar.gz
+  * battenberg_wgs_replic_correction_1000g_v3.tar.gz
+  * battenberg_snp6_exe.tgz (SNP6 only)
+  * battenberg_snp6_ref.tgz (SNP6 only)
+  
+#### Pipeline
+
+Go into ```inst/example``` for example WGS and SNP6 R-only pipelines.
 
 ## Description of the output
 
@@ -63,48 +99,11 @@ Finally, a range of plots show intermediate steps and can occasionally be useful
 * `[samplename]_nonroundedprofile.png` shows the copy number profile without rounding to integers
 * `[samplename]_copynumberprofile.png` shows the copy number profile with (including subclonal copy number) rounding to integers
 
-## Advanced installation instructions
+## Advice for including structural variant breakpoints
 
-The instructions below will install the latest stable Battenberg version. Please take this approach only when you'd like to do something not covered by cgpBattenberg.
+Battenberg can take prior breakpoints, from structural variants (SVs) for example, as input. SV breakpoints are typically much more precise and a pair of SVs can be closer together then what typically can be obtained from a BAF or coverage track. It is therefore adventageous to include prior breakpoints in a Battenberg run. However, including too many (as in 100s) incorrect breakpoints can have adverse effects by allowing many small segments to be affected by noise where there isn't any signal and increasing the runtime of the pipeline. It is therefore advised to `filter prior breakpoints from SVs such that the genome is slightly oversegmented.` Finally, some SV types, such as inversions, do not constitute a change in copy number and therefore also add breakpoints that should not be considered. It is therefore also advised to `filter breakpoints from SVs that do not cause a change in copynumber, such as inversions`.
 
-### Standalone
-
-#### Prerequisites
-
-Installing from Github requires devtools and Battenberg requires readr, RColorBrewer and ASCAT. The pipeline requires doParallel. From the command line run:
-
-```
-R -q -e 'source("http://bioconductor.org/biocLite.R"); biocLite(c("devtools", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools"));'
-R -q -e 'devtools::install_github("Crick-CancerGenomics/ascat/ASCAT")'
-```
-
-#### Installation from Github
-
-To install Battenberg, run the following from the command line:
-
-```
-R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
-```
-
-#### Required reference files
-
-Battenberg requires reference files that can be downloaded from here: https://ora.ox.ac.uk/objects/uuid:2c1fec09-a504-49ab-9ce9-3f17bac531bc
-
-The bundle contains the following files:
-
-  * battenberg_1000genomesloci2012_v3.tar.gz
-  * battenberg_impute_1000G_v3.tar.gz
-  * probloci_270415.txt.gz
-  * battenberg_wgs_gc_correction_1000g_v3.tar.gz
-  * battenberg_wgs_replic_correction_1000g_v3.tar.gz
-  * battenberg_snp6_exe.tgz (SNP6 only)
-  * battenberg_snp6_ref.tgz (SNP6 only)
-  
-#### Pipeline
-
-Go into ```inst/example``` for example WGS and SNP6 R-only pipelines.
-
-### Docker - experimental
+## Docker - experimental
 
 Battenberg can be run inside a Docker container. Please follow the instructions below.
 
@@ -124,7 +123,6 @@ First, download the Battenberg reference data from the URL provided further in t
 /opt/battenberg_reference/1000genomes_2012_v3_impute/ALL_1000G_phase1integrated_v3_chr1_impute.legend
 ```
 
-
 #### Run interactively
 
 These commands run the Battenberg pipeline within a Docker container in interactive mode. This command assumes the data is available locally in `$PWD/data/pcawg/HCC1143_ds` and the reference files have been placed in `$PWD/battenberg_reference`
@@ -136,7 +134,7 @@ docker run -it -v `pwd`/data/pcawg/HCC1143_ds:/mnt/battenberg/ -v `pwd`/battenbe
 Within the Docker terminal run the pipeline, in this case on the ICGC PCAWG testing data available [here](https://s3-eu-west-1.amazonaws.com/wtsi-pancancer/testdata/HCC1143_ds.tar).
 
 ```
-R CMD BATCH '--no-restore-data --no-save --args HCC1143 HCC1143_BL /mnt/battenberg/HCC1143_BL.bam /mnt/battenberg/HCC1143.bam FALSE /mnt/battenberg/' /usr/local/bin/battenberg_wgs.R /mnt/battenberg/battenberg.Rout
+R CMD BATCH '--no-restore-data --no-save --args -t HCC1143 -n HCC1143_BL --nb /mnt/battenberg/HCC1143_BL.bam --tb /mnt/battenberg/HCC1143.bam --sex female -o /mnt/battenberg/' /usr/local/bin/battenberg_wgs.R /mnt/battenberg/battenberg.Rout
 ```
   
 ### Building a release

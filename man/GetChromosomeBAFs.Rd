@@ -4,8 +4,15 @@
 \alias{GetChromosomeBAFs}
 \title{Morphs phased SNPs from WGS input into haplotype blocks}
 \usage{
-GetChromosomeBAFs(chrom, SNP_file, haplotypeFile, samplename, outfile,
-  chr_names, minCounts = 1)
+GetChromosomeBAFs(
+  chrom,
+  SNP_file,
+  haplotypeFile,
+  samplename,
+  outfile,
+  chr_names,
+  minCounts = 1
+)
 }
 \arguments{
 \item{chrom}{The chromosome number for which this function is called.}

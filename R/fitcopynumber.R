@@ -197,18 +197,19 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param chr_names Vector of allowed chromosome names
 #' @param masking_output_file Filename of where the masking details need to be written. Masking is performed to remove very high copy number state segments
 #' @param max_allowed_state The maximum CN state allowed (Default 100)
-#' @param sv_breakpoints_file A two column file with breakpoints from structural variants. These are used when making the figures
+#' @param prior_breakpoints_file A two column file with prior breakpoints, possibly from structural variants. This file must contain two columns: chromosome and position. These are used when making the figures
 #' @param gamma Technology specific scaling parameter for LogR (Default 1)
 #' @param segmentation.gamma Legacy parameter that is no longer used (Default NA)
 #' @param siglevel Threshold under which a p-value becomes significant. When it is significant a second copy number state will be fitted (Default 0.05)
 #' @param maxdist Slack in BAF space to allow a segment to be off it's optimum before becoming significant. A segment becomes significant very quickly when a breakpoint is missed, this parameter alleviates the effect (Default 0.01)
 #' @param noperms The number of permutations to be run when bootstrapping the confidence intervals on the copy number state of each segment (Default 1000)
 #' @param seed Seed to set when performing bootstrapping (Default: Current time)
-#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
+#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0|1, mean, median. (Default: 3)
 #' @author dw9, sd11
 #' @export
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, sv_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=1) {
 
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, prior_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=3) {
+  
   set.seed(seed)
 
   # Load rho/psi/goodness of fit
@@ -283,8 +284,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ################################################################################################
   # Collapse the BAFsegmented into breakpoints to be used in plotting
   segment_breakpoints = collapse_bafsegmented_to_segments(BAFvals)
-  if (!is.null(sv_breakpoints_file) & !ifelse(is.null(sv_breakpoints_file), TRUE, sv_breakpoints_file=="NA") & !ifelse(is.null(sv_breakpoints_file), TRUE, is.na(sv_breakpoints_file))) {
-    svs = read.table(sv_breakpoints_file, header=T, stringsAsFactors=F)
+  if (!is.null(prior_breakpoints_file) & !ifelse(is.null(prior_breakpoints_file), TRUE, prior_breakpoints_file=="NA") & !ifelse(is.null(prior_breakpoints_file), TRUE, is.na(prior_breakpoints_file))) {
+    svs = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F)
   }
 
   # Create a plot per chromosome that shows the segments with their CN state in text
@@ -292,8 +293,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     pos = SNPpos[SNPpos[,1]==chr, 2]
     #if no points to plot, skip
     if (length(pos)==0) { next }
-
-    if (!is.null(sv_breakpoints_file) & !ifelse(is.null(sv_breakpoints_file), TRUE, sv_breakpoints_file=="NA") & !ifelse(is.null(sv_breakpoints_file), TRUE, is.na(sv_breakpoints_file))) {
+    
+    if (!is.null(prior_breakpoints_file) & !ifelse(is.null(prior_breakpoints_file), TRUE, prior_breakpoints_file=="NA") & !ifelse(is.null(prior_breakpoints_file), TRUE, is.na(prior_breakpoints_file))) {
       svs_pos = svs[svs$chromosome==chr,]$position / 1000000
     } else {
       svs_pos = NULL
@@ -529,13 +530,13 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
 #' @param rho The rho estimate that the profile was fit with
 #' @param psi the psi estimate that the profile was fit with
 #' @param platform_gamma The gamma parameter for this platform
-#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
+#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median== 0|1, mean, median. (Default: 3)
 #' @return A list with two fields: bafsegmented and subclones. The subclones field contains a data.frame in
 #' Battenberg output format with the merged segments. The bafsegmented field contains the BAFsegmented data
 #' corresponding to the provided subclones data.frame.
 #' @author sd11
 #' @noRd
-merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamma, calc_seg_baf_option=1) {
+merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamma, calc_seg_baf_option=3) {
   subclones_cleaned = data.frame()
   merged = T
   counter = 1
@@ -583,15 +584,34 @@ merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamm
         new_entry = data.frame(subclones[i-1,])
         new_entry$endpos = subclones[i,]$endpos
 
+        #
+        # Note: When adding options, also add to segment.baf.phased
+        #
         if (calc_seg_baf_option==1) {
           new_entry$BAF = median(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]],
                                  bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
-        } else if (calc_seg_baf_option==2 | ! calc_seg_baf_option %in% c(1,2)) {
-          new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]],
+
+        } else if (calc_seg_baf_option==2) {
+          new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
                                    bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
-          if (! calc_seg_baf_option %in% c(1,2)) {
-            warning("Supplied calc_seg_baf_option to callSubclones not valid, using mean BAF by default")
+        } else if (calc_seg_baf_option==3) {
+          mean_baf = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
+                            bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
+          median_baf = median(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
+                                bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
+          # We'll prefer the median BAF as a segment summary
+          # but change to the mean when the median is extreme
+          # as at 0 or 1 the BAF is uninformative for the fitting
+          if (median_baf!=0 & mean_baf!=1) {
+            new_entry$BAF = median_baf
+          } else {
+            new_entry$BAF = mean_baf
           }
+        } else {
+          warning("Supplied calc_seg_baf_option to callSubclones not valid, using mean BAF by default")
+          # The mean is taken here as that has originally been the default. This behaviour is consistent with the segmentation functions
+          new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
+                                 bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
         }
 
         new_entry$LogR = mean(c(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3],

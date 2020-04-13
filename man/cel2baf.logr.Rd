@@ -4,11 +4,15 @@
 \alias{cel2baf.logr}
 \title{Transform cel files into BAF and LogR}
 \usage{
-cel2baf.logr(normal_cel_file, tumour_cel_file, output_file,
+cel2baf.logr(
+  normal_cel_file,
+  tumour_cel_file,
+  output_file,
   snp6_reference_info_file,
   apt.probeset.genotype.exe = "apt-probeset-genotype",
   apt.probeset.summarize.exe = "apt-probeset-summarize",
-  norm.geno.clust.exe = "normalize_affy_geno_cluster.pl")
+  norm.geno.clust.exe = "normalize_affy_geno_cluster.pl"
+)
 }
 \arguments{
 \item{normal_cel_file}{String that points to the cel file containing the matched normal data}
