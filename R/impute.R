@@ -76,11 +76,18 @@ parse.imputeinfofile = function(imputeinfofile, is.male, chrom=NA) {
 #' Check impute info file consistency
 #' @param imputeinfofile Path to the imputeinfofile on disk.
 #' @author sd11
-check.imputeinfofile = function(imputeinfofile, is.male) {
+check.imputeinfofile = function(imputeinfofile, is.male, usebeagle) {
   impute.info = parse.imputeinfofile(imputeinfofile, is.male)
-  if (any(!file.exists(impute.info$impute_legend) | !file.exists(impute.info$genetic_map) | !file.exists(impute.info$impute_hap))) {
-    print("Could not find reference files, make sure paths in impute_info.txt point to the correct location")  
-    stop("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
+  if (usebeagle){
+    if (any(!file.exists(impute.info$impute_legend))) {
+      print("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
+      stop("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
+    }
+  } else {
+    if (any(!file.exists(impute.info$impute_legend) | !file.exists(impute.info$genetic_map) | !file.exists(impute.info$impute_hap))) {
+      print("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
+      stop("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
+    }
   }
 }
 
@@ -289,7 +296,7 @@ run.beagle5 = function(beaglejar,
 #' @param beagleoverlap Integer size of the overlap between windows beagle5 Default:4
 #' @author sd11, maxime.tarabichi
 #' @export
-run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names,
+run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names, externalhaplotype,
                            snp6_reference_info_file=NA, heterozygousFilter=NA,
                            usebeagle=FALSE,
                            beaglejar=NA,
@@ -394,12 +401,29 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                            outputfile=paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                            chr_names=chrom_names)
   }
-
+  
   # Plot what we have until this point
   plot.haplotype.data(haplotyped.baf.file=paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                       imageFileName=paste(tumourname,"_chr",chrom,"_heterozygousData.png",sep=""),
                       samplename=tumourname,
                       chrom=chrom,
                       chr_names=chrom_names)
+  
+  # if present, input external haplotype blocks
+  if (externalhaplotype) {
+    
+    input_known_haplotypes(chrom = chrom,
+                           chrom_names = chrom_names,
+                           imputedHaplotypeFile = paste0(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt"),
+                           externalHaplotypeFile = paste0(tumourname, "_external_haplotypes_chr", chrom, ".vcf"))
+    
+    # Plot what we have after external haplotypes also
+    plot.haplotype.data(haplotyped.baf.file=paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
+                        imageFileName=paste(tumourname,"_chr",chrom,"_heterozygousData_withexternalhaplo.png",sep=""),
+                        samplename=tumourname,
+                        chrom=chrom,
+                        chr_names=chrom_names)
+  }
+
 
 }

@@ -50,13 +50,14 @@
 #' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
 #' @param heterozygousFilter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
 #' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
+#' @param externalhaplotypefile Vcf containing externally obtained haplotype blocks (Default: NA)
 #' @author sd11
 #' @export
 battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, gccorrectprefix=NULL,
                       repliccorrectprefix=NULL, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
                       segmentation_gamma=10, segmentation_kmin=3, phasing_kmin=1, clonality_dist_metric=0, ascat_dist_metric=1, min_ploidy=1.6,
                       max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20,
-                      min_map_qual=35, calc_seg_baf_option=3, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F,
+                      min_map_qual=35, calc_seg_baf_option=3, skip_allele_counting=F, skip_preprocessing=F, skip_phasing=F, externalhaplotypefile = NA,
                       usebeagle=FALSE,
                       beaglejar=NA,
                       beagleref.template=NA,
@@ -94,7 +95,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   }
 
   # check whether the impute_info.txt file contains correct paths
-  check.imputeinfofile(imputeinfofile, ismale)
+  check.imputeinfofile(imputeinfofile = imputeinfofile, ismale = ismale, usebeagle = usebeagle)
 
   if (data_type=="wgs" | data_type=="WGS") {
     chrom_names = get.chrom.names(imputeinfofile, ismale)
@@ -154,8 +155,19 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     gender = infer_gender_birdseed(birdseed_report_file)
     ismale = gender == "male"
   }
+  
 
   if (!skip_phasing) {
+    
+    # if external phasing data is provided (as a vcf), split into chromosomes for use in haplotype reconstruction
+    externalhaplotype <- !is.na(externalhaplotypefile) && file.exists(externalhaplotypefile)
+    if (externalhaplotype) {
+      print(paste0("Splitting external phasing data from ", externalhaplotypefile))
+      split_input_haplotypes(chrom_names = chrom_names,
+                             externalHaplotypeFile = externalHaplotypeFile,
+                             outprefix = paste0(tumourname, "_external_haplotypes_chr"))
+    }
+    
     # Setup for parallel computing
     clp = parallel::makeCluster(nthreads)
     doParallel::registerDoParallel(clp)
@@ -183,7 +195,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       beaglemaxmem=beaglemaxmem,
                       beaglenthreads=beaglenthreads,
                       beaglewindow=beaglewindow,
-                      beagleoverlap=beagleoverlap)
+                      beagleoverlap=beagleoverlap,
+                      externalhaplotype=externalhaplotype)
     }#, mc.cores=nthreads)
 
     # Kill the threads as from here its all single core
@@ -206,6 +219,15 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                      kmin=segmentation_kmin,
                      phasekmin=phasing_kmin,
                      calc_seg_baf_option=calc_seg_baf_option)
+  
+  # Write the Battenberg phasing information to disk as a vcf
+  write.battenberg.phasing(tumourname = tumourname,
+                           SNPfiles = paste0(tumourname, "_alleleFrequencies_chr", 1:length(chrom_names), ".txt"),
+                           imputedHaplotypeFiles = paste0(tumourname, "_impute_output_chr", 1:length(chrom_names), "_allHaplotypeInfo.txt"),
+                           bafsegmented_file = paste0(tumourname, ".BAFsegmented.txt"),
+                           outprefix = paste0(tumourname, "_Battenberg_phased_chr"),
+                           chrom_names = chrom_names,
+                           include_homozygous = F)
 
   # Fit a clonal copy number profile
   fit.copy.number(samplename=tumourname,
