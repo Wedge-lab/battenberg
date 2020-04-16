@@ -81,13 +81,26 @@ read_imputed_output = function(filename) {
   return(readr::read_tsv(file = filename, col_names = c("snpidx", "rsidx", "pos", "ref", "alt", "hap1", "hap2"), col_types = "cciccii"))
 }
 
-#' Parser for imputed genotype data
+#' Parser for allele frequencies data
 #' @param filename Filename of the file to read in
-#' @return A data frame with the imputed genotype output
+#' @return A data frame with the alleleCounter output
 read_alleleFrequencies = function(filename) {
   return(readr::read_tsv(file = filename, col_names = c("CHR", "POS", "Count_A", "Count_C", "Count_G", "Count_T", "Good_depth"), col_types = "ciiiiii", comment = "#"))
 }
 
+#' Parser for impute input data
+#' @param filename Filename of the file to read in
+#' @return A data frame with the input for impute
+read_impute_input = function(filename) {
+  return(readr::read_tsv(file = filename, col_names = F, col_types = "ccicciii"))
+}
+
+#' Parser for beagle5 output data
+#' @param filename Filename of the file to read in
+#' @return A data frame with the beagle5 output
+read_beagle_output = function(filename) {
+  return(readr::read_tsv(file = filename, col_names = c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "SAMP001"), col_types = "cicccccccc", comment = "#"))
+}
 
 
 ########################################################################################

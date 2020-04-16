@@ -95,7 +95,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   }
 
   # check whether the impute_info.txt file contains correct paths
-  check.imputeinfofile(imputeinfofile = imputeinfofile, ismale = ismale, usebeagle = usebeagle)
+  check.imputeinfofile(imputeinfofile = imputeinfofile, is.male = ismale, usebeagle = usebeagle)
 
   if (data_type=="wgs" | data_type=="WGS") {
     chrom_names = get.chrom.names(imputeinfofile, ismale)
@@ -161,10 +161,10 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     
     # if external phasing data is provided (as a vcf), split into chromosomes for use in haplotype reconstruction
     externalhaplotype <- !is.na(externalhaplotypefile) && file.exists(externalhaplotypefile)
-    if (externalhaplotype) {
+    if (externalhaplotype & any(!file.exists(paste0(tumourname, "_external_haplotypes_chr", 1:length(chrom_names), ".vcf")))) {
       print(paste0("Splitting external phasing data from ", externalhaplotypefile))
       split_input_haplotypes(chrom_names = chrom_names,
-                             externalHaplotypeFile = externalHaplotypeFile,
+                             externalhaplotypefile = externalhaplotypefile,
                              outprefix = paste0(tumourname, "_external_haplotypes_chr"))
     }
     
@@ -221,7 +221,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                      calc_seg_baf_option=calc_seg_baf_option)
   
   # Write the Battenberg phasing information to disk as a vcf
-  write.battenberg.phasing(tumourname = tumourname,
+  write_battenberg_phasing(tumourname = tumourname,
                            SNPfiles = paste0(tumourname, "_alleleFrequencies_chr", 1:length(chrom_names), ".txt"),
                            imputedHaplotypeFiles = paste0(tumourname, "_impute_output_chr", 1:length(chrom_names), "_allHaplotypeInfo.txt"),
                            bafsegmented_file = paste0(tumourname, ".BAFsegmented.txt"),

@@ -145,9 +145,9 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
 convert.impute.input.to.beagle.input = function(imputeinput,
                                                 chrom)
 {
-    require(data.table)
+    # require(data.table)
     chrom <- if(chrom=="23") "X" else chrom
-    inp <- as.data.frame(fread(imputeinput))
+    inp <- read_impute_input(imputeinput)
     coln <- c("#CHROM",
               "POS",
               "ID",
@@ -157,7 +157,7 @@ convert.impute.input.to.beagle.input = function(imputeinput,
               "FILTER",
               "INFO",
               "FORMAT",
-              paste0("SAMP001"))
+              "SAMP001")
     vcf <- cbind(rep(chrom,nrow(inp)),
                  inp[,3],
                  rep(".",nrow(inp)),
@@ -213,7 +213,7 @@ writevcf.beagle = function(vcf,
 writebeagle.as.impute = function(vcf,
                                  outfile)
 {
-    beagleout <- as.data.frame(data.table::fread(vcf))
+    beagleout <- read_beagle_output(vcf)
     haplotypes <- strsplit(beagleout[,10],split="\\|")
     dt <- cbind(paste0("snp_index",1:nrow(beagleout)),
                 paste0("rs_index",1:nrow(beagleout)),
@@ -411,7 +411,7 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
   
   # if present, input external haplotype blocks
   if (externalhaplotype) {
-    
+    print("Adding in the external haplotype blocks")
     input_known_haplotypes(chrom = chrom,
                            chrom_names = chrom_names,
                            imputedHaplotypeFile = paste0(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt"),

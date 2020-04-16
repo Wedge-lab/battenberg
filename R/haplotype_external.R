@@ -5,14 +5,14 @@
 #' @param outprefix Full path and prefix of the output files
 #' @author jdemeul
 #' @export
-split_input_haplotypes <- function(chrom_names, externalHaplotypeFile=NA, outprefix) {
+split_input_haplotypes <- function(chrom_names, externalhaplotypefile=NA, outprefix) {
+
+  if (is.na(externalhaplotypefile)) return(NULL)
   
-  if (is.na(externalHaplotypeFile)) return(NULL)
+  hetsnps <- VariantAnnotation::readVcf(file = externalhaplotypefile,
+                     param = VariantAnnotation::ScanVcfParam(fixed = "ALT", info = NA, geno = c("GT", "PS"), trimEmpty = T))
   
-  hetsnps <- VariantAnnotation::readVcf(file = externalHaplotypeFile,
-                     param = ScanVcfParam(fixed = "ALT", info = NA, geno = c("GT", "PS"), trimEmpty = T))
-  
-  hetsnps <- split(x = hetsnps, f = seqnames(hetsnps))
+  hetsnps <- split(x = hetsnps, f = GenomicRanges::seqnames(hetsnps))
   hetsnps <- hetsnps[chrom_names]
   
   lapply(X = 1:length(chrom_names), FUN = function(idx, chrom_names, snps, outbase) {
@@ -32,40 +32,40 @@ split_input_haplotypes <- function(chrom_names, externalHaplotypeFile=NA, outpre
 #' @author jdemeul
 #' @export
 input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, externalHaplotypeFile=NA) {
-  
+
   if (is.na(externalHaplotypeFile)) return(NULL)
   
   # read BB phasing input
   bbphasin <- read_imputed_output(file = imputedHaplotypeFile)
   
   # turn into GRanges and subset for het SNPs
-  bbphasingr <- GRanges(seqnames = rep(chrom_names[chrom], nrow(bbphasin)), ranges = IRanges(start = bbphasin$pos, width = 1))
+  bbphasingr <- GenomicRanges::GRanges(seqnames = rep(chrom_names[chrom], nrow(bbphasin)), ranges = IRanges::IRanges(start = bbphasin$pos, width = 1))
   S4Vectors::mcols(bbphasingr) <- bbphasin[, c("alt", "hap1", "hap2")]
   bbphasingr <- bbphasingr[which(xor(bbphasingr$hap1 == 1, bbphasingr$hap2 == 1))]
   
   # load vcf containing external haplotyped variants
   hetsnps <- suppressWarnings(VariantAnnotation::readVcf(file = externalHaplotypeFile,
-                                      param = ScanVcfParam(fixed = "ALT", info = NA, geno = c("GT", "PS"), trimEmpty = T)))
+                                      param = VariantAnnotation::ScanVcfParam(fixed = "ALT", info = NA, geno = c("GT", "PS"), trimEmpty = T)))
   
   # subset to phased het SNPs on chrom & drop any multiallelic var & indels if present
-  hetsnps <- hetsnps[which(geno(hetsnps)$GT %in% c("0|1", "1|0"))]
-  hetsnps <- hetsnps[which(lengths(alt(hetsnps)) == 1)]
-  hetsnps <- hetsnps[which(nchar(ref(hetsnps)) == 1 & unlist(nchar(alt(hetsnps))) == 1)]
+  hetsnps <- hetsnps[which(VariantAnnotation::geno(hetsnps)$GT %in% c("0|1", "1|0"))]
+  hetsnps <- hetsnps[which(lengths(VariantAnnotation::alt(hetsnps)) == 1)]
+  hetsnps <- hetsnps[which(S4Vectors::nchar(VariantAnnotation::ref(hetsnps)) == 1 & unlist(S4Vectors::nchar(VariantAnnotation::alt(hetsnps))) == 1)]
   
   # e.g. if no phasing on X, no need to continue
   if (length(hetsnps) == 0) return(NULL)
   
   # match Battenberg het SNPs with those in external file
-  snvoverlaps <- findOverlaps(query = bbphasingr, subject = hetsnps, type = "equal")
+  snvoverlaps <- GenomicRanges::findOverlaps(query = bbphasingr, subject = hetsnps, type = "equal")
   # and make sure we're phasing the same REF/ALT alleles (ref will always be the same)
-  snvoverlaps_sub <- snvoverlaps[which(bbphasingr[queryHits(snvoverlaps)]$alt ==
-                                         as.character(unlist(alt(hetsnps[subjectHits(snvoverlaps)]))))]
+  snvoverlaps_sub <- snvoverlaps[which(bbphasingr[S4Vectors::queryHits(snvoverlaps)]$alt ==
+                                         as.character(unlist(VariantAnnotation::alt(hetsnps[S4Vectors::subjectHits(snvoverlaps)]))))]
   
   # add the corresponding phaseblocks (PS) and genotypes (GT)
   bbphasingr$PS <- vector(mode = "integer", length = length(bbphasingr))
   bbphasingr$GT <- vector(mode = "character", length = length(bbphasingr))
-  bbphasingr[queryHits(snvoverlaps)]$PS <- geno(hetsnps[subjectHits(snvoverlaps)])$PS
-  bbphasingr[queryHits(snvoverlaps)]$GT <- geno(hetsnps[subjectHits(snvoverlaps)])$GT
+  bbphasingr[S4Vectors::queryHits(snvoverlaps)]$PS <- VariantAnnotation::geno(hetsnps[S4Vectors::subjectHits(snvoverlaps)])$PS
+  bbphasingr[S4Vectors::queryHits(snvoverlaps)]$GT <- VariantAnnotation::geno(hetsnps[S4Vectors::subjectHits(snvoverlaps)])$GT
   
   # extract external haplotype 1 and match to imputed haplotypes
   bbphasingr$hap1_10X <- substr(bbphasingr$GT, start = 1, stop = 1)
@@ -73,22 +73,22 @@ input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, exte
   
   # complete and extend the known haplotype blocks
   # by transfering imputed haplotypes to nearest non-phased het SNPs
-  bbphasingr <- split(x = bbphasingr, f = bbphasingr$hap1_10X != "")
+  bbphasingr <- GenomicRanges::GRangesList(split(x = bbphasingr, f = bbphasingr$hap1_10X != ""), compress = F)
   nearestidxs <- GenomicRanges::nearest(x = bbphasingr$'FALSE', subject = bbphasingr$'TRUE', select = "arbitrary")
   bbphasingr$'FALSE'$isH1 <- bbphasingr$'TRUE'$isH1[nearestidxs]
   bbphasingr$'FALSE'$PS <- bbphasingr$'TRUE'$PS[nearestidxs]
-  bbphasingr <- sort(unlist(bbphasingr, use.names = F))
+  bbphasingr <- GenomicRanges::sort(unlist(bbphasingr, use.names = F))
   
   # build final haplotypes by flipping blocks according to imputation
   # last haplotype assignment of first block must match first haplotype assignment of second block
-  psrle <- Rle(bbphasingr$PS)
-  flip <- cumsum(c(F, bbphasingr$isH1[start(psrle)[-1]] == bbphasingr$isH1[end(psrle)[-nrun(psrle)]])) %% 2
-  runValue(psrle) <- flip
+  psrle <- S4Vectors::Rle(bbphasingr$PS)
+  flip <- cumsum(c(F, bbphasingr$isH1[S4Vectors::start(psrle)[-1]] == bbphasingr$isH1[S4Vectors::end(psrle)[-S4Vectors::nrun(psrle)]])) %% 2
+  S4Vectors::runValue(psrle) <- flip
   bbphasingr$isH1 <- ifelse(as.vector(psrle, mode = "logical"), !bbphasingr$isH1, bbphasingr$isH1)
   bbphasingr$hapfinal <- ifelse(bbphasingr$isH1, bbphasingr$hap1, bbphasingr$hap2)
   
   # reinsert the phased het SNP haplotypes into the total chromosomal haplotypes
-  matchidxs <- match(x = start(bbphasingr), table = bbphasin$pos)
+  matchidxs <- match(x = GenomicRanges::start(bbphasingr), table = bbphasin$pos)
   bbphasin[matchidxs, "hap1"] <- bbphasingr$hapfinal
   bbphasin[matchidxs, "hap2"] <- abs(bbphasin[matchidxs, "hap1"] - 1)
   
@@ -111,7 +111,7 @@ input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, exte
 #' @param include_homozygous Include homozygous SNPs in the output vcf file
 #' @author jdemeul
 #' @export
-write.battenberg.phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles, bafsegmented_file, outprefix, chrom_names, include_homozygous = F) {
+write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles, bafsegmented_file, outprefix, chrom_names, include_homozygous = F) {
   
   bafsegmented <- read_bafsegmented(bafsegmented_file)[, c("Chromosome", "Position", "BAFphased", "BAFseg")]
   bafsegmented <- split(x = bafsegmented[, c("Position", "BAFphased", "BAFseg")], f = bafsegmented$Chromosome)
@@ -136,7 +136,7 @@ write.battenberg.phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
     merge_data <- merge(x = merge_data, y = bafsegmented[[chrom_names[chrom]]], by.x = "pos", by.y = "Position",
                         all.x = include_homozygous, sort = T)
     
-    bbphasing_vr <- VariantAnnotation::VRanges(seqnames = merge_data$CHR, ranges = IRanges(start = merge_data$pos, width = 1),
+    bbphasing_vr <- VariantAnnotation::VRanges(seqnames = merge_data$CHR, ranges = IRanges::IRanges(start = merge_data$pos, width = 1),
                             ref = merge_data$ref, alt = merge_data$alt, 
                             totalDepth = merge_data$ref_count+merge_data$alt_count,
                             refDepth = merge_data$ref_count, altDepth = merge_data$alt_count)
@@ -152,7 +152,7 @@ write.battenberg.phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
     phasedidx <- which(merge_data$BAFseg > 0.525)
     if (length(phasedidx) > 0) {
       hetsegrle <- Rle(merge_data$BAFseg[phasedidx])
-      S4Vectors::mcols(bbphasing_vr)$PS[phasedidx] <- rep(start(bbphasing_vr)[phasedidx][start(hetsegrle)], runLength(hetsegrle))
+      S4Vectors::mcols(bbphasing_vr)$PS[phasedidx] <- rep(start(bbphasing_vr)[phasedidx][start(hetsegrle)], S4Vectors::runLength(hetsegrle))
       
       if (length(phasedidx) < nrow(merge_data)) {
         S4Vectors::mcols(bbphasing_vr)$PS[-phasedidx] <- S4Vectors::mcols(bbphasing_vr)$PS[phasedidx][GenomicRanges::nearest(x = bbphasing_vr[-phasedidx], subject = bbphasing_vr[phasedidx], select = "arbitrary")]
@@ -160,7 +160,7 @@ write.battenberg.phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
     }
     
     # write out vcf
-    sampleNames(bbphasing_vr) <- tumourname
+    VariantAnnotation::sampleNames(bbphasing_vr) <- tumourname
     
     VariantAnnotation::writeVcf(obj = bbphasing_vr, filename = paste0(outprefix, chrom, ".vcf"), index = F)
     
@@ -192,14 +192,14 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, rela
   
   # get common hetSNP loci
   temp <- do.call(c, lapply(X = vcfs, FUN = rowRanges))
-  commonloci <- unique(names(which(countOverlaps(query = temp, type = "equal", drop.self = F, drop.redundant = F) == length(vcfs))))
-  vcfs_common <- lapply(X = vcfs, FUN = function(x, commonloci) sort(x[commonloci]), commonloci = commonloci)
+  commonloci <- unique(names(which(GenomicRanges::countOverlaps(query = temp, type = "equal", drop.self = F, drop.redundant = F) == length(vcfs))))
+  vcfs_common <- lapply(X = vcfs, FUN = function(x, commonloci) GenomicRanges::sort(x[commonloci]), commonloci = commonloci)
   
   # clean up
   rm(vcfs, temp, commonloci)
   
   # go through each vcf and add relevant columns as appropriate
-  loci <- rowRanges(vcfs_common[[1]])
+  loci <- GenomicRan ::rowRanges(vcfs_common[[1]])
   for (vcfidx in 1:length(vcfs_common)) {
     # add the genotype, BAF and phaseblock info for each sample to all common loci
     singlevcf <- vcfs_common[[vcfidx]]
@@ -253,7 +253,7 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, rela
   }
   
   # write out the joint phasing
-  jointphasing_vr <- VRanges(seqnames = seqnames(loci), ranges = ranges(loci), ref = loci$REF, alt = unlist(loci$ALT))
+  jointphasing_vr <- VariantAnnotation::VRanges(seqnames = GenomicRanges::seqnames(loci), ranges = GenomicRanges::ranges(loci), ref = loci$REF, alt = unlist(loci$ALT))
   
   # assign the genotypes based on flipping of individual BAF values in regions of allelic imbalance according to BAFseg
   S4Vectors::mcols(jointphasing_vr)$GT <- paste0(haplovect, "|", ifelse(haplovect == 0, 1, 0))
@@ -262,14 +262,14 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, rela
   S4Vectors::mcols(jointphasing_vr)$PS <- start(loci)[1]
   
   # write out vcf
-  sampleNames(jointphasing_vr) <- "multisample"
+  VariantAnnotation::sampleNames(jointphasing_vr) <- "multisample"
   VariantAnnotation::writeVcf(obj = jointphasing_vr, filename = paste0(outdir, "/multisample_phasing_chr", chrom, ".vcf"), index = F)
   
   
   #### added code for MSAI detection
-  segrle <- Rle(rowSums(as.data.frame(S4Vectors::mcols(loci)[, grep(pattern = "_PS", x = colnames(S4Vectors::mcols(loci)), value = T)])))
-  jointsegments <- GRanges(seqnames = seqnames(loci[start(segrle)]), ranges = IRanges(start = start(loci[start(segrle)]), end = start(loci[end(segrle)])))
-  jointsegments$nhetsnps <- countOverlaps(query = jointsegments, subject = loci)
+  segrle <- S4Vectors::Rle(rowSums(as.data.frame(S4Vectors::mcols(loci)[, grep(pattern = "_PS", x = colnames(S4Vectors::mcols(loci)), value = T)])))
+  jointsegments <- GenomicRanges::GRanges(seqnames = GenomicRanges::seqnames(loci[start(segrle)]), ranges = IRanges::IRanges(start = start(loci[start(segrle)]), end = start(loci[end(segrle)])))
+  jointsegments$nhetsnps <- GenomicRanges::countOverlaps(query = jointsegments, subject = loci)
   # haplostr <- as.character(haplovect)
   for (samplename in samplenames) {
     # samplename <- samplenames[1]
@@ -287,7 +287,7 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, rela
   
   # visualise the haplotypes for the different samples
   for (sample in samplenames) {
-    df1 <- data.frame(pos = start(loci), newhap = haplovect, baf = ifelse(haplovect == 1, S4Vectors::mcols(loci)[ ,paste0(sample, "_BAF")], 1-S4Vectors::mcols(loci)[ ,paste0(sample, "_BAF")]))
+    df1 <- data.frame(pos = GenomicRanges::start(loci), newhap = haplovect, baf = ifelse(haplovect == 1, S4Vectors::mcols(loci)[ ,paste0(sample, "_BAF")], 1-S4Vectors::mcols(loci)[ ,paste0(sample, "_BAF")]))
     
     p1 <- ggplot()
     if (nrow(msaidf) > 0) {

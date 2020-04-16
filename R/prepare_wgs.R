@@ -255,7 +255,7 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
 #' @param replic_timing_file_prefix Like the gc_content_file_prefix, containing replication timing info (supply NULL if no replication timing correction is to be applied)
 #' @param chrom_names A vector containing chromosome names to be considered
 #' @param recalc_corr_afterwards Set to TRUE to recalculate correlations after correction
-#' @author jonas demeulemeester, sd11
+#' @author jdemeul, sd11
 #' @export
 gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards=F) {
 
