@@ -93,7 +93,7 @@ input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, exte
   bbphasin[matchidxs, "hap2"] <- abs(bbphasin[matchidxs, "hap1"] - 1)
   
   # backup original imputedHaplotypeFile
-  file.rename(from = imputedHaplotypeFile, to = gsub(pattern = "\\.txt$", replacement = ".noExt.txt", x = imputedHaplotypeFile))
+  file.rename(from = imputedHaplotypeFile, to = gsub(pattern = "\\.txt$", replacement = "_noExt.txt", x = imputedHaplotypeFile))
   
   # and write new version
   write.table(x = bbphasin, file=imputedHaplotypeFile, row.names=F, col.names=F, quote=F, sep="\t")
@@ -151,8 +151,8 @@ write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
     S4Vectors::mcols(bbphasing_vr)$PS <- as.integer(NA)
     phasedidx <- which(merge_data$BAFseg > 0.525)
     if (length(phasedidx) > 0) {
-      hetsegrle <- Rle(merge_data$BAFseg[phasedidx])
-      S4Vectors::mcols(bbphasing_vr)$PS[phasedidx] <- rep(start(bbphasing_vr)[phasedidx][start(hetsegrle)], S4Vectors::runLength(hetsegrle))
+      hetsegrle <- S4Vectors::Rle(merge_data$BAFseg[phasedidx])
+      S4Vectors::mcols(bbphasing_vr)$PS[phasedidx] <- rep(GenomicRanges::start(bbphasing_vr)[phasedidx][S4Vectors::start(hetsegrle)], S4Vectors::runLength(hetsegrle))
       
       if (length(phasedidx) < nrow(merge_data)) {
         S4Vectors::mcols(bbphasing_vr)$PS[-phasedidx] <- S4Vectors::mcols(bbphasing_vr)$PS[phasedidx][GenomicRanges::nearest(x = bbphasing_vr[-phasedidx], subject = bbphasing_vr[phasedidx], select = "arbitrary")]

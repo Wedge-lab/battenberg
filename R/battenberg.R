@@ -51,6 +51,7 @@
 #' @param heterozygousFilter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
 #' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
 #' @param externalhaplotypefile Vcf containing externally obtained haplotype blocks (Default: NA)
+#' @param write_battenberg_phasing Write the Battenberg phasing results as vcf to disk, e.g. for multisample cases (Default: TRUE)
 #' @author sd11
 #' @export
 battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, gccorrectprefix=NULL,
@@ -66,6 +67,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       beaglenthreads=1,
                       beaglewindow=40,
                       beagleoverlap=4,
+                      write_battenberg_phasing = T,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize",
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
                       prior_breakpoints_file=NULL) {
@@ -220,14 +222,16 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                      phasekmin=phasing_kmin,
                      calc_seg_baf_option=calc_seg_baf_option)
   
-  # Write the Battenberg phasing information to disk as a vcf
-  write_battenberg_phasing(tumourname = tumourname,
-                           SNPfiles = paste0(tumourname, "_alleleFrequencies_chr", 1:length(chrom_names), ".txt"),
-                           imputedHaplotypeFiles = paste0(tumourname, "_impute_output_chr", 1:length(chrom_names), "_allHaplotypeInfo.txt"),
-                           bafsegmented_file = paste0(tumourname, ".BAFsegmented.txt"),
-                           outprefix = paste0(tumourname, "_Battenberg_phased_chr"),
-                           chrom_names = chrom_names,
-                           include_homozygous = F)
+  if (write_battenberg_phasing) {
+    # Write the Battenberg phasing information to disk as a vcf
+    write_battenberg_phasing(tumourname = tumourname,
+                             SNPfiles = paste0(tumourname, "_alleleFrequencies_chr", 1:length(chrom_names), ".txt"),
+                             imputedHaplotypeFiles = paste0(tumourname, "_impute_output_chr", 1:length(chrom_names), "_allHaplotypeInfo.txt"),
+                             bafsegmented_file = paste0(tumourname, ".BAFsegmented.txt"),
+                             outprefix = paste0(tumourname, "_Battenberg_phased_chr"),
+                             chrom_names = chrom_names,
+                             include_homozygous = F)
+  }
 
   # Fit a clonal copy number profile
   fit.copy.number(samplename=tumourname,

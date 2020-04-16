@@ -92,7 +92,7 @@ read_alleleFrequencies = function(filename) {
 #' @param filename Filename of the file to read in
 #' @return A data frame with the input for impute
 read_impute_input = function(filename) {
-  return(readr::read_tsv(file = filename, col_names = F, col_types = "ccicciii"))
+  return(readr::read_delim(file = filename, col_names = F, col_types = "ccicciii", delim = " "))
 }
 
 #' Parser for beagle5 output data
