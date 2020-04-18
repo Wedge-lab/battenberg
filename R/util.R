@@ -170,11 +170,11 @@ concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs, chr_names) {
 
 #' Function to concatenate multisample phasing info from per-chromosome vcf files
 #' @noRd
-catenate_multisample_phasing <- function(vcfprefix, chrom_names, ncores = 1) {
+concatenate_multisample_phasing <- function(vcfprefix, chrom_names) {
   
   vcffiles <- paste0(vcfprefix, "chr", 1:length(chrom_names), ".vcf")
-  vcfs <- mclapply(X = vcffiles, FUN = VariantAnnotation::readVcf, mc.preschedule = T, mc.cores = ncores)
-  vcfcomb <- suppressWarnings(do.call(rbind, vcfs))
+  vcfs <- lapply(X = vcffiles, FUN = VariantAnnotation::readVcf)
+  vcfcomb <- suppressWarnings(do.call(VariantAnnotation::rbind, vcfs))
   
   if (length(vcfcomb) == sum(sapply(X = vcfs, FUN = length))) {
     VariantAnnotation::writeVcf(obj = vcfcomb, filename = paste0(dirname(vcfprefix), "/multisample_phasing.vcf"), index = F)
@@ -185,10 +185,10 @@ catenate_multisample_phasing <- function(vcfprefix, chrom_names, ncores = 1) {
 
 #' Function to concatenate multisample MSAI results 
 #' @noRd
-catenate_multisample_MSAI <- function(msaiprefix, chrom_names, ncores = 1) {
+concatenate_multisample_MSAI <- function(msaiprefix, chrom_names) {
   
   msaifiles <- paste0(msaiprefix, "chr", 1:length(chrom_names), ".txt")
-  msai <- mclapply(X = msaifiles, FUN = read.delim, as.is = T, mc.preschedule = T, mc.cores = ncores)
+  msai <- lapply(X = msaifiles, FUN = read.delim, as.is = T)
   msaicomb <- do.call(rbind, msai)
   
   if (nrow(msaicomb) == sum(sapply(X = msai, FUN = nrow))) {

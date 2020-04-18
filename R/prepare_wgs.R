@@ -274,7 +274,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
                         # paste0(c(1,2,5,10), "Mb"))
 
   if (!is.null(replic_timing_file_prefix)) {
-    print("Processing replciation timing data")
+    print("Processing replication timing data")
     replic_files = paste0(replic_timing_file_prefix, chrom_idx, ".txt.gz")
     replic_data = do.call(rbind, lapply(replic_files, read_replication))
   }
@@ -392,7 +392,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' @author sd11
 #' @export
 prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname, g1000allelesprefix, g1000prefix, gccorrectprefix,
-                       repliccorrectprefix, min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
+                       repliccorrectprefix, min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting, skip_allele_counting_normal = F) {
 
   requireNamespace("foreach")
   requireNamespace("doParallel")
@@ -407,13 +407,15 @@ prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname
                       min.base.qual=min_base_qual,
                       min.map.qual=min_map_qual,
                       allelecounter.exe=allelecounter_exe)
-
-      getAlleleCounts(bam.file=normalbam,
-                      output.file=paste(normalname,"_alleleFrequencies_chr", i, ".txt",  sep=""),
-                      g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
-                      min.base.qual=min_base_qual,
-                      min.map.qual=min_map_qual,
-                      allelecounter.exe=allelecounter_exe)
+      
+      if (!skip_allele_counting_normal) {
+        getAlleleCounts(bam.file=normalbam,
+                        output.file=paste(normalname,"_alleleFrequencies_chr", i, ".txt",  sep=""),
+                        g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
+                        min.base.qual=min_base_qual,
+                        min.map.qual=min_map_qual,
+                        allelecounter.exe=allelecounter_exe)
+      }
     }
   }
 
