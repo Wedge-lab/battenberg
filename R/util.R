@@ -187,7 +187,7 @@ concatenate_multisample_phasing <- function(vcfprefix, chrom_names) {
 #' @noRd
 concatenate_multisample_MSAI <- function(msaiprefix, chrom_names) {
   
-  msaifiles <- paste0(msaiprefix, "chr", 1:length(chrom_names), ".txt")
+  msaifiles <- paste0(msaiprefix, 1:length(chrom_names), ".txt")
   msai <- lapply(X = msaifiles, FUN = read.delim, as.is = T)
   msaicomb <- do.call(rbind, msai)
   

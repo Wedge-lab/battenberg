@@ -101,6 +101,18 @@ battenberg_multisample = function(tumourname, normalname, tumour_data_file, norm
   
   # check whether multisample case
   nsamples <- length(tumourname)
+  if (nsamples > 1) {
+    if (length(skip_allele_counting) < nsamples) {
+      skip_allele_counting = rep(skip_allele_counting[1], nsamples)
+    }
+    if (length(skip_preprocessing) < nsamples) {
+      skip_preprocessing = rep(skip_preprocessing[1], nsamples)
+    }
+    if (length(skip_phasing) < nsamples) {
+      skip_phasing = rep(skip_phasing[1], nsamples)
+    }
+  }
+  
   
   if (data_type=="wgs" | data_type=="WGS") {
     if (nsamples > 1) {
@@ -118,7 +130,7 @@ battenberg_multisample = function(tumourname, normalname, tumour_data_file, norm
 
   for (sampleidx in 1:nsamples) {
     
-    if (!skip_preprocessing) {
+    if (!skip_preprocessing[sampleidx]) {
       if (data_type=="wgs" | data_type=="WGS") {
         # Setup for parallel computing
         clp = parallel::makeCluster(nthreads)
@@ -138,7 +150,7 @@ battenberg_multisample = function(tumourname, normalname, tumour_data_file, norm
                     allelecounter_exe=allelecounter_exe,
                     min_normal_depth=min_normal_depth,
                     nthreads=nthreads,
-                    skip_allele_counting=skip_allele_counting,
+                    skip_allele_counting=skip_allele_counting[sampleidx],
                     skip_allele_counting_normal = (sampleidx > 1))
         
         # Kill the threads
@@ -169,7 +181,7 @@ battenberg_multisample = function(tumourname, normalname, tumour_data_file, norm
     }
     
     
-    if (!skip_phasing) {
+    if (!skip_phasing[sampleidx]) {
       
       # if external phasing data is provided (as a vcf), split into chromosomes for use in haplotype reconstruction
       if (!is.na(externalhaplotypefile) && file.exists(externalhaplotypefile)) {
@@ -185,6 +197,8 @@ battenberg_multisample = function(tumourname, normalname, tumour_data_file, norm
         } else {
           print("No need to split, external haplotype files per chromosome found")
         }
+      } else {
+        externalhaplotypeprefix <- NA
       }
       
       # Setup for parallel computing
@@ -335,8 +349,8 @@ battenberg_multisample = function(tumourname, normalname, tumour_data_file, norm
       # Segment the phased and haplotyped BAF data
       # add _noMulti extension to original files to avoid overwrite
       file.rename(from = paste0(tumourname[sampleidx], ".BAFsegmented.txt"), to = paste0(tumourname[sampleidx], ".BAFsegmented_noMulti.txt"))
-      rafsegfiles <- list.files(pattern = paste0(tumourname[sampleidx], "_RAFseg_chr*.png"))
-      segfiles <- list.files(pattern = paste0(tumourname[sampleidx], "_segment_chr*.png"))
+      rafsegfiles <- list.files(pattern = paste0(tumourname[sampleidx], "_RAFseg_chr"))
+      segfiles <- list.files(pattern = paste0(tumourname[sampleidx], "_segment_chr"))
       file.rename(from = rafsegfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = rafsegfiles))
       file.rename(from = segfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = segfiles))
       

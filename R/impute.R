@@ -298,7 +298,7 @@ run.beagle5 = function(beaglejar,
 #' @author sd11, maxime.tarabichi, jdemeul
 #' @export
 run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names, 
-                           externalhaplotypeprefix,
+                           externalhaplotypeprefix = NA,
                            use_previous_imputation=F,
                            snp6_reference_info_file=NA, heterozygousFilter=NA,
                            usebeagle=FALSE,
@@ -311,11 +311,14 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                            beagleoverlap=4)
 {
   
-  previoushaplotypefile <- list.files(pattern = paste0("_impute_output_chr", chrom, "_allHaplotypeInfo.txt"))
-  if (use_previous_imputation & file.exists(previoushaplotypefile)) {
+  previoushaplotypefile <- list.files(pattern = paste0("_impute_output_chr", chrom, "_allHaplotypeInfo.txt"))[1]
+  if (use_previous_imputation & !is.na(previoushaplotypefile)) {
     
     print(paste0("Previous imputation results found, copying info from", previoushaplotypefile, " to flip alleles"))
-    file.copy(from = previoushaplotypefile, to = paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep=""))
+    currenthaplotypefile <- paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep="")
+    if (previoushaplotypefile != currenthaplotypefile) {
+      file.copy(from = previoushaplotypefile, to = paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep=""))
+    }
     
   } else {
     
@@ -402,8 +405,7 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
     # WGS - Transform the impute output into haplotyped BAFs
     
     # if present, input external haplotype blocks
-    externalhaplotypefile <- paste0(externalhaplotypeprefix, chrom, ".vcf")
-    if (file.exists(externalhaplotypefile)) {
+    if (!is.na(externalhaplotypeprefix) && file.exists(paste0(externalhaplotypeprefix, chrom, ".vcf"))) {
       print("Adding in the external haplotype blocks")
       
       # output BAFs to plot pre-external haplotyping
@@ -425,7 +427,7 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
       input_known_haplotypes(chrom = chrom,
                              chrom_names = chrom_names,
                              imputedHaplotypeFile = paste0(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt"),
-                             externalHaplotypeFile = externalhaplotypefile)
+                             externalHaplotypeFile = paste0(externalhaplotypeprefix, chrom, ".vcf"))
       
     }
     
