@@ -1,7 +1,7 @@
 
 #' Split a single vcf into separate vcfs for each chromosome
 #' @param chrom_names Names of the chromosomes
-#' @param externalHaplotypeFile Full path of the external vcf containing phased haplotypes
+#' @param externalHaplotypeFile Full path of the external vcf containing phased haplotypes (Default: NA)
 #' @param outprefix Full path and prefix of the output files
 #' @author jdemeul
 #' @export
@@ -28,7 +28,8 @@ split_input_haplotypes <- function(chrom_names, externalhaplotypefile=NA, outpre
 #' @param chrom_names Names of the chromosomes
 #' @param chrom Index of the chromosome for which to reconstruct haplotypes
 #' @param imputedHaplotypeFile Full path to the imputed haplotyope file for the indexed chromosome
-#' @param externalHaplotypeFile Full path to the vcf containing haplotype blocks for the indexed chromosome (default NA)
+#' @param externalHaplotypeFile Full path to the vcf containing haplotype blocks for the indexed chromosome (Default: NA)
+#' @param oldfilesuffix Suffix to be added to the original imputedHaplotypeFile (Default: _noExt.txt)
 #' @author jdemeul
 #' @export
 input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, externalHaplotypeFile=NA, oldfilesuffix = "_noExt.txt") {
@@ -109,9 +110,10 @@ input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, exte
 #' @param tumourname Sample name
 #' @param SNPfiles Character vector of the paths to the alleleFrequencies files, ordered by chromosome index
 #' @param imputedHaplotypeFiles Character vector of the paths to the impute_output files, ordered by chromosome index
+#' @param bafsegmented_file Path to the BAFSegmented file
 #' @param outprefix Prefix to write the output vcf files to
 #' @param chrom_names Names of the chromosomes
-#' @param include_homozygous Include homozygous SNPs in the output vcf file
+#' @param include_homozygous Include homozygous SNPs in the output vcf file (Default = FALSE)
 #' @author jdemeul
 #' @export
 write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles, bafsegmented_file, outprefix, chrom_names, include_homozygous = F) {
@@ -182,7 +184,7 @@ write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
 #' @param maxlag Maximal number of upstream SNPs used to inform the haplotype at another SNPs
 #' @param relative_weight_balanced Relative weight to give to haplotype info from a sample without allelic imbalance in the region (default 0.25)
 #' @param outdir Folder to write the output to
-#' @param plotting Should the multisample phasing plots be made? (default TRUE)
+#' @param plotting Should the multisample phasing plots be made? (Default: TRUE)
 #' @author jdemeul
 #' @export
 get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, relative_weight_balanced = .25, outprefix, plotting = T) {

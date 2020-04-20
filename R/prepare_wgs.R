@@ -389,6 +389,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
 #' @param nthreads The number of paralel processes to run
 #' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
+#' @param skip_allele_counting_normal Flag, set to TRUE from the second sample onwards for multisample case (Default: FALSE)
 #' @author sd11
 #' @export
 prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname, g1000allelesprefix, g1000prefix, gccorrectprefix,
