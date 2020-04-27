@@ -168,36 +168,6 @@ concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs, chr_names) {
   return(as.data.frame(do.call(rbind, data)))
 }
 
-#' Function to concatenate multisample phasing info from per-chromosome vcf files
-#' @noRd
-concatenate_multisample_phasing <- function(vcfprefix, chrom_names) {
-  
-  vcffiles <- paste0(vcfprefix, "chr", 1:length(chrom_names), ".vcf")
-  vcfs <- lapply(X = vcffiles, FUN = VariantAnnotation::readVcf)
-  vcfcomb <- suppressWarnings(do.call(VariantAnnotation::rbind, vcfs))
-  
-  if (length(vcfcomb) == sum(sapply(X = vcfs, FUN = length))) {
-    VariantAnnotation::writeVcf(obj = vcfcomb, filename = paste0(dirname(vcfprefix), "/multisample_phasing.vcf"), index = F)
-    unlink(x = vcffiles)
-  }
-  return(NULL)
-}
-
-#' Function to concatenate multisample MSAI results 
-#' @noRd
-concatenate_multisample_MSAI <- function(msaiprefix, chrom_names) {
-  
-  msaifiles <- paste0(msaiprefix, 1:length(chrom_names), ".txt")
-  msai <- lapply(X = msaifiles, FUN = read.delim, as.is = T)
-  msaicomb <- do.call(rbind, msai)
-  
-  if (nrow(msaicomb) == sum(sapply(X = msai, FUN = nrow))) {
-    write.table(x = msaicomb, file = paste0(dirname(msaiprefix), "/multisample_MSAI.txt"), row.names = F, sep = "\t", quote = F)
-    unlink(x = msaifiles)
-  }
-  return(NULL)
-}
-
 
 
 ########################################################################################

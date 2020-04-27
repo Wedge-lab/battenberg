@@ -183,11 +183,10 @@ write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
 #' @param bbphasingprefixes Vector containing prefixes of the Battenberg_phased_chr files for the multiple samples
 #' @param maxlag Maximal number of upstream SNPs used to inform the haplotype at another SNPs
 #' @param relative_weight_balanced Relative weight to give to haplotype info from a sample without allelic imbalance in the region (default 0.25)
-#' @param outdir Folder to write the output to
-#' @param plotting Should the multisample phasing plots be made? (Default: TRUE)
+#' @param outprefix Prefix of the ouput multisample phasing files
 #' @author jdemeul
 #' @export
-get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, relative_weight_balanced = .25, outprefix, plotting = T) {
+get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, relative_weight_balanced = .25, outprefix) {
 
   vcfs <- lapply(X = paste0(bbphasingprefixes, chrom, ".vcf"), FUN = VariantAnnotation::readVcf)
   samplenames <- sapply(X = vcfs, FUN = function(x) VariantAnnotation::samples(VariantAnnotation::header(x)))
@@ -270,57 +269,20 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, rela
   # write out loci + haplovect to do MSAI detection and plotting after final multisample CN calling
   S4Vectors::mcols(loci)$multisample_haplo <- haplovect
   saveRDS(object = loci, file = paste0(outprefix, chrom, "_loci.RDS"))
-  
-  # 
-  # #### added code for MSAI detection
-  # segrle <- S4Vectors::Rle(rowSums(as.data.frame(S4Vectors::mcols(loci)[, grep(pattern = "_PS", x = colnames(S4Vectors::mcols(loci)), value = T)])))
-  # jointsegments <- GenomicRanges::GRanges(seqnames = GenomicRanges::seqnames(loci[S4Vectors::start(segrle)]), 
-  #                                         ranges = IRanges::IRanges(start = GenomicRanges::start(loci[S4Vectors::start(segrle)]), 
-  #                                                                   end = GenomicRanges::start(loci[S4Vectors::end(segrle)])))
-  # jointsegments$nhetsnps <- GenomicRanges::countOverlaps(query = jointsegments, subject = loci)
-  # # haplostr <- as.character(haplovect)
-  # for (samplename in samplenames) {
-  #   # samplename <- samplenames[1]
-  #   # browser()
-  #   samplegt <- substr(x = S4Vectors::mcols(loci)[, paste0(samplename, "_Major")], 1,1) == haplovect
-  #   # samplegt <- ifelse(grepl(pattern = "|", x = mcols(loci)[, paste0(samplename, "_Major")], fixed = T), substr(x = mcols(loci)[, paste0(samplename, "_Major")], 1,1), substr(x = mcols(loci)[, paste0(samplename, "_Major")], 1,1)) == haplovect
-  #   S4Vectors::mcols(jointsegments)[, paste0(samplename, "_refmatch")] <- c(by(data = samplegt, INDICES = as(object = segrle, Class = "vector"), FUN = sum, simplify = T)) / jointsegments$nhetsnps
-  # }
-  # jointsegments$MSAI <- apply(X = S4Vectors::mcols(jointsegments)[, grep(pattern = "_refmatch", x = colnames(S4Vectors::mcols(jointsegments)))], MARGIN = 1, FUN = function(x) max(x, na.rm = T) - min(x, na.rm = T) > .9)
-  # # jointsegments$MSAI[jointsegments$nhetsnps < 100] <- NA
-  # 
-  # write.table(x = GenomicRanges::as.data.frame(jointsegments), file = paste0(dirname(outprefix), "/multisample_MSAI_chr", chrom, ".txt"), row.names = F, sep = "\t", quote = F)
-  # msaidf <- GenomicRanges::as.data.frame(jointsegments[which(jointsegments$MSAI), ])
-  # 
-  # # visualise the haplotypes for the different samples
-  # for (sample in samplenames) {
-  #   df1 <- data.frame(pos = GenomicRanges::start(loci), newhap = haplovect, baf = ifelse(haplovect == 1, S4Vectors::mcols(loci)[ ,paste0(sample, "_BAF")], 1-S4Vectors::mcols(loci)[ ,paste0(sample, "_BAF")]))
-  #   
-  #   p1 <- ggplot2::ggplot()
-  #   if (nrow(msaidf) > 0) {
-  #     p1 <- p1 + ggplot2::geom_rect(data = msaidf, mapping = ggplot2::aes(xmin = start, xmax = end, ymin = 0, ymax = 1), alpha = .1, color = "gray", size = 0)
-  #   }
-  #   p1 <- p1 + ggplot2::geom_point(data = df1, mapping = ggplot2::aes(x = pos, y = 1-baf), alpha = .6, colour = "#67a9cf", shape = 46, show.legend = F)
-  #   p1 <- p1 + ggplot2::geom_point(data = df1, mapping = ggplot2::aes(x = pos, y = baf), alpha = .6, colour = "#ef8a62", shape = 46, show.legend = F) + ggplot2::theme_minimal()
-  #   p1 <- p1 + ggplot2::labs(x = "Position", y = "BAF", title = paste0(sample, ": multisample phasing chr", chrom))
-  #   
-  #   ggplot2::ggsave(filename = paste0(dirname(outprefix), "/", sample, "_multisample_phasing_chr", chrom, ".png"), plot = p1, width = 20, height = 5)
-  # }
+
   return(NULL)
 }
 
 
-filter_multisample_MSAI(rdsprefix = paste0(normalname, "_multisample_haplotypes_chr"),
-                        subclonesfiles = paste0(tumourname, "_subclones.txt"),
-                        chrom_names = c(1:22, "X"),
-                        tumournames)
-
-filter_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names) {
-  # msaifile <- "/srv/shared/vanloo/home/jdemeul/projects/2020_Battenberg2/data/ExtHaploTest/PCAWG/0bfd1043-7ed2-9ccc-e050-11ac0c481957/multisample_MSAI.txt"
-  # setwd(dir = "/srv/shared/vanloo/home/jdemeul/projects/2020_Battenberg2/data/ExtHaploTest/VER236A2-6/")
-  # subclonesfiles <- list.files(path = ".", pattern = "_subclones.txt")
-  # rdsprefix <- paste0(normalname, "_multisample_haplotypes_chr")
-  # chrom_names <- c(1:22, "X")
+#' Generates haplotype blocks, MSAI results, and plots from phasing information contained in multisample Battenberg runs 
+#' @param rdsprefix Prefix of the RDS files containing the multisample haplotypes and BAF
+#' @param subclonesfiles Vectors containing the paths to the different subclones.txt files
+#' @param chrom_names Names of the chromosomes
+#' @param tumournames Vector of sample names
+#' @param plotting Should the multisample phasing plots be made? (Default: TRUE)
+#' @author jdemeul
+#' @export
+call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumournames, plotting = T) {
 
   # compile all CN results
   subclonescat <- lapply(X = subclonesfiles, FUN = function(x) read.delim(file = x, as.is = T))
@@ -341,57 +303,66 @@ filter_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names) {
   
   # add the identifiers of aberrated samples to each region
   samplehits <- GenomicRanges::findOverlaps(query = imbalancedregions_disj, subject = imbalancedregions)
-  S4Vectors::mcols(imbalancedregions_disj)$sampleids <- split(x = imbalancedregions$sampleid[subjectHits(samplehits)], f = queryHits(samplehits))
+  S4Vectors::mcols(imbalancedregions_disj)$sampleids <- split(x = imbalancedregions$sampleid[S4Vectors::subjectHits(samplehits)], f = S4Vectors::queryHits(samplehits))
   
   # split per chromosome, keeping only the imbalanced ones
   imbalancedregions_disj <- as(object = split(x = imbalancedregions_disj, f = GenomicRanges::seqnames(imbalancedregions_disj), drop = F), Class = "GRangesList")
   
   # for every chromosome with imbalance
-  for (chrom in names(imbalancedregions_disj)) {
+  for (chrom in 1:length(chrom_names)) {
     # load loci.RDS file and simplify genotype formatting
     loci <- readRDS(file = paste0(rdsprefix, chrom, "_loci.RDS"))
     S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")] <- apply(X = S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")],
                                                                     MARGIN = 2, FUN = function(x) as.numeric(substr(x = x, start = 1, stop = 1)))
     
-    if (length(imbalancedregions_disj[[chrom]]) > 0) {
+    if (length(imbalancedregions_disj[[chrom_names[chrom]]]) > 0) {
       # split loci by aberrated region
-      locioverlaps <- findOverlaps(query = imbalancedregions_disj[[chrom]], subject = loci)
-      imballoci <- split(x = loci[subjectHits(locioverlaps)], f = queryHits(locioverlaps), drop = F)
+      locioverlaps <- GenomicRanges::findOverlaps(query = imbalancedregions_disj[[chrom_names[chrom]]], subject = loci)
+      imballoci <- split(x = loci[S4Vectors::subjectHits(locioverlaps)], f = S4Vectors::queryHits(locioverlaps), drop = F)
       
       # now check for each region the GT of major allele (in imbalanced samples)
-      frac_consensus <- mapply(haps = imballoci, samples = imbalancedregions_disj[[chrom]]$sampleids, FUN = function(haps, samples) {
-        colSums(x = S4Vectors::as.matrix(S4Vectors::mcols(haps)[,paste0(samples, "_Major")]) == mcols(haps)[, "multisample_haplo"], na.rm = T, ) / length(haps)
+      imbalancedregions_disj[[chrom_names[chrom]]] <- imbalancedregions_disj[[chrom_names[chrom]]][unique(S4Vectors::queryHits(locioverlaps))]
+
+      frac_consensus <- mapply(haps = imballoci, samples = imbalancedregions_disj[[chrom_names[chrom]]]$sampleids, FUN = function(haps, samples) {
+        colSums(x = S4Vectors::as.matrix(S4Vectors::mcols(haps)[,paste0(samples, "_Major")]) == mcols(haps)[, "multisample_haplo"], na.rm = T) / length(haps)
       }, SIMPLIFY = F)
       
       #simplify notation and call MSAI
-      imbalancedregions_disj[[chrom]]$frac_consensus <- sapply(X = frac_consensus, FUN = function(x) paste0(names(x), "=", round(x, digits = 2), collapse = ","))
-      imbalancedregions_disj[[chrom]]$msai <- sapply(X = frac_consensus, FUN = function(x) max(x, na.rm = T) - min(x, na.rm = T) > .9)
+      imbalancedregions_disj[[chrom_names[chrom]]]$frac_consensus <- sapply(X = frac_consensus, FUN = function(x) paste0(names(x), "=", round(x, digits = 2), collapse = ","))
+      imbalancedregions_disj[[chrom_names[chrom]]]$msai <- sapply(X = frac_consensus, FUN = function(x) max(x, na.rm = T) - min(x, na.rm = T) > .9)
       
-      msaidf <- GenomicRanges::as.data.frame(imbalancedregions_disj[S4Vectors::mcols(msai)$msai])
+      msaidf <- GenomicRanges::as.data.frame(imbalancedregions_disj[[chrom_names[chrom]]][imbalancedregions_disj[[chrom_names[chrom]]]$msai])
+    } else {
+      imbalancedregions_disj[[chrom_names[chrom]]]$frac_consensus <- character()
+      imbalancedregions_disj[[chrom_names[chrom]]]$msai <- logical()
+      msaidf <- GenomicRanges::as.data.frame(imbalancedregions_disj[[chrom_names[chrom]]])
     }
     
-    # Plot the resulting data
-    df1 <- data.frame(pos = GenomicRanges::start(loci), BiocGenerics::as.data.frame(S4Vectors::mcols(haps)[,paste0(samples, "_Major")]))
-    
-    # visualise the haplotypes for the different samples
-    for (tumour in tumournames) {
-      df1[, paste0(tumour, "_BAF")] <- ifelse(S4Vectors::mcols(loci)$haplovect == 1, df1[, paste0(tumour, "_BAF")], 1-df1[, paste0(tumour, "_BAF")]))
-
-      p1 <- ggplot2::ggplot()
-      if (exists(msaidf)) {
-        p1 <- p1 + ggplot2::geom_rect(data = msaidf, mapping = ggplot2::aes(xmin = start, xmax = end, ymin = 0, ymax = 1), alpha = .05, color = "gray", size = 0)
+    if (plotting) {
+      # Plot the resulting data
+      df1 <- data.frame(pos = GenomicRanges::start(loci), haplo = S4Vectors::mcols(loci)$multisample_haplo, BAF = as.numeric(rep(NA, length(loci))))
+      
+      # visualise the haplotypes for the different samples
+      for (tumour in tumournames) {
+        # df1 <- data.frame(pos = GenomicRanges::start(loci), BAF = S4Vectors::mcols(loci)[,paste0(tumour, "_BAF")])
+        df1$BAF <- ifelse(df1$haplo == 1, S4Vectors::mcols(loci)[,paste0(tumour, "_BAF")], 1-S4Vectors::mcols(loci)[,paste0(tumour, "_BAF")])
+        
+        p1 <- ggplot2::ggplot()
+        if (nrow(msaidf) > 0) {
+          p1 <- p1 + ggplot2::geom_rect(data = msaidf, mapping = ggplot2::aes(xmin = start, xmax = end, ymin = 0, ymax = 1), alpha = .05, color = "gray", size = 0)
+        }
+        p1 <- p1 + ggplot2::geom_point(data = df1, mapping = ggplot2::aes(x = pos, y = 1-BAF), alpha = .6, colour = "#67a9cf", shape = 46, show.legend = F)
+        p1 <- p1 + ggplot2::geom_point(data = df1, mapping = ggplot2::aes(x = pos, y = BAF), alpha = .6, colour = "#ef8a62", shape = 46, show.legend = F) + ggplot2::theme_minimal()
+        p1 <- p1 + ggplot2::labs(x = "Position", y = "BAF", title = paste0(tumour, ": multisample phasing chr", chrom))
+        
+        ggplot2::ggsave(filename = paste0(tumour, "_multisample_phasing_chr", chrom, ".png"), plot = p1, width = 20, height = 5)
       }
-      p1 <- p1 + ggplot2::geom_point(data = df1, mapping = ggplot2::aes(x = pos, y = 1-baf), alpha = .6, colour = "#67a9cf", shape = 46, show.legend = F)
-      p1 <- p1 + ggplot2::geom_point(data = df1, mapping = ggplot2::aes(x = pos, y = baf), alpha = .6, colour = "#ef8a62", shape = 46, show.legend = F) + ggplot2::theme_minimal()
-      p1 <- p1 + ggplot2::labs(x = "Position", y = "BAF", title = paste0(sample, ": multisample phasing chr", chrom))
-
-      ggplot2::ggsave(filename = paste0(tumour, "_multisample_phasing_chr", chrom, ".png"), plot = p1, width = 20, height = 5)
     }
   }
-  
+
   # write out final MSAI dataframe
-  msaiout <- GenomicRanges::as.data.frame(unlist(imbalancedregions_disj))
-  write.table(x = msaicomb, file = paste0("multisample_MSAI.txt"), row.names = F, sep = "\t", quote = F)
+  msaiout <- GenomicRanges::as.data.frame(unlist(imbalancedregions_disj, use.names = F))
+  write.table(x = msaiout[, -c(4:6)], file = paste0("multisample_MSAI.txt"), row.names = F, sep = "\t", quote = F)
   return(NULL)
 }
 

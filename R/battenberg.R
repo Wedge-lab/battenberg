@@ -19,6 +19,7 @@
 #' @param platform_gamma Platform scaling factor, suggestions are set to 1 for wgs and to 0.55 for snp6 (Default: 1)
 #' @param phasing_gamma Gamma parameter used when correcting phasing mistakes (Default: 1)
 #' @param segmentation_gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 10)
+#' @param segmentation_gamma_multisample The gamma parameter controls the size of the penalty of starting a new segment during mutlisample segmentation. It is the key parameter for controlling the number of segments (Default: 10)
 #' @param segmentation_kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)
 #' @param phasing_kmin Kmin used when correcting for phasing mistakes (Default: 3)
 #' @param clonality_dist_metric  Distance metric to use when choosing purity/ploidy combinations (Default: 0)
@@ -69,7 +70,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       beaglenthreads=1,
                       beaglewindow=40,
                       beagleoverlap=4,
-                      write_battenberg_phasing = T, multisample_relative_weight_balanced = 0.25, multisample_maxlag = 100, 
+                      write_battenberg_phasing = T, multisample_relative_weight_balanced = 0.25, multisample_maxlag = 100, segmentation_gamma_multisample = 5,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize",
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
                       prior_breakpoints_file=NULL) {
@@ -272,7 +273,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   
   # if this is a multisample run, combine the battenberg phasing outputs, incorporate it and resegment
   if (nsamples > 1) {
-    print("Constructing multisample phasing and assessing mirrored subclonal allelic imbalance (MSAI)")
+    print("Constructing multisample phasing")
     multisamplehaplotypeprefix <- paste0(normalname, "_multisample_haplotypes_chr")
     
     # Setup for parallel computing
@@ -288,14 +289,10 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                               bbphasingprefixes = paste0(tumourname, "_Battenberg_phased_chr"),
                               maxlag = multisample_maxlag,
                               relative_weight_balanced = multisample_relative_weight_balanced,
-                              outprefix = multisamplehaplotypeprefix,
-                              plotting = T)
+                              outprefix = multisamplehaplotypeprefix)
       
     }
-    
-    # concatenate all MSAI files into a single report
-    concatenate_multisample_MSAI(msaiprefix = paste0(dirname(multisamplehaplotypeprefix), "/multisample_MSAI_chr"), chrom_names = chrom_names)
-    
+
     
     # continue over all samples to incorporate the multisample phasing
     for (sampleidx in 1:nsamples) {
@@ -356,16 +353,24 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
       file.rename(from = rafsegfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = rafsegfiles))
       file.rename(from = segfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = segfiles))
       
-      segment.baf.phased(samplename=tumourname[sampleidx],
-                         inputfile=paste0(tumourname[sampleidx], "_heterozygousMutBAFs_haplotyped.txt"), 
-                         outputfile=paste0(tumourname[sampleidx], ".BAFsegmented.txt"),
-                         prior_breakpoints_file=prior_breakpoints_file,
-                         gamma=segmentation_gamma,
-                         phasegamma=phasing_gamma,
-                         kmin=segmentation_kmin,
-                         phasekmin=phasing_kmin,
-                         calc_seg_baf_option=calc_seg_baf_option)
+      # segment.baf.phased(samplename=tumourname[sampleidx],
+      #                    inputfile=paste0(tumourname[sampleidx], "_heterozygousMutBAFs_haplotyped.txt"), 
+      #                    outputfile=paste0(tumourname[sampleidx], ".BAFsegmented.txt"),
+      #                    prior_breakpoints_file=prior_breakpoints_file,
+      #                    gamma=segmentation_gamma,
+      #                    phasegamma=phasing_gamma,
+      #                    kmin=segmentation_kmin,
+      #                    phasekmin=phasing_kmin,
+      #                    calc_seg_baf_option=calc_seg_baf_option)
     }
+    
+    segment.baf.phased.multisample(samplename=tumourname,
+                                   inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
+                                   outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
+                                   prior_breakpoints_file=prior_breakpoints_file,
+                                   gamma=segmentation_gamma_multisample,
+                                   calc_seg_baf_option=calc_seg_baf_option)
+    
   }
   
   for (sampleidx in 1:nsamples) {
@@ -427,6 +432,15 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                                rho_psi_file=paste(tumourname[sampleidx], "_rho_and_psi.txt", sep=""),
                                gamma_param=platform_gamma)
     
+  }
+  
+  if (nsamples > 1) {
+    print("Assessing mirrored subclonal allelic imbalance (MSAI)")
+    call_multisample_MSAI(rdsprefix = multisamplehaplotypeprefix,
+                          subclonesfiles = paste0(tumourname, "_subclones.txt"),
+                          chrom_names = chrom_names,
+                          tumournames = tumourname,
+                          plotting = T)
   }
 }
 
