@@ -325,9 +325,10 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
         # but the median is generally a better estimate that is less sensitive to
         # how well the haplotypes have been reconstructed
         BAFphseg_median = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
-        if (BAFphseg_median!=0 & BAFphseg_median!=1) {
-          BAFphseg = BAFphseg_median
-        }
+        BAFphseg = ifelse(BAFphseg_median %in% c(0,1), BAFphseg, BAFphseg_median)
+        # if (BAFphseg_median!=0 & BAFphseg_median!=1) {
+        #   BAFphseg = BAFphseg_median
+        # }
       } else {
         warning("Supplied calc_seg_baf_option to segment.baf.phased not valid, using mean BAF by default")
       }

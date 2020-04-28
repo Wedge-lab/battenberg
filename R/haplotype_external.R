@@ -178,7 +178,7 @@ write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
 
 
 
-#' Generates haplotype blocks, MSAI results, and plots from phasing information contained in multisample Battenberg runs 
+#' Generates phased haplotypes from multisample Battenberg runs 
 #' @param chrom Index of the chromosome for which to obtain haplotypes
 #' @param bbphasingprefixes Vector containing prefixes of the Battenberg_phased_chr files for the multiple samples
 #' @param maxlag Maximal number of upstream SNPs used to inform the haplotype at another SNPs
@@ -306,7 +306,7 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
   S4Vectors::mcols(imbalancedregions_disj)$sampleids <- split(x = imbalancedregions$sampleid[S4Vectors::subjectHits(samplehits)], f = S4Vectors::queryHits(samplehits))
   
   # split per chromosome, keeping only the imbalanced ones
-  imbalancedregions_disj <- as(object = split(x = imbalancedregions_disj, f = GenomicRanges::seqnames(imbalancedregions_disj), drop = F), Class = "GRangesList")
+  imbalancedregions_disj <- as(object = split(x = imbalancedregions_disj, f = GenomicRanges::seqnames(imbalancedregions_disj)), Class = "GRangesList")
   
   # for every chromosome with imbalance
   for (chrom in 1:length(chrom_names)) {
@@ -324,18 +324,16 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
       imbalancedregions_disj[[chrom_names[chrom]]] <- imbalancedregions_disj[[chrom_names[chrom]]][unique(S4Vectors::queryHits(locioverlaps))]
 
       frac_consensus <- mapply(haps = imballoci, samples = imbalancedregions_disj[[chrom_names[chrom]]]$sampleids, FUN = function(haps, samples) {
-        colSums(x = S4Vectors::as.matrix(S4Vectors::mcols(haps)[,paste0(samples, "_Major")]) == mcols(haps)[, "multisample_haplo"], na.rm = T) / length(haps)
+        colSums(x = S4Vectors::as.matrix(S4Vectors::mcols(haps)[,paste0(samples, "_Major")]) == S4Vectors::mcols(haps)[, "multisample_haplo"], na.rm = T) / length(haps)
       }, SIMPLIFY = F)
       
       #simplify notation and call MSAI
-      imbalancedregions_disj[[chrom_names[chrom]]]$frac_consensus <- sapply(X = frac_consensus, FUN = function(x) paste0(names(x), "=", round(x, digits = 2), collapse = ","))
+      imbalancedregions_disj[[chrom_names[chrom]]]$frac_consensus <- sapply(X = frac_consensus, FUN = function(x) paste0(names(x), "=", round(x, digits = 2), collapse = ";"))
       imbalancedregions_disj[[chrom_names[chrom]]]$msai <- sapply(X = frac_consensus, FUN = function(x) max(x, na.rm = T) - min(x, na.rm = T) > .9)
       
       msaidf <- GenomicRanges::as.data.frame(imbalancedregions_disj[[chrom_names[chrom]]][imbalancedregions_disj[[chrom_names[chrom]]]$msai])
     } else {
-      imbalancedregions_disj[[chrom_names[chrom]]]$frac_consensus <- character()
-      imbalancedregions_disj[[chrom_names[chrom]]]$msai <- logical()
-      msaidf <- GenomicRanges::as.data.frame(imbalancedregions_disj[[chrom_names[chrom]]])
+      msaidf <- data.frame()
     }
     
     if (plotting) {
