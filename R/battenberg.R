@@ -275,6 +275,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   if (nsamples > 1) {
     print("Constructing multisample phasing")
     multisamplehaplotypeprefix <- paste0(normalname, "_multisample_haplotypes_chr")
+
     
     # Setup for parallel computing
     clp = parallel::makeCluster(nthreads)
@@ -297,6 +298,21 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     # continue over all samples to incorporate the multisample phasing
     for (sampleidx in 1:nsamples) {
       
+      # rename the original files without multisample phasing info
+      MutBAFfiles <- paste0(tumourname[sampleidx], "_chr", 1:length(chrom_names), "_heterozygousMutBAFs_haplotyped.txt")
+      heterozygousdatafiles <- paste0(tumourname[sampleidx], "_chr", 1:length(chrom_names), "_heterozygousData.png")
+      raffiles <- paste0(tumourname[sampleidx], "_RAFseg_chr", chrom_names, ".png")
+      segfiles <- paste0(tumourname[sampleidx], "_segment_chr", chrom_names, ".png")
+      haplotypedandbafsegmentedfiles <- paste0(tumourname[sampleidx], c("_heterozygousMutBAFs_haplotyped.txt", ".BAFsegmented.txt"))
+      
+      file.copy(from = MutBAFfiles, to = gsub(pattern = ".txt$", replacement = "_noMulti.txt", x = MutBAFfiles), overwrite = T)
+      file.copy(from = heterozygousdatafiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = heterozygousdatafiles), overwrite = T)
+      file.copy(from = raffiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = raffiles), overwrite = T)
+      file.copy(from = segfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = segfiles), overwrite = T)
+      file.copy(from = haplotypedandbafsegmentedfiles, to = gsub(pattern = ".txt$", replacement = "_noMulti.txt", x = haplotypedandbafsegmentedfiles), overwrite = T)
+      # done renaming, next sections will overwrite orignals
+      
+      
       foreach::foreach (chrom=1:length(chrom_names)) %dopar% {
         print(chrom)
         
@@ -306,10 +322,6 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                                externalHaplotypeFile = paste0(multisamplehaplotypeprefix, chrom, ".vcf"),
                                oldfilesuffix = "_noMulti.txt")
         
-        # note that this would otherwise overwrite the original files
-        # add _noMulti extension to original files to avoid overwrite
-        file.rename(from = paste0(tumourname[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),
-                    to = paste0(tumourname[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped_noMulti.txt"))
         GetChromosomeBAFs(chrom=chrom,
                           SNP_file=paste0(tumourname[sampleidx], "_alleleFrequencies_chr", chrom, ".txt"),
                           haplotypeFile=paste0(tumourname[sampleidx], "_impute_output_chr", chrom, "_allHaplotypeInfo.txt"),
@@ -319,9 +331,6 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                           minCounts=min_normal_depth)
         
         # Plot what we have until this point
-        # add _noMulti extension to original files to avoid overwrite
-        file.rename(from = paste0(tumourname[sampleidx],"_chr",chrom,"_heterozygousData.png"),
-                    to = paste0(tumourname[sampleidx],"_chr",chrom,"_heterozygousData_noMulti.png"))
         plot.haplotype.data(haplotyped.baf.file=paste0(tumourname[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),
                             imageFileName=paste0(tumourname[sampleidx],"_chr",chrom,"_heterozygousData.png"),
                             samplename=tumourname[sampleidx],
@@ -337,33 +346,14 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     for (sampleidx in 1:nsamples) {
       
       # Combine all the BAF output into a single file
-      # add _noMulti extension to original files to avoid overwrite
-      file.rename(from = paste0(tumourname[sampleidx], "_heterozygousMutBAFs_haplotyped.txt"),
-                  to = paste0(tumourname[sampleidx], "_heterozygousMutBAFs_haplotyped_noMulti.txt"))
       combine.baf.files(inputfile.prefix=paste0(tumourname[sampleidx], "_chr"),
                         inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt",
                         outputfile=paste0(tumourname[sampleidx], "_heterozygousMutBAFs_haplotyped.txt"), 
                         no.chrs=length(chrom_names))
       
-      # Segment the phased and haplotyped BAF data
-      # add _noMulti extension to original files to avoid overwrite
-      file.rename(from = paste0(tumourname[sampleidx], ".BAFsegmented.txt"), to = paste0(tumourname[sampleidx], ".BAFsegmented_noMulti.txt"))
-      rafsegfiles <- list.files(pattern = paste0(tumourname[sampleidx], "_RAFseg_chr"))
-      segfiles <- list.files(pattern = paste0(tumourname[sampleidx], "_segment_chr"))
-      file.rename(from = rafsegfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = rafsegfiles))
-      file.rename(from = segfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = segfiles))
-      
-      # segment.baf.phased(samplename=tumourname[sampleidx],
-      #                    inputfile=paste0(tumourname[sampleidx], "_heterozygousMutBAFs_haplotyped.txt"), 
-      #                    outputfile=paste0(tumourname[sampleidx], ".BAFsegmented.txt"),
-      #                    prior_breakpoints_file=prior_breakpoints_file,
-      #                    gamma=segmentation_gamma,
-      #                    phasegamma=phasing_gamma,
-      #                    kmin=segmentation_kmin,
-      #                    phasekmin=phasing_kmin,
-      #                    calc_seg_baf_option=calc_seg_baf_option)
     }
     
+    # Segment the phased and haplotyped BAF data
     segment.baf.phased.multisample(samplename=tumourname,
                                    inputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
                                    outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),

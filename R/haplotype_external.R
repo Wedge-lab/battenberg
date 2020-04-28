@@ -96,7 +96,7 @@ input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, exte
   
   # backup original imputedHaplotypeFile
   if (file.exists(imputedHaplotypeFile)) {
-    file.rename(from = imputedHaplotypeFile, to = gsub(pattern = "\\.txt$", replacement = oldfilesuffix, x = imputedHaplotypeFile))
+    file.copy(from = imputedHaplotypeFile, to = gsub(pattern = "\\.txt$", replacement = oldfilesuffix, x = imputedHaplotypeFile), overwrite = T)
   }
   
   # and write new version
