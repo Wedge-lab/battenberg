@@ -363,7 +363,14 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     
   }
   
-  for (sampleidx in 1:nsamples) {
+  
+  # Setup for parallel computing
+  clp = parallel::makeCluster(min(nthreads, nsamples))
+  doParallel::registerDoParallel(clp)
+  
+  # for (sampleidx in 1:nsamples) {
+  foreach::foreach (sampleidx=1:nsamples) %dopar% {
+    print(paste0("Fitting final copy number and calling subclones for sample ", tumourname[sampleidx]))
     
     if (data_type=="wgs" | data_type=="WGS") {
       logr_file = paste(tumourname[sampleidx], "_mutantLogR_gcCorrected.tab", sep="")
@@ -423,6 +430,9 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                                gamma_param=platform_gamma)
     
   }
+  
+  # Kill the threads as last part again is single core
+  parallel::stopCluster(clp)
   
   if (nsamples > 1) {
     print("Assessing mirrored subclonal allelic imbalance (MSAI)")
