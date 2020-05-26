@@ -44,6 +44,7 @@
 #' @param beaglenthreads Integer number of threads used by beagle5 Default:1
 #' @param beaglewindow Integer size of the genomic window for beagle5 (cM) Default:40
 #' @param beagleoverlap Integer size of the overlap between windows beagle5 Default:4
+#' @param javajre Path to the Java JRE executable, only required for haplotype reconstruction with Beagle (default java, i.e. in $PATH)
 #' @param snp6_reference_info_file Reference files for the SNP6 pipeline only (Default: NA)
 #' @param apt.probeset.genotype.exe Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)
 #' @param apt.probeset.summarize.exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-summarize)
@@ -70,6 +71,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       beaglenthreads=1,
                       beaglewindow=40,
                       beagleoverlap=4,
+                      javajre="java",
                       write_battenberg_phasing = T, multisample_relative_weight_balanced = 0.25, multisample_maxlag = 100, segmentation_gamma_multisample = 5,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize",
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
