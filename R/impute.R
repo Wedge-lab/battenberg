@@ -129,7 +129,6 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
 #' Converts impute input to a beagle input
 #'
 #' This function takes the impute input file and converts it to a beagle input
-#' It requires data.table
 #'
 #' @param imputeinput path to the impute input file
 #' @param chrom chromosome
@@ -138,9 +137,8 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
 convert.impute.input.to.beagle.input = function(imputeinput,
                                                 chrom)
 {
-    require(data.table)
     chrom <- if(chrom=="23") "X" else chrom
-    inp <- as.data.frame(fread(imputeinput))
+    inp = read.table(imputeinput, header=F, stringsAsFactors=F)
     coln <- c("#CHROM",
               "POS",
               "ID",
@@ -206,7 +204,7 @@ writevcf.beagle = function(vcf,
 writebeagle.as.impute = function(vcf,
                                  outfile)
 {
-    beagleout <- as.data.frame(data.table::fread(vcf))
+    beagleout = read.table(vcf, header=F, stringsAsFactors=F)
     haplotypes <- strsplit(beagleout[,10],split="\\|")
     dt <- cbind(paste0("snp_index",1:nrow(beagleout)),
                 paste0("rs_index",1:nrow(beagleout)),
@@ -237,6 +235,7 @@ writebeagle.as.impute = function(vcf,
 #' @param nthreads integer number of threads
 #' @param window integer max size of genomic window to be phased (cM; default 40; decrease for less memory usage; should be >1.1*overlap)
 #' @param overlap integer overlap of windows (cM; default 4)
+#' @param javajre Path to the Java JRE executable (default java, i.e. in $PATH)
 #' @param maxheap.gb integer maximum heap size for the java process in gigabytes (default 10)
 #' @author maxime.tarabichi
 #' @export
@@ -248,15 +247,21 @@ run.beagle5 = function(beaglejar,
                        nthreads=1,
                        window=40,
                        overlap=4,
-                       maxheap.gb=10)
+                       maxheap.gb=10,
+		       javajre="java")
 {
-    cmd <- paste0("java -Xmx",maxheap.gb,"g",
+    cmd <- paste0(javajre,
+		  " -Xmx",maxheap.gb,"g",
+		  " -Xms", maxheap.gb, "g",
+		  #" -XX:ParallelGCThreads=", nthreads,
+		  " -XX:+UseParallelOldGC",
                   " -jar ",beaglejar,
                   " gt=",vcfpath,
                   " ref=",reffile ,
                   " out=",outpath,
                   " map=",plinkfile,
-                  " nthreads=",nthreads,
+                  #" nthreads=",nthreads,
+		  " nthreads=1",
                   " window=",window,
                   " overlap=",overlap,
                   " impute=false")
@@ -287,6 +292,7 @@ run.beagle5 = function(beaglejar,
 #' @param beaglenthreads Integer number of threads used by beagle5 Default:1
 #' @param beaglewindow Integer size of the genomic window for beagle5 (cM) Default:40
 #' @param beagleoverlap Integer size of the overlap between windows beagle5 Default:4
+#' @param javajre Path to the Java JRE executable (default java, i.e. in $PATH)
 #' @author sd11, maxime.tarabichi
 #' @export
 run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names,
@@ -298,7 +304,8 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                            beaglemaxmem=10,
                            beaglenthreads=1,
                            beaglewindow=40,
-                           beagleoverlap=4)
+                           beagleoverlap=4,
+			   javajre="java")
 {
 
   if (file.exists(paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep=""))) {
@@ -343,7 +350,8 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                                maxheap.gb=beaglemaxmem,
                                nthreads=beaglenthreads,
                                window=beaglewindow,
-                               overlap=beagleoverlap)
+                               overlap=beagleoverlap,
+			       javajre=javajre)
       outfile <- paste(tumourname,
                        "_impute_output_chr",
                        chrom, "_allHaplotypeInfo.txt", sep="")
