@@ -144,7 +144,6 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
 convert.impute.input.to.beagle.input = function(imputeinput,
                                                 chrom)
 {
-  # require(data.table)
   chrom <- if(chrom=="23") "X" else chrom
   inp <- read_impute_input(imputeinput)
   coln <- c("#CHROM",
@@ -261,15 +260,13 @@ run.beagle5 = function(beaglejar,
     cmd <- paste0(javajre,
 		  " -Xmx",maxheap.gb,"g",
 		  " -Xms", maxheap.gb, "g",
-		  #" -XX:ParallelGCThreads=", nthreads,
 		  " -XX:+UseParallelOldGC",
                   " -jar ",beaglejar,
                   " gt=",vcfpath,
                   " ref=",reffile ,
                   " out=",outpath,
                   " map=",plinkfile,
-                  #" nthreads=",nthreads,
-		  " nthreads=1",
+                  " nthreads=",nthreads,
                   " window=",window,
                   " overlap=",overlap,
                   " impute=false")
