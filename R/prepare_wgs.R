@@ -255,7 +255,7 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
 #' @param replic_timing_file_prefix Like the gc_content_file_prefix, containing replication timing info (supply NULL if no replication timing correction is to be applied)
 #' @param chrom_names A vector containing chromosome names to be considered
 #' @param recalc_corr_afterwards Set to TRUE to recalculate correlations after correction
-#' @author jonas demeulemeester, sd11
+#' @author jdemeul, sd11
 #' @export
 gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards=F) {
 
@@ -274,7 +274,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
                         # paste0(c(1,2,5,10), "Mb"))
 
   if (!is.null(replic_timing_file_prefix)) {
-    print("Processing replciation timing data")
+    print("Processing replication timing data")
     replic_files = paste0(replic_timing_file_prefix, chrom_idx, ".txt.gz")
     replic_data = do.call(rbind, lapply(replic_files, read_replication))
   }
@@ -389,10 +389,11 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
 #' @param nthreads The number of paralel processes to run
 #' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
+#' @param skip_allele_counting_normal Flag, set to TRUE from the second sample onwards for multisample case (Default: FALSE)
 #' @author sd11
 #' @export
 prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname, g1000allelesprefix, g1000prefix, gccorrectprefix,
-                       repliccorrectprefix, min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
+                       repliccorrectprefix, min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting, skip_allele_counting_normal = F) {
 
   requireNamespace("foreach")
   requireNamespace("doParallel")
@@ -407,13 +408,15 @@ prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname
                       min.base.qual=min_base_qual,
                       min.map.qual=min_map_qual,
                       allelecounter.exe=allelecounter_exe)
-
-      getAlleleCounts(bam.file=normalbam,
-                      output.file=paste(normalname,"_alleleFrequencies_chr", i, ".txt",  sep=""),
-                      g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
-                      min.base.qual=min_base_qual,
-                      min.map.qual=min_map_qual,
-                      allelecounter.exe=allelecounter_exe)
+      
+      if (!skip_allele_counting_normal) {
+        getAlleleCounts(bam.file=normalbam,
+                        output.file=paste(normalname,"_alleleFrequencies_chr", i, ".txt",  sep=""),
+                        g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
+                        min.base.qual=min_base_qual,
+                        min.map.qual=min_map_qual,
+                        allelecounter.exe=allelecounter_exe)
+      }
     }
   }
 
