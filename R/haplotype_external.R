@@ -312,8 +312,8 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
   for (chrom in 1:length(chrom_names)) {
     # load loci.RDS file and simplify genotype formatting
     loci <- readRDS(file = paste0(rdsprefix, chrom, "_loci.RDS"))
-    S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")] <- apply(X = S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")],
-                                                                    MARGIN = 2, FUN = function(x) as.numeric(substr(x = x, start = 1, stop = 1)))
+    S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")] <- S4Vectors::DataFrame(apply(X = S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")],
+                                                                    MARGIN = 2, FUN = function(x) as.numeric(substr(x = x, start = 1, stop = 1))))
     
     if (length(imbalancedregions_disj[[chrom_names[chrom]]]) > 0) {
       # split loci by aberrated region
