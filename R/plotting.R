@@ -95,7 +95,7 @@ create.subclonal.cn.plot = function(chrom, chrom.position, LogRposke, LogRchr, B
 create.bb.plot.average = function(bafsegmented, ploidy, rho, goodnessOfFit, pos_min, pos_max, segment_states_min, segment_states_tot, chr.segs, chr.names, ylim=5) {
   # Plot main frame and title
   par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
-  maintitle = paste0(substring(paste(rep(TUMOURNAME,3),collapse = ""),50,first = T),", Ploidy: ",sprintf("%1.2f",ploidy),", Purity: ",sprintf("%2.0f",rho*100),"%, PGAclonal: ",sprintf("%2.1f",goodnessOfFit*100),"%")
+  maintitle = paste0(substring(paste(rep(TUMOURNAME,3),collapse = ""),50,first = T),",Ploidy:",sprintf("%1.2f",ploidy),",Purity:",sprintf("%2.0f",rho*100),"%,PGAclonal:",sprintf("%2.1f",goodnessOfFit*100),"%")
   #maintitle = paste0(substring(TUMOURNAME,50,first = T),", Ploidy: ",sprintf("%1.2f",ploidy),", Purity: ",sprintf("%2.0f",rho*100),"%, PGAclonal: ",sprintf("%2.1f",goodnessOfFit*100),"%")
   # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
   plot(c(1,nrow(bafsegmented)), c(0,ylim), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
@@ -125,7 +125,7 @@ create.bb.plot.average = function(bafsegmented, ploidy, rho, goodnessOfFit, pos_
 #' @noRd
 create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodnessOfFit, pos_min, pos_max, subcl_min, subcl_max, is_subclonal, is_subclonal_maj, is_subclonal_min, chr.segs, chr.names, ylim=5) {
 	par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
-	maintitle = paste0(substring(paste(rep(TUMOURNAME,3),collapse = ""),50,first = T),", Ploidy: ",sprintf("%1.2f",ploidy),", Purity: ",sprintf("%2.0f",rho*100),"%, PGAclonal: ",sprintf("%2.1f",goodnessOfFit*100),"%")
+	maintitle = paste0(substring(paste(rep(TUMOURNAME,3),collapse = ""),50,first = T),",Ploidy:",sprintf("%1.2f",ploidy),",Purity:",sprintf("%2.0f",rho*100),"%,PGAclonal:",sprintf("%2.1f",goodnessOfFit*100),"%")
         #maintitle = paste0(substring(TUMOURNAME,50,first = T),", Ploidy: ",sprintf("%1.2f",ploidy),", Purity: ",sprintf("%2.0f",rho*100),"%, PGAclonal: ",sprintf("%2.1f",goodnessOfFit*100),"%")
         # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
 	plot(c(1,nrow(bafsegmented)), c(0,ylim), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
