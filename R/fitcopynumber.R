@@ -875,7 +875,7 @@ make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_fil
 #' @param X_KMIN The min number of SNPs to support a segment in PCF of LogR values (Default 100)
 #' @param AR Should the segment carrying the androgen receptor (AR) locus to be visually distinguished in average plot? (Default TRUE)
 #' @param GENOMEBUILD The genome build used in running Battenberg (hg19 or hg38)
-#' @author Naser Ansari-Pour
+#' @author Naser
 #' @export
 callChrXsubclones = function(TUMOURNAME,X_GAMMA=1000,X_KMIN=100,GENOMEBUILD,AR=TRUE){
 print(TUMOURNAME)
