@@ -880,7 +880,7 @@ make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_fil
 callChrXsubclones <- function(TUMOURNAME,X_GAMMA=1000,X_KMIN=100,GENOMEBUILD,AR=TRUE){
 print(TUMOURNAME)
 PCFinput=read_table_generic(paste0(TUMOURNAME,"_mutantLogR_gcCorrected.tab"))
-PCFinput=PCFinput[which(PCFinput$pos>2600000 & PCFinput$pos<156000000),]
+PCFinput=PCFinput[which(PCFinput$Position>2600000 & PCFinput$Position<156000000),]
 print(paste("dimension of chrX nonPAR logR file =",dim(PCFinput)))
 PCF=pcf(PCFinput,gamma=X_GAMMA,kmin=X_KMIN)
 write.table(PCF,paste0(TUMOURNAME,"_PCF_gamma_",X_GAMMA,"_chrX.txt"),col.names=T,row.names=F,quote=F,sep="\t")
