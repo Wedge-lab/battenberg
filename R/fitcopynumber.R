@@ -877,7 +877,7 @@ make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_fil
 #' @param GENOMEBUILD The genome build used in running Battenberg (hg19 or hg38)
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
-callChrXsubclones <- function(TUMOURNAME,X_GAMMA=1000,X_KMIN=100,GENOMEBUILD,AR=TRUE){
+callChrXsubclones = function(TUMOURNAME,X_GAMMA=1000,X_KMIN=100,GENOMEBUILD,AR=TRUE){
 print(TUMOURNAME)
 PCFinput=read_table_generic(paste0(TUMOURNAME,"_mutantLogR_gcCorrected.tab"))
 PCFinput=PCFinput[which(PCFinput$Chromosome=="X" & PCFinput$Position>2600000 & PCFinput$Position<156000000),]
