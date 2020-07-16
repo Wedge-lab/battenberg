@@ -879,8 +879,9 @@ make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_fil
 #' @export
 callChrXsubclones = function(TUMOURNAME,X_GAMMA=1000,X_KMIN=100,GENOMEBUILD,AR=TRUE){
 print(TUMOURNAME)
-PCFinput=read_table_generic(paste0(TUMOURNAME,"_mutantLogR_gcCorrected.tab"))
+PCFinput=data.frame(read_table_generic(paste0(TUMOURNAME,"_mutantLogR_gcCorrected.tab")),stringsAsFactors=F)
 PCFinput=PCFinput[which(PCFinput$Chromosome=="X" & PCFinput$Position>2600000 & PCFinput$Position<156000000),]
+colnames(PCFinput)[3]=TUMOURNAME
 print(paste("Number of chrX nonPAR SNPs =",nrow(PCFinput)))
 PCF=pcf(PCFinput,gamma=X_GAMMA,kmin=X_KMIN)
 write.table(PCF,paste0(TUMOURNAME,"_PCF_gamma_",X_GAMMA,"_chrX.txt"),col.names=T,row.names=F,quote=F,sep="\t")
