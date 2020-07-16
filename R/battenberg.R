@@ -42,7 +42,10 @@
 #' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
 #' @param heterozygousFilter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
 #' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
-#' @author sd11
+#' @param X_GAMMA Gamma is the segmentation penalty value to be used by PCF for logR segmentation of ChrX (Default: 1000)
+#' @param X_KMIN Kmin is the minimum number of SNPs supporting a segment to be used by PCF for logR segmentation of ChrX (Default: 100)
+#' @param GENOMEBUILD Genome build upon which the 1000G SNP coordinates were obtained ("hg19" or "hg38")  
+#' @author sd11, Naser Ansari-Pour
 #' @export
 battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, gccorrectprefix=NULL,
                       repliccorrectprefix=NULL, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
@@ -219,7 +222,18 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                 maxdist=0.01, 
                 noperms=1000,
                 calc_seg_baf_option=calc_seg_baf_option)
+	
+  # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
   
+  if (ismale){
+  callChrXsubclones(
+  TUMOURNAME=tumourname,
+  X_GAMMA=1000,
+  X_KMIN=100,
+  GENOMEBUILD=GENOMEBUILD,
+  AR=TRUE)
+  }
+	
   # Make some post-hoc plots
   make_posthoc_plots(samplename=tumourname, 
                      logr_file=logr_file, 
