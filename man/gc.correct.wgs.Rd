@@ -4,9 +4,15 @@
 \alias{gc.correct.wgs}
 \title{Function to correct LogR for waivyness that correlates with GC content}
 \usage{
-gc.correct.wgs(Tumour_LogR_file, outfile, correlations_outfile,
-  gc_content_file_prefix, replic_timing_file_prefix, chrom_names,
-  recalc_corr_afterwards = F)
+gc.correct.wgs(
+  Tumour_LogR_file,
+  outfile,
+  correlations_outfile,
+  gc_content_file_prefix,
+  replic_timing_file_prefix,
+  chrom_names,
+  recalc_corr_afterwards = F
+)
 }
 \arguments{
 \item{Tumour_LogR_file}{String pointing to the tumour LogR output}

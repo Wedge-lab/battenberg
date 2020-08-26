@@ -13,14 +13,14 @@ create.haplotype.plot = function(chrom.position, points.blue, points.red, x.min,
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.segmented.plot = function(chrom.position, points.red, points.green, x.min, x.max, title, xlab, ylab, svs_pos=NULL) {
+create.segmented.plot = function(chrom.position, points.red, points.green, x.min, x.max, title, xlab, ylab, prior_bkps_pos=NULL) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type="n", main=title, xlab=xlab, ylab=ylab)
   points(chrom.position, points.red, pch=".", col="red", cex=2)
   points(chrom.position, points.green, pch=19, cex=0.5, col="green")
-  if (!is.null(svs_pos)) {
-    for (i in 1:length(svs_pos)) {
-      abline(v=svs_pos[i])
+  if (!is.null(prior_bkps_pos)) {
+    for (i in 1:length(prior_bkps_pos)) {
+      abline(v=prior_bkps_pos[i])
     }
   }
 }
@@ -28,15 +28,15 @@ create.segmented.plot = function(chrom.position, points.red, points.green, x.min
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.baf.plot = function(chrom.position, points.red.blue, plot.red, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab, svs_pos=NULL) {
+create.baf.plot = function(chrom.position, points.red.blue, plot.red, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab, prior_bkps_pos=NULL) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type = "n", main=title, xlab=xlab, ylab=ylab)
   points(chrom.position, points.red.blue, pch=".", col=ifelse(plot.red, "red", "blue"), cex=2)
   points(chrom.position, points.darkred, pch=19, cex=0.5, col="darkred")
   points(chrom.position, points.darkblue, pch=19, cex=0.5, col="darkblue")
-  if (!is.null(svs_pos)) {
-    for (i in 1:length(svs_pos)) {
-      abline(v=svs_pos[i])
+  if (!is.null(prior_bkps_pos)) {
+    for (i in 1:length(prior_bkps_pos)) {
+      abline(v=prior_bkps_pos[i])
     }
   }
 }

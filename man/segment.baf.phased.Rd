@@ -2,10 +2,20 @@
 % Please edit documentation in R/segmentation.R
 \name{segment.baf.phased}
 \alias{segment.baf.phased}
-\title{Segment the haplotyped and phased data using fastPCF.}
+\title{Segment BAF, with the possible inclusion of structural variant breakpoints}
 \usage{
-segment.baf.phased(samplename, inputfile, outputfile, gamma = 10,
-  phasegamma = 3, kmin = 3, phasekmin = 3, calc_seg_baf_option = 1)
+segment.baf.phased(
+  samplename,
+  inputfile,
+  outputfile,
+  prior_breakpoints_file = NULL,
+  gamma = 10,
+  phasegamma = 3,
+  kmin = 3,
+  phasekmin = 3,
+  no_segmentation = F,
+  calc_seg_baf_option = 3
+)
 }
 \arguments{
 \item{samplename}{Name of the sample, which is used to name output figures}
@@ -14,24 +24,24 @@ segment.baf.phased(samplename, inputfile, outputfile, gamma = 10,
 
 \item{outputfile}{String where the segmentation output will be written}
 
-\item{gamma}{The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 10)}
+\item{prior_breakpoints_file}{String that points to a file with prior breakpoints (from SVs for example) with chromosome and position columns (Default: NULL)}
 
-\item{phasegamma}{Gamma parameter used when correcting phasing mistakes (Default: 3)}
+\item{gamma}{The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)}
 
-\item{kmin}{Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)}
+\item{phasegamma}{Gamma parameter used when correcting phasing mistakes (Default 3)}
 
-\item{phasekmin}{Kmin parameter used when correcting phasing mistakes (Default: 3)}
+\item{kmin}{Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default 3)}
 
-\item{calc_seg_baf_option}{Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)}
+\item{phasekmin}{Kmin parameter used when correcting phasing mistakes (Default 3)}
+
+\item{no_segmentation}{Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm}
+
+\item{calc_seg_baf_option}{Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0 or 1, median, mean. (Default: 3)}
 }
 \description{
-This function performs segmentation. This is done in two steps. First a segmentation step
-that aims to find short segments. These are used to find haplotype blocks that have been
-switched. These blocks are switched into the correct order first after which the second
-segmentation step is performed. This second step aims to segment the data that will go into
-fit.copy.number. This function produces a BAF segmented file with 5 columns: chromosome, position,
-original BAF, switched BAF and BAF segment. The BAF segment column should be used subsequently
+This function breaks the genome up into chromosomes, possibly further when SV breakpoints
+are provided, and runs PCF on each to segment the chromosomes independently.
 }
 \author{
-dw9
+sd11
 }

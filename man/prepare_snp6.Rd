@@ -4,12 +4,17 @@
 \alias{prepare_snp6}
 \title{Prepare SNP6 data for haplotype construction}
 \usage{
-prepare_snp6(tumour_cel_file, normal_cel_file, tumourname, chrom_names,
+prepare_snp6(
+  tumour_cel_file,
+  normal_cel_file,
+  tumourname,
+  chrom_names,
   snp6_reference_info_file,
   apt.probeset.genotype.exe = "apt-probeset-genotype",
   apt.probeset.summarize.exe = "apt-probeset-summarize",
   norm.geno.clust.exe = "normalize_affy_geno_cluster.pl",
-  birdseed_report_file = "birdseed.report.txt")
+  birdseed_report_file = "birdseed.report.txt"
+)
 }
 \arguments{
 \item{tumour_cel_file}{Full path to a CEL file containing the tumour raw data}
