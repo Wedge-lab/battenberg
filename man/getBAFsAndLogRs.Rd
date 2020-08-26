@@ -4,10 +4,21 @@
 \alias{getBAFsAndLogRs}
 \title{Obtain BAF and LogR from the allele counts}
 \usage{
-getBAFsAndLogRs(tumourAlleleCountsFile.prefix, normalAlleleCountsFile.prefix,
-  figuresFile.prefix, BAFnormalFile, BAFmutantFile, logRnormalFile,
-  logRmutantFile, combinedAlleleCountsFile, chr_names, g1000file.prefix,
-  minCounts = NA, samplename = "sample1", seed = as.integer(Sys.time()))
+getBAFsAndLogRs(
+  tumourAlleleCountsFile.prefix,
+  normalAlleleCountsFile.prefix,
+  figuresFile.prefix,
+  BAFnormalFile,
+  BAFmutantFile,
+  logRnormalFile,
+  logRmutantFile,
+  combinedAlleleCountsFile,
+  chr_names,
+  g1000file.prefix,
+  minCounts = NA,
+  samplename = "sample1",
+  seed = as.integer(Sys.time())
+)
 }
 \arguments{
 \item{tumourAlleleCountsFile.prefix}{Prefix of the allele counts files for the tumour.}

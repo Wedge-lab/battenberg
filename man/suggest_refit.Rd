@@ -4,8 +4,15 @@
 \alias{suggest_refit}
 \title{Calculate refit values from a refit suggestion}
 \usage{
-suggest_refit(subclones_file, segment_chrom, segment_pos, new_nMaj, new_nMin,
-  rho, gamma_param)
+suggest_refit(
+  subclones_file,
+  segment_chrom,
+  segment_pos,
+  new_nMaj,
+  new_nMin,
+  rho,
+  gamma_param
+)
 }
 \arguments{
 \item{subclones_file}{A Battenberg subclones.txt file}

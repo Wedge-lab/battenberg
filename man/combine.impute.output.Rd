@@ -4,8 +4,14 @@
 \alias{combine.impute.output}
 \title{Concatenate the impute output generated for each of the regions.}
 \usage{
-combine.impute.output(inputfile.prefix, outputfile, is.male, imputeinfofile,
-  region.size = 5e+06, chrom = NA)
+combine.impute.output(
+  inputfile.prefix,
+  outputfile,
+  is.male,
+  imputeinfofile,
+  region.size = 5000000,
+  chrom = NA
+)
 }
 \arguments{
 \item{inputfile.prefix}{Prefix of the input files (this is typically the outputfile.prefix option supplied when calling run.impute).}

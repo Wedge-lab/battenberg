@@ -4,9 +4,16 @@
 \alias{run.impute}
 \title{Run impute on the specified inputfile}
 \usage{
-run.impute(inputfile, outputfile.prefix, is.male, imputeinfofile,
-  impute.exe = "impute2", region.size = 5e+06, chrom = NA,
-  seed = as.integer(Sys.time()))
+run.impute(
+  inputfile,
+  outputfile.prefix,
+  is.male,
+  imputeinfofile,
+  impute.exe = "impute2",
+  region.size = 5000000,
+  chrom = NA,
+  seed = as.integer(Sys.time())
+)
 }
 \arguments{
 \item{inputfile}{Full path to a csv file with columns: Physical.Position, Allele.A, Allele.B, allele.frequency, id ,position, a0, a1}

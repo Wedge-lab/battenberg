@@ -4,8 +4,7 @@
 \alias{plot.haplotype.data}
 \title{Plot haplotyped SNPs}
 \usage{
-\method{plot}{haplotype.data}(haplotyped.baf.file, imageFileName, samplename,
-  chrom, chr_names)
+\method{plot}{haplotype.data}(haplotyped.baf.file, imageFileName, samplename, chrom, chr_names)
 }
 \arguments{
 \item{haplotyped.baf.file}{File containing the haplotyped SNP info.}

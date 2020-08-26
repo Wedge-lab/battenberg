@@ -4,10 +4,18 @@
 \alias{gc.correct}
 \title{Correct the LogR estimates for GC content}
 \usage{
-gc.correct(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.tumor.BAF,
-  outfile.normal.LogR, outfile.normal.BAF, outfile.probeBAF,
-  snp6_reference_info_file, chr_names,
-  birdseed_report_file = "birdseed.report.txt")
+gc.correct(
+  samplename,
+  infile.logr.baf,
+  outfile.tumor.LogR,
+  outfile.tumor.BAF,
+  outfile.normal.LogR,
+  outfile.normal.BAF,
+  outfile.probeBAF,
+  snp6_reference_info_file,
+  chr_names,
+  birdseed_report_file = "birdseed.report.txt"
+)
 }
 \arguments{
 \item{samplename}{Name of the sample to be used to name columns}

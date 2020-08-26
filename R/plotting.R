@@ -4,21 +4,23 @@
 create.haplotype.plot = function(chrom.position, points.blue, points.red, x.min, x.max, title, xlab, ylab) {
   par(pch=".", cex=1, cex.main=0.8, cex.axis = 0.6, cex.lab=0.7,yaxp=c(-0.05,1.05,6))
   plot(c(x.min,x.max), c(0,1), type="n", main=title, xlab=xlab, ylab=ylab)
-  points(chrom.position, points.blue, col="blue")
-  points(chrom.position, points.red, col="red")
+  if (length(chrom.position) > 0) {
+    points(chrom.position, points.blue, col="blue")
+    points(chrom.position, points.red, col="red")
+  }
 }
 
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.segmented.plot = function(chrom.position, points.red, points.green, x.min, x.max, title, xlab, ylab, svs_pos=NULL) {
+create.segmented.plot = function(chrom.position, points.red, points.green, x.min, x.max, title, xlab, ylab, prior_bkps_pos=NULL) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type="n", main=title, xlab=xlab, ylab=ylab)
   points(chrom.position, points.red, pch=".", col="red", cex=2)
   points(chrom.position, points.green, pch=19, cex=0.5, col="green")
-  if (!is.null(svs_pos)) {
-    for (i in 1:length(svs_pos)) {
-      abline(v=svs_pos[i])
+  if (!is.null(prior_bkps_pos)) {
+    for (i in 1:length(prior_bkps_pos)) {
+      abline(v=prior_bkps_pos[i])
     }
   }
 }
@@ -26,15 +28,15 @@ create.segmented.plot = function(chrom.position, points.red, points.green, x.min
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.baf.plot = function(chrom.position, points.red.blue, plot.red, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab, svs_pos=NULL) {
+create.baf.plot = function(chrom.position, points.red.blue, plot.red, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab, prior_bkps_pos=NULL) {
   par(mar = c(5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min,x.max), c(0,1), pch=".", type = "n", main=title, xlab=xlab, ylab=ylab)
   points(chrom.position, points.red.blue, pch=".", col=ifelse(plot.red, "red", "blue"), cex=2)
   points(chrom.position, points.darkred, pch=19, cex=0.5, col="darkred")
   points(chrom.position, points.darkblue, pch=19, cex=0.5, col="darkblue")
-  if (!is.null(svs_pos)) {
-    for (i in 1:length(svs_pos)) {
-      abline(v=svs_pos[i])
+  if (!is.null(prior_bkps_pos)) {
+    for (i in 1:length(prior_bkps_pos)) {
+      abline(v=prior_bkps_pos[i])
     }
   }
 }
@@ -365,6 +367,11 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
   max_cn_plot_fit = ceiling(quantile(unlist(lapply(1:nrow(subclones), function(i) rep(subclones$total_cn[i], subclones$len[i]))), c(.98), na.rm=T))
   max_cn_plot = ifelse(max_cn_plot_fit > max_cn_plot_data, max_cn_plot_fit, max_cn_plot_data)
   maxpos = max(logr$Position)
+  
+  # catch case when there is no clonal CNA called
+  if (is.na(max_cn_plot) | max_cn_plot < 4) {
+    max_cn_plot = 4
+  }
   
   # These are the grey lines in the background
   background = data.frame(xmin=rep(0, (max_cn_plot/2)+1), 

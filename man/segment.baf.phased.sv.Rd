@@ -2,11 +2,20 @@
 % Please edit documentation in R/segmentation.R
 \name{segment.baf.phased.sv}
 \alias{segment.baf.phased.sv}
-\title{Segment BAF with the inclusion of structural variant breakpoints}
+\title{Segment BAF with the inclusion of structural variant breakpoints - This function is now deprecated, call segment.baf.phased instead}
 \usage{
-segment.baf.phased.sv(samplename, inputfile, outputfile, svs, gamma = 10,
-  phasegamma = 3, kmin = 3, phasekmin = 3, no_segmentation = F,
-  calc_seg_baf_option = 1)
+segment.baf.phased.sv(
+  samplename,
+  inputfile,
+  outputfile,
+  svs = NULL,
+  gamma = 10,
+  phasegamma = 3,
+  kmin = 3,
+  phasekmin = 3,
+  no_segmentation = F,
+  calc_seg_baf_option = 1
+)
 }
 \arguments{
 \item{samplename}{Name of the sample, which is used to name output figures}
@@ -15,7 +24,7 @@ segment.baf.phased.sv(samplename, inputfile, outputfile, svs, gamma = 10,
 
 \item{outputfile}{String where the segmentation output will be written}
 
-\item{svs}{Data.frame with chromosome and position columns}
+\item{svs}{Data.frame with chromosome and position columns (Default: NULL)}
 
 \item{gamma}{The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)}
 

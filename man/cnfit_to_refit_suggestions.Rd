@@ -4,8 +4,13 @@
 \alias{cnfit_to_refit_suggestions}
 \title{Create refit suggestions for a fit copy number profile}
 \usage{
-cnfit_to_refit_suggestions(samplename, subclones_file, rho_psi_file,
-  gamma_param, min_segment_size_mb = 2)
+cnfit_to_refit_suggestions(
+  samplename,
+  subclones_file,
+  rho_psi_file,
+  gamma_param,
+  min_segment_size_mb = 2
+)
 }
 \arguments{
 \item{samplename}{Samplename for the output file}

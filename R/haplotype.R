@@ -118,13 +118,21 @@ plot.haplotype.data = function(haplotyped.baf.file, imageFileName, samplename, c
   chr_name = chr_names[chrom]
   mut_data = read.table(haplotyped.baf.file,sep="\t",header=T)
   
+  if (nrow(mut_data) > 0) {
+    x_min = min(mut_data$Position,na.rm=T)
+    x_max = max(mut_data$Position,na.rm=T)
+  } else {
+    x_min = 1
+    x_max = 2
+  }
+
   png(filename = imageFileName, width = 10000, height = 2500, res = 500)
   create.haplotype.plot(chrom.position=mut_data$Position, 
                         points.blue=mut_data[,3], 
                         points.red=1-mut_data[,3], 
-                        x.min=min(mut_data$Position,na.rm=T), 
-                        x.max=max(mut_data$Position,na.rm=T), 
-                        title=paste(samplename,", chromosome",mut_data[1,1], sep=" "), 
+                        x.min=x_min, 
+                        x.max=x_max, 
+                        title=paste(samplename,", chromosome",chr_name, sep=" "), 
                         xlab="pos", 
                         ylab="BAF")
   dev.off()
