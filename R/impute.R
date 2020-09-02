@@ -68,7 +68,7 @@ parse.imputeinfofile = function(imputeinfofile, is.male, chrom=NA) {
   chr_names=unique(impute.info$chrom)
   # Subset for a particular chromosome
   if (!is.na(chrom)) {
-    impute.info = impute.info[impute.info$chrom==chr_names[chrom],]
+    impute.info = impute.info[impute.info$chrom==chrom,]
   }
   return(impute.info)
 }
@@ -215,5 +215,5 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                       chr_names=chrom_names)
 
   # Cleanup temp Impute output
-  unlink(paste(tumourname, "_impute_output_chr", chrom, ".txt*K.txt*", sep=""))
+  unlink(paste(tumourname, "_impute_output_chr", chrom, "*K.txt*", sep=""))
 }

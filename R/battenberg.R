@@ -147,9 +147,9 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     # Reconstruct haplotypes 
     # mclapply(1:length(chrom_names), function(chrom) {
     foreach::foreach (chrom=1:length(chrom_names)) %dopar% {
-      print(chrom)
+      print(chrom_names[i])
       
-      run_haplotyping(chrom=chrom, 
+      run_haplotyping(chrom=chrom_names[i], 
                       tumourname=tumourname, 
                       normalname=normalname, 
                       ismale=ismale, 
@@ -169,7 +169,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     combine.baf.files(inputfile.prefix=paste(tumourname, "_chr", sep=""), 
                       inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt", 
                       outputfile=paste(tumourname, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                      no.chrs=length(chrom_names))
+                      chr_names=chrom_names)
   }
   
   # Segment the phased and haplotyped BAF data
