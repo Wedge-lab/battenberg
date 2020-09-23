@@ -59,11 +59,19 @@ BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
 MIN_BASE_QUAL = 20
 MIN_MAP_QUAL = 35
-CALC_SEG_BAF_OPTION = 3
+CALC_SEG_BAF_OPTION = 1
 
 # WGS specific static
 ALLELECOUNTER = "alleleCounter"
 PROBLEMLOCI = "/lustre/scratch117/casm/team219/sd11/reference/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
+USEBEAGLE = T
+GENOME_VERSION = "b37"
+BEAGLE_BASEDIR = "/nfs/users/nfs_s/sd11/scratch17_t219/reference/GenomeFiles/battenberg_beagle"
+BEAGLEJAR = file.path(BEAGLE_BASEDIR, "beagle.24Aug19.3e8.jar")
+BEAGLEREF.template = file.path(BEAGLE_BASEDIR, GENOME_VERSION, "chrCHROMNAME.1kg.phase3.v5a.b37.bref3")
+BEAGLEPLINK.template = file.path(BEAGLE_BASEDIR, GENOME_VERSION, "plink.chrCHROMNAME.GRCh37.map")
+JAVAJRE = "java"
+
 
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
@@ -82,6 +90,15 @@ battenberg(tumourname=TUMOURNAME,
            data_type="wgs",
            impute_exe=IMPUTE_EXE,
            allelecounter_exe=ALLELECOUNTER,
+	   usebeagle=USEBEAGLE,
+	   beaglejar=BEAGLEJAR,
+	   beagleref=BEAGLEREF.template,
+	   beagleplink=BEAGLEPLINK.template,
+	   beaglemaxmem=10,
+	   beaglenthreads=1,
+	   beaglewindow=40,
+	   beagleoverlap=4,
+	   javajre=JAVAJRE,
            nthreads=NTHREADS,
            platform_gamma=PLATFORM_GAMMA,
            phasing_gamma=PHASING_GAMMA,
