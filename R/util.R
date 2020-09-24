@@ -122,10 +122,10 @@ concatenateImputeFiles<-function(inputStart, boundaries) { #outputFile,
 
 #' Function to concatenate haplotyped BAF output
 #' @noRd
-concatenateBAFfiles<-function(inputStart, inputEnd, outputFile, no.chrs) {
+concatenateBAFfiles<-function(inputStart, inputEnd, outputFile, chr_names) {
   all_data<-NULL
   colNames<-NULL
-  for(i in 1:no.chrs)
+  for(i in chr_names)
   {
     filename = paste(inputStart,i,inputEnd,sep="")
     if(file.exists(filename) && file.info(filename)$size>0)
@@ -141,9 +141,9 @@ concatenateBAFfiles<-function(inputStart, inputEnd, outputFile, no.chrs) {
 
 #' Function to concatenate allele counter output
 #' @noRd
-concatenateAlleleCountFiles = function(inputStart, inputEnd, no.chrs) {
+concatenateAlleleCountFiles = function(inputStart, inputEnd, chr_names) {
   infiles = c()
-  for(chrom in 1:no.chrs) {
+  for(chrom in chr_names) {
     filename = paste(inputStart, chrom, inputEnd, sep="")
     # Only add files that exist and have data
     if(file.exists(filename) && file.info(filename)$size>0) {
@@ -155,14 +155,14 @@ concatenateAlleleCountFiles = function(inputStart, inputEnd, no.chrs) {
 
 #' Function to concatenate 1000 Genomes SNP reference files
 #' @noRd
-concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs, chr_names) {
+concatenateG1000SnpFiles = function(inputStart, inputEnd, chr_names) {
   data = list()
-  for(chrom in 1:no.chrs) {
+  for(chrom in chr_names) {
     filename = paste(inputStart, chrom, inputEnd, sep="")
     # Only add files that exist and have data
     if(file.exists(filename) && file.info(filename)$size>0) {
       # infiles = c(infiles, filename)
-      data[[chrom]] = cbind(chromosome=chr_names[chrom], read_table_generic(filename))
+      data[[chrom]] = cbind(chromosome=chrom, read_table_generic(filename))
     }
   }
   return(as.data.frame(do.call(rbind, data)))

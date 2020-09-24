@@ -48,8 +48,8 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
 
   set.seed(seed)
 
-  input_data = concatenateAlleleCountFiles(tumourAlleleCountsFile.prefix, ".txt", length(chr_names))
-  normal_input_data = concatenateAlleleCountFiles(normalAlleleCountsFile.prefix, ".txt", length(chr_names))
+  input_data = concatenateAlleleCountFiles(tumourAlleleCountsFile.prefix, ".txt", chr_names)
+  normal_input_data = concatenateAlleleCountFiles(normalAlleleCountsFile.prefix, ".txt", chr_names)
   allele_data = concatenateG1000SnpFiles(g1000file.prefix, ".txt", length(chr_names), chr_names)
   allele_data[,1] = gsub("chr","",allele_data[,1])
   normal_input_data[,1] = gsub("chr","",normal_input_data[,1])
@@ -170,8 +170,8 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
   # Read in the 1000 genomes reference file paths for the specified chrom
   impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
   chr_names = unique(impute.info$chrom)
-  chrom_name = parse.imputeinfofile(imputeinfofile, is.male)$chrom[chrom]
-
+  chrom_name = chrom
+  
   #print(paste("GenerateImputeInput is.male? ", is.male,sep=""))
   #print(paste("GenerateImputeInput #impute files? ", nrow(impute.info),sep=""))
 
@@ -233,7 +233,7 @@ generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.al
   out.data = cbind(snp.names, known_SNPs[!is.na(indices),1:4], genotypes)
 
   write.table(out.data, file=output.file, row.names=F, col.names=F, quote=F)
-  if(is.na(as.numeric(chrom_name))) {
+  if(is.na(chrom_name)) {
     sample.g.file = paste(dirname(output.file), "/sample_g.txt", sep="")
     #not sure this is necessary, because only the PAR regions are used for males
     #if(is.male){
@@ -266,16 +266,15 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
   Tumor_LogR = read_logr(Tumour_LogR_file)
 
   print("Processing GC content data")
-  chrom_idx = 1:length(chrom_names)
-  gc_files = paste0(gc_content_file_prefix, chrom_idx, ".txt.gz")
+  gc_files = paste0(gc_content_file_prefix, chrom_names, ".txt.gz")
   GC_data = do.call(rbind, lapply(gc_files, read_gccontent))
   colnames(GC_data) = c("chr", "Position", paste0(c(25,50,100,200,500), "bp"),
                         paste0(c(1,2,5,10,20,50,100), "kb"))#,200,500), "kb"),
                         # paste0(c(1,2,5,10), "Mb"))
 
   if (!is.null(replic_timing_file_prefix)) {
-    print("Processing replication timing data")
-    replic_files = paste0(replic_timing_file_prefix, chrom_idx, ".txt.gz")
+    print("Processing replciation timing data")
+    replic_files = paste0(replic_timing_file_prefix, chrom_names, ".txt.gz")
     replic_data = do.call(rbind, lapply(replic_files, read_replication))
   }
 
@@ -403,16 +402,16 @@ prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname
     # Obtain allele counts for 1000 Genomes locations for both tumour and normal
     foreach::foreach(i=1:length(chrom_names)) %dopar% {
       getAlleleCounts(bam.file=tumourbam,
-                      output.file=paste(tumourname,"_alleleFrequencies_chr", i, ".txt", sep=""),
-                      g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
+                      output.file=paste(tumourname,"_alleleFrequencies_chr", chrom_names[i], ".txt", sep=""),
+                      g1000.loci=paste(g1000allelesprefix, chrom_names[i], ".txt", sep=""),
                       min.base.qual=min_base_qual,
                       min.map.qual=min_map_qual,
                       allelecounter.exe=allelecounter_exe)
       
       if (!skip_allele_counting_normal) {
         getAlleleCounts(bam.file=normalbam,
-                        output.file=paste(normalname,"_alleleFrequencies_chr", i, ".txt",  sep=""),
-                        g1000.loci=paste(g1000allelesprefix, i, ".txt", sep=""),
+                        output.file=paste(normalname,"_alleleFrequencies_chr", chrom_names[i], ".txt",  sep=""),
+                        g1000.loci=paste(g1000allelesprefix, chrom_names[i], ".txt", sep=""),
                         min.base.qual=min_base_qual,
                         min.map.qual=min_map_qual,
                         allelecounter.exe=allelecounter_exe)

@@ -286,7 +286,7 @@ generate.impute.input.snp6 = function(infile.germlineBAF, infile.tumourBAF, outF
 
   print(head(known_SNPs))
   print(dim(known_SNPs))
-  chr_name = chr_names[chrom]
+  chr_name = chrom
   
   # filter out bad SNPs (streaks in BAF)
   if((problemLociFile !="NA") & (!is.na(problemLociFile)))
@@ -407,7 +407,7 @@ generate.impute.input.snp6 = function(infile.germlineBAF, infile.tumourBAF, outF
   }
   write.table(out.data,file=outfile,row.names=F,col.names=F,quote=F)
   
-  if (chrom==23) {
+  if (chrom=='chrX') {
     sample.g.file = paste(outFileStart,"sample_g.txt",sep="")
     sample_g_data = data.frame(ID_1=c(0,"INDIVI1"),ID_2=c(0,"INDIVI1"),missing=c(0,0),sex=c("D",2))
     write.table(sample_g_data, file=sample.g.file, row.names=F, col.names=T, quote=F)

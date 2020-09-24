@@ -212,7 +212,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
       
       # Reconstruct haplotypes
       # mclapply(1:length(chrom_names), function(chrom) {
-      foreach::foreach (chrom=1:length(chrom_names)) %dopar% {
+      foreach::foreach (i=1:length(chrom_names)) %dopar% {
+        chrom = chrom_names[i]
         print(chrom)
         
         run_haplotyping(chrom=chrom,
@@ -228,8 +229,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                         heterozygousFilter=heterozygousFilter,
                         usebeagle=usebeagle,
                         beaglejar=beaglejar,
-                        beagleref=gsub("CHROMNAME",if(chrom==23) "X" else chrom, beagleref.template),
-                        beagleplink=gsub("CHROMNAME",if(chrom==23) "X" else chrom, beagleplink.template),
+                        beagleref=gsub("CHROMNAME", chrom, beagleref.template),
+                        beagleplink=gsub("CHROMNAME", chrom, beagleplink.template),
                         beaglemaxmem=beaglemaxmem,
                         beaglenthreads=beaglenthreads,
                         beaglewindow=beaglewindow,
@@ -262,8 +263,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     if (nsamples > 1 | write_battenberg_phasing) {
       # Write the Battenberg phasing information to disk as a vcf
       write_battenberg_phasing(tumourname = tumourname[sampleidx],
-                               SNPfiles = paste0(tumourname[sampleidx], "_alleleFrequencies_chr", 1:length(chrom_names), ".txt"),
-                               imputedHaplotypeFiles = paste0(tumourname[sampleidx], "_impute_output_chr", 1:length(chrom_names), "_allHaplotypeInfo.txt"),
+                               SNPfiles = paste0(tumourname[sampleidx], "_alleleFrequencies_chr", chrom_names, ".txt"),
+                               imputedHaplotypeFiles = paste0(tumourname[sampleidx], "_impute_output_chr", chrom_names, "_allHaplotypeInfo.txt"),
                                bafsegmented_file = paste0(tumourname[sampleidx], ".BAFsegmented.txt"),
                                outprefix = paste0(tumourname[sampleidx], "_Battenberg_phased_chr"),
                                chrom_names = chrom_names,
@@ -285,7 +286,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     
     # Reconstruct haplotypes
     # mclapply(1:length(chrom_names), function(chrom) {
-    foreach::foreach (chrom=1:length(chrom_names)) %dopar% {
+    foreach::foreach (i=1:length(chrom_names)) %dopar% {
+      chrom = chrom_names[i]
       print(chrom)
       
       get_multisample_phasing(chrom = chrom,
@@ -301,8 +303,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     for (sampleidx in 1:nsamples) {
       
       # rename the original files without multisample phasing info
-      MutBAFfiles <- paste0(tumourname[sampleidx], "_chr", 1:length(chrom_names), "_heterozygousMutBAFs_haplotyped.txt")
-      heterozygousdatafiles <- paste0(tumourname[sampleidx], "_chr", 1:length(chrom_names), "_heterozygousData.png")
+      MutBAFfiles <- paste0(tumourname[sampleidx], "_chr", chrom_names), "_heterozygousMutBAFs_haplotyped.txt")
+      heterozygousdatafiles <- paste0(tumourname[sampleidx], "_chr", chrom_names), "_heterozygousData.png")
       raffiles <- paste0(tumourname[sampleidx], "_RAFseg_chr", chrom_names, ".png")
       segfiles <- paste0(tumourname[sampleidx], "_segment_chr", chrom_names, ".png")
       haplotypedandbafsegmentedfiles <- paste0(tumourname[sampleidx], c("_heterozygousMutBAFs_haplotyped.txt", ".BAFsegmented.txt"))
@@ -315,7 +317,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
       # done renaming, next sections will overwrite orignals
       
       
-      foreach::foreach (chrom=1:length(chrom_names)) %dopar% {
+      foreach::foreach (i=1:length(chrom_names)) %dopar% {
+        chrom = chrom_names[i]
         print(chrom)
         
         input_known_haplotypes(chrom = chrom,
