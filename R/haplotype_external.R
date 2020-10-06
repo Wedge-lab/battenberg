@@ -15,8 +15,8 @@ split_input_haplotypes <- function(chrom_names, externalhaplotypefile=NA, outpre
   hetsnps <- split(x = hetsnps, f = GenomicRanges::seqnames(hetsnps))
   hetsnps <- hetsnps[chrom_names]
   
-  lapply(X = 1:length(chrom_names), FUN = function(idx, chrom_names, snps, outbase) {
-    VariantAnnotation::writeVcf(obj = snps[[chrom_names[idx]]], filename = paste0(outbase, idx, ".vcf"))
+  lapply(X = chrom_names, FUN = function(chrom, chrom_names, snps, outbase) {
+    VariantAnnotation::writeVcf(obj = snps[[chrom]], filename = paste0(outbase, chrom, ".vcf"))
   }, snps = hetsnps, outbase = outprefix, chrom_names = chrom_names)
   
   return(NULL)
@@ -26,7 +26,7 @@ split_input_haplotypes <- function(chrom_names, externalhaplotypefile=NA, outpre
 
 #' Combine imputation results with external haplotype blocks 
 #' @param chrom_names Names of the chromosomes
-#' @param chrom Index of the chromosome for which to reconstruct haplotypes
+#' @param chrom  chromosome for which to reconstruct haplotypes
 #' @param imputedHaplotypeFile Full path to the imputed haplotyope file for the indexed chromosome
 #' @param externalHaplotypeFile Full path to the vcf containing haplotype blocks for the indexed chromosome (Default: NA)
 #' @param oldfilesuffix Suffix to be added to the original imputedHaplotypeFile (Default: _noExt.txt)
@@ -40,7 +40,7 @@ input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, exte
   bbphasin <- read_imputed_output(file = imputedHaplotypeFile)
   
   # turn into GRanges and subset for het SNPs
-  bbphasingr <- GenomicRanges::GRanges(seqnames = rep(chrom_names[chrom], nrow(bbphasin)), ranges = IRanges::IRanges(start = bbphasin$pos, width = 1))
+  bbphasingr <- GenomicRanges::GRanges(seqnames = rep(chrom, nrow(bbphasin)), ranges = IRanges::IRanges(start = bbphasin$pos, width = 1))
   S4Vectors::mcols(bbphasingr) <- bbphasin[, c("alt", "hap1", "hap2")]
   bbphasingr <- bbphasingr[which(xor(bbphasingr$hap1 == 1, bbphasingr$hap2 == 1))]
   
@@ -121,11 +121,11 @@ write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
   bafsegmented <- read_bafsegmented(bafsegmented_file)[, c("Chromosome", "Position", "BAFphased", "BAFseg")]
   bafsegmented <- split(x = bafsegmented[, c("Position", "BAFphased", "BAFseg")], f = bafsegmented$Chromosome)
   
-  for (chrom in 1:length(chrom_names)) {
-    
+  for (i in 1:length(chrom_names)) {
+    chrom = chrom_names[i] 
     # read allele counts and imputed haplotypes (for the actually used alleles & loci)
-    snp_data <- read_alleleFrequencies(SNPfiles[chrom])
-    allele_data <- read_imputed_output(imputedHaplotypeFiles[chrom])[, c("pos", "ref", "alt", "hap1", "hap2")]
+    snp_data <- read_alleleFrequencies(SNPfiles[i])
+    allele_data <- read_imputed_output(imputedHaplotypeFiles[i])[, c("pos", "ref", "alt", "hap1", "hap2")]
     merge_data <- merge(x = allele_data, y = snp_data, by.x = "pos", by.y = "POS", sort = F)
     
     # map counts to ref/alt
@@ -138,7 +138,7 @@ write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
     merge_data <- cbind(merge_data[, c("CHR", "pos", "ref", "alt", "ref_count", "alt_count", "hap1", "hap2")], BAF = merge_data$alt_count/(merge_data$ref_count+merge_data$alt_count))
     
     # add in the segmented BAF values and start creating output vcf
-    merge_data <- merge(x = merge_data, y = bafsegmented[[chrom_names[chrom]]], by.x = "pos", by.y = "Position",
+    merge_data <- merge(x = merge_data, y = bafsegmented[[chrom]], by.x = "pos", by.y = "Position",
                         all.x = include_homozygous, sort = T)
     
     bbphasing_vr <- VariantAnnotation::VRanges(seqnames = merge_data$CHR, ranges = IRanges::IRanges(start = merge_data$pos, width = 1),
@@ -179,7 +179,7 @@ write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
 
 
 #' Generates phased haplotypes from multisample Battenberg runs 
-#' @param chrom Index of the chromosome for which to obtain haplotypes
+#' @param chrom chromosome for which to obtain haplotypes
 #' @param bbphasingprefixes Vector containing prefixes of the Battenberg_phased_chr files for the multiple samples
 #' @param maxlag Maximal number of upstream SNPs used to inform the haplotype at another SNPs
 #' @param relative_weight_balanced Relative weight to give to haplotype info from a sample without allelic imbalance in the region (default 0.25)
@@ -309,29 +309,30 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
   imbalancedregions_disj <- as(object = split(x = imbalancedregions_disj, f = GenomicRanges::seqnames(imbalancedregions_disj)), Class = "GRangesList")
   
   # for every chromosome with imbalance
-  for (chrom in 1:length(chrom_names)) {
+  for (i in 1:length(chrom_names)) {
+    chrom = chrom_names[i]
     # load loci.RDS file and simplify genotype formatting
     loci <- readRDS(file = paste0(rdsprefix, chrom, "_loci.RDS"))
     S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")] <- S4Vectors::DataFrame(apply(X = S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")],
                                                                     MARGIN = 2, FUN = function(x) as.numeric(substr(x = x, start = 1, stop = 1))))
     
-    if (length(imbalancedregions_disj[[chrom_names[chrom]]]) > 0) {
+    if (length(imbalancedregions_disj[[chrom]]) > 0) {
       # split loci by aberrated region
-      locioverlaps <- GenomicRanges::findOverlaps(query = imbalancedregions_disj[[chrom_names[chrom]]], subject = loci)
+      locioverlaps <- GenomicRanges::findOverlaps(query = imbalancedregions_disj[[chrom]], subject = loci)
       imballoci <- split(x = loci[S4Vectors::subjectHits(locioverlaps)], f = S4Vectors::queryHits(locioverlaps), drop = F)
       
       # now check for each region the GT of major allele (in imbalanced samples)
-      imbalancedregions_disj[[chrom_names[chrom]]] <- imbalancedregions_disj[[chrom_names[chrom]]][unique(S4Vectors::queryHits(locioverlaps))]
+      imbalancedregions_disj[[chrom]] <- imbalancedregions_disj[[chrom]][unique(S4Vectors::queryHits(locioverlaps))]
 
-      frac_consensus <- mapply(haps = imballoci, samples = imbalancedregions_disj[[chrom_names[chrom]]]$sampleids, FUN = function(haps, samples) {
+      frac_consensus <- mapply(haps = imballoci, samples = imbalancedregions_disj[[chrom]]$sampleids, FUN = function(haps, samples) {
         colSums(x = S4Vectors::as.matrix(S4Vectors::mcols(haps)[,paste0(samples, "_Major")]) == S4Vectors::mcols(haps)[, "multisample_haplo"], na.rm = T) / length(haps)
       }, SIMPLIFY = F)
       
       #simplify notation and call MSAI
-      imbalancedregions_disj[[chrom_names[chrom]]]$frac_consensus <- sapply(X = frac_consensus, FUN = function(x) paste0(names(x), "=", round(x, digits = 2), collapse = ";"))
-      imbalancedregions_disj[[chrom_names[chrom]]]$msai <- sapply(X = frac_consensus, FUN = function(x) max(x, na.rm = T) - min(x, na.rm = T) > .9)
+      imbalancedregions_disj[[chrom]]$frac_consensus <- sapply(X = frac_consensus, FUN = function(x) paste0(names(x), "=", round(x, digits = 2), collapse = ";"))
+      imbalancedregions_disj[[chrom]]$msai <- sapply(X = frac_consensus, FUN = function(x) max(x, na.rm = T) - min(x, na.rm = T) > .9)
       
-      msaidf <- GenomicRanges::as.data.frame(imbalancedregions_disj[[chrom_names[chrom]]][imbalancedregions_disj[[chrom_names[chrom]]]$msai])
+      msaidf <- GenomicRanges::as.data.frame(imbalancedregions_disj[[chrom]][imbalancedregions_disj[[chrom]]$msai])
     } else {
       msaidf <- data.frame()
     }

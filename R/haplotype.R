@@ -21,7 +21,7 @@ GetChromosomeBAFs_SNP6 = function(chrom, alleleFreqFile, haplotypeFile, samplena
   select = match(alleleFreqData[,1], variant_data[,3])
   variant_data = variant_data[select,]
   
-  chr_name = chr_names[as.numeric(chrom)]
+  chr_name = chrom
   print(chr_name)
 
   # Switch the haplotypes where required
@@ -60,7 +60,7 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
   # Just select heterozygous SNPs
   het_variant_data = variant_data[variant_data[,6] != variant_data[,7],]
   
-  chr_name = chr_names[as.numeric(chrom)]
+  chr_name = chrom
   print(chr_name)
   
   # Match allele counts and phasing info
@@ -115,7 +115,7 @@ GetChromosomeBAFs = function(chrom, SNP_file, haplotypeFile, samplename, outfile
 #' @author dw9
 #' @export
 plot.haplotype.data = function(haplotyped.baf.file, imageFileName, samplename, chrom, chr_names) {
-  chr_name = chr_names[chrom]
+  chr_name = chrom
   mut_data = read.table(haplotyped.baf.file,sep="\t",header=T)
   
   if (nrow(mut_data) > 0) {
@@ -132,7 +132,7 @@ plot.haplotype.data = function(haplotyped.baf.file, imageFileName, samplename, c
                         points.red=1-mut_data[,3], 
                         x.min=x_min, 
                         x.max=x_max, 
-                        title=paste(samplename,", chromosome",chr_name, sep=" "), 
+                        title=paste(samplename,", chromosome",mut_data[1,1], sep=" "), 
                         xlab="pos", 
                         ylab="BAF")
   dev.off()
@@ -143,9 +143,9 @@ plot.haplotype.data = function(haplotyped.baf.file, imageFileName, samplename, c
 #' @param inputfile.prefix Prefix of the input files until the chromosome number. The chromosome number will be added internally
 #' @param inputfile.postfix Postfix of the input files from the chromosome number
 #' @param outputfile Full path to where the output will be written
-#' @param no.chrs Number of chromosomes, i.e. the number of files that need to be concatenated
+#' @param chr_names A list of allowed chromosome names.
 #' @author dw9
 #' @export
-combine.baf.files = function(inputfile.prefix, inputfile.postfix, outputfile, no.chrs) {
-  concatenateBAFfiles(inputfile.prefix, inputfile.postfix, outputfile, no.chrs)
+combine.baf.files = function(inputfile.prefix, inputfile.postfix, outputfile, chr_names) {
+  concatenateBAFfiles(inputfile.prefix, inputfile.postfix, outputfile, chr_names)
 }
