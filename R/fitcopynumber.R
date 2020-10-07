@@ -339,7 +339,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ploidy = sum((segment_states_min+segment_states_maj) * seg_length, na.rm=T) / sum(seg_length, na.rm=T)
 
   # Plot genome wide figures
-  plot.gw.subclonal.cn(subclones=subclones, BAFvals=BAFvals, rho=rho, ploidy=ploidy, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix, chr.names=chr_names)
+  plot.gw.subclonal.cn(subclones=subclones, BAFvals=BAFvals, rho=rho, ploidy=ploidy, goodness=goodness, output.gw.figures.prefix=output.gw.figures.prefix, chr.names=chr_names, tumourname=sample.name)
 
   # Create user friendly cellularity and ploidy output file
   cellularity_ploidy_output = data.frame(purity = c(rho), ploidy = c(ploidy), psi = c(psit))
@@ -730,7 +730,7 @@ mask_high_cn_segments = function(subclones, bafsegmented, max_allowed_state) {
 #' separate states. The thickness of the line represents the fraction of tumour cells carying
 #' the particular state.
 #' @noRd
-plot.gw.subclonal.cn = function(subclones, BAFvals, rho, ploidy, goodness, output.gw.figures.prefix, chr.names) {
+plot.gw.subclonal.cn = function(subclones, BAFvals, rho, ploidy, goodness, output.gw.figures.prefix, chr.names, tumourname) {
   # Map start and end of each segment into the BAF values. The plot uses the index of this BAF table as x-axis
   pos_min = array(NA, nrow(subclones))
   pos_max = array(NA, nrow(subclones))
@@ -779,7 +779,8 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, ploidy, goodness, outpu
                             segment_states_min=segment_states_min,
                             segment_states_tot=segment_states_tot,
                             chr.segs=chr.segs,
-                            chr.names=chr.names)
+                            chr.names=chr.names,
+			    tumourname=tumourname)
   dev.off()
 
   # Plot subclonal copy number as two separate states
@@ -797,7 +798,8 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, ploidy, goodness, outpu
                   			     is_subclonal_maj=is_subclonal_maj,
                   			     is_subclonal_min=is_subclonal_min,
                   			     chr.segs=chr.segs,
-                  			     chr.names=chr.names)
+                  			     chr.names=chr.names,
+			     tumourname=tumourname)
   dev.off()
 }
 
@@ -891,7 +893,7 @@ PCFinput=data.frame(read_table_generic(paste0(TUMOURNAME,"_mutantLogR_gcCorrecte
 PCFinput=PCFinput[which(PCFinput$Chromosome=="X" & PCFinput$Position>2.6e6 & PCFinput$Position<156e6),] # get nonPAR
 colnames(PCFinput)[3]=TUMOURNAME
 print(paste("Number of chrX nonPAR SNPs =",nrow(PCFinput)))
-PCF=pcf(PCFinput,gamma=X_GAMMA,kmin=X_KMIN)
+PCF=selectFastPcf(PCFinput,gamma=X_GAMMA,kmin=X_KMIN)
 write.table(PCF,paste0(TUMOURNAME,"_PCF_gamma_",X_GAMMA,"_chrX.txt"),col.names=T,row.names=F,quote=F,sep="\t")
 print("PCF segmentation done")
 

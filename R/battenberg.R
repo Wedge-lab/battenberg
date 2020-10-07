@@ -133,7 +133,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     logr_file = paste(tumourname, "_mutantLogR.tab", sep="")
     allelecounts_file = NULL
   }
-  
+  print(chrom_names) 
   for (sampleidx in 1:nsamples) {
     
     if (!skip_preprocessing[sampleidx]) {
@@ -247,7 +247,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
       combine.baf.files(inputfile.prefix=paste(tumourname[sampleidx], "_chr", sep=""),
                         inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt",
                         outputfile=paste(tumourname[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep=""),
-                        no.chrs=length(chrom_names))
+                        chr_names=chrom_names)
     }
     
     # Segment the phased and haplotyped BAF data
@@ -304,8 +304,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     for (sampleidx in 1:nsamples) {
       
       # rename the original files without multisample phasing info
-      MutBAFfiles <- paste0(tumourname[sampleidx], "_chr", chrom_names), "_heterozygousMutBAFs_haplotyped.txt")
-      heterozygousdatafiles <- paste0(tumourname[sampleidx], "_chr", chrom_names), "_heterozygousData.png")
+      MutBAFfiles <- paste0(tumourname[sampleidx], "_chr", chrom_names, "_heterozygousMutBAFs_haplotyped.txt")
+      heterozygousdatafiles <- paste0(tumourname[sampleidx], "_chr", chrom_names, "_heterozygousData.png")
       raffiles <- paste0(tumourname[sampleidx], "_RAFseg_chr", chrom_names, ".png")
       segfiles <- paste0(tumourname[sampleidx], "_segment_chr", chrom_names, ".png")
       haplotypedandbafsegmentedfiles <- paste0(tumourname[sampleidx], c("_heterozygousMutBAFs_haplotyped.txt", ".BAFsegmented.txt"))
@@ -355,7 +355,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
       combine.baf.files(inputfile.prefix=paste0(tumourname[sampleidx], "_chr"),
                         inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt",
                         outputfile=paste0(tumourname[sampleidx], "_heterozygousMutBAFs_haplotyped.txt"), 
-                        no.chrs=length(chrom_names))
+                        chr_names=chrom_names)
       
     }
     
