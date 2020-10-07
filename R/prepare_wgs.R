@@ -50,7 +50,7 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
 
   input_data = concatenateAlleleCountFiles(tumourAlleleCountsFile.prefix, ".txt", chr_names)
   normal_input_data = concatenateAlleleCountFiles(normalAlleleCountsFile.prefix, ".txt", chr_names)
-  allele_data = concatenateG1000SnpFiles(g1000file.prefix, ".txt", length(chr_names), chr_names)
+  allele_data = concatenateG1000SnpFiles(g1000file.prefix, ".txt", chr_names)
   allele_data[,1] = gsub("chr","",allele_data[,1])
   normal_input_data[,1] = gsub("chr","",normal_input_data[,1])
   input_data[,1] = gsub("chr","",input_data[,1])
