@@ -1,3 +1,4 @@
+
 #' Obtain allele counts for 1000 Genomes loci through external program alleleCount
 #'
 #' @param bam.file A BAM alignment file on which the counter should be run.
