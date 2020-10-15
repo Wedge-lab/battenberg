@@ -129,7 +129,8 @@ cell_line_baf_logR = function(TUMOURNAME,g1000alleles.prefix,chrom_names){
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
 
-cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,CL_OHET,CL_AL,CL_AC,CL_LogR,GAMMA_IVD,KMIN_IVD,CENTROMERE_DIST,MIN_HET_DIST,GAMMA_LOGR,LENGTH_ADJACENT){
+# CL_OHET,CL_AL,CL_AC,CL_LogR,
+cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,GAMMA_IVD,KMIN_IVD,CENTROMERE_DIST,MIN_HET_DIST,GAMMA_LOGR,LENGTH_ADJACENT){
   # IDENTIFY REGIONS OF LOH ####
   colClasses=c(chr="numeric",start="numeric",cen.left.base="numeric",cen.right.base="numeric",end="numeric")
   chr_loc=read.table(chrom_coord,colClasses = colClasses,header=T,stringsAsFactors = F) # chrom_coord = full path to chromosome coordinates 
@@ -932,7 +933,6 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
                      chrom_names=chrom_names
   )
   
-  print(ls())
   # Reconstruct normal-pair allele count files for the cell line
   
   foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal","CL_OHET","CL_AL","CL_AC","CL_LogR"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
@@ -941,10 +941,10 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
                                  NORMALNAME=paste0(tumourname,"_normal"),
                                  chrom_coord=chrom_coord,
                                  chrom=i,
-                                 CL_OHET=CL_OHET,
-                                 CL_AL=CL_AL,
-                                 CL_AC=CL_AC,
-                                 CL_LogR=CL_LogR,
+                                 #CL_OHET=CL_OHET,
+                                 #CL_AL=CL_AL,
+                                 #CL_AC=CL_AC,
+                                 #CL_LogR=CL_LogR,
                                  GAMMA_IVD=gamma_ivd,
                                  KMIN_IVD=kmin_ivd,
                                  CENTROMERE_DIST=centromere_dist,
