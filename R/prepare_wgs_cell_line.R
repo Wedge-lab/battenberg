@@ -924,9 +924,6 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
     }
   }
   
-    foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
-    print(head(CL_HET[[i]])
-}
   
   # Obtain BAF and LogR from the raw allele counts of the cell line
   cell_line_baf_logR(TUMOURNAME=tumourname,
@@ -934,6 +931,9 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
                      chrom_names=chrom_names
   )
   
+  foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
+    print(head(CL_HET[[i]])
+}
   
   # Reconstruct normal-pair allele count files for the cell line
   
