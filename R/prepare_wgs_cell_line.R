@@ -930,7 +930,7 @@ prepare_wgs_cell_line = function(chrom_names, tumourbam, tumourname, g1000locipr
   
   # Reconstruct normal-pair allele count files for the cell line
   
-  foreach::foreach(i=1:length(chrom_names),.packages=c("copynumber","ggplot2","grid")) %dopar% {
+  foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
     cell_line_reconstruct_normal(TUMOURNAME=tumourname,
                                  NORMALNAME=paste0(tumourname,"_normal"),
                                  GAMMA_IVD=gamma_ivd,
