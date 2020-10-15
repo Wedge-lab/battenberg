@@ -131,7 +131,7 @@ cell_line_baf_logR = function(TUMOURNAME,g1000alleles.prefix,chrom_names){
 cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,GAMMA_IVD,KMIN_IVD,CENTROMERE_DIST,MIN_HET_DIST,GAMMA_LOGR,LENGTH_ADJACENT){
   # IDENTIFY REGIONS OF LOH ####
   colClasses=c(chr="numeric",start="numeric",cen.left.base="numeric",cen.right.base="numeric",end="numeric")
-  chr_loc=read.table(paste0(Ref_files_dir,"gcCorrect_chromosome_coordinates_hg19.txt"),colClasses = colClasses,header=T,stringsAsFactors = F) # Reference files directory must be defined 
+  chr_loc=read.table(chrom_coord,colClasses = colClasses,header=T,stringsAsFactors = F) # chrom_coord = full path to chromosome coordinates 
   chr_loc$length=(chr_loc$cen.left.base-chr_loc$start)+(chr_loc$end-chr_loc$cen.right.base)
   #STEP 2.0: identify LOH by IVD-PCF
   LOH=list()
@@ -902,7 +902,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
-prepare_wgs_cell_line = function(chrom_names, tumourbam, tumourname, g1000lociprefix, g1000allelesprefix, gamma_ivd=1e5, kmin_ivd=50, centromere_dist=5e5,
+prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname, g1000lociprefix, g1000allelesprefix, gamma_ivd=1e5, kmin_ivd=50, centromere_dist=5e5,
                                  min_het_dist=1e5, gamma_logr=100, length_adjacent=5e4, gccorrectprefix,repliccorrectprefix, min_base_qual, min_map_qual, 
                                  allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
   
@@ -930,7 +930,7 @@ prepare_wgs_cell_line = function(chrom_names, tumourbam, tumourname, g1000locipr
   
   # Reconstruct normal-pair allele count files for the cell line
   
-  foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal","Ref_files_dir"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
+  foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
     cell_line_reconstruct_normal(TUMOURNAME=tumourname,
                                  NORMALNAME=paste0(tumourname,"_normal"),
                                  GAMMA_IVD=gamma_ivd,
