@@ -931,7 +931,7 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
                      chrom_names=chrom_names
   )
   
-  foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
+  foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal"),.export = ls(globalenv()),.packages=c("copynumber","ggplot2","grid")) %dopar% {
     print(head(CL_HET[[i]]))
 }
   
