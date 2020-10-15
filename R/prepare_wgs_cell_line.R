@@ -933,10 +933,10 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
   )
   
   
-  head(CL_OHET)
-  head(CL_AL)
-  head(CL_AC)
-  head(CL_LogR)
+  print(head(CL_OHET))
+  print(head(CL_AL))
+  print(head(CL_AC))
+  print(head(CL_LogR))
   
   # Reconstruct normal-pair allele count files for the cell line
   
