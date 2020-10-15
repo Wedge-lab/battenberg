@@ -128,7 +128,7 @@ cell_line_baf_logR = function(TUMOURNAME,g1000alleles.prefix,chrom_names){
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
 
-cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,GAMMA_IVD,KMIN_IVD,CENTROMERE_DIST,MIN_HET_DIST,GAMMA_LOGR,LENGTH_ADJACENT){
+cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,GAMMA_IVD,KMIN_IVD,CENTROMERE_DIST,MIN_HET_DIST,GAMMA_LOGR,LENGTH_ADJACENT){
   # IDENTIFY REGIONS OF LOH ####
   colClasses=c(chr="numeric",start="numeric",cen.left.base="numeric",cen.right.base="numeric",end="numeric")
   chr_loc=read.table(chrom_coord,colClasses = colClasses,header=T,stringsAsFactors = F) # chrom_coord = full path to chromosome coordinates 
@@ -139,6 +139,7 @@ cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,GAMMA_
   if(!file.exists(PCF_folder)){
     dir.create(PCF_folder)
   }
+  i=chrom
   print(paste("chrom=",i))
   pcf_input=data.frame(chr=i,position=CL_OHET[[i]]$Position,IVD=(CL_OHET[[i]]$Position_dist_percent))
   pcf_input=pcf_input[which(pcf_input$position>=chr_loc[i,"start"] & pcf_input$position<=chr_loc[i,"end"]),] # use only regions covered with gcCorrect LogR range 
@@ -940,6 +941,7 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
     cell_line_reconstruct_normal(TUMOURNAME=tumourname,
                                  NORMALNAME=paste0(tumourname,"_normal"),
                                  chrom_coord=chrom_coord,
+                                 chrom=i
                                  GAMMA_IVD=gamma_ivd,
                                  KMIN_IVD=kmin_ivd,
                                  CENTROMERE_DIST=centromere_dist,
