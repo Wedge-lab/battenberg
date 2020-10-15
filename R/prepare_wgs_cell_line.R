@@ -932,15 +932,10 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
                      chrom_names=chrom_names
   )
   
-  
-  print(head(CL_OHET))
-  print(head(CL_AL))
-  print(head(CL_AC))
-  print(head(CL_LogR))
-  
+  print(ls())
   # Reconstruct normal-pair allele count files for the cell line
   
-  foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
+  foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal","CL_OHET","CL_AL","CL_AC","CL_LogR"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
     
     cell_line_reconstruct_normal(TUMOURNAME=tumourname,
                                  NORMALNAME=paste0(tumourname,"_normal"),
