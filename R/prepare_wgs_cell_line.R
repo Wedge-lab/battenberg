@@ -128,7 +128,7 @@ cell_line_baf_logR = function(TUMOURNAME,g1000alleles.prefix,chrom_names){
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
 
-cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,GAMMA_IVD,KMIN_IVD,CENTROMERE_DIST,MIN_HET_DIST,GAMMA_LOGR,LENGTH_ADJACENT){
+cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,GAMMA_IVD,KMIN_IVD,CENTROMERE_DIST,MIN_HET_DIST,GAMMA_LOGR,LENGTH_ADJACENT){
   # IDENTIFY REGIONS OF LOH ####
   colClasses=c(chr="numeric",start="numeric",cen.left.base="numeric",cen.right.base="numeric",end="numeric")
   chr_loc=read.table(chrom_coord,colClasses = colClasses,header=T,stringsAsFactors = F) # chrom_coord = full path to chromosome coordinates 
@@ -933,6 +933,7 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
   foreach::foreach(i=1:length(chrom_names),.export=c("cell_line_reconstruct_normal"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
     cell_line_reconstruct_normal(TUMOURNAME=tumourname,
                                  NORMALNAME=paste0(tumourname,"_normal"),
+                                 chrom_coord=chrom_coord,
                                  GAMMA_IVD=gamma_ivd,
                                  KMIN_IVD=kmin_ivd,
                                  CENTROMERE_DIST=centromere_dist,
