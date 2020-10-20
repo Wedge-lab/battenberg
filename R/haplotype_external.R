@@ -214,7 +214,7 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, rela
   
   
   # get call for alt-ref switches at different lag intervals 1:maxlag
-  # also keep track of which are evidenced by allelic imbalance in ≥ 1 sample and downweight the inference contribution from the other samples to relative_weight_balanced
+  # also keep track of which are evidenced by allelic imbalance in >= 1 sample and downweight the inference contribution from the other samples to relative_weight_balanced
   gtswitcheslist <- list()
   evidencelist <- list()
   
