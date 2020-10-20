@@ -14,8 +14,19 @@ run_haplotyping(
   impute_exe,
   min_normal_depth,
   chrom_names,
+  externalhaplotypeprefix = NA,
+  use_previous_imputation = F,
   snp6_reference_info_file = NA,
-  heterozygousFilter = NA
+  heterozygousFilter = NA,
+  usebeagle = FALSE,
+  beaglejar = NA,
+  beagleref = NA,
+  beagleplink = NA,
+  beaglemaxmem = 10,
+  beaglenthreads = 1,
+  beaglewindow = 40,
+  beagleoverlap = 4,
+  javajre = "java"
 )
 }
 \arguments{
@@ -40,10 +51,28 @@ run_haplotyping(
 \item{snp6_reference_info_file}{SNP6 only parameter Default: NA}
 
 \item{heterozygousFilter}{SNP6 only parameter Default: NA}
+
+\item{usebeagle}{Should use beagle5 instead of impute2 Default: FALSE}
+
+\item{beaglejar}{Full path to Beagle java jar file Default: NA}
+
+\item{beagleref}{Full path to Beagle reference file Default: NA}
+
+\item{beagleplink}{Full path to Beagle plink file  Default: NA}
+
+\item{beaglemaxmem}{Integer Beagle max heap size in Gb  Default: 10}
+
+\item{beaglenthreads}{Integer number of threads used by beagle5 Default:1}
+
+\item{beaglewindow}{Integer size of the genomic window for beagle5 (cM) Default:40}
+
+\item{beagleoverlap}{Integer size of the overlap between windows beagle5 Default:4}
+
+\item{javajre}{Path to the Java JRE executable (default java, i.e. in $PATH)}
 }
 \description{
 This function takes preprocessed data and performs haplotype reconstruction.
 }
 \author{
-sd11
+sd11, maxime.tarabichi, jdemeul
 }

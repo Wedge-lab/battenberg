@@ -4,7 +4,7 @@
 \alias{combine.baf.files}
 \title{Combines all separate BAF files per chromosome into a single file}
 \usage{
-combine.baf.files(inputfile.prefix, inputfile.postfix, outputfile, no.chrs)
+combine.baf.files(inputfile.prefix, inputfile.postfix, outputfile, chr_names)
 }
 \arguments{
 \item{inputfile.prefix}{Prefix of the input files until the chromosome number. The chromosome number will be added internally}
@@ -13,7 +13,7 @@ combine.baf.files(inputfile.prefix, inputfile.postfix, outputfile, no.chrs)
 
 \item{outputfile}{Full path to where the output will be written}
 
-\item{no.chrs}{Number of chromosomes, i.e. the number of files that need to be concatenated}
+\item{chr_names}{A list of allowed chromosome names.}
 }
 \description{
 Combines all separate BAF files per chromosome into a single file
