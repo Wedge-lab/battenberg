@@ -269,9 +269,11 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # Write the masking details to file
   masking_details = data.frame(samplename=sample.name, masked_count=res$masked_count, masked_size=res$masked_size, max_allowed_state=max_allowed_state)
   write.table(masking_details, file=masking_output_file, quote=F, col.names=T, row.names=F, sep="\t")
-  # Write the final copy number profile
-  write.table(subcloneres, output.file, quote=F, col.names=T, row.names=F, sep="\t")
-  
+  # Write the final copy number profile 
+  # NAP: generating two output files: first reporting solution A and the second reporting alternative solutions (B to F)
+  write.table(subcloneres[,1:17], output.file, quote=F, col.names=T, row.names=F, sep="\t")
+  write.table(subcloneres[,c(1:7,18:67)], gsub(".txt","_alternatives.txt",output.file), quote=F, col.names=T, row.names=F, sep="\t")
+	
   ################################################################################################
   # Make a plot per chromosome
   ################################################################################################
