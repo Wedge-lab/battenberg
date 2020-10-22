@@ -1428,8 +1428,8 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   }
   
 	
-  # NAP: only create this plot for 'paired' mode and not cell_line or germline; it shows strange behaviour and halts execution
-  if (mode=="paired"){
+  # NAP: only create this plot for 'paired' analysis mode and not cell_line or germline; it shows strange behaviour and halts execution
+  if (analysis=="paired"){
   # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
     png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
