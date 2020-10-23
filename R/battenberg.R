@@ -105,7 +105,7 @@ battenberg = function(analysis, tumourname, normalname, tumour_data_file, normal
       # Setup for parallel computing
       clp = parallel::makeCluster(nthreads)
       doParallel::registerDoParallel(clp)
-	    if (analysis == "paired){
+	    if (analysis == "paired"){
             
       prepare_wgs(chrom_names=chrom_names, 
                   tumourbam=tumour_data_file, 
