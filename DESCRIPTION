@@ -30,7 +30,9 @@ Imports:
   parallel,
   foreach,
   splines,
-  VariantAnnotation
+  VariantAnnotation,
+  copynumber,
+  data.table
 URL: https://github.com/Wedge-Oxford/battenberg
 LazyLoad: yes
 Suggests:

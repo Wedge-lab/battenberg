@@ -893,7 +893,7 @@ PCFinput=data.frame(read_table_generic(paste0(TUMOURNAME,"_mutantLogR_gcCorrecte
 PCFinput=PCFinput[which(PCFinput$Chromosome=="X" & PCFinput$Position>2.6e6 & PCFinput$Position<156e6),] # get nonPAR
 colnames(PCFinput)[3]=TUMOURNAME
 print(paste("Number of chrX nonPAR SNPs =",nrow(PCFinput)))
-PCF=selectFastPcf(PCFinput,gamma=X_GAMMA,kmin=X_KMIN)
+PCF=copynumber::pcf(PCFinput,gamma=X_GAMMA,kmin=X_KMIN)
 write.table(PCF,paste0(TUMOURNAME,"_PCF_gamma_",X_GAMMA,"_chrX.txt"),col.names=T,row.names=F,quote=F,sep="\t")
 print("PCF segmentation done")
 
@@ -1173,11 +1173,11 @@ plot_BB=ggplot()+geom_hline(yintercept = 0:ceiling(max(outputDF$subclonalCN)),li
 
 # ANDROGEN RECEPTOR LOCUS
 if (AR){
-  setDT(ar)
-  setkey(ar,"startpos","endpos")
-  setDT(outputDF)
-  setkey(outputDF,"startpos","endpos")
-  segAR=foverlaps(ar,outputDF,type="any",nomatch = 0)
+  data.table::setDT(ar)
+  data.table::setkey(ar,"startpos","endpos")
+  data.table::setDT(outputDF)
+  data.table::setkey(outputDF,"startpos","endpos")
+  segAR=data.table::foverlaps(ar,outputDF,type="any",nomatch = 0)
   segAR$subclonalCN=(segAR$nMaj1+segAR$nMin1)*segAR$frac1+(segAR$nMaj2+segAR$nMin2)*segAR$frac2
   plot_BB=plot_BB+geom_rect(data=segAR,aes(xmin=startpos,xmax=endpos,ymin=subclonalCN-0.02,ymax=subclonalCN+0.02),fill="red")
 }
