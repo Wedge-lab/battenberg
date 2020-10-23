@@ -21,7 +21,7 @@ gc.correct.wgs(
 
 \item{correlations_outfile}{File where correlations are to be saved}
 
-\item{gc_content_file_prefix}{String pointing to where GC windows for this reference genome can be 
+\item{gc_content_file_prefix}{String pointing to where GC windows for this reference genome can be
 found. These files should be split per chromosome and this prefix must contain the full path until
 chr in its name. The .txt extension is automatically added.}
 
@@ -35,5 +35,5 @@ chr in its name. The .txt extension is automatically added.}
 Function to correct LogR for waivyness that correlates with GC content
 }
 \author{
-jonas demeulemeester, sd11
+jdemeul, sd11
 }

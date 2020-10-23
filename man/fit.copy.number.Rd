@@ -65,7 +65,7 @@ fit.copy.number(
 \description{
 Function that will fit a clonal copy number profile to segmented data. It first
 matches the raw LogR with the segmented BAF to create segmented LogR. Then ASCAT
-is run to obtain a clonal copy number profile. Beyond logRsegmented it produces 
+is run to obtain a clonal copy number profile. Beyond logRsegmented it produces
 the rho_and_psi file and the cellularity_ploidy file.
 }
 \author{
