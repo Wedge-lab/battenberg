@@ -911,6 +911,7 @@ gc.correct.wgs.germline = function(germline_LogR_file, outfile, correlations_out
 #' reconstructing normal-pair allele counts for the germline and performing GC content correction.
 #' 
 #' @param chrom_names A vector containing the names of chromosomes to be included
+#' @param chrom_coord Full path to the file with chromosome coordinates including start, end and left/right centromere positions
 #' @param germlinebam Full path to the germline BAM file 
 #' @param germlinename Identifier to be used for germline output files (i.e. the germline BAM file name without the '.bam' extension).
 #' @param g1000lociprefix Prefix path to the 1000 Genomes loci reference files
@@ -929,9 +930,9 @@ gc.correct.wgs.germline = function(germline_LogR_file, outfile, correlations_out
 #' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
 #' @param nthreads The number of paralel processes to run
 #' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
-#' @author Naser Ansari-Pour (BDI, Oxford), sd11
+#' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
-prepare_wgs_germline = function(chrom_names, germlinebam, germlinename, g1000lociprefix, g1000allelesprefix, gamma_ivd=1e5, kmin_ivd=50, centromere_dist=5e5,
+prepare_wgs_germline = function(chrom_names, chrom_coord, germlinebam, germlinename, g1000lociprefix, g1000allelesprefix, gamma_ivd=1e5, kmin_ivd=50, centromere_dist=5e5,
                                  min_het_dist=2e3, gamma_logr=100, length_adjacent=5e4, gccorrectprefix,repliccorrectprefix, min_base_qual, min_map_qual, 
                                  allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
   
@@ -951,6 +952,7 @@ prepare_wgs_germline = function(chrom_names, germlinebam, germlinename, g1000loc
     }
   }
   
+  
   # Obtain BAF and LogR from the raw allele counts of the germline
   germline_baf_logR(GERMLINENAME=germlinename,
                      g1000alleles.prefix=g1000allelesprefix,
@@ -959,9 +961,16 @@ prepare_wgs_germline = function(chrom_names, germlinebam, germlinename, g1000loc
   
   # Reconstruct normal-pair allele count files for the germline
   
-  foreach::foreach(i=1:length(chrom_names),.packages=c("copynumber","ggplot2","grid")) %dopar% {
-    germline_reconstruct_normal(GERMLINENAME=germlinename,
+  foreach::foreach(i=1:length(chrom_names),.export=c("germline_reconstruct_normal","GL_OHET","GL_AL","GL_AC","GL_LogR"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
+    
+     germline_reconstruct_normal(GERMLINENAME=germlinename,
                                  NORMALNAME=paste0(germlinename,"_normal"),
+                                 chrom_coord=chrom_coord,
+                                 chrom=i,
+                                 GL_OHET=GL_OHET,
+                                 GL_AL=GL_AL,
+                                 GL_AC=GL_AC,
+                                 GL_LogR=GL_LogR,
                                  GAMMA_IVD=gamma_ivd,
                                  KMIN_IVD=kmin_ivd,
                                  CENTROMERE_DIST=centromere_dist,
@@ -970,7 +979,9 @@ prepare_wgs_germline = function(chrom_names, germlinebam, germlinename, g1000loc
                                  LENGTH_ADJACENT=length_adjacent)
   }
   
+
   rm(GL_OHET,GL_AL,GL_AC,GL_LogR)
+  print("STEP 2 - Normal allelecounts reconstruction - completed")
   
   # Perform GC correction
   gc.correct.wgs.germline(germline_LogR_file=paste(germlinename,"_mutantLogR.tab", sep=""),
