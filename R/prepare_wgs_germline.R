@@ -115,12 +115,18 @@ germline_baf_logR = function(GERMLINENAME,g1000alleles.prefix,chrom_names){
 #' Reconstruct normal-pair allele count files for Germlines
 #'
 #' Function to generate normal-pair allele count files based on IVD-PCF and inter-hetSNP logR-based LOH detection (IVD: Inter-Variant Distance, het: heterozygote) 
-#' This method reconstructs the normal-pair counts by using the allele counts of the Germline as template.
-#' It fills the detected LOH regions with evenly-distributed hetSNPs with the density estimated based on each chromosome in each germline sample.
-#' It essentially informs Battenberg of the location of hetSNPs across the genome in the germline sample.
-#' @param GERMLINENAME The germline name used for Battenberg (i.e. the germline BAM file name without the '.bam' extension).
-#' @param NORMALNAME The normal name used for naming the generated normal-pair allele counts files.
-#' @param GAMMA_IVD The PCF gamma value for segmentation of 1000G hetSNP IVD values (Default 1e5).
+#' This method reconstructs the normal-pair counts by using the allele counts of the Germline as template
+#' It fills the detected LOH regions with evenly-distributed hetSNPs with the density estimated based on each chromosome in each germline sample
+#' It essentially informs Battenberg of the location of hetSNPs across the genome in the germline sample
+#' @param GERMLINENAME The germline name used for Battenberg (i.e. the germline BAM file name without the '.bam' extension)
+#' @param NORMALNAME The normal name used for naming the generated normal-pair allele counts files
+#' @param chrom_coord Full path to the file with chromosome coordinates including start, end and left/right centromere positions
+#' @param chrom Chromosome number for which normal-pair will be reconstructed
+#' @param GL_OHET List of observed heterozygous SNPs across all chromosomes generated within the germline_baf_logR function
+#' @param GL_AL List of alleles at SNPs across all chromosomes generated within the germline_baf_logR function
+#' @param GL_AC List of allele counts at SNPs across all chromosomes generated within the germline_baf_logR function
+#' @param GL_LogR Dataframe of genomewide LogR values for SNPs across all chromosomes generated within the germline_baf_logR function
+#' @param GAMMA_IVD The PCF gamma value for segmentation of 1000G hetSNP IVD values (Default 1e5)
 #' @param KMIN_IVD The min number of SNPs to support a segment in PCF of 1000G hetSNP IVD values (Default 50)
 #' @param CENTROMERE_DIST The minimum distance from the centromere to ignore in analysis due to the noisy nature of data in the vicinity of centromeres (Default 5e5)
 #' @param MIN_HET_DIST The minimum distance for detecting higher resolution inter-hetSNP regions with potential LOH while accounting for inherent homozygote stretches (Default 1e5)
@@ -129,10 +135,10 @@ germline_baf_logR = function(GERMLINENAME,g1000alleles.prefix,chrom_names){
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
 
-germline_reconstruct_normal = function(GERMLINENAME,NORMALNAME,GAMMA_IVD,KMIN_IVD,CENTROMERE_DIST,MIN_HET_DIST,GAMMA_LOGR,LENGTH_ADJACENT){
+germline_reconstruct_normal = function(GERMLINENAME,NORMALNAME,chrom_coord,chrom,GL_OHET,GL_AL,GL_AC,GL_LogR,GAMMA_IVD,KMIN_IVD,CENTROMERE_DIST,MIN_HET_DIST,GAMMA_LOGR,LENGTH_ADJACENT){
   # IDENTIFY REGIONS OF LOH #
   colClasses=c(chr="numeric",start="numeric",cen.left.base="numeric",cen.right.base="numeric",end="numeric")
-  chr_loc=read.table(paste0(Ref_files_dir,"gcCorrect_chromosome_coordinates_hg19.txt"),colClasses = colClasses,header=T,stringsAsFactors = F)
+  chr_loc=read.table(chrom_coord,colClasses = colClasses,header=T,stringsAsFactors = F) # chrom_coord = full path to chromosome coordinates
   chr_loc$length=(chr_loc$cen.left.base-chr_loc$start)+(chr_loc$end-chr_loc$cen.right.base)
   #STEP 2.0: identify LOH by IVD-PCF
   LOH=list()
@@ -140,6 +146,7 @@ germline_reconstruct_normal = function(GERMLINENAME,NORMALNAME,GAMMA_IVD,KMIN_IV
   if(!file.exists(PCF_folder)){
     dir.create(PCF_folder)
   }
+  i=chrom
   print(paste("chrom=",i))
   pcf_input=data.frame(chr=i,position=GL_OHET[[i]]$Position,IVD=(GL_OHET[[i]]$Position_dist_percent))
   pcf_input=pcf_input[which(pcf_input$position>=chr_loc[i,"start"] & pcf_input$position<=chr_loc[i,"end"]),] # use only regions covered with gcCorrect LogR range 
