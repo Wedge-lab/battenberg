@@ -119,6 +119,12 @@ cell_line_baf_logR = function(TUMOURNAME,g1000alleles.prefix,chrom_names){
 #' It essentially informs Battenberg of the location of hetSNPs across the genome in the tumour sample.
 #' @param TUMOURNAME The tumour name used for Battenberg (i.e. the cell line BAM file name without the '.bam' extension).
 #' @param NORMALNAME The normal name used for naming the generated normal-pair allele counts files.
+#' @param chrom_coord Full path to the file with chromosome coordinates including start, end and left/right centromere positions
+#' @param chrom Chromosome number for which normal-pair will be reconstructed
+#' @param CL_OHET List of observed heterozygous SNPs across all chromosomes generated within the cell_line_baf_logR function
+#' @param CL_AL List of alleles at SNPs across all chromosomes generated within the cell_line_baf_logR function
+#' @param CL_AC List of allele counts at SNPs across all chromosomes generated within the cell_line_baf_logR function
+#' @param CL_LogR Dataframe of genomewide LogR values for SNPs across all chromosomes generated within the cell_line_baf_logR function
 #' @param GAMMA_IVD The PCF gamma value for segmentation of 1000G hetSNP IVD values (Default 1e5).
 #' @param KMIN_IVD The min number of SNPs to support a segment in PCF of 1000G hetSNP IVD values (Default 50)
 #' @param CENTROMERE_DIST The minimum distance from the centromere to ignore in analysis due to the noisy nature of data in the vicinity of centromeres (Default 5e5)
