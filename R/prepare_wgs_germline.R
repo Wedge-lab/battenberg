@@ -979,8 +979,6 @@ prepare_wgs_germline = function(chrom_names, chrom_coord, germlinebam, germlinen
                                  LENGTH_ADJACENT=length_adjacent)
   }
   
-
-  rm(GL_OHET,GL_AL,GL_AC,GL_LogR)
   print("STEP 2 - Normal allelecounts reconstruction - completed")
   
   # Perform GC correction
