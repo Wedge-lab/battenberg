@@ -957,7 +957,6 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
                                  LENGTH_ADJACENT=length_adjacent)
   }
   
-  rm(CL_OHET,CL_AL,CL_AC,CL_LogR)
   print("STEP 2 - Normal allelecounts reconstruction - completed")
   
   # Perform GC correction
