@@ -908,7 +908,7 @@ ar=data.frame(startpos=66763874,endpos=66950461)
 # INPUT for copy number inference
 SAMPLEsegs=data.frame(PCF,stringsAsFactors=F)
 pupl=read.table(paste0(TUMOURNAME,"_purity_ploidy.txt"),header=T,stringsAsFactors=F)
-SAMPLEpurity=pupl$cellularity
+SAMPLEpurity=pupl$purity
 #SAMPLEploidy=round(pupl$ploidy/2)*2
 SAMPLEn=pupl$ploidy
 print(paste(SAMPLEpurity,SAMPLEn))
