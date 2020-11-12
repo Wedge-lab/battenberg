@@ -421,13 +421,13 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                   calc_seg_baf_option=calc_seg_baf_option)
     
     # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
-    #if (ismale){
-    #  callChrXsubclones(TUMOURNAME=tumourname[sampleidx],
-    #                    X_GAMMA=1000,
-    #                    X_KMIN=100,
-    #                    GENOMEBUILD=GENOMEBUILD,
-    #                    AR=TRUE)
-    #}
+    if (ismale){
+      callChrXsubclones(TUMOURNAME=tumourname[sampleidx],
+                        X_GAMMA=1000,
+                        X_KMIN=100,
+                        GENOMEBUILD=GENOMEBUILD,
+                        AR=TRUE)
+    }
     
     # Make some post-hoc plots
     make_posthoc_plots(samplename=tumourname[sampleidx],
@@ -448,7 +448,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
   
   # Kill the threads as last part again is single core
   parallel::stopCluster(clp)
-  
+ 
   if (nsamples > 1) {
     print("Assessing mirrored subclonal allelic imbalance (MSAI)")
     call_multisample_MSAI(rdsprefix = multisamplehaplotypeprefix,
