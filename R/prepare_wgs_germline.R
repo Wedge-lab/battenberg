@@ -85,7 +85,8 @@ germline_baf_logR = function(GERMLINENAME,g1000alleles.prefix,chrom_names){
   names(MAC)=c("chr","position","a0","a1","ref","alt","coverage","baf")
   print(head(MAC))
   print(dim(MAC))
-  MAC$logr=log2(MAC$coverage/mean(MAC$coverage))
+  # MAC$logr=log2(MAC$coverage/mean(MAC$coverage))
+  MAC$logr=log2(MAC$coverage/mean(MAC$coverage,na.rm=TRUE)) # in case of coverage == NA due to non-matching alleles or presence of indels in loci file
   MACC=MAC[which(!is.na(MAC$baf)),]
   print(nrow(MAC)-nrow(MACC))
   
