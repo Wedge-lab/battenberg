@@ -988,7 +988,11 @@ prepare_wgs_germline = function(chrom_names, chrom_coord, germlinebam, germlinen
                                  LENGTH_ADJACENT=length_adjacent)
   }
   
+  if (length(list.files(pattern="normal_alleleFrequencies"))==length(chrom_names)){
   print("STEP 2 - Normal allelecounts reconstruction - completed")
+    } else { 
+    stop("Missing 'normal' allelecount files - all chromosomes NOT reconstructed")
+  }
   
   # Perform GC correction
   gc.correct.wgs.germline(germline_LogR_file=paste(germlinename,"_mutantLogR.tab", sep=""),
