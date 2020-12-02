@@ -679,8 +679,16 @@ germline_reconstruct_normal = function(GERMLINENAME,NORMALNAME,chrom_coord,chrom
       ac_out=ac_out[order(ac_out$position),]
       write.table(ac_out,paste0(NORMALNAME,"_alleleFrequencies_chr",i,".txt"),col.names=F,row.names=F,quote=F,sep="\t")
       print(paste("reconstruction OK - new alleleCounts file generated for chr",i))
-    } else {print("ERROR - missing SNPs - LOH and non-LOH regions not generated correctly; no AC file generated")}
-    
+    } else {
+      centro_ac=ac[which(ac$position>chr_loc$cen.left.base[i] & ac$position<chr_loc$cen.right.base[i]),]
+      if (nrow(non_lohs)+nrow(lohs)+nrow(centro_ac)==nrow(ac)){
+        print("reconstruction OK but SNPs found in the centromeric region - adding them back for consistency with original ac files")
+        ac_out=rbind(non_lohs,lohs,centro_ac)
+        ac_out=ac_out[order(ac_out$position),]
+        write.table(ac_out,paste0(NORMALNAME,"_alleleFrequencies_chr",i,".txt"),col.names=F,row.names=F,quote=F,sep="\t")
+        } else {
+      print("ERROR - missing SNPs - LOH and non-LOH regions not generated correctly; no AC file generated")}
+      }
   } else {
     ac_out=ac
     write.table(ac_out,paste0(NORMALNAME,"_alleleFrequencies_chr",i,".txt"),col.names=F,row.names=F,quote=F,sep="\t")
