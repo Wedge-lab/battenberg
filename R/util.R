@@ -74,6 +74,20 @@ read_bafsegmented = function(filename, header=T) {
   return(readr::read_tsv(file = filename, col_names = header, col_types = "cinnn"))
 }
 
+#' Parser for impute input data
+#' @param filename Filename of the file to read in
+#' @return A data frame with the input for impute
+read_impute_input = function(filename) {
+  return(readr::read_delim(file = filename, col_names = F, col_types = "ccicciii", delim = " "))
+}
+
+#' Parser for beagle5 output data
+#' @param filename Filename of the file to read in
+#' @return A data frame with the beagle5 output
+read_beagle_output = function(filename) {
+  return(readr::read_tsv(file = filename, col_names = c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "SAMP001"), col_types = "cicccccccc", comment = "#"))
+}
+
 ########################################################################################
 # Concatenate files
 ########################################################################################
@@ -312,3 +326,5 @@ assert.file.exists = function(filename) {
     quit(save="no", status=1)
   }
 }
+
+
