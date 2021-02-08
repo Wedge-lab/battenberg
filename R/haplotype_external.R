@@ -319,8 +319,8 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
                                                                     MARGIN = 2, FUN = function(x) as.numeric(substr(x = x, start = 1, stop = 1))))
     
     if (length(imbalancedregions_disj[[chrom]]) > 0) {
-      # split loci by aberrated region
-      locioverlaps <- GenomicRanges::findOverlaps(query = imbalancedregions_disj[[chrom]], subject = loci)
+      # split loci by abberrated region, compare only ranges to avoid chr naming scheme mismatch
+      locioverlaps <- IRanges::findOverlaps(query = IRanges::ranges(imbalancedregions_disj[[chrom]]), subject = IRanges::ranges(loci))
       imballoci <- split(x = loci[S4Vectors::subjectHits(locioverlaps)], f = S4Vectors::queryHits(locioverlaps), drop = F)
       
       # now check for each region the GT of major allele (in imbalanced samples)
