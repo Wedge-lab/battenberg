@@ -413,9 +413,10 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
 #' @param prior_breakpoints_file String that points to a file with prior breakpoints (from SVs for example) with chromosome and position columns (Default: NULL)
 #' @param gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0 or 1, median, mean. (Default: 3)
+#' @param GENOMEBUILD Genome build upon which the 1000G SNP coordinates were obtained
 #' @author jdemeul, sd11
 #' @export
-segment.baf.phased.multisample = function(samplename, inputfile, outputfile, prior_breakpoints_file=NULL, gamma=10, calc_seg_baf_option=3) {
+segment.baf.phased.multisample = function(samplename, inputfile, outputfile, prior_breakpoints_file=NULL, gamma=10, calc_seg_baf_option=3,GENOMEBUILD) {
   ##### internal function definitions
   # Function that takes SNPs that belong to a single segment and looks for big holes between
   # each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
@@ -532,7 +533,8 @@ segment.baf.phased.multisample = function(samplename, inputfile, outputfile, pri
     if (nrow(BAFrawchrseg) < 50) {
       BAFsegm = matrix(data = colMeans(BAFrawchrseg[,-c(1:2)]), nrow = nrow(BAFrawchrseg), ncol = ncol(BAFrawchrseg)-2, byrow = T)
     } else {
-      res = copynumber::multipcf(data = copynumber::winsorize(data = BAFrawchrseg), Y = BAFrawchrseg, fast = T, gamma = gamma*sdev, return.est = T, normalize = F)
+      res = copynumber::multipcf(data = copynumber::winsorize(data = BAFrawchrseg, assembly = GENOMEBUILD),
+                                 Y = BAFrawchrseg, fast = T, gamma = gamma*sdev, return.est = T, normalize = F, assembly = GENOMEBUILD)
       BAFsegm = res$estimates[,-c(1:2)]
     }
     
