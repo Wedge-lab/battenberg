@@ -26,6 +26,19 @@ getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, 
   system(cmd, wait=T)
 }
 
+#' Chromosome notation standardisation (removing 'chr' string from chromosome names - mainly an issue in hg38 BAMs)
+#'
+#' @param tumourname Tumour identifier, this is used as a prefix for the allele count files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
+#' @param normalname Matched normal identifier, this is used as a prefix for the allele count files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
+#' @author Naser Ansari-Pour
+#' @export
+standardiseChrNotation = function(tumourname,normalname) {
+tAF=capture.output(cat('bash -c \'sed -i \'s/chr//g\' ', tumourname,'_alleleFrequencies_chr*.txt\'',sep = ""))
+system(tAF)
+nAF=capture.output(cat('bash -c \'sed -i \'s/chr//g\' ', normalname,'_alleleFrequencies_chr*.txt\'',sep = ""))
+system(nAF)
+}
+
 
 #' Obtain BAF and LogR from the allele counts
 #'
@@ -418,6 +431,10 @@ prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname
       }
     }
   }
+  
+  # Standardise chromosome notation in raw allele count files
+  standardiseChrNotation(tumourname=tumourname,
+			 normalname=normalname)
 
   # Obtain BAF and LogR from the raw allele counts
   getBAFsAndLogRs(tumourAlleleCountsFile.prefix=paste(tumourname,"_alleleFrequencies_chr", sep=""),
@@ -432,6 +449,7 @@ prepare_wgs = function(chrom_names, tumourbam, normalbam, tumourname, normalname
                   g1000file.prefix=g1000prefix,
                   minCounts=min_normal_depth,
                   samplename=tumourname)
+	
   # Perform GC correction
   gc.correct.wgs(Tumour_LogR_file=paste(tumourname,"_mutantLogR.tab", sep=""),
                  outfile=paste(tumourname,"_mutantLogR_gcCorrected.tab", sep=""),
