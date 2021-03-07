@@ -121,7 +121,7 @@ cell_line_baf_logR = function(TUMOURNAME,g1000alleles.prefix,chrom_names){
 #' @param TUMOURNAME The tumour name used for Battenberg (i.e. the cell line BAM file name without the '.bam' extension).
 #' @param NORMALNAME The normal name used for naming the generated normal-pair allele counts files.
 #' @param chrom_coord Full path to the file with chromosome coordinates including start, end and left/right centromere positions
-#' @param chrom Chromosome number for which normal-pair will be reconstructed
+#' @param chrom Chromosome number for which normal-pair will be reconstructed (1,2, etc.)
 #' @param CL_OHET List of observed heterozygous SNPs across all chromosomes generated within the cell_line_baf_logR function
 #' @param CL_AL List of alleles at SNPs across all chromosomes generated within the cell_line_baf_logR function
 #' @param CL_AC List of allele counts at SNPs across all chromosomes generated within the cell_line_baf_logR function
@@ -197,12 +197,18 @@ cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,
         if (loh_regions$end.pos[j]>chr_loc$cen.left.base[i] & loh_regions$diff[j]<CENTROMERE_NOISE_SEG_SIZE){ #FOR EXCLUSION: segment is short IVD region (default<1Mb) and endpos is over the p-arm limit (ending point)
           noise=append(noise,j)
         }
+        #if (loh_regions$end.pos[j]>chr_loc$cen.left.base[i] & loh_regions$diff[j]>CENTROMERE_NOISE_SEG_SIZE & !is.na(match(chrom,c(1,9,16)))){ # Chr 1,9,16 have large heterochromatin region next to centromere
+        #  noise=append(noise,j)
+        #}
       }
       if (loh_regions$arm[j]=="q"){
         #if (loh_regions$start.pos[j]-chr_loc$cen.right.base[i]<1e5 & loh_regions$diff[j]<1e6){ #FOR EXCLUSION: max distance to centromere = 100kb , max length of short LOH region = 1Mb
         #  noise=append(noise,j)
         #}
         if (loh_regions$start.pos[j]<chr_loc$cen.right.base[i] & loh_regions$diff[j]<CENTROMERE_NOISE_SEG_SIZE){ #FOR EXCLUSION: segment is short IVD region (default<1Mb) and startpos is below the q-arm limit (starting point)
+          noise=append(noise,j)
+        }
+        if (loh_regions$start.pos[j]<(chr_loc$cen.right.base[i]+1e5) & loh_regions$diff[j]>CENTROMERE_NOISE_SEG_SIZE & !is.na(match(chrom,c(1,9,16)))){ # qARM of Chr 1,9,16 have large heterochromatin region next to centromere + 100kb tolerance for start of heterochromatin region
           noise=append(noise,j)
         }
       }
@@ -272,6 +278,12 @@ cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,
         non_LOH=non_LOH[-j,]
         non_LOH=rbind(non_LOH, data.frame(start=start.pos,end=end.pos))
       }
+      if (non_LOH$start[j]<chr_loc[i,]$cen.right.base & non_LOH$start[j]>chr_loc[i,]$cen.left.base & non_LOH$end[j]>chr_loc[i,]$cen.right.base){ # when segment startpoint is in the centromere (noisy data; observed in hg38 SNP aC data)
+        start.pos=chr_loc[i,]$cen.right.base
+        end.pos=non_LOH$end[j]
+        non_LOH=non_LOH[-j,]
+        non_LOH=rbind(non_LOH, data.frame(start=start.pos,end=end.pos))
+      }  
     }
     non_LOH$diff=non_LOH$end-non_LOH$start
   }
