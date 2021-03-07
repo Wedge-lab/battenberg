@@ -926,8 +926,8 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
-prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname, g1000lociprefix, g1000allelesprefix, gamma_ivd=1e5, kmin_ivd=50, centromere_dist=5e5,
-                                 min_het_dist=1e5, gamma_logr=100, length_adjacent=5e4, gccorrectprefix,repliccorrectprefix, min_base_qual, min_map_qual, 
+prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname, g1000lociprefix, g1000allelesprefix, gamma_ivd=1e5, kmin_ivd=50, centromere_noise_seg_size=1e6, 
+                                 centromere_dist=5e5, min_het_dist=1e5, gamma_logr=100, length_adjacent=5e4, gccorrectprefix,repliccorrectprefix, min_base_qual, min_map_qual, 
                                  allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
   
   requireNamespace("foreach")
@@ -968,6 +968,7 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
                                  CL_LogR=CL_LogR,
                                  GAMMA_IVD=gamma_ivd,
                                  KMIN_IVD=kmin_ivd,
+                                 CENTROMERE_NOISE_SEG_SIZE=centromere_noise_seg_size,
                                  CENTROMERE_DIST=centromere_dist,
                                  MIN_HET_DIST=min_het_dist,
                                  GAMMA_LOGR=gamma_logr,
