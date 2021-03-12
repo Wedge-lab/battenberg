@@ -8,10 +8,10 @@ The instructions below will install the latest stable Battenberg version.
 
 #### Prerequisites
 
-Installing from Github requires devtools and Battenberg requires readr, splines, RColorBrewer and ASCAT, while the pipeline requires parallel and doParallel. From the command line run:
+Installing from Github requires devtools and Battenberg requires the modified copynumber package from "igordot/copynumber" and readr, gtools, splines, ggplot2, gridExtra,  RColorBrewer and ASCAT. The pipeline requires parallel and doParallel. From the command line run:
 
 ```
-R -q -e 'source("http://bioconductor.org/biocLite.R"); biocLite(c("devtools", "splines", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools", "parallel"));'
+R -q -e 'BiocManager::install(c("devtools", "splines", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools", "parallel", "igordot/copynumber"))'
 R -q -e 'devtools::install_github("Crick-CancerGenomics/ascat/ASCAT")'
 ```
 
