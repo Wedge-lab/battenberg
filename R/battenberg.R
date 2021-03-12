@@ -365,7 +365,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                                    outputfile=paste(tumourname, ".BAFsegmented.txt", sep=""),
                                    prior_breakpoints_file=prior_breakpoints_file,
                                    gamma=segmentation_gamma_multisample,
-                                   calc_seg_baf_option=calc_seg_baf_option)
+                                   calc_seg_baf_option=calc_seg_baf_option,
+                                   GENOMEBUILD=GENOMEBUILD)
     
   }
   

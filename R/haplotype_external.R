@@ -56,8 +56,8 @@ input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, exte
   # e.g. if no phasing on X, no need to continue
   if (length(hetsnps) == 0) return(NULL)
   
-  # match Battenberg het SNPs with those in external file
-  snvoverlaps <- GenomicRanges::findOverlaps(query = bbphasingr, subject = hetsnps, type = "equal")
+  # match Battenberg het SNPs with those in external file, take only ranges to avoid chrom names mismatch
+  snvoverlaps <- IRanges::findOverlaps(query = IRanges::ranges(bbphasingr), subject = IRanges::ranges(hetsnps), type = "equal")
   # and make sure we're phasing the same REF/ALT alleles (ref will always be the same)
   snvoverlaps_sub <- snvoverlaps[which(bbphasingr[S4Vectors::queryHits(snvoverlaps)]$alt ==
                                          as.character(unlist(VariantAnnotation::alt(hetsnps[S4Vectors::subjectHits(snvoverlaps)]))))]
@@ -76,9 +76,11 @@ input_known_haplotypes = function(chrom_names, chrom, imputedHaplotypeFile, exte
   # by transfering imputed haplotypes to nearest non-phased het SNPs
   # bbphasingr <- GenomicRanges::GRangesList(split(x = bbphasingr, f = bbphasingr$hap1_10X != ""), compress = F)
   bbphasingr <- as(object = split(x = bbphasingr, f = bbphasingr$hap1_10X != ""), Class = "GRangesList")
-  nearestidxs <- GenomicRanges::nearest(x = bbphasingr$'FALSE', subject = bbphasingr$'TRUE', select = "arbitrary")
-  bbphasingr$'FALSE'$isH1 <- bbphasingr$'TRUE'$isH1[nearestidxs]
-  bbphasingr$'FALSE'$PS <- bbphasingr$'TRUE'$PS[nearestidxs]
+  if (length(bbphasingr$'FALSE') > 0) {
+    nearestidxs <- GenomicRanges::nearest(x = bbphasingr$'FALSE', subject = bbphasingr$'TRUE', select = "arbitrary")
+    bbphasingr$'FALSE'$isH1 <- bbphasingr$'TRUE'$isH1[nearestidxs]
+    bbphasingr$'FALSE'$PS <- bbphasingr$'TRUE'$PS[nearestidxs]
+  }
   bbphasingr <- GenomicRanges::sort(unlist(bbphasingr, use.names = F))
   
   # build final haplotypes by flipping blocks according to imputation
@@ -317,8 +319,8 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
                                                                     MARGIN = 2, FUN = function(x) as.numeric(substr(x = x, start = 1, stop = 1))))
     
     if (length(imbalancedregions_disj[[chrom]]) > 0) {
-      # split loci by aberrated region
-      locioverlaps <- GenomicRanges::findOverlaps(query = imbalancedregions_disj[[chrom]], subject = loci)
+      # split loci by abberrated region, compare only ranges to avoid chr naming scheme mismatch
+      locioverlaps <- IRanges::findOverlaps(query = IRanges::ranges(imbalancedregions_disj[[chrom]]), subject = IRanges::ranges(loci))
       imballoci <- split(x = loci[S4Vectors::subjectHits(locioverlaps)], f = S4Vectors::queryHits(locioverlaps), drop = F)
       
       # now check for each region the GT of major allele (in imbalanced samples)
