@@ -30,13 +30,17 @@ getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, 
 #'
 #' @param tumourname Tumour identifier, this is used as a prefix for the allele count files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
 #' @param normalname Matched normal identifier, this is used as a prefix for the allele count files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
-#' @author Naser Ansari-Pour
+#' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
 standardiseChrNotation = function(tumourname,normalname) {
+	if (!is.null(tumourname)){
 tAF=capture.output(cat('bash -c \'sed -i \'s/chr//g\' ', tumourname,'_alleleFrequencies_chr*.txt\'',sep = ""))
 system(tAF)
+		}
+	if (!is.null(normalname)){
 nAF=capture.output(cat('bash -c \'sed -i \'s/chr//g\' ', normalname,'_alleleFrequencies_chr*.txt\'',sep = ""))
 system(nAF)
+		}
 }
 
 
