@@ -25,6 +25,22 @@ getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, 
   system(cmd, wait=T)
 }
 
+#' Chromosome notation standardisation (removing 'chr' string from chromosome names - mainly an issue in hg38 BAMs)
+#'
+#' @param tumourname Tumour identifier, this is used as a prefix for the allele count files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
+#' @param normalname Matched normal identifier, this is used as a prefix for the allele count files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
+#' @author Naser Ansari-Pour (BDI, Oxford)
+#' @export
+standardiseChrNotation = function(tumourname,normalname) {
+	if (!is.null(tumourname)){
+tAF=capture.output(cat('bash -c \'sed -i \'s/chr//g\' ', tumourname,'_alleleFrequencies_chr*.txt\'',sep = ""))
+system(tAF)
+		}
+	if (!is.null(normalname)){
+nAF=capture.output(cat('bash -c \'sed -i \'s/chr//g\' ', normalname,'_alleleFrequencies_chr*.txt\'',sep = ""))
+system(nAF)
+		}
+}
 
 #' Obtain BAF and LogR from the Cell line (tumour only) allele counts
 #'
@@ -960,7 +976,10 @@ prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname
     }
   }
   
-
+  # Standardise Chr notation (removes 'chr' string if present; essential for cell_line_baf_logR)
+  
+  standardiseChrNotation(tumourname=tumourname,
+                         normalname=NULL) 
   
   # Obtain BAF and LogR from the raw allele counts of the cell line
   cell_line_baf_logR(TUMOURNAME=tumourname,
