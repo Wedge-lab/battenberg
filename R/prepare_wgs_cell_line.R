@@ -166,6 +166,7 @@ cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,
   i=chrom
   print(paste("chrom=",i))
   pcf_input=data.frame(chr=i,position=CL_OHET[[i]]$Position,IVD=(CL_OHET[[i]]$Position_dist_percent))
+  pcf_input=pcf_input[which(pcf_input$position<chr_loc[i,"cen.left.base"]-CENTROMERE_DIST | pcf_input$position>chr_loc[i,"cen.right.base"]+CENTROMERE_DIST),]
   pcf_input=pcf_input[which(pcf_input$position>=chr_loc[i,"start"] & pcf_input$position<=chr_loc[i,"end"]),] # use only regions covered with gcCorrect LogR range 
   PCF=pcf(pcf_input,gamma=GAMMA_IVD,kmin = KMIN_IVD)
   pdf(paste0(PCF_folder,"/",TUMOURNAME,"_chr",i,"_PCF_plot.pdf"))
