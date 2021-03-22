@@ -638,7 +638,7 @@ cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,
     # the non-LOH region length from PCF is:
     if (!is.null(nrow(non_LOH))){
       non_LOH$length=non_LOH$end-non_LOH$start
-      non_LOH=non_LOH[non_LOH$length>0,]
+      non_LOH=non_LOH[non_LOH$length>=0,] # >= rather than > as it would miss potential 1bp non_LOH seg with a hetSNP in it
       non_LOH_length=sum(non_LOH$length) # total length of non-LOH regions in chr i
       print(paste("Total length of non LOH regions =",non_LOH_length))
       # average Het SNP interval:
