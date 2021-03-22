@@ -182,6 +182,7 @@ cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,
   min_normal_snp_density=0.0001
   loh_regions=PCF[which(round(PCF$mean,3)>0.001),] # LOH regions
   loh_regions=loh_regions[which(loh_regions$n.probes>1),] # only keep segments with minimum of 2 probes (SNPs) in PCF jump
+  if (nrow(loh_regions)>0){
   if (mean(pcf_input$IVD)>0.01 & chr_snp_density<min_normal_snp_density){ #can change chr_snp_density from 0.00005 to 0.0001 as conservative measure - done
     #mean(pcf_input$IVD) or mean(PCF$mean) indicates presence of jumps in IVD
     loh_regions=loh_regions # LOH regions
@@ -194,14 +195,15 @@ cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,
     loh_regions=loh_regions # LOH regions
     print(paste("likely partial LOH(s) at chr",i))
   }
-  
+  } else {loh_regions=0}
+	
   # loop to turn empty dataframe to 0 for loh_regions 
-  suppressWarnings(
-    if (loh_regions[1]!=0){
-      if (nrow(loh_regions)==0){
-        loh_regions=0
-      } else {print("dataframe non-empty")}
-    } else {print("no LOH at all")})
+  #suppressWarnings(
+  #  if (loh_regions[1]!=0){
+  #   if (nrow(loh_regions)==0){
+  #      loh_regions=0
+  #    } else {print("dataframe non-empty")}
+  #  } else {print("no LOH at all")})
   
   #filter regions for those next to the centromere and 'short'
   noise=NULL
