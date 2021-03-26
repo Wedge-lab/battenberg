@@ -955,13 +955,12 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
 #' @param min_map_qual Minimum mapping quality required for a read to be counted
 #' @param allelecounter_exe Path to the allele counter executable (can be found in $PATH)
 #' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
-#' @param nthreads The number of paralel processes to run
 #' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
 prepare_wgs_cell_line = function(chrom_names, chrom_coord, tumourbam, tumourname, g1000lociprefix, g1000allelesprefix, gamma_ivd=1e5, kmin_ivd=50, centromere_noise_seg_size=1e6, 
                                  centromere_dist=5e5, min_het_dist=1e5, gamma_logr=100, length_adjacent=5e4, gccorrectprefix,repliccorrectprefix, min_base_qual, min_map_qual, 
-                                 allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting) {
+                                 allelecounter_exe, min_normal_depth, skip_allele_counting) {
 
   requireNamespace("foreach")
   requireNamespace("doParallel")
