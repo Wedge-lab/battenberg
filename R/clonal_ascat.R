@@ -1426,14 +1426,16 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
     psi_opt1_plot = -1
     rho_opt1_plot = -1
   }
-
+  
+  # NAP: only create this plot for 'paired' analysis mode and not cell_line or germline; it shows strange behaviour and halts execution
+  if (analysis=="paired"){	
   # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
     png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
   }
   ASCAT::ascat.plotSunrise(-d, psi_opt1_plot, rho_opt1_plot,minimise)
   if (!is.na(distancepng)) { dev.off() }
-
+}
 
   if(nropt>0) {
 
