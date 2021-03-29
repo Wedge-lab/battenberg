@@ -436,7 +436,8 @@ prepare_wgs_cell_line(chrom_names=chrom_names,
                     use_preset_rho_psi=F,
                     preset_rho=NA,
                     preset_psi=NA,
-                    read_depth=30)
+                    read_depth=30,
+                    analysis=analysis)
     
     # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
     callSubclones(sample.name=tumourname[sampleidx],
