@@ -401,7 +401,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                     use_preset_rho_psi=F,
                     preset_rho=NA,
                     preset_psi=NA,
-                    read_depth=30)
+                    read_depth=30,
+                    analysis=analysis)
     
     # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
     callSubclones(sample.name=tumourname[sampleidx],
