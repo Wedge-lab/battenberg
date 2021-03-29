@@ -1,29 +1,3 @@
-#' Obtain allele counts for 1000 Genomes loci through external program alleleCount
-#'
-#' @param bam.file A BAM alignment file on which the counter should be run.
-#' @param output.file The file where output should go.
-#' @param g1000.loci A file with 1000 Genomes SNP loci.
-#' @param min.base.qual The minimum base quality required for it to be counted (optional, default=20).
-#' @param min.map.qual The minimum mapping quality required for it to be counted (optional, default=35).
-#' @param allelecounter.exe A pointer to where the alleleCounter executable can be found (optional, default points to $PATH).
-#' @author sd11
-#' @export
-getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, min.map.qual=35, allelecounter.exe="alleleCounter") {
-  cmd = paste(allelecounter.exe,
-              "-b", bam.file,
-              "-l", g1000.loci,
-              "-o", output.file,
-              "-m", min.base.qual,
-              "-q", min.map.qual)
-
-
-  # alleleCount >= v4.0.0 is sped up considerably on 1000G loci when run in dense-snp mode            
-  counter_version = system(paste(allelecounter.exe, "--version"), intern = T)
-  if (as.integer(substr(x = counter_version, start = 1, stop = 1)) >= 4)
-    cmd = paste(cmd, "--dense-snps")
-
-  system(cmd, wait=T)
-}
 
 #' Chromosome notation standardisation (removing 'chr' string from chromosome names - mainly an issue in hg38 BAMs)
 #'
