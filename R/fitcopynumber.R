@@ -271,8 +271,9 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # Scan for very high copy number segments and set those to NA - This is in part an artifact of small segments
   res = mask_high_cn_segments(subcloneres, BAFvals, max_allowed_state)
   subcloneres = res$subclones
-  BAFvals = res$bafsegmented
-  write.table(BAFvals, file=baf.segmented.file, sep="\t", row.names=F, col.names=T, quote=F)
+  # No longer writing out the BAFsegmented data after masking
+  #BAFvals = res$bafsegmented
+  #write.table(BAFvals, file=baf.segmented.file, sep="\t", row.names=F, col.names=T, quote=F)
   # Write the masking details to file
   masking_details = data.frame(samplename=sample.name, masked_count=res$masked_count, masked_size=res$masked_size, max_allowed_state=max_allowed_state)
   write.table(masking_details, file=masking_output_file, quote=F, col.names=T, row.names=F, sep="\t")
