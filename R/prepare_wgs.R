@@ -275,7 +275,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
                         # paste0(c(1,2,5,10), "Mb"))
 
   if (!is.null(replic_timing_file_prefix)) {
-    print("Processing replciation timing data")
+    print("Processing replication timing data")
     replic_files = paste0(replic_timing_file_prefix, chrom_names, ".txt.gz")
     replic_data = do.call(rbind, lapply(replic_files, read_replication))
   }
