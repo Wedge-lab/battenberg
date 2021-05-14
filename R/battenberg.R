@@ -89,7 +89,13 @@ battenberg = function(analysis="paired", tumourname, normalname, tumour_data_fil
 	  phasing_kmin=2
 	  segmentation_gamma=20
 	  segmentation_kmin=3
-	  # other cell_line specific parameter values
+	  }
+  if (analysis == "germline"){
+	  calc_seg_baf_option=1
+	  phasing_gamma=3
+	  phasing_kmin=1
+	  segmentation_gamma=3
+	  segmentation_kmin=3
 	  }
   
   if (data_type=="wgs" & is.na(ismale)) {
@@ -178,19 +184,39 @@ prepare_wgs_cell_line(chrom_names=chrom_names,
                       g1000allelesprefix=G1000PREFIX, 
                       gamma_ivd=1e5,
                       kmin_ivd=50,
+		      centromere_noise_seg_size=1e6,
                       centromere_dist=5e5,
                       min_het_dist=1e5, 
                       gamma_logr=100,
                       length_adjacent=5e4,
                       gccorrectprefix=GCCORRECTPREFIX, 
-                      repliccorrectprefix=NULL,
+                      repliccorrectprefix=RTCORRECTPREFIX,
                       min_base_qual=MIN_BASE_QUAL,
                       min_map_qual=MIN_MAP_QUAL, 
                       allelecounter_exe=ALLELECOUNTER,
                       min_normal_depth=MIN_NORMAL_DEPTH,
                       skip_allele_counting=F)
       } else if (analysis == "germline"){
-      # NAP: to be added
+prepare_wgs_germline(chrom_names=chrom_names,
+                      chrom_coord=chrom_coord,
+                      germlinebam=GERMLINEBAM,
+                      germlinename=GERMLINENAME,
+                      g1000lociprefix=G1000PREFIX_AC,
+                      g1000allelesprefix=G1000PREFIX,
+                      gamma_ivd=1e5,
+                      kmin_ivd=50,
+                      centromere_noise_seg_size=1e6,
+                      centromere_dist=5e5,
+                      min_het_dist=2e3,
+                      gamma_logr=100,
+                      length_adjacent=5e4,
+                      gccorrectprefix=GCCORRECTPREFIX,
+                      repliccorrectprefix=RTCORRECTPREFIX,
+                      min_base_qual=MIN_BASE_QUAL,
+                      min_map_qual=MIN_MAP_QUAL,
+                      allelecounter_exe=ALLELECOUNTER,
+                      min_normal_depth=MIN_NORMAL_DEPTH,
+                      skip_allele_counting=F)
       }
         
         
