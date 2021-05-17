@@ -12,8 +12,7 @@ option_list = list(
   make_option(c("--skip_preprocessing"), type="logical", default=FALSE, action="store_true", help="Provide when pre-processing has previously completed. This expects the files on disk", metavar="character"),
   make_option(c("--skip_phasing"), type="logical", default=FALSE, action="store_true", help="Provide when phasing has previously completed. This expects the files on disk", metavar="character"),
   make_option(c("--cpu"), type="numeric", default=8, help="The number of CPU cores to be used by the pipeline (Default: 8)", metavar="character"),
-  make_option(c("--bp"), type="character", default=NULL, help="Optional two column file (chromosome and position) specifying prior breakpoints to be used during segmentation", metavar="character"),
-  make_option(c("-g", "--ref_genome_build"), type="character", default="hg19", help="Reference genome build to which the reads have been aligned. Options are hg19 and hg38", metavar="character")
+  make_option(c("--bp"), type="character", default=NULL, help="Optional two column file (chromosome and position) specifying prior breakpoints to be used during segmentation", metavar="character")
 )
 
 opt_parser = OptionParser(option_list=option_list)
@@ -30,14 +29,8 @@ SKIP_PREPROCESSING = opt$skip_preprocessing
 SKIP_PHASING = opt$skip_phasing
 NTHREADS = opt$cpu
 PRIOR_BREAKPOINTS_FILE = opt$bp
-GENOMEBUILD = opt$ref_genome_build
 
 analysis = "paired"
-
-supported_genome_builds = c("hg19", "hg38")
-if (!GENOMEBUILD %in% supported_genome_builds) {
-	stop(paste0("Provided genome build ", GENOMEBUILD, " is not supported. Please provide either of ", paste(supported_genome_builds, collapse=" ")))
-}
 
 ###############################################################################
 # 2018-11-01
@@ -49,7 +42,7 @@ JAVAJRE = "java"
 ALLELECOUNTER = "alleleCounter"
 IMPUTE_EXE = "impute2"
 
-#GENOMEBUILD = "hg19" #"hg38"
+GENOMEBUILD = "hg38"
 USEBEAGLE = T
 
 # General static
