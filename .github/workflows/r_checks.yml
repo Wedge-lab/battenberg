@@ -27,7 +27,10 @@ jobs:
         uses: r-lib/actions/setup-r@v1
         with:
           r-version: ${{ matrix.r-version }}
-      - name: Install dependencies
+      - name: Install OS dependencies
+        run: |
+          sudo apt-get install -y libcurl4-openssl-dev
+      - name: Install R dependencies
         run: |
           install.packages(c("remotes", "rcmdcheck","BiocManager"))
           BiocManager::install(c("devtools", "splines", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools", "parallel"))
