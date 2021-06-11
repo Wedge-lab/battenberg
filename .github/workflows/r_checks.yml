@@ -34,7 +34,6 @@ jobs:
         run: |
           install.packages(c("remotes", "rcmdcheck","BiocManager"))
           BiocManager::install(c("devtools", "splines", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools", "parallel"))
-          update.packages()
           devtools::install_github("Crick-CancerGenomics/ascat/ASCAT")
           remotes::install_deps(dependencies = TRUE)
         shell: Rscript {0}
