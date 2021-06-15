@@ -188,7 +188,7 @@ prepare_wgs_cell_line(chrom_names=chrom_names,
                       min_map_qual=MIN_MAP_QUAL, 
                       allelecounter_exe=ALLELECOUNTER,
                       min_normal_depth=MIN_NORMAL_DEPTH,
-                      skip_allele_counting=F)
+                      skip_allele_counting=skip_allele_counting[sampleidx])
       } else if (analysis == "germline"){
       # NAP: to be added
       }
