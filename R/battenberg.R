@@ -77,7 +77,7 @@ battenberg = function(analysis="paired", tumourname, normalname, tumour_data_fil
                       write_battenberg_phasing = T, multisample_relative_weight_balanced = 0.25, multisample_maxlag = 100, segmentation_gamma_multisample = 5,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize",
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
-                      prior_breakpoints_file=NULL, GENOMEBUILD="hg19") {
+                      prior_breakpoints_file=NULL, GENOMEBUILD="hg19", chrom_coord_file=NULL) {
   
   requireNamespace("foreach")
   requireNamespace("doParallel")
@@ -171,7 +171,7 @@ battenberg = function(analysis="paired", tumourname, normalname, tumour_data_fil
           
          } else if (analysis == "cell_line") {
 prepare_wgs_cell_line(chrom_names=chrom_names,
-                      chrom_coord=chrom_coord,
+                      chrom_coord=chrom_coord_file,
                       tumourbam=TUMOURBAM,
                       tumourname=TUMOURNAME,
                       g1000lociprefix=G1000PREFIX_AC,
