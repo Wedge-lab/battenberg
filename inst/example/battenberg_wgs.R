@@ -30,7 +30,7 @@ SKIP_PHASING = opt$skip_phasing
 NTHREADS = opt$cpu
 PRIOR_BREAKPOINTS_FILE = opt$bp
 
-analysis = "paired"
+analysis = "cell_line"
 
 ###############################################################################
 # 2018-11-01
@@ -65,6 +65,8 @@ if (GENOMEBUILD=="hg19") {
 	BEAGLEREF.template = file.path(BEAGLE_BASEDIR, GENOME_VERSION, "chrCHROMNAME.1kg.phase3.v5a.b37.bref3")
 	BEAGLEPLINK.template = file.path(BEAGLE_BASEDIR, GENOME_VERSION, "plink.chrCHROMNAME.GRCh37.map")
 
+	CHROM_COORD_FILE = "/homes/sdentro/repo/battenberg/gcCorrect_chromosome_coordinates_hg19.txt"
+
 } else if (GENOMEBUILD=="hg38") {
 	
 	BEAGLE_BASEDIR = "/hps/research/gerstung/sdentro/reference/human/battenberg_hg38"
@@ -80,6 +82,7 @@ if (GENOMEBUILD=="hg19") {
 	BEAGLEPLINK.template = file.path(BEAGLE_BASEDIR, "beagle5/plink.chrCHROMNAME.GRCh38.map")
 	BEAGLEJAR = file.path(BEAGLE_BASEDIR, "beagle.18May20.d20.jar")
 
+	CHROM_COORD_FILE = "/homes/sdentro/repo/battenberg/chromosome_coordinates_hg38.txt"
 } 
 
 PLATFORM_GAMMA = 1
@@ -148,4 +151,5 @@ battenberg(analysis=analysis,
            skip_preprocessing=SKIP_PREPROCESSING,
            skip_phasing=SKIP_PHASING,
            prior_breakpoints_file=PRIOR_BREAKPOINTS_FILE,
-	   GENOMEBUILD=GENOMEBUILD)
+	   GENOMEBUILD=GENOMEBUILD,
+	   chrom_coord_file=CHROM_COORD_FILE)
