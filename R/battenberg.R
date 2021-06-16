@@ -89,6 +89,8 @@ battenberg = function(analysis="paired", tumourname, normalname, tumour_data_fil
 	  phasing_kmin=2
 	  segmentation_gamma=20
 	  segmentation_kmin=3
+	  # no matched normal required, but we  are generating normal counts which have this name coded
+	  normalname = paste0(tumourname, "_normal")
 	  # other cell_line specific parameter values
 	  }
   
