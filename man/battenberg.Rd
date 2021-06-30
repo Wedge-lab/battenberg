@@ -5,6 +5,7 @@
 \title{Run the Battenberg pipeline}
 \usage{
 battenberg(
+  analysis = "paired",
   tumourname,
   normalname,
   tumour_data_file,

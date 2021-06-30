@@ -30,6 +30,7 @@ Imports:
   parallel,
   foreach,
   splines,
+  GenomicRanges,
   VariantAnnotation,
   copynumber,
   data.table
