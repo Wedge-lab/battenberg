@@ -706,7 +706,7 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
           # Test whether seg and neighbour have the same clonal CN solution
           if (subclones[[CHR]]$nMaj1_A[INDEX]==subclones[[CHR]]$nMaj1_A[INDEX_N] && subclones[[CHR]]$nMin1_A[INDEX]==subclones[[CHR]]$nMin1_A[INDEX_N] && subclones[[CHR]]$frac1_A[INDEX]==1 && subclones[[CHR]]$frac1_A[INDEX_N]==1) {
             if (verbose) print('Same clonal CN solution - merge')
-            res=merge_seg(subclones[[CHR]],bafsegmented[[CHR]],logR[[CHR]],INDEX,INDEX_N)
+            res=merge_seg(subclones[[CHR]],bafsegmented[[CHR]],logR[[CHR]],INDEX,INDEX_N,calc_seg_baf_option)
             subclones[[CHR]]=res$subclones
             bafsegmented[[CHR]]=res$bafsegmented
             rm(res)
@@ -729,7 +729,7 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
                                          bafsegmented[[CHR]]$BAFphased[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX_N],bafsegmented[[CHR]])@to])$p.value < 0.05
                 if ((!logr_significant) && (!baf_significant)) {
                   if (verbose) print('No significant difference - merge')
-                  res=merge_seg(subclones[[CHR]],bafsegmented[[CHR]],logR[[CHR]],INDEX,INDEX_N)
+                  res=merge_seg(subclones[[CHR]],bafsegmented[[CHR]],logR[[CHR]],INDEX,INDEX_N,calc_seg_baf_option)
                   subclones[[CHR]]=res$subclones
                   bafsegmented[[CHR]]=res$bafsegmented
                   rm(res)
