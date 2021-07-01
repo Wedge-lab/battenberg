@@ -679,7 +679,7 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
       IDs=subclones[[CHR]]$ID[which(!subclones[[CHR]]$Prev_checked | !subclones[[CHR]]$Next_checked)]
       if (length(IDs)==0) break
       # Amongst all of those, select the smallest one
-      INDEX=IDs[which.min(width(subclones[[CHR]][which(subclones[[CHR]]$ID %in% IDs)]))]
+      INDEX=IDs[which.min(GenomicRanges::width(subclones[[CHR]][which(subclones[[CHR]]$ID %in% IDs)]))]
       # Select neighbours (two or one if segments is first or last)
       if (INDEX==1) {
         Neighbours=order(GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX+1]))
