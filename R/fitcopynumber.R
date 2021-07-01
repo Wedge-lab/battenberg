@@ -608,9 +608,9 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
   merge_seg=function(subclones,bafsegmented,logR,INDEX,INDEX_N,calc_seg_baf_option) {
     # Update start/end information
     if (INDEX_N<INDEX) {
-      end(subclones[INDEX_N])=end(subclones[INDEX])
+      GenomicRanges::end(subclones[INDEX_N])=GenomicRanges::end(subclones[INDEX])
     } else {
-      start(subclones[INDEX_N])=start(subclones[INDEX])
+      GenomicRanges::start(subclones[INDEX_N])=GenomicRanges::start(subclones[INDEX])
     }
     # Remove segment
     subclones=subclones[-INDEX]
