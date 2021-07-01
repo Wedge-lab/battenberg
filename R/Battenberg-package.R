@@ -2,6 +2,7 @@
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom readr read_table write_tsv cols
 #' @importFrom gridExtra grid.arrange arrangeGrob
+#' @importFrom GenomicRanges makeGRangesFromDataFrame distance findOverlaps mcols seqinfo seqnames
 #' @importFrom ASCAT make_segments ascat.plotSunrise ascat.plotAscatProfile ascat.plotNonRounded
 #' @importFrom gtools mixedsort
 #' @importFrom parallel makeCluster stopCluster

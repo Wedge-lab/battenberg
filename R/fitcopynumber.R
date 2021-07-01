@@ -548,14 +548,14 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
   }
   # Convert DF into GRanges objects
   df2gr=function(DF,chr,pos1,pos2) {
-    return(makeGRangesFromDataFrame(df=DF,
-                                    keep.extra.columns=T,
-                                    ignore.strand=T,
-                                    seqinfo=NULL,
-                                    seqnames.field=chr,
-                                    start.field=pos1,
-                                    end.field=pos2,
-                                    starts.in.df.are.0based=F))
+    return(GenomicRanges::makeGRangesFromDataFrame(df=DF,
+                                                   keep.extra.columns=T,
+                                                   ignore.strand=T,
+                                                   seqinfo=NULL,
+                                                   seqnames.field=chr,
+                                                   start.field=pos1,
+                                                   end.field=pos2,
+                                                   starts.in.df.are.0based=F))
   }
   # Function called when two segments have not been merged so there is no need to recheck those again
   updateNeighbour=function(subclones,INDEX,INDEX_N) {
@@ -619,16 +619,16 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
     subclones=updateAround(subclones,INDEX)
     if (calc_seg_baf_option==1) {
       # This uses median
-      NEW_BAF = median(bafsegmented$BAFphased[findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
+      NEW_BAF = median(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
     } else if (calc_seg_baf_option==2) {
       # This uses mean
-      NEW_BAF = mean(bafsegmented$BAFphased[findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
+      NEW_BAF = mean(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
     } else if (calc_seg_baf_option==3) {
       # We'll prefer the median BAF as a segment summary
       # but change to the mean when the median is extreme
       # as at 0 or 1 the BAF is uninformative for the fitting
-      median_BAF = median(bafsegmented$BAFphased[findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
-      mean_BAF = mean(bafsegmented$BAFphased[findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
+      median_BAF = median(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
+      mean_BAF = mean(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
       if (median_BAF!=0 && median_BAF!=1) {
         NEW_BAF = median_BAF
       } else {
@@ -638,9 +638,9 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
     }
     # Update both BAF and logR information
     subclones[INDEX]$BAF=NEW_BAF
-    subclones[INDEX]$LogR=mean(logR$logR[findOverlaps(subclones[INDEX],logR)@to], na.rm=T)
+    subclones[INDEX]$LogR=mean(logR$logR[GenomicRanges::findOverlaps(subclones[INDEX],logR)@to], na.rm=T)
     # Update segmented baf
-    bafsegmented$BAFseg[findOverlaps(subclones[INDEX],bafsegmented)@to] = NEW_BAF
+    bafsegmented$BAFseg[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to] = NEW_BAF
     # TODO Update the logRseg as well
     # Reset IDs
     subclones$ID=1:length(subclones)
@@ -653,9 +653,9 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
   subclones=df2gr(subclones,'chr','startpos','endpos')
   bafsegmented=df2gr(bafsegmented,'Chromosome','Position','Position')
   logR=df2gr(logR,'Chromosome','Position','Position')
-  names(mcols(logR))='logR'
+  names(GenomicRanges::mcols(logR))='logR'
   # Split GRanges objects by chromosomes
-  chr_names=seqnames(seqinfo(bafsegmented))
+  chr_names=GenomicRanges::seqnames(GenomicRanges::seqinfo(bafsegmented))
   subclones=lapply(chr_names,function(x) subclones[seqnames(subclones)==x])
   bafsegmented=lapply(chr_names,function(x) bafsegmented[seqnames(bafsegmented)==x])
   logR=lapply(chr_names,function(x) logR[seqnames(logR)==x])
@@ -682,24 +682,24 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
       INDEX=IDs[which.min(width(subclones[[CHR]][which(subclones[[CHR]]$ID %in% IDs)]))]
       # Select neighbours (two or one if segments is first or last)
       if (INDEX==1) {
-        Neighbours=order(distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX+1]))
+        Neighbours=order(GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX+1]))
         names(Neighbours)=INDEX+1
       } else if (INDEX==length(subclones[[CHR]])) {
-        Neighbours=order(distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX-1]))
+        Neighbours=order(GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX-1]))
         names(Neighbours)=INDEX-1
       } else {
-        Neighbours=order(distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX+c(-1,1)]))
+        Neighbours=order(GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX+c(-1,1)]))
         names(Neighbours)=INDEX+c(-1,1)
       }
       if (verbose) print(paste0('Working on segment: ',INDEX,' (',subclones[[CHR]][INDEX],')'))
       # For each neighbour
       for (i in Neighbours) {
         INDEX_N=as.numeric(names(Neighbours[i]))
-        if (verbose) print(paste0('Checking neighbour: ',INDEX_N,' (',subclones[[CHR]][INDEX_N],'; distance=',distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX_N]),')'))
+        if (verbose) print(paste0('Checking neighbour: ',INDEX_N,' (',subclones[[CHR]][INDEX_N],'; distance=',GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX_N]),')'))
         # Test whether seg and neighbour (INDEX and INDEX_N) have already been checked
         if (checkStatus(subclones[[CHR]],INDEX,INDEX_N)) {if (verbose) {print('Already checked')}; next}
         # Test whether seg and neighbour are far away from each other
-        if (distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX_N])>3e6) {
+        if (GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX_N])>3e6) {
           if (verbose) print('Distance > 3Mb - do not merge')
           subclones[[CHR]]=updateNeighbour(subclones[[CHR]],INDEX,INDEX_N)
         } else {
@@ -719,14 +719,14 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
             nmaj_other = round(calc_nmaj(rho, psi, subclones[[CHR]]$BAF[INDEX_N], subclones[[CHR]]$LogR[INDEX_N], platform_gamma))
             if (nmin_curr==nmin_other || nmaj_curr==nmaj_other) {
               # Test whether there are more than 10 values to check significance
-              if (sum(!is.na(logR[[CHR]]$logR[findOverlaps(subclones[[CHR]][INDEX],logR[[CHR]])@to])) > 10 &&
-                  sum(!is.na(logR[[CHR]]$logR[findOverlaps(subclones[[CHR]][INDEX_N],logR[[CHR]])@to])) > 10 &&
-                  sum(!is.na(bafsegmented[[CHR]]$BAFphased[findOverlaps(subclones[[CHR]][INDEX],bafsegmented[[CHR]])@to])) > 10 &&
-                  sum(!is.na(bafsegmented[[CHR]]$BAFphased[findOverlaps(subclones[[CHR]][INDEX_N],bafsegmented[[CHR]])@to])) > 10) {
-                logr_significant = t.test(logR[[CHR]]$logR[findOverlaps(subclones[[CHR]][INDEX],logR[[CHR]])@to],
-                                          logR[[CHR]]$logR[findOverlaps(subclones[[CHR]][INDEX_N],logR[[CHR]])@to])$p.value < 0.05
-                baf_significant = t.test(bafsegmented[[CHR]]$BAFphased[findOverlaps(subclones[[CHR]][INDEX],bafsegmented[[CHR]])@to],
-                                         bafsegmented[[CHR]]$BAFphased[findOverlaps(subclones[[CHR]][INDEX_N],bafsegmented[[CHR]])@to])$p.value < 0.05
+              if (sum(!is.na(logR[[CHR]]$logR[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX],logR[[CHR]])@to])) > 10 &&
+                  sum(!is.na(logR[[CHR]]$logR[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX_N],logR[[CHR]])@to])) > 10 &&
+                  sum(!is.na(bafsegmented[[CHR]]$BAFphased[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX],bafsegmented[[CHR]])@to])) > 10 &&
+                  sum(!is.na(bafsegmented[[CHR]]$BAFphased[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX_N],bafsegmented[[CHR]])@to])) > 10) {
+                logr_significant = t.test(logR[[CHR]]$logR[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX],logR[[CHR]])@to],
+                                          logR[[CHR]]$logR[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX_N],logR[[CHR]])@to])$p.value < 0.05
+                baf_significant = t.test(bafsegmented[[CHR]]$BAFphased[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX],bafsegmented[[CHR]])@to],
+                                         bafsegmented[[CHR]]$BAFphased[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX_N],bafsegmented[[CHR]])@to])$p.value < 0.05
                 if ((!logr_significant) && (!baf_significant)) {
                   if (verbose) print('No significant difference - merge')
                   res=merge_seg(subclones[[CHR]],bafsegmented[[CHR]],logR[[CHR]],INDEX,INDEX_N)
