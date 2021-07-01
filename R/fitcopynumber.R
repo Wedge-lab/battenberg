@@ -648,7 +648,8 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
   }
   requireNamespace("GenomicRanges")
   if (!(calc_seg_baf_option %in% 1:3)) calc_seg_baf_option=3
-  # Convert DF into GRanges objects
+  # Convert DFs into GRanges objects
+  if (verbose) print('Convert DFs into GRanges objects')
   subclones=df2gr(subclones,'chr','startpos','endpos')
   bafsegmented=df2gr(bafsegmented,'Chromosome','Position','Position')
   logR=df2gr(logR,'Chromosome','Position','Position')
@@ -749,6 +750,7 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
       }; rm(i)
     }
   }; rm(CHR)
+  if (verbose) print('Convert GRanges objects into DFs')
   bafsegmented=data.frame(Reduce(c,bafsegmented),stringsAsFactors=F)[,-c(3:5)]
   bafsegmented$seqnames=as.character(bafsegmented$seqnames)
   colnames(bafsegmented)[1:2]=c('Chromosome','Position')
