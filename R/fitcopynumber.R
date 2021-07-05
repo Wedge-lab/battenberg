@@ -656,9 +656,9 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
   names(GenomicRanges::mcols(logR))='logR'
   # Split GRanges objects by chromosomes
   chr_names=GenomicRanges::seqnames(GenomicRanges::seqinfo(bafsegmented))
-  subclones=lapply(chr_names,function(x) subclones[seqnames(subclones)==x])
-  bafsegmented=lapply(chr_names,function(x) bafsegmented[seqnames(bafsegmented)==x])
-  logR=lapply(chr_names,function(x) logR[seqnames(logR)==x])
+  subclones=lapply(chr_names,function(x) subclones[GenomicRanges::seqnames(subclones)==x])
+  bafsegmented=lapply(chr_names,function(x) bafsegmented[GenomicRanges::seqnames(bafsegmented)==x])
+  logR=lapply(chr_names,function(x) logR[GenomicRanges::seqnames(logR)==x])
   stopifnot(all(sapply(subclones,length)>0) && all(sapply(bafsegmented,length)>0) && all(sapply(logR,length)>0))
   names(subclones)=chr_names
   names(bafsegmented)=chr_names
@@ -710,6 +710,7 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
             subclones[[CHR]]=res$subclones
             bafsegmented[[CHR]]=res$bafsegmented
             rm(res)
+            break
           } else {
             # Test whether seg and neighbour have different BAF/logR distributions
             if (verbose) print('Different CN solutions: check BAF and logR')
@@ -733,6 +734,7 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
                   subclones[[CHR]]=res$subclones
                   bafsegmented[[CHR]]=res$bafsegmented
                   rm(res)
+                  break
                 } else {
                   if (verbose) print('Significant difference - do not merge')
                   subclones[[CHR]]=updateNeighbour(subclones[[CHR]],INDEX,INDEX_N)
