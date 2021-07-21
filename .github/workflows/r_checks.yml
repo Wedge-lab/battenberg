@@ -16,7 +16,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted]
     strategy:
       matrix:
         r-version: [4.0.4]
