@@ -49,8 +49,8 @@ USEBEAGLE = T
 if (GENOMEBUILD=="hg19") {
 	impute_basedir = "/hps/research/gerstung/sdentro/reference/human/battenberg/"
 	IMPUTEINFOFILE = file.path(impute_basedir, "battenberg_impute_v3/impute_info.txt")
-	G1000PREFIX = file.path(impute_basedir, "battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr")
-	G1000PREFIX_AC = file.path(impute_basedir, "battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr")
+	G1000ALLELESPREFIX = file.path(impute_basedir, "battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr")
+	G1000LOCIPREFIX = file.path(impute_basedir, "battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr")
 	GCCORRECTPREFIX = file.path(impute_basedir, "battenberg_wgs_gc_correction_1000g_v3_noNA/1000_genomes_GC_corr_chr_")
 	REPLICCORRECTPREFIX = file.path(impute_basedir, "battenberg_wgs_replic_correction_1000g_v3/1000_genomes_replication_timing_chr_")
 	
@@ -72,8 +72,8 @@ if (GENOMEBUILD=="hg19") {
 	BEAGLE_BASEDIR = "/hps/research/gerstung/sdentro/reference/human/battenberg_hg38"
 	GENOMEBUILD = "hg38"
 	IMPUTEINFOFILE = file.path(BEAGLE_BASEDIR, "imputation/impute_info.txt")
-	G1000PREFIX = file.path(BEAGLE_BASEDIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_allele_index_chr")
-	G1000PREFIX_AC = file.path(BEAGLE_BASEDIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_loci_chr")
+	G1000ALLELESPREFIX = file.path(BEAGLE_BASEDIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_allele_index_chr")
+	G1000LOCIPREFIX = file.path(BEAGLE_BASEDIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_loci_chr")
 	GCCORRECTPREFIX = file.path(BEAGLE_BASEDIR, "GC_correction_hg38/1000G_GC_chr")
 	REPLICCORRECTPREFIX = file.path(BEAGLE_BASEDIR, "RT_correction_hg38/1000G_RT_chr")
 	PROBLEMLOCI = file.path(BEAGLE_BASEDIR, "probloci/probloci.txt.gz")
@@ -113,8 +113,8 @@ battenberg(analysis=analysis,
            normal_data_file=NORMALBAM, 
            ismale=IS.MALE, 
            imputeinfofile=IMPUTEINFOFILE, 
-           g1000prefix=G1000PREFIX, 
-           g1000allelesprefix=G1000PREFIX_AC, 
+           g1000prefix=G1000LOCIPREFIX, 
+           g1000allelesprefix=G1000ALLELESPREFIX, 
            gccorrectprefix=GCCORRECTPREFIX, 
            repliccorrectprefix=REPLICCORRECTPREFIX, 
            problemloci=PROBLEMLOCI, 
