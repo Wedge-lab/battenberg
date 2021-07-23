@@ -445,7 +445,12 @@ prepare_wgs_cell_line(chrom_names=chrom_names,
     
     if (data_type=="wgs" | data_type=="WGS") {
       logr_file = paste(tumourname[sampleidx], "_mutantLogR_gcCorrected.tab", sep="")
-      allelecounts_file = paste(tumourname[sampleidx], "_alleleCounts.tab", sep="")
+      if (analysis=="paired") {
+        allelecounts_file = paste(tumourname[sampleidx], "_alleleCounts.tab", sep="")
+      } else {
+	# Not produced by a number of analysis and is required for some plots. Setting to NULL  makes the pipeline not attempt to create these plots
+        allelecounts_file = NULL
+      }
     }
     
     # Fit a clonal copy number profile
@@ -487,7 +492,8 @@ prepare_wgs_cell_line(chrom_names=chrom_names,
                   calc_seg_baf_option=calc_seg_baf_option)
     
     # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
-    if (ismale){
+    # Only do this when X chromosome is included
+    if (ismale & "X" %in% chrom_names){
       callChrXsubclones(TUMOURNAME=tumourname[sampleidx],
                         X_GAMMA=1000,
                         X_KMIN=100,
