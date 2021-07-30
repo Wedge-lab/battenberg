@@ -638,7 +638,13 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
     }
     # Update both BAF and logR information
     subclones[INDEX]$BAF=NEW_BAF
-    subclones[INDEX]$LogR=mean(logR$logR[GenomicRanges::findOverlaps(subclones[INDEX],logR)@to], na.rm=T)
+    INDEX_logR=GenomicRanges::findOverlaps(subclones[INDEX],logR)@to
+    if (length(INDEX_logR)==0) {
+      subclones[INDEX]$LogR=0
+    } else {
+      subclones[INDEX]$LogR=mean(logR$logR[INDEX_logR], na.rm=T)
+    }
+    rm(INDEX_logR)
     # Update segmented baf
     bafsegmented$BAFseg[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to] = NEW_BAF
     # TODO Update the logRseg as well
