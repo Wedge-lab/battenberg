@@ -3,10 +3,12 @@ Maintainer: Stefan Dentro <sd11@sanger.ac.uk>
 License: GPL-3
 Type: Package
 Title: Battenberg subclonal copy number caller
-Version: 2.2.9
+Version: 2.2.10
 Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
     person("Peter", "Van Loo", role=c("aut")),
     person("Stefan","Dentro", email="sd11@sanger.ac.uk", role=c("aut", "cre")),
+    person("Maxime","Tarabichi", role = c("aut")),
+    person("Jonas","Demeulemeester", role = c("aut")),
     person("Kevin", "Dawson", role=c("ctb")),
     person("Gro", "Nielsen", role="ctb"),
     person("Jiqiu","Cheng", role="ctb"))
@@ -27,9 +29,12 @@ Imports:
   doParallel,
   parallel,
   foreach,
-  splines
+  splines,
+  VariantAnnotation,
+  copynumber,
+  data.table
 URL: https://github.com/Wedge-Oxford/battenberg
 LazyLoad: yes
 Suggests:
     testthat
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1

@@ -17,12 +17,12 @@ parse.imputeinfofile(imputeinfofile, is.male, chrom = NA)
 A data.frame with 7 columns: Chromosome, impute_legend, genetic_map, impute_hap, start, end, is_par
 }
 \description{
-Reads in a file with the following columns: 
+Reads in a file with the following columns:
   chromosome : 1-X
   impute_legend : Legend file in IMPUTE -l format
   genetic_map : Genetic map file in IMPUTE -m format
   impute_hap : Phased haplotype file in IMPUTE -h format
-  start : Start of the chromosome 
+  start : Start of the chromosome
   end : End of the chromosome
   is_par : 1 when pseudo autosomal region, 0 when not
 }

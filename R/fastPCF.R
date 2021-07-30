@@ -203,24 +203,12 @@ PottsCompact <- function(kmin, gamma, nr, res, sq, yest) {
 }
 
 compact <- function(y,mark){
-## accumulates numbers of observations, sums and 
-## sums of squares between potential breakpoints
- 	N <- length(y)
-	tell<-seq(1:N)
-	cCTell<-tell[mark]
-	Ncomp<-length(cCTell)
-	lowTell<-c(0,cCTell[1:(Ncomp-1)])
-	ant<-cCTell-lowTell
-	cy<-cumsum(y)
-	cCcy<-cy[mark]
-	lowcy<-c(0,cCcy[1:(Ncomp-1)])
-	sum<-cCcy-lowcy
-	y2<-y^2
-	cy2<-cumsum(y2)
-	cCcy2<-cy2[mark]
-	lowcy2<-c(0,cCcy2[1:(Ncomp-1)])
-	sq<-cCcy2-lowcy2
-	return(list(Nr=ant,Sum=sum,Sq=sq))
+  ## accumulates numbers of observations, sums and 
+  ## sums of squares between potential breakpoints
+	return(list(
+	        Nr = diff(append(0, which(mark))),
+	        Sum = diff(append(0, cumsum(y)[mark])),
+	        Sq = diff(append(0, cumsum(y ^ 2)[mark]))))
 }
 
 findEst <- function(bestSplit,N,Nr,Sum,yest){

@@ -8,10 +8,10 @@ The instructions below will install the latest stable Battenberg version.
 
 #### Prerequisites
 
-Installing from Github requires devtools and Battenberg requires readr, splines, RColorBrewer and ASCAT, while the pipeline requires parallel and doParallel. From the command line run:
+Installing from Github requires devtools and Battenberg requires the modified copynumber package from "igordot/copynumber" and readr, gtools, splines, ggplot2, gridExtra,  RColorBrewer and ASCAT. The pipeline requires parallel and doParallel. From the command line run:
 
 ```
-R -q -e 'source("http://bioconductor.org/biocLite.R"); biocLite(c("devtools", "splines", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools", "parallel"));'
+R -q -e 'BiocManager::install(c("devtools", "splines", "readr", "doParallel", "ggplot2", "RColorBrewer", "gridExtra", "gtools", "parallel", "igordot/copynumber"))'
 R -q -e 'devtools::install_github("Crick-CancerGenomics/ascat/ASCAT")'
 ```
 
@@ -25,7 +25,8 @@ R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
 
 #### Required reference files
 
-GRCh37 reference files may downloaded from here: https://ora.ox.ac.uk/objects/uuid:2c1fec09-a504-49ab-9ce9-3f17bac531bc
+`GRCh37` reference files may downloaded from here: https://ora.ox.ac.uk/objects/uuid:2c1fec09-a504-49ab-9ce9-3f17bac531bc
+
 The bundle contains the following files:
   * battenberg_1000genomesloci2012_v3.tar.gz
   * battenberg_impute_1000G_v3.tar.gz
@@ -35,7 +36,8 @@ The bundle contains the following files:
   * battenberg_snp6_exe.tgz (SNP6 only)
   * battenberg_snp6_ref.tgz (SNP6 only)
 
-GRCh38 reference files may be downloaded from here: https://ora.ox.ac.uk/objects/uuid:08e24957-7e76-438a-bd38-66c48008cf52
+`GRCh38` reference files may be downloaded from here: https://ora.ox.ac.uk/objects/uuid:08e24957-7e76-438a-bd38-66c48008cf52
+
 The bundle contains the following files:
   * 1000G_loci_hg38.zip
   * imputation.zip
@@ -44,7 +46,7 @@ The bundle contains the following files:
   * GC_correction_hg38.zip
   * RT_correction_hg38.zip
   * README.txt
-  
+
 #### Pipeline
 
 Go into ```inst/example``` for example WGS and SNP6 R-only pipelines.
@@ -160,3 +162,417 @@ to:
 ```
 export(plot.haplotype.data)
 ```
+
+
+
+##### hg38 for Beagle5
+
+Modified original code to derive the input vcf for Beagle5 and hg38:
+
+```
+#!/bin/bash
+#
+# READ_ME file (08 Dec 2015)
+# 
+# 1000 Genomes Project Phase 3 data release (version 5a) in VCF format for use with Beagle version 4.x
+#    Data Source: ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/*
+#
+# NOTES:
+# 
+# 1) Markers with <5 copies of the reference allele or <5 copies of the non-reference alleles have been excluded.
+#
+# 2) Structural variants have been excluded.
+#
+# 3) All non-unique identifiers in the ID column are removed from the ID column
+#
+# 4) Additional marker filtering may be performed using the gtstats.jar and filterlines.jar utilities
+#
+# 5) Sample information is in files: 
+#      integrated_call_samples.20130502.ALL.ped
+#      integrated_call_samples_v3.20130502.ALL.panel
+#
+# 6) Male haploid chromosome X genotypes are encoded as diploid homozygous genotypes.
+#
+############################################################################
+#  The following shell script was used to create the files in this folder  #
+############################################################################
+#
+
+## required if loading modules
+module load Java
+module load HTSlib
+
+## wget for GRCh37
+## wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/*
+
+# wget for GRCh38 (liftover from hg38)
+# wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/supporting/GRCh38_positions/*
+# see article: https://wellcomeopenresearch.org/articles/4-50
+wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/release/20190312_biallelic_SNV_and_INDEL/ALL.chr*
+wget http://bochet.gcc.biostat.washington.edu/beagle/1000_Genomes_phase3_v5a/utilities/filterlines.jar
+wget http://bochet.gcc.biostat.washington.edu/beagle/1000_Genomes_phase3_v5a/utilities/gtstats.jar
+wget http://bochet.gcc.biostat.washington.edu/beagle/1000_Genomes_phase3_v5a/utilities/remove.ids.jar
+wget http://bochet.gcc.biostat.washington.edu/beagle/1000_Genomes_phase3_v5a/utilities/simplify-vcf.jar
+
+## Downloadable from Beagle5 web page
+gts="java -ea -jar gtstats.jar"
+fl="java -ea -jar filterlines.jar"
+rmids="java -ea -jar remove.ids.jar"
+simplify="java -ea -jar simplify-vcf.jar"
+min_minor="5"
+
+## Running directory 
+src="./"
+#mkdir ${src}
+#cd ${src}
+#cd -
+
+## Go through autosomes and prepare vcf
+for chr in $(seq 4 5); do
+echo "chr${chr}"
+#input="${src}ALL.chr${chr}_GRCh38.genotypes.20170504.vcf.gz"
+input="${src}ALL.chr${chr}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
+#vcf_removefield="${input}_removedfield.vcg.gz"
+vcf="chr${chr}.1kg.phase3.v5a_GRCh38.vcf.gz"
+excl="chr${chr}.1kg.phase3.v5a_GRCh38.excl"
+
+#zcat ${input} | awk '/^[^#]/ {gsub(";GRC.*","",$9);print}' > ${vcf_removefield}
+zcat ${input} | grep -v 'SVTYPE' | ${gts} | ${fl} \# -13 ${min_minor} 1000000 | cut -f2 > ${excl}
+zcat ${input} | grep -v 'SVTYPE' | grep -v '^#' | cut -f3 | tr ';' '\n' | sort | uniq -d > chr${chr}.dup.id
+
+# BEGIN: add 4 duplicate markers to exclusion list
+#if [ ${chr} == "8" ]; then echo "88316919"; fi >> ${excl}
+#if [ ${chr} == "12" ]; then echo ""; fi >> ${excl}
+#if [ ${chr} == "14" ]; then echo "21181798"; fi  >> ${excl}
+#if [ ${chr} == "17" ]; then echo "1241338"; fi  >> ${excl}
+# END:  add 4 duplicate markers to exclusion list
+
+zcat ${input} | grep -v 'SVTYPE' | ${fl} \# \-2 ${excl} | ${simplify} | ${rmids} chr${chr}.dup.id | bgzip -c > ${vcf}
+tabix ${vcf}
+done
+
+## Same for chromosome X                                                                                                  
+chr="X"
+#in="${src}ALL.chr${chr}_GRCh38.genotypes.20170504.vcf.gz"
+in="${src}ALL.chr${chr}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
+vcf="chr${chr}.1kg.phase3.v5a_GRCh38.vcf.gz"
+excl="chr${chr}.1kg.phase3.v5a_GRCh38.excl"
+
+### sed command recodes male chrom X genotypes as homozygote diploid genotypes
+### sed command makes temporary change to floating point numbers and diploid genotypes to permit use of word-boundary '\>'
+cat_in=" zcat ${in} | grep -v 'SVTYPE' | sed \
+-e 's/\t0\t\.\t/\t111\tPASS\t/' \
+-e 's/0\tPASS/222\tPASS/' \
+-e 's/\([0-9]\)\./\1WXYZ/g' \
+-e 's/\([0-9]\)|\([0-9]\)/\1X\2/g' \
+-e 's/\t\([0-9]\)\>/\t\1|\1/g' \
+-e 's/\([0-9]\)WXYZ/\1./g' \
+-e 's/\([0-9]\)X\([0-9]\)/\1|\2/g';"
+
+echo ${chr}
+  eval ${cat_in} | grep -v '^#' | cut -f3 | tr ';' '\n' | sort | uniq -d > chr${chr}.dup.id
+  eval ${cat_in} | ${gts} | ${fl} '\#' -13 ${min_minor} 1000000 | cut -f2 > ${excl}
+
+  # BEGIN: add duplicate markers to exclusion list
+  #if [ ${chr} == "X" ]; then echo "5457254"; fi >> ${excl}
+  #if [ ${chr} == "X" ]; then echo "32344545"; fi >> ${excl}
+  #if [ ${chr} == "X" ]; then echo "68984437"; fi >> ${excl}
+  # END:  add duplicate markers to exclusion list
+
+eval ${cat_in} | ${fl} \# \-2 ${excl} | ${simplify} | ${rmids} chr${chr}.dup.id | bgzip -c > ${vcf}
+tabix ${vcf}
+```
+
+Run R code to generate loci, allele and gc_content files:
+
+```
+##########################################################################
+## set working directory to where the vcf files are located
+setwd("./")
+##########################################################################
+ffs <- dir(full=T,pattern="1kg.phase3.v5a_GRCh38.vcf.gz$")
+MC.CORES <- 10 ## set number of cores to use
+##########################################################################
+
+
+##########################################################################
+library(parallel)
+##########################################################################
+## Further remove unreferenced alleles and duplicates
+##########################################################################
+mclapply(ffs[length(ffs):1],function(x)
+{
+    cat(paste(x,"read file"))
+    out  <- gsub(".vcf.gz","nounref.vcf.gz",x)
+    cmd <- paste0("zcat ",
+                  x,
+                  " | grep -v '",
+                  "\\",
+                  ".",
+                  "|","' ",
+                  " | grep -v '",
+                  "|",
+                  "\\",
+                  ".",
+                  "' "
+                 ,"|"," awk '!seen[$2]++' |  gzip > ",
+                  out)
+    system(cmd)
+},mc.cores=MC.CORES)
+##########################################################################
+
+ffs <- dir(full=T,pattern="1kg.phase3.v5a_GRCh38nounref.vcf.gz$")
+## Generate Loci files
+##########################################################################
+mclapply(ffs[length(ffs):1],function(x)
+{
+    cat(paste(x,"read file"))
+    out  <- gsub(".vcf.gz","_loci.txt",x)
+    cmd <- paste0("zcat ",
+                  x," | grep -v '^#' | awk -v OFS='\t' '{print $1, $2}' > ",
+                  out)
+    system(cmd)
+},mc.cores=MC.CORES)
+##########################################################################
+## with chr string (for BAMs that contain "chr")
+mclapply(ffs[length(ffs):1],function(x)
+{
+    ##cat(paste(x,"read file"))
+    out  <- gsub(".vcf.gz","_loci_chrstring.txt",x)
+    cmd <- paste0("zcat ",
+                  x," | grep -v '^#' | awk -v OFS='\t' '{print ",
+                  '"chr"'
+                 ,"$1, $2}' > ",
+                  out)
+    system(noquote(cmd))
+},mc.cores=MC.CORES)
+##########################################################################
+## Generate Allele Files
+##########################################################################
+mclapply(ffs[length(ffs):1],function(x)
+{
+    cat(paste(x,"read file"))
+    out  <- gsub(".vcf.gz","_allele_letter.txt",x)
+    cmd <- paste0("zcat ",
+                  x," | grep -v '^#' | awk -v OFS='\t' '{print $2, $4, $5}' > ",
+                  out)
+    system(cmd)
+},mc.cores=MC.CORES)
+##########################################################################
+## Convert Alleles into Indices for BB input
+indices <- c("A"=1,"C"=2,"G"=3,"T"=4)
+##########################################################################
+mclapply(ffs[length(ffs):1],function(x)
+{
+    cat(".")
+    inp <- gsub(".vcf.gz","_allele_letter.txt",x)
+    out <- gsub(".vcf.gz","_allele_index.txt",x)
+    df <- as.data.frame(data.table::fread(inp))
+    ref <- indices[df[,2]]
+    alt <- indices[df[,3]]
+    ndf <- data.frame(position=df[,1],
+                      a0=ref,
+                      a1=alt)
+    write.table(ndf,file=out,
+                row.names=F,col.names=T,sep="\t",quote=F)
+},mc.cores=5)
+##########################################################################
+
+
+##########################################################################
+## Symlink loci to change the names allowing for a "prefix" before chr in BB
+##########################################################################
+allfs <- dir(full=T)
+allfs_loci <- allfs[grepl("loci.txt$",allfs)]
+tnull <- lapply(allfs_loci,function(x)
+{
+    cmd <- paste0("ln -s ",x," ",gsub("chr(.*?)\\.(.*).txt","\\2_chr\\1.txt",x))
+    system(cmd)
+    if(grepl("chrX",x))
+    {
+        cmd <- paste0("ln -s ",x," ",gsub("chr(.*?)\\.(.*).txt","\\2_chr23.txt",x))
+        system(cmd)
+    }
+})
+##########################################################################
+allfs <- dir(full=T)
+allfs_loci <- allfs[grepl("loci_chrstring.txt$",allfs)]
+tnull <- lapply(allfs_loci,function(x)
+{
+    cmd <- paste0("ln -s ",x," ",gsub("chr(.*?)\\.(.*).txt","\\2_chr\\1.txt",x))
+    system(cmd)
+    if(grepl("chrX",x))
+    {
+        cmd <- paste0("ln -s ",x," ",gsub("chr(.*?)\\.(.*).txt","\\2_chr23.txt",x))
+        system(cmd)
+    }
+})
+##########################################################################
+## Symlink alleles: same as for loci, symlink to change name for the
+## use of prefixes
+##########################################################################
+allfs <- dir(full=T)
+allfs_index <- allfs[grepl("allele_index",allfs)]
+tnull <- lapply(allfs_index,function(x)
+{
+    cmd <- paste0("ln -s ",x," ",gsub("chr(.*?)\\.(.*).txt","\\2_chr\\1.txt",x))
+    system(cmd)
+    if(grepl("chrX",x))
+    {
+        cmd <- paste0("ln -s ",x," ",gsub("chr(.*?)\\.(.*).txt","\\2_chr23.txt",x))
+        system(cmd)
+    }
+})
+       
+##########################################################################
+##  Derive GC content files
+##########################################################################
+library(Rsamtools)
+library(data.table)
+library(Biostrings)
+##########################################################################
+gcTrack <- function(chr,
+                    pos,
+                    dna,
+                    window=5000)
+{
+    gc <- rowSums(letterFrequencyInSlidingView(dna[[chr]],
+                                               window,
+                                               c("G","C")))/window
+    gc[pos]
+}
+getRefGenome <- function (fasta = FASTA, CHRS = paste0("", c(1:22, "X", "Y", 
+    "MT"))) 
+{
+    dna <- Biostrings::readDNAStringSet(fasta, format = "fasta")
+    dna <- lapply(1:length(CHRS), function(x) dna[[x]])
+    names(dna) <- CHRS
+    return(dna)
+}
+##########################################################################
+FASTA <- "genome.fa" ## Link to genome reference fasta file 
+CHRS <- paste0("", c(1:22, "X"))
+BEAGLELOCI.template <- "chrCHROMNAME.1kg.phase3.v5a_GRCh38nounref_loci.txt"
+##########################################################################
+REFGENOME <- getRefGenome(fasta = FASTA, CHRS = CHRS) ## Loads genome
+in memory
+##########################################################################
+OUTDIR <- "1000genomes_2012_v3_gcContent_hg38"
+system(paste0("mkdir ",OUTDIR))
+##########################################################################
+
+##########################################################################
+windows <- c(25,
+             50,
+             100,
+             200,
+             500,
+             1000,
+             2000,
+             5000,
+             10000,
+             20000,
+             50000,
+             100000,
+             200000,
+             500000,
+             1000000,
+             2000000,
+             5000000,
+             10000000)
+names(windows) <- formatC(windows,format="f",digits=0)
+names(windows) <- gsub("000000$","Mb",names(windows))
+names(windows) <- gsub("000$","kb",names(windows))
+names(windows) <- sapply(names(windows),function(x) if(grepl("[0-9]$",x)) paste0(x,"bp") else x)
+##########################################################################
+
+writeGC <- function(gccontent,chr,outdir)
+{
+    write.table(gccontent,
+                file=gzfile(paste0(outdir,"/1000_genomes_GC_corr_chr_",chr,".txt.gz")),
+                col.names=T,
+                row.names=T,quote=F,sep="\t")
+}
+
+mclapply(CHRS,function(chr)
+{
+	cat(chr)
+	snppos <- as.data.frame(data.table::fread(gsub("CHROMNAME",chr,BEAGLELOCI.template)))
+    gccontent <- sapply(windows,function(window) gcTrack(chr=chr,
+                                                         pos=snppos[,2],
+                                                         dna=REFGENOME,
+                                                         window=window))*100
+    gccontent <- cbind(rep(chr,nrow(gccontent)),snppos[,2],gccontent)
+    colnames(gccontent)[1:2] <- c("chr","Position")
+    rownames(gccontent) <- snppos[,2]
+    writeGC(gccontent,chr,OUTDIR)
+},mc.cores=10)
+   
+```
+
+###### Example run
+
+To run using Beagle5, simply parametrise the same way you would run
+under impute2. It should be back compatible, so you can run impute2
+by setting usebeagle=FALSE. And it uses the same input files needed for the
+pipeline, i.e. 1000G loci/alleles + ref panel + prob loci + imputeinfo file etc.
+
+The map plink files for Beagle can be downloaded from:
+http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/
+
+
+```
+BEAGLEJAR <- "$PATHTOBEAGLEFILES/beagle.24Aug19.3e8.jar"
+BEAGLEREF.template <- "$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"
+BEAGLEPLINK.template <- "$PATHTOBEAGLEFILES/plink.chrCHROMNAME.GRCh37.map"
+
+timed <- system.time(battenberg(tumourname=TUMOURNAME,
+                                normalname=NORMALNAME,
+                                tumour_data_file=TUMOURBAM,
+                                normal_data_file=NORMALBAM,
+                                imputeinfofile=IMPUTEINFOFILE,
+                                g1000prefix=G1000PREFIX,
+                                problemloci=PROBLEMLOCI,
+                                gccorrectprefix=GCCORRECTPREFIX,
+                                repliccorrectprefix=REPLICCORRECTPREFIX,
+                                g1000allelesprefix=G1000PREFIX_AC,
+                                ismale=IS_MALE,
+                                data_type="wgs",
+                                impute_exe="impute2",
+                                allelecounter_exe="alleleCounter",
+                                nthreads=NTHREADS,
+                                platform_gamma=1,
+                                phasing_gamma=1,
+                                segmentation_gamma=10,
+                                segmentation_kmin=3,
+                                phasing_kmin=1,
+                                clonality_dist_metric=0,
+                                ascat_dist_metric=1,
+                                min_ploidy=1.6,
+                                max_ploidy=4.8, min_rho=0.1,
+                                min_goodness=0.63,
+                                uninformative_BAF_threshold=0.51,
+                                min_normal_depth=10,
+                                min_base_qual=20,
+                                min_map_qual=35,
+                                calc_seg_baf_option=1,
+                                skip_allele_counting=F,
+                                skip_preprocessing=F,
+                                skip_phasing=F,
+                                usebeagle=USEBEAGLE, ##set to TRUE to use beagle
+                                beaglejar=BEAGLEJAR, ##path
+                                beagleref=BEAGLEREF.template, ##pathtemplate
+                                beagleplink=BEAGLEPLINK.template, ##pathtemplate
+                                beaglemaxmem=15, 
+                                beaglenthreads=1,
+                                beaglewindow=40,
+                                beagleoverlap=4,
+                                snp6_reference_info_file=NA,
+                                apt.probeset.genotype.exe="apt-probeset-genotype",
+                                apt.probeset.summarize.exe="apt-probeset-summarize",
+                                norm.geno.clust.exe="normalize_affy_geno_cluster.pl",
+                                birdseed_report_file="birdseed.report.txt",
+                                heterozygousFilter="none",
+                                prior_breakpoints_file=NULL))
+```
+

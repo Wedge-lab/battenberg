@@ -74,6 +74,35 @@ read_bafsegmented = function(filename, header=T) {
   return(readr::read_tsv(file = filename, col_names = header, col_types = "cinnn"))
 }
 
+#' Parser for imputed genotype data
+#' @param filename Filename of the file to read in
+#' @return A data frame with the imputed genotype output
+read_imputed_output = function(filename) {
+  return(readr::read_tsv(file = filename, col_names = c("snpidx", "rsidx", "pos", "ref", "alt", "hap1", "hap2"), col_types = "cciccii"))
+}
+
+#' Parser for allele frequencies data
+#' @param filename Filename of the file to read in
+#' @return A data frame with the alleleCounter output
+read_alleleFrequencies = function(filename) {
+  return(readr::read_tsv(file = filename, col_names = c("CHR", "POS", "Count_A", "Count_C", "Count_G", "Count_T", "Good_depth"), col_types = "ciiiiii", comment = "#"))
+}
+
+#' Parser for impute input data
+#' @param filename Filename of the file to read in
+#' @return A data frame with the input for impute
+read_impute_input = function(filename) {
+  return(readr::read_delim(file = filename, col_names = F, col_types = "ccicciii", delim = " "))
+}
+
+#' Parser for beagle5 output data
+#' @param filename Filename of the file to read in
+#' @return A data frame with the beagle5 output
+read_beagle_output = function(filename) {
+  return(readr::read_tsv(file = filename, col_names = c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "SAMP001"), col_types = "cicccccccc", comment = "#"))
+}
+
+
 ########################################################################################
 # Concatenate files
 ########################################################################################
@@ -93,10 +122,10 @@ concatenateImputeFiles<-function(inputStart, boundaries) { #outputFile,
 
 #' Function to concatenate haplotyped BAF output
 #' @noRd
-concatenateBAFfiles<-function(inputStart, inputEnd, outputFile, no.chrs) {
+concatenateBAFfiles<-function(inputStart, inputEnd, outputFile, chr_names) {
   all_data<-NULL
   colNames<-NULL
-  for(i in 1:no.chrs)
+  for(i in chr_names)
   {
     filename = paste(inputStart,i,inputEnd,sep="")
     if(file.exists(filename) && file.info(filename)$size>0)
@@ -112,9 +141,9 @@ concatenateBAFfiles<-function(inputStart, inputEnd, outputFile, no.chrs) {
 
 #' Function to concatenate allele counter output
 #' @noRd
-concatenateAlleleCountFiles = function(inputStart, inputEnd, no.chrs) {
+concatenateAlleleCountFiles = function(inputStart, inputEnd, chr_names) {
   infiles = c()
-  for(chrom in 1:no.chrs) {
+  for(chrom in chr_names) {
     filename = paste(inputStart, chrom, inputEnd, sep="")
     # Only add files that exist and have data
     if(file.exists(filename) && file.info(filename)$size>0) {
@@ -126,18 +155,20 @@ concatenateAlleleCountFiles = function(inputStart, inputEnd, no.chrs) {
 
 #' Function to concatenate 1000 Genomes SNP reference files
 #' @noRd
-concatenateG1000SnpFiles = function(inputStart, inputEnd, no.chrs, chr_names) {
+concatenateG1000SnpFiles = function(inputStart, inputEnd, chr_names) {
   data = list()
-  for(chrom in 1:no.chrs) {
+  for(chrom in chr_names) {
     filename = paste(inputStart, chrom, inputEnd, sep="")
     # Only add files that exist and have data
     if(file.exists(filename) && file.info(filename)$size>0) {
       # infiles = c(infiles, filename)
-      data[[chrom]] = cbind(chromosome=chr_names[chrom], read_table_generic(filename))
+      data[[chrom]] = cbind(chromosome=chrom, read_table_generic(filename))
     }
   }
   return(as.data.frame(do.call(rbind, data)))
 }
+
+
 
 ########################################################################################
 # Various functions for calculating from data

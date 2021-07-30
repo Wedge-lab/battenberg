@@ -39,13 +39,28 @@ battenberg(
   skip_allele_counting = F,
   skip_preprocessing = F,
   skip_phasing = F,
+  externalhaplotypefile = NA,
+  usebeagle = FALSE,
+  beaglejar = NA,
+  beagleref.template = NA,
+  beagleplink.template = NA,
+  beaglemaxmem = 10,
+  beaglenthreads = 1,
+  beaglewindow = 40,
+  beagleoverlap = 4,
+  javajre = "java",
+  write_battenberg_phasing = T,
+  multisample_relative_weight_balanced = 0.25,
+  multisample_maxlag = 100,
+  segmentation_gamma_multisample = 5,
   snp6_reference_info_file = NA,
   apt.probeset.genotype.exe = "apt-probeset-genotype",
   apt.probeset.summarize.exe = "apt-probeset-summarize",
   norm.geno.clust.exe = "normalize_affy_geno_cluster.pl",
   birdseed_report_file = "birdseed.report.txt",
   heterozygousFilter = "none",
-  prior_breakpoints_file = NULL
+  prior_breakpoints_file = NULL,
+  GENOMEBUILD = "hg19"
 )
 }
 \arguments{
@@ -117,6 +132,34 @@ battenberg(
 
 \item{skip_phasing}{Provide TRUE when phasing is already complete (Default: FALSE)}
 
+\item{externalhaplotypefile}{Vcf containing externally obtained haplotype blocks (Default: NA)}
+
+\item{usebeagle}{Should use beagle5 instead of impute2 Default: FALSE}
+
+\item{beaglejar}{Full path to Beagle java jar file Default: NA}
+
+\item{beagleref.template}{Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA}
+
+\item{beagleplink.template}{Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA}
+
+\item{beaglemaxmem}{Integer Beagle max heap size in Gb  Default: 10}
+
+\item{beaglenthreads}{Integer number of threads used by beagle5 Default:1}
+
+\item{beaglewindow}{Integer size of the genomic window for beagle5 (cM) Default:40}
+
+\item{beagleoverlap}{Integer size of the overlap between windows beagle5 Default:4}
+
+\item{javajre}{Path to the Java JRE executable, only required for haplotype reconstruction with Beagle (default java, i.e. in $PATH)}
+
+\item{write_battenberg_phasing}{Write the Battenberg phasing results as vcf to disk, e.g. for multisample cases (Default: TRUE)}
+
+\item{multisample_relative_weight_balanced}{Relative weight to give to haplotype info from a sample without allelic imbalance in the region (Default: 0.25)}
+
+\item{multisample_maxlag}{Maximal number of upstream SNPs used in the multisample haplotyping to inform the haplotype at another SNP (Default: 100)}
+
+\item{segmentation_gamma_multisample}{The gamma parameter controls the size of the penalty of starting a new segment during mutlisample segmentation. It is the key parameter for controlling the number of segments (Default: 10)}
+
 \item{snp6_reference_info_file}{Reference files for the SNP6 pipeline only (Default: NA)}
 
 \item{apt.probeset.genotype.exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)}
@@ -130,10 +173,12 @@ battenberg(
 \item{heterozygousFilter}{Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")}
 
 \item{prior_breakpoints_file}{A two column file with prior breakpoints to be used during segmentation (Default: NULL)}
+
+\item{GENOMEBUILD}{Genome build upon which the 1000G SNP coordinates were obtained (Default: hg19; options: "hg19" or "hg38")}
 }
 \description{
 Run the Battenberg pipeline
 }
 \author{
-sd11
+sd11, jdemeul, Naser Ansari-Pour
 }

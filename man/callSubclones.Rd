@@ -65,7 +65,7 @@ callSubclones(
 \description{
 This function fits a subclonal copy number profile where a clonal profile is unlikely.
 It goes over each segment of a clonal copy number profile and does a simple t-test. If the
-test is significant it is unlikely that the data can be explained by a single copy number 
+test is significant it is unlikely that the data can be explained by a single copy number
 state. We therefore fit a second state, i.e. there are two cellular populations with each
 a different state: Subclonal copy number.
 }

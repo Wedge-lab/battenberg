@@ -19,7 +19,8 @@ prepare_wgs(
   allelecounter_exe,
   min_normal_depth,
   nthreads,
-  skip_allele_counting
+  skip_allele_counting,
+  skip_allele_counting_normal = F
 )
 }
 \arguments{
@@ -52,9 +53,11 @@ prepare_wgs(
 \item{nthreads}{The number of paralel processes to run}
 
 \item{skip_allele_counting}{Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)}
+
+\item{skip_allele_counting_normal}{Flag, set to TRUE from the second sample onwards for multisample case (Default: FALSE)}
 }
 \description{
-This function performs part of the Battenberg WGS pipeline: Counting alleles, constructing BAF and logR 
+This function performs part of the Battenberg WGS pipeline: Counting alleles, constructing BAF and logR
 and performing GC content correction.
 }
 \author{
