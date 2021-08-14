@@ -313,7 +313,8 @@ germline_reconstruct_normal = function(GERMLINENAME,NORMALNAME,chrom_coord,chrom
             medcov=median(COV[,3])
             cov=mean(COV[,3])
             denSNP=nrow(COV)/(nSNPs/sum(chr_loc$length)*seg_ivd$Position_dist[j])
-            if (!is.na(cov) & cov < -0.8 & medcov < -0.8 & !is.null(denSNP) & denSNP>0.5){ # to use a minimum SNP density of 0.5 to get logR estimate
+            #if (!is.na(cov) & cov < -0.8 & medcov < -0.8 & !is.null(denSNP) & denSNP>0.5){ # to use a minimum SNP density of 0.5 to get logR estimate
+            if (!is.na(cov) & !is.null(denSNP) & denSNP>0.5){ # to use a minimum SNP density of 0.5 to get logR estimate AND not put the cov cut-off before applying PCF
               #loh=data.frame(start=start,end=end,LogR=cov,medianLogR=medcov,denSNP=denSNP)
               jpcf=pcf(COV,gamma=GAMMA_LOGR,verbose = F)
               jpcf=jpcf[which(jpcf$mean < -0.8),]
@@ -420,7 +421,8 @@ germline_reconstruct_normal = function(GERMLINENAME,NORMALNAME,chrom_coord,chrom
           cov=mean(COV[,3])
           medcov=median(COV[,3])
           denSNP=nrow(COV)/(nSNPs/sum(chr_loc$length)*seg_ivd$Position_dist[j])
-          if (!is.na(cov) & cov < -0.8 & medcov < -0.8 & !is.null(denSNP) & denSNP>0.5){ # to use a minimum SNP density of 0.5 to get logR estimate #glcode
+          #if (!is.na(cov) & cov < -0.8 & medcov < -0.8 & !is.null(denSNP) & denSNP>0.5){ # to use a minimum SNP density of 0.5 to get logR estimate
+           if (!is.na(cov) & !is.null(denSNP) & denSNP>0.5){ # to use a minimum SNP density of 0.5 to get logR estimate AND not put the cov cut-off before applying PCF
             #loh=data.frame(start=start,end=end,LogR=cov,medianLogR=medcov,denSNP=denSNP)
             jpcf=pcf(COV,gamma=GAMMA_LOGR,verbose = F)
             jpcf=jpcf[which(jpcf$mean < -0.8),]
