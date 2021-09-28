@@ -26,6 +26,7 @@ R -q -e 'devtools::install_github("Wedge-Oxford/battenberg")'
 #### Required reference files
 
 `GRCh37` reference files may downloaded from here: https://ora.ox.ac.uk/objects/uuid:2c1fec09-a504-49ab-9ce9-3f17bac531bc
+
 The bundle contains the following files:
   * battenberg_1000genomesloci2012_v3.tar.gz
   * battenberg_impute_1000G_v3.tar.gz
@@ -36,6 +37,7 @@ The bundle contains the following files:
   * battenberg_snp6_ref.tgz (SNP6 only)
 
 `GRCh38` reference files may be downloaded from here: https://ora.ox.ac.uk/objects/uuid:08e24957-7e76-438a-bd38-66c48008cf52
+
 The bundle contains the following files:
   * 1000G_loci_hg38.zip
   * imputation.zip

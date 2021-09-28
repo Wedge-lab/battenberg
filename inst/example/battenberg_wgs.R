@@ -39,6 +39,8 @@ if (!GENOMEBUILD %in% supported_genome_builds) {
 	stop(paste0("Provided genome build ", GENOMEBUILD, " is not supported. Please provide either of ", paste(supported_genome_builds, collapse=" ")))
 }
 
+analysis = "cell_line"
+
 ###############################################################################
 # 2018-11-01
 # A pure R Battenberg v2.2.9 WGS pipeline implementation.
@@ -48,8 +50,6 @@ if (!GENOMEBUILD %in% supported_genome_builds) {
 JAVAJRE = "java"
 ALLELECOUNTER = "alleleCounter"
 IMPUTE_EXE = "impute2"
-
-#GENOMEBUILD = "hg19" #"hg38"
 USEBEAGLE = T
 
 # General static
@@ -62,11 +62,9 @@ if (GENOMEBUILD=="hg19") {
 	REPLICCORRECTPREFIX = file.path(impute_basedir, "battenberg_wgs_replic_correction_1000g_v3/1000_genomes_replication_timing_chr_")
 	
 	# WGS specific static
-	#PROBLEMLOCI = "/lustre/scratch117/casm/team219/sd11/reference/GenomeFiles/battenberg_probloci/probloci_270415.txt.gz"
 	PROBLEMLOCI = "/hps/research/gerstung/sdentro/reference/human/battenberg/battenberg_probloci/probloci_270415.txt.gz"
 	GENOME_VERSION = "b37"
 	GENOMEBUILD = "hg19"
-	#BEAGLE_BASEDIR = "/nfs/users/nfs_s/sd11/scratch17_t219/reference/GenomeFiles/battenberg_beagle"
 	BEAGLE_BASEDIR = "/hps/research/gerstung/sdentro/reference/human/battenberg/battenberg_beagle"
 	BEAGLEJAR = file.path(BEAGLE_BASEDIR, "beagle.24Aug19.3e8.jar")
 	BEAGLEREF.template = file.path(BEAGLE_BASEDIR, GENOME_VERSION, "chrCHROMNAME.1kg.phase3.v5a.b37.bref3")
@@ -90,7 +88,6 @@ if (GENOMEBUILD=="hg19") {
 	BEAGLEJAR = file.path(BEAGLE_BASEDIR, "beagle.18May20.d20.jar")
 
 	CHROM_COORD_FILE = "/homes/sdentro/repo/battenberg/chromosome_coordinates_hg38.txt"
-
 } 
 
 PLATFORM_GAMMA = 1

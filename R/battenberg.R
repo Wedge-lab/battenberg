@@ -1,6 +1,7 @@
 
 #' Run the Battenberg pipeline
 #'
+#' @param analysis The mode of Battenberg copy number analysis to be undertaken: 'paired' for tumour-normal pair, 'cell_line' for Cell line tumour-only and 'germline' for germline CNV of normal sample (Default: 'paired')
 #' @param tumourname Tumour identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
 #' @param normalname Matched normal identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
 #' @param tumour_data_file A BAM or CEL file for the tumour
@@ -32,7 +33,7 @@
 #' @param min_normal_depth Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)
 #' @param min_base_qual Minimum base quality required for a read to be counted when allele counting (Default: 20)
 #' @param min_map_qual Minimum mapping quality required for a read to be counted when allele counting (Default: 35)
-#' @param calc_seg_baf_option Sets way to calculate BAF per segment: 1=mean, 2=median, 3=ifelse median==0 | 1, mean, median (Default: 3)
+#' @param calc_seg_baf_option Sets way to calculate BAF per segment: 1=mean, 2=median, 3=ifelse median==0 | 1, mean, median (Default (paired): 3, cell_line & germline: 1)
 #' @param skip_allele_counting Provide TRUE when allele counting can be skipped (i.e. its already done) (Default: FALSE)
 #' @param skip_preprocessing Provide TRUE when preprocessing is already complete (Default: FALSE)
 #' @param skip_phasing  Provide TRUE when phasing is already complete (Default: FALSE)
@@ -59,7 +60,7 @@
 #' @param multisample_relative_weight_balanced Relative weight to give to haplotype info from a sample without allelic imbalance in the region (Default: 0.25)
 #' @author sd11, jdemeul, Naser Ansari-Pour
 #' @export
-battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, gccorrectprefix=NULL,
+battenberg = function(analysis="paired", tumourname, normalname, tumour_data_file, normal_data_file, imputeinfofile, g1000prefix, problemloci, gccorrectprefix=NULL,
                       repliccorrectprefix=NULL, g1000allelesprefix=NA, ismale=NA, data_type="wgs", impute_exe="impute2", allelecounter_exe="alleleCounter", nthreads=8, platform_gamma=1, phasing_gamma=1,
                       segmentation_gamma=10, segmentation_kmin=3, phasing_kmin=1, clonality_dist_metric=0, ascat_dist_metric=1, min_ploidy=1.6,
                       max_ploidy=4.8, min_rho=0.1, min_goodness=0.63, uninformative_BAF_threshold=0.51, min_normal_depth=10, min_base_qual=20,
@@ -76,11 +77,29 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                       write_battenberg_phasing = T, multisample_relative_weight_balanced = 0.25, multisample_maxlag = 100, segmentation_gamma_multisample = 5,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize",
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
-                      prior_breakpoints_file=NULL, GENOMEBUILD="hg19") {
+                      prior_breakpoints_file=NULL, GENOMEBUILD="hg19", chrom_coord_file=NULL) {
   
   requireNamespace("foreach")
   requireNamespace("doParallel")
   requireNamespace("parallel")
+  
+  if (analysis == "cell_line"){
+	  calc_seg_baf_option=1
+	  phasing_gamma=1
+	  phasing_kmin=2
+	  segmentation_gamma=20
+	  segmentation_kmin=3
+	  # no matched normal required, but we  are generating normal counts which have this name coded
+	  normalname = paste0(tumourname, "_normal")
+	  # other cell_line specific parameter values
+	  }
+  if (analysis == "germline"){
+	  calc_seg_baf_option=1
+	  phasing_gamma=3
+	  phasing_kmin=1
+	  segmentation_gamma=3
+	  segmentation_kmin=3
+	  }
   
   if (data_type=="wgs" & is.na(ismale)) {
     stop("Please provide a boolean denominator whether this sample represents a male donor")
@@ -119,12 +138,11 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     }
   }
   
-  
   if (data_type=="wgs" | data_type=="WGS") {
     if (nsamples > 1) {
       print(paste0("Running Battenberg in multisample mode on ", nsamples, " samples: ", paste0(tumourname, collapse = ", ")))
     }
-    chrom_names = get.chrom.names(imputeinfofile, ismale)
+    chrom_names = get.chrom.names(imputeinfofile, ismale, analysis=analysis)
   } else if (data_type=="snp6" | data_type=="SNP6") {
     if (nsamples > 1) {
       stop(paste0("Battenberg multisample mode has not been tested with SNP6 data"))
@@ -142,6 +160,7 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
         clp = parallel::makeCluster(nthreads)
         doParallel::registerDoParallel(clp)
         
+        if (analysis == "paired"){
         prepare_wgs(chrom_names=chrom_names,
                     tumourbam=tumour_data_file[sampleidx],
                     normalbam=normal_data_file,
@@ -158,6 +177,51 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                     nthreads=nthreads,
                     skip_allele_counting=skip_allele_counting[sampleidx],
                     skip_allele_counting_normal = (sampleidx > 1))
+          
+         } else if (analysis == "cell_line") {
+prepare_wgs_cell_line(chrom_names=chrom_names,
+                      chrom_coord=chrom_coord_file,
+                      tumourbam=tumour_data_file,
+                      tumourname=tumourname,
+                      g1000lociprefix=g1000prefix,
+                      g1000allelesprefix=g1000allelesprefix, 
+                      gamma_ivd=1e5,
+                      kmin_ivd=50,
+		      centromere_noise_seg_size=1e6,
+                      centromere_dist=5e5,
+                      min_het_dist=1e5, 
+                      gamma_logr=100,
+                      length_adjacent=5e4,
+                      gccorrectprefix=gccorrectprefix, 
+                      repliccorrectprefix=repliccorrectprefix,
+                      min_base_qual=min_base_qual,
+                      min_map_qual=min_map_qual, 
+                      allelecounter_exe=allelecounter_exe,
+                      min_normal_depth=min_normal_depth,
+                      skip_allele_counting=skip_allele_counting[sampleidx])
+      } else if (analysis == "germline"){
+#prepare_wgs_germline(chrom_names=chrom_names,
+#                      chrom_coord=chrom_coord,
+#                      germlinebam=GERMLINEBAM,
+#                      germlinename=GERMLINENAME,
+#                      g1000lociprefix=G1000PREFIX_AC,
+#                      g1000allelesprefix=G1000PREFIX,
+#                      gamma_ivd=1e5,
+#                      kmin_ivd=50,
+#                      centromere_noise_seg_size=1e6,
+#                      centromere_dist=5e5,
+#                      min_het_dist=2e3,
+#                      gamma_logr=100,
+#                      length_adjacent=5e4,
+#                      gccorrectprefix=GCCORRECTPREFIX,
+#                      repliccorrectprefix=RTCORRECTPREFIX,
+#                      min_base_qual=MIN_BASE_QUAL,
+#                      min_map_qual=MIN_MAP_QUAL,
+#                      allelecounter_exe=ALLELECOUNTER,
+#                      min_normal_depth=MIN_NORMAL_DEPTH,
+#                      skip_allele_counting=F)
+      }
+        
         
         # Kill the threads
         parallel::stopCluster(clp)
@@ -381,7 +445,12 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
     
     if (data_type=="wgs" | data_type=="WGS") {
       logr_file = paste(tumourname[sampleidx], "_mutantLogR_gcCorrected.tab", sep="")
-      allelecounts_file = paste(tumourname[sampleidx], "_alleleCounts.tab", sep="")
+      if (analysis=="paired") {
+        allelecounts_file = paste(tumourname[sampleidx], "_alleleCounts.tab", sep="")
+      } else {
+	# Not produced by a number of analysis and is required for some plots. Setting to NULL  makes the pipeline not attempt to create these plots
+        allelecounts_file = NULL
+      }
     }
     
     # Fit a clonal copy number profile
@@ -423,7 +492,8 @@ battenberg = function(tumourname, normalname, tumour_data_file, normal_data_file
                   calc_seg_baf_option=calc_seg_baf_option)
     
     # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
-    if (ismale){
+    # Only do this when X chromosome is included
+    if (ismale & "X" %in% chrom_names){
       callChrXsubclones(TUMOURNAME=tumourname[sampleidx],
                         X_GAMMA=1000,
                         X_KMIN=100,

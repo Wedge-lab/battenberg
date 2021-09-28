@@ -96,11 +96,17 @@ check.imputeinfofile = function(imputeinfofile, is.male, usebeagle) {
 #' @param imputeinfofile Path to the imputeinfofile on disk.
 #' @param is.male A boolean describing whether the sample under study is male.
 #' @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
+#' @param analaysis Depending on the type of analysis different sets of chromosomes are returned (Default:  paired)
 #' @return A vector containing the supported chromosome names
 #' @author sd11
 #' @export
-get.chrom.names = function(imputeinfofile, is.male, chrom=NA) {
-  return(unique(parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)$chrom))
+get.chrom.names = function(imputeinfofile, is.male, chrom=NA, analysis="paired") {
+  chrom_names = unique(parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)$chrom)
+  if (analysis=="cell_line" | analysis=="germline") {
+    # Both cell line and germline analysis do not yield usable data on X and Y, so remove
+    chrom_names = chrom_names[!chrom_names %in% c("X", "Y")]
+  }
+  return(chrom_names)
 }
 
 #' Concatenate the impute output generated for each of the regions.
