@@ -39,8 +39,6 @@ if (!GENOMEBUILD %in% supported_genome_builds) {
 	stop(paste0("Provided genome build ", GENOMEBUILD, " is not supported. Please provide either of ", paste(supported_genome_builds, collapse=" ")))
 }
 
-analysis = "cell_line"
-
 ###############################################################################
 # 2018-11-01
 # A pure R Battenberg v2.2.9 WGS pipeline implementation.
