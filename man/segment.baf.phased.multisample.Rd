@@ -10,7 +10,8 @@ segment.baf.phased.multisample(
   outputfile,
   prior_breakpoints_file = NULL,
   gamma = 10,
-  calc_seg_baf_option = 3
+  calc_seg_baf_option = 3,
+  GENOMEBUILD
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ segment.baf.phased.multisample(
 \item{gamma}{The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default 10)}
 
 \item{calc_seg_baf_option}{Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0 or 1, median, mean. (Default: 3)}
+
+\item{GENOMEBUILD}{Genome build upon which the 1000G SNP coordinates were obtained}
 }
 \description{
 This function breaks the genome up into chromosomes, possibly further when SV breakpoints

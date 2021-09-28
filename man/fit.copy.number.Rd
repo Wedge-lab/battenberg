@@ -22,7 +22,8 @@ fit.copy.number(
   use_preset_rho_psi = F,
   preset_rho = NA,
   preset_psi = NA,
-  read_depth = 30
+  read_depth = 30,
+  analysis = "paired"
 )
 }
 \arguments{
@@ -61,6 +62,8 @@ fit.copy.number(
 \item{preset_psi}{A user specified psi to fit a copy number profile to (Default NA)}
 
 \item{read_depth}{Legacy parameter that is no longer used (Default 30)}
+
+\item{analysis}{A String representing the type of analysis to be run, this determines whether the distance figure is produced (Default paired)}
 }
 \description{
 Function that will fit a clonal copy number profile to segmented data. It first

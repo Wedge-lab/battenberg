@@ -160,6 +160,7 @@ calc_ln_likelihood_ratio <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mea
       nMajor = 1000
     }else{
       nMajor = nMajor + BAFreq * (0.01 - nMinor) / (1-BAFreq)
+      if (nMajor<0) nMajor=1000
     }
     nMinor = 0.01		
   }
@@ -398,6 +399,7 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
 			nMajor = 1000
 		}else{
 			nMajor = nMajor + BAFreq * (0.01 - nMinor) / (1-BAFreq)
+			if (nMajor<0) nMajor=1000
 		}
 		nMinor = 0.01		
 	}

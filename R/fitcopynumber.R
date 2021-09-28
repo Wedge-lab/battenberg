@@ -533,170 +533,241 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
 #' @param psi the psi estimate that the profile was fit with
 #' @param platform_gamma The gamma parameter for this platform
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median== 0|1, mean, median. (Default: 3)
+#' @param verbose A boolean to show merging operations (Default: FALSE)
 #' @return A list with two fields: bafsegmented and subclones. The subclones field contains a data.frame in
 #' Battenberg output format with the merged segments. The bafsegmented field contains the BAFsegmented data
 #' corresponding to the provided subclones data.frame.
-#' @author sd11
+#' @author sd11, tl
 #' @noRd
-merge_segments = function(subclones, bafsegmented, logR, rho, psi, platform_gamma, calc_seg_baf_option=3) {
-  subclones_cleaned = data.frame()
-  merged = T
-  counter = 1
-  previous_merged = F
-
-  print("Merging segments")
-  while(merged) {
-    print(paste0("Iter: ",counter))
-    merged = F
-    for (i in 2:nrow(subclones)) {
-      if ((i %% 50)==0) { print(paste0(i, " / ", nrow(subclones))) }
-
-      # If the second segment was not merged with the first we need to save segment 1. Here we throw away the previously saved copy of 2 and save 1 and 2
-      if (i==3 & !previous_merged) {
-        subclones_cleaned = subclones[1,,drop=F]
-      }
-
-      # Don't do any double merging. This needs to happen at the next iteration, as we've just merged i with i-1 we don't add i again
-      if (previous_merged) {
-        previous_merged = F
-        #subclones_cleaned = rbind(subclones_cleaned, subclones[i-1,])
-        next
-      }
-
-      # if segments are on different chromosomes, keep the separate segments
-      if (subclones$chr[i-1]!=subclones$chr[i]) {
-        subclones_cleaned = rbind(subclones_cleaned, subclones[i-1,])
-        next
-      }
-
-      # if distance between segment is large, keep the separate segments
-      if (subclones$chr[i-1]==subclones$chr[i] & diff(c(subclones$endpos[i-1], subclones$startpos[i]))>3000000) {
-        subclones_cleaned = rbind(subclones_cleaned, subclones[i-1,])
-        next
-      }
-
-      # if the segments have the exact same copy number state, merge the segments
-      nmin_equals = subclones$nMin1_A[i-1]==subclones$nMin1_A[i]
-      nmaj_equals = subclones$nMaj1_A[i-1]==subclones$nMaj1_A[i]
-      not_subclonal = (subclones$frac1_A[i-1]==1) & (subclones$frac1_A[i]==1)
-
-      # It would be nice to store the baf and logr values for this segment temporarily, but the memory allocation time is too great, therefore the selection happens a couple of times inline below
-      if (not_subclonal & nmin_equals & nmaj_equals) {
-        # MERGE
-        new_entry = data.frame(subclones[i-1,])
-        new_entry$endpos = subclones[i,]$endpos
-
-        #
-        # Note: When adding options, also add to segment.baf.phased
-        #
-        if (calc_seg_baf_option==1) {
-          new_entry$BAF = median(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]],
-                                 bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
-
-        } else if (calc_seg_baf_option==2) {
-          new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
-                                   bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
-        } else if (calc_seg_baf_option==3) {
-          mean_baf = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
-                            bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
-          median_baf = median(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
-                                bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
-          # We'll prefer the median BAF as a segment summary
-          # but change to the mean when the median is extreme
-          # as at 0 or 1 the BAF is uninformative for the fitting
-          if (median_baf!=0 & mean_baf!=1) {
-            new_entry$BAF = median_baf
-          } else {
-            new_entry$BAF = mean_baf
-          }
-        } else {
-          warning("Supplied calc_seg_baf_option to callSubclones not valid, using mean BAF by default")
-          # The mean is taken here as that has originally been the default. This behaviour is consistent with the segmentation functions
-          new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]], 
-                                 bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
-        }
-
-        new_entry$LogR = mean(c(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3],
-                                logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3]), na.rm=T)
-        subclones_cleaned = rbind(subclones_cleaned, new_entry)
-
-        # Set BAFseg to reflect the current segment
-        bafsegmented$BAFseg[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i]] = new_entry$BAF
-        # TODO The logRseg is currently not updated
-
-        previous_merged = T
-        merged = T
-        next
-      }
-
-      # if the logr puts the segments in the same square and BAF is not significantly different, merge them
-
-      # Helper functions to calculate the precise nmaj and nmin
-      calc_nmin = function(rho, psi, baf, logr, platform_gamma) {
-        return((rho-1-(baf-1)*2^(logr/platform_gamma)*((1-rho)*2+rho*psi))/rho)
-      }
-
-      calc_nmaj = function(rho, psi, baf, logr, platform_gamma) {
-        return((rho-1+baf*2^(logr/platform_gamma)*((1-rho)*2+rho*psi))/rho)
-      }
-
-      nmin_curr = round(calc_nmin(rho, psi, subclones$BAF[i], subclones$LogR[i], platform_gamma))
-      nmaj_curr = round(calc_nmaj(rho, psi, subclones$BAF[i], subclones$LogR[i], platform_gamma))
-      nmin_prev = round(calc_nmin(rho, psi, subclones$BAF[i-1], subclones$LogR[i-1], platform_gamma))
-      nmaj_prev = round(calc_nmaj(rho, psi, subclones$BAF[i-1], subclones$LogR[i-1], platform_gamma))
-
-      # Perform t-test on the BAFphased
-      if (sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]])) > 10 &
-          sum(!is.na(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]])) > 10 &
-          sum(!is.na(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3])) > 10 &
-          sum(!is.na(logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3])) > 10) {
-        baf_significant = t.test(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]],
-                                 bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]])$p.value < 0.05
-        logr_significant = t.test(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3],
-                                  logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3])$p.value < 0.05
+merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma, calc_seg_baf_option=3, verbose=F) {
+  calc_nmin = function(rho, psi, baf, logr, platform_gamma) {
+    return((rho-1-(baf-1)*2^(logr/platform_gamma)*((1-rho)*2+rho*psi))/rho)
+  }
+  calc_nmaj = function(rho, psi, baf, logr, platform_gamma) {
+    return((rho-1+baf*2^(logr/platform_gamma)*((1-rho)*2+rho*psi))/rho)
+  }
+  # Convert DF into GRanges objects
+  df2gr=function(DF,chr,pos1,pos2) {
+    return(GenomicRanges::makeGRangesFromDataFrame(df=DF,
+                                                   keep.extra.columns=T,
+                                                   ignore.strand=T,
+                                                   seqinfo=NULL,
+                                                   seqnames.field=chr,
+                                                   start.field=pos1,
+                                                   end.field=pos2,
+                                                   starts.in.df.are.0based=F))
+  }
+  # Function called when two segments have not been merged so there is no need to recheck those again
+  updateNeighbour=function(subclones,INDEX,INDEX_N) {
+    if (INDEX_N>INDEX) {
+      subclones$Next_checked[INDEX]=T
+      subclones$Prev_checked[INDEX_N]=T
+    } else {
+      subclones$Prev_checked[INDEX]=T
+      subclones$Next_checked[INDEX_N]=T
+    }
+    return(subclones)
+  }
+  # Function called when two segments have been merged so we need to recheck its two neighbours
+  updateAround=function(subclones,INDEX) {
+    if (INDEX>1) {
+      subclones$Prev_checked[INDEX]=F
+      subclones$Next_checked[INDEX-1]=F
+    } else {
+      subclones$Prev_checked[INDEX]=T
+    }
+    if (INDEX<length(subclones)) {
+      subclones$Next_checked[INDEX]=F
+      subclones$Prev_checked[INDEX+1]=F
+    } else {
+      subclones$Next_checked[INDEX]=T
+    }
+    return(subclones)
+  }
+  # Function called to test whether two segments must be checked
+  checkStatus=function(subclones,INDEX,INDEX_N) {
+    if (INDEX_N>INDEX) {
+      # Largest segment (INDEX_N) is after smallest one (INDEX)
+      stopifnot(subclones$Next_checked[INDEX]==subclones$Prev_checked[INDEX_N])
+      if (subclones$Next_checked[INDEX] && subclones$Prev_checked[INDEX_N]) {
+        return(T)
       } else {
-        # If not enough SNPs to reliably do a t-test we keep the separate segments, so set this to TRUE
-        baf_significant = T
-        logr_significant = T
+        return(F)
       }
-
-      # If both BAF and logR are not significantly different and at least one allele is of the same state, then merge the subclonal copy number
-      if (!(baf_significant & logr_significant) & (nmin_curr==nmin_prev | nmaj_curr==nmaj_prev)) {
-        # MERGE
-        new_entry = data.frame(subclones[i-1,])
-        new_entry$endpos = subclones$endpos[i]
-        if (calc_seg_baf_option==1) {
-          new_entry$BAF = median(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]],
-                                 bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
-        } else if (calc_seg_baf_option==2 | ! calc_seg_baf_option %in% c(1,2)) {
-          new_entry$BAF = mean(c(bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i-1]],
-                                 bafsegmented$BAFphased[bafsegmented$Chromosome==subclones$chr[i] & bafsegmented$Position>=subclones$startpos[i] & bafsegmented$Position<=subclones$endpos[i]]), na.rm=T)
-        }
-        new_entry$LogR = mean(c(logR[logR$Chromosome==subclones$chr[i-1] & logR$Position>=subclones$startpos[i-1] & logR$Position<=subclones$endpos[i-1], 3],
-                                logR[logR$Chromosome==subclones$chr[i] & logR$Position>=subclones$startpos[i] & logR$Position<=subclones$endpos[i], 3]), na.rm=T)
-        subclones_cleaned = rbind(subclones_cleaned, new_entry)
-
-        # Set BAFseg to reflect the current segment
-        bafsegmented$BAFseg[bafsegmented$Chromosome==subclones$chr[i-1] & bafsegmented$Position>=subclones$startpos[i-1] & bafsegmented$Position<=subclones$endpos[i]] = new_entry$BAF
-        # TODO Update the logRseg as well
-
-        previous_merged = T
-        merged = T
-        next
-      }
-
-      # No other criteria met, therefore keep the segment
-      subclones_cleaned = rbind(subclones_cleaned, subclones[i-1,])
-
-      if (i==nrow(subclones)) {
-        # Last segment not merged, so save that too
-        subclones_cleaned = rbind(subclones_cleaned, subclones[i,])
+    } else {
+      # Largest segment (INDEX_N) is before smallest one (INDEX)
+      stopifnot(subclones$Prev_checked[INDEX]==subclones$Next_checked[INDEX_N])
+      if (subclones$Prev_checked[INDEX] && subclones$Next_checked[INDEX_N]) {
+        return(T)
+      } else {
+        return(F)
       }
     }
-    subclones = subclones_cleaned
-    subclones_cleaned = data.frame()
-    counter = counter+1
   }
+  # Function to merge two segments
+  merge_seg=function(subclones,bafsegmented,logR,INDEX,INDEX_N,calc_seg_baf_option) {
+    # Update start/end information
+    if (INDEX_N<INDEX) {
+      GenomicRanges::end(subclones[INDEX_N])=GenomicRanges::end(subclones[INDEX])
+    } else {
+      GenomicRanges::start(subclones[INDEX_N])=GenomicRanges::start(subclones[INDEX])
+    }
+    # Remove segment
+    subclones=subclones[-INDEX]
+    if(INDEX_N<INDEX) INDEX=INDEX-1
+    # Reset neighbour checking
+    subclones=updateAround(subclones,INDEX)
+    if (calc_seg_baf_option==1) {
+      # This uses median
+      NEW_BAF = median(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
+    } else if (calc_seg_baf_option==2) {
+      # This uses mean
+      NEW_BAF = mean(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
+    } else if (calc_seg_baf_option==3) {
+      # We'll prefer the median BAF as a segment summary
+      # but change to the mean when the median is extreme
+      # as at 0 or 1 the BAF is uninformative for the fitting
+      median_BAF = median(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
+      mean_BAF = mean(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to], na.rm=T)
+      if (median_BAF!=0 && median_BAF!=1) {
+        NEW_BAF = median_BAF
+      } else {
+        NEW_BAF = mean_BAF
+      }
+      rm(median_BAF,mean_BAF)
+    }
+    # Update both BAF and logR information
+    subclones[INDEX]$BAF=NEW_BAF
+    INDEX_logR=GenomicRanges::findOverlaps(subclones[INDEX],logR)@to
+    if (length(INDEX_logR)==0) {
+      subclones[INDEX]$LogR=0
+    } else {
+      subclones[INDEX]$LogR=mean(logR$logR[INDEX_logR], na.rm=T)
+    }
+    rm(INDEX_logR)
+    # Update segmented baf
+    bafsegmented$BAFseg[GenomicRanges::findOverlaps(subclones[INDEX],bafsegmented)@to] = NEW_BAF
+    # TODO Update the logRseg as well
+    # Reset IDs
+    subclones$ID=1:length(subclones)
+    return(list(subclones=subclones,bafsegmented=bafsegmented))
+  }
+  requireNamespace("GenomicRanges")
+  if (!(calc_seg_baf_option %in% 1:3)) calc_seg_baf_option=3
+  # Convert DFs into GRanges objects
+  if (verbose) print('Convert DFs into GRanges objects')
+  subclones=df2gr(subclones,'chr','startpos','endpos')
+  bafsegmented=df2gr(bafsegmented,'Chromosome','Position','Position')
+  logR=df2gr(logR,'Chromosome','Position','Position')
+  names(GenomicRanges::mcols(logR))='logR'
+  # Split GRanges objects by chromosomes
+  chr_names=GenomicRanges::seqnames(GenomicRanges::seqinfo(bafsegmented))
+  subclones=lapply(chr_names,function(x) subclones[GenomicRanges::seqnames(subclones)==x])
+  bafsegmented=lapply(chr_names,function(x) bafsegmented[GenomicRanges::seqnames(bafsegmented)==x])
+  logR=lapply(chr_names,function(x) logR[GenomicRanges::seqnames(logR)==x])
+  stopifnot(all(sapply(subclones,length)>0) && all(sapply(bafsegmented,length)>0) && all(sapply(logR,length)>0))
+  names(subclones)=chr_names
+  names(bafsegmented)=chr_names
+  names(logR)=chr_names
+  # For each chromosome
+  for (CHR in chr_names) {
+    if (verbose) print(paste0('Merging segments within: ',CHR))
+    # Define ID, Prev_checked and Next_checked to help processing data 
+    subclones[[CHR]]$ID=1:length(subclones[[CHR]])
+    subclones[[CHR]]$Prev_checked=F
+    subclones[[CHR]]$Next_checked=F
+    subclones[[CHR]]$Prev_checked[1]=T
+    subclones[[CHR]]$Next_checked[length(subclones[[CHR]])]=T
+    # Pick all possible IDs
+    IDs=subclones[[CHR]]$ID
+    while (length(IDs)!=0) {
+      # Amongst all IDs, select the ones that must be checked
+      IDs=subclones[[CHR]]$ID[which(!subclones[[CHR]]$Prev_checked | !subclones[[CHR]]$Next_checked)]
+      if (length(IDs)==0) break
+      # Amongst all of those, select the smallest one
+      INDEX=IDs[which.min(GenomicRanges::width(subclones[[CHR]][which(subclones[[CHR]]$ID %in% IDs)]))]
+      # Select neighbours (two or one if segments is first or last)
+      if (INDEX==1) {
+        Neighbours=order(GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX+1]))
+        names(Neighbours)=INDEX+1
+      } else if (INDEX==length(subclones[[CHR]])) {
+        Neighbours=order(GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX-1]))
+        names(Neighbours)=INDEX-1
+      } else {
+        Neighbours=order(GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX+c(-1,1)]))
+        names(Neighbours)=INDEX+c(-1,1)
+      }
+      if (verbose) print(paste0('Working on segment: ',INDEX,' (',subclones[[CHR]][INDEX],')'))
+      # For each neighbour
+      for (i in Neighbours) {
+        INDEX_N=as.numeric(names(Neighbours[i]))
+        if (verbose) print(paste0('Checking neighbour: ',INDEX_N,' (',subclones[[CHR]][INDEX_N],'; distance=',GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX_N]),')'))
+        # Test whether seg and neighbour (INDEX and INDEX_N) have already been checked
+        if (checkStatus(subclones[[CHR]],INDEX,INDEX_N)) {if (verbose) {print('Already checked')}; next}
+        # Test whether seg and neighbour are far away from each other
+        if (GenomicRanges::distance(subclones[[CHR]][INDEX],subclones[[CHR]][INDEX_N])>3e6) {
+          if (verbose) print('Distance > 3Mb - do not merge')
+          subclones[[CHR]]=updateNeighbour(subclones[[CHR]],INDEX,INDEX_N)
+        } else {
+          # Test whether seg and neighbour have the same clonal CN solution
+          if (subclones[[CHR]]$nMaj1_A[INDEX]==subclones[[CHR]]$nMaj1_A[INDEX_N] && subclones[[CHR]]$nMin1_A[INDEX]==subclones[[CHR]]$nMin1_A[INDEX_N] && subclones[[CHR]]$frac1_A[INDEX]==1 && subclones[[CHR]]$frac1_A[INDEX_N]==1) {
+            if (verbose) print('Same clonal CN solution - merge')
+            res=merge_seg(subclones[[CHR]],bafsegmented[[CHR]],logR[[CHR]],INDEX,INDEX_N,calc_seg_baf_option)
+            subclones[[CHR]]=res$subclones
+            bafsegmented[[CHR]]=res$bafsegmented
+            rm(res)
+            break
+          } else {
+            # Test whether seg and neighbour have different BAF/logR distributions
+            if (verbose) print('Different CN solutions: check BAF and logR')
+            nmin_curr = round(calc_nmin(rho, psi, subclones[[CHR]]$BAF[INDEX], subclones[[CHR]]$LogR[INDEX], platform_gamma))
+            nmaj_curr = round(calc_nmaj(rho, psi, subclones[[CHR]]$BAF[INDEX], subclones[[CHR]]$LogR[INDEX], platform_gamma))
+            nmin_other = round(calc_nmin(rho, psi, subclones[[CHR]]$BAF[INDEX_N], subclones[[CHR]]$LogR[INDEX_N], platform_gamma))
+            nmaj_other = round(calc_nmaj(rho, psi, subclones[[CHR]]$BAF[INDEX_N], subclones[[CHR]]$LogR[INDEX_N], platform_gamma))
+            if (nmin_curr==nmin_other || nmaj_curr==nmaj_other) {
+              # Test whether there are more than 10 values to check significance
+              if (sum(!is.na(logR[[CHR]]$logR[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX],logR[[CHR]])@to])) > 10 &&
+                  sum(!is.na(logR[[CHR]]$logR[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX_N],logR[[CHR]])@to])) > 10 &&
+                  sum(!is.na(bafsegmented[[CHR]]$BAFphased[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX],bafsegmented[[CHR]])@to])) > 10 &&
+                  sum(!is.na(bafsegmented[[CHR]]$BAFphased[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX_N],bafsegmented[[CHR]])@to])) > 10) {
+                logr_significant = t.test(logR[[CHR]]$logR[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX],logR[[CHR]])@to],
+                                          logR[[CHR]]$logR[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX_N],logR[[CHR]])@to])$p.value < 0.05
+                baf_significant = t.test(bafsegmented[[CHR]]$BAFphased[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX],bafsegmented[[CHR]])@to],
+                                         bafsegmented[[CHR]]$BAFphased[GenomicRanges::findOverlaps(subclones[[CHR]][INDEX_N],bafsegmented[[CHR]])@to])$p.value < 0.05
+                if ((!logr_significant) && (!baf_significant)) {
+                  if (verbose) print('No significant difference - merge')
+                  res=merge_seg(subclones[[CHR]],bafsegmented[[CHR]],logR[[CHR]],INDEX,INDEX_N,calc_seg_baf_option)
+                  subclones[[CHR]]=res$subclones
+                  bafsegmented[[CHR]]=res$bafsegmented
+                  rm(res)
+                  break
+                } else {
+                  if (verbose) print('Significant difference - do not merge')
+                  subclones[[CHR]]=updateNeighbour(subclones[[CHR]],INDEX,INDEX_N)
+                }
+              } else {
+                if (verbose) print('Too few values - do not merge')
+                subclones[[CHR]]=updateNeighbour(subclones[[CHR]],INDEX,INDEX_N)
+              }
+            } else {
+              if (verbose) print('Different squares - do not merge')
+              subclones[[CHR]]=updateNeighbour(subclones[[CHR]],INDEX,INDEX_N)
+            }
+          }
+        }
+      }; rm(i)
+    }
+  }; rm(CHR)
+  if (verbose) print('Convert GRanges objects into DFs')
+  bafsegmented=data.frame(Reduce(c,bafsegmented),stringsAsFactors=F)[,-c(3:5)]
+  bafsegmented$seqnames=as.character(bafsegmented$seqnames)
+  colnames(bafsegmented)[1:2]=c('Chromosome','Position')
+  subclones=data.frame(Reduce(c,subclones),stringsAsFactors=F)[,-c(4:5)]
+  subclones$seqnames=as.character(subclones$seqnames)
+  colnames(subclones)[1:3]=c('chr','startpos','endpos')
+  subclones$ID=NULL
+  subclones$Prev_checked=NULL
+  subclones$Next_checked=NULL
   return(list(bafsegmented=bafsegmented, subclones=subclones))
 }
 

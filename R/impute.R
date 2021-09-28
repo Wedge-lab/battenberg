@@ -38,7 +38,8 @@ run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, imp
                   " -phase",
                   " -seed ",
                   " -os 2", sep="") # lowers computational cost by not imputing reference only SNPs
-      system(cmd, wait=T)
+      EXIT_CODE=system(cmd, wait=T)
+      stopifnot(EXIT_CODE==0)
     }
   }
 }
@@ -270,7 +271,8 @@ run.beagle5 = function(beaglejar,
                   " window=",window,
                   " overlap=",overlap,
                   " impute=false")
-    system(cmd,wait=T)
+    EXIT_CODE=system(cmd, wait=T)
+    stopifnot(EXIT_CODE==0)
 }
 
 

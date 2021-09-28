@@ -23,7 +23,8 @@ getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, 
   if (as.integer(substr(x = counter_version, start = 1, stop = 1)) >= 4)
     cmd = paste(cmd, "--dense-snps")
 
-  system(cmd, wait=T)
+  EXIT_CODE=system(cmd, wait=T)
+  stopifnot(EXIT_CODE==0)
 }
 
 
