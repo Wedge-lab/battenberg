@@ -99,6 +99,11 @@ battenberg = function(analysis="paired", tumourname, normalname, tumour_data_fil
 	  phasing_kmin=1
 	  segmentation_gamma=3
 	  segmentation_kmin=3
+	normalname = paste0(tumourname, "_normal")
+	min_ploidy=1.5
+	max_ploidy=2.5
+	min_rho=0.99
+	max_rho=1.01
 	  }
   
   if (data_type=="wgs" & is.na(ismale)) {
@@ -200,26 +205,29 @@ prepare_wgs_cell_line(chrom_names=chrom_names,
                       min_normal_depth=min_normal_depth,
                       skip_allele_counting=skip_allele_counting[sampleidx])
       } else if (analysis == "germline"){
-#prepare_wgs_germline(chrom_names=chrom_names,
-#                      chrom_coord=chrom_coord,
-#                      germlinebam=GERMLINEBAM,
-#                      germlinename=GERMLINENAME,
-#                      g1000lociprefix=G1000PREFIX_AC,
-#                      g1000allelesprefix=G1000PREFIX,
-#                      gamma_ivd=1e5,
-#                      kmin_ivd=50,
-#                      centromere_noise_seg_size=1e6,
-#                      centromere_dist=5e5,
-#                      min_het_dist=2e3,
-#                      gamma_logr=100,
-#                      length_adjacent=5e4,
-#                      gccorrectprefix=GCCORRECTPREFIX,
-#                      repliccorrectprefix=RTCORRECTPREFIX,
-#                      min_base_qual=MIN_BASE_QUAL,
-#                      min_map_qual=MIN_MAP_QUAL,
-#                      allelecounter_exe=ALLELECOUNTER,
-#                      min_normal_depth=MIN_NORMAL_DEPTH,
-#                      skip_allele_counting=F)
+#prepare_wgs_germline = function(chrom_names, chrom_coord, germlinebam, germlinename, g1000lociprefix, g1000allelesprefix, gamma_ivd=1e5, kmin_ivd=50, centromere_noise_seg_size=1e6,
+#                                centromere_dist=5e5, min_het_dist=2e3, gamma_logr=100, length_adjacent=5e4, gccorrectprefix,repliccorrectprefix, min_base_qual, min_map_qual,
+#                                 allelecounter_exe, min_normal_depth, skip_allele_counting)
+prepare_wgs_germline(chrom_names=chrom_names,
+                      chrom_coord=chrom_coord_file,
+                      germlinebam=tumour_data_file,
+                      germlinename=tumourname,
+                      g1000lociprefix=g1000prefix,
+                      g1000allelesprefix=g1000allelesprefix,
+                      gamma_ivd=1e5,
+                      kmin_ivd=50,
+                      centromere_noise_seg_size=1e6,
+                      centromere_dist=5e5,
+                      min_het_dist=2e3,
+                      gamma_logr=100,
+                      length_adjacent=5e4,
+                      gccorrectprefix=gccorrectprefix,
+                      repliccorrectprefix=repliccorrectprefix,
+                      min_base_qual=min_base_qual,
+                      min_map_qual=min_map_qual,
+                      allelecounter_exe=allelecounter_exe,
+                      min_normal_depth=min_normal_depth,
+                      skip_allele_counting=skip_allele_counting[sampleidx])
       }
         
         
