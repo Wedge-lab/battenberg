@@ -165,7 +165,7 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
 #' @param is.male Boolean denoting whether this sample is male (TRUE), or female (FALSE).
 #' @param problemLociFile A file containing genomic locations that must be discarded (optional).
 #' @param useLociFile A file containing genomic locations that must be included (optional).
-#' @param heterozygousFilter The cutoff where a SNP will be considered as heterozygous (default 0.01).
+#' @param heterozygousFilter The cutoff where a SNP will be considered as heterozygous (default 0.1).
 #' @author dw9, sd11
 #' @export
 generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.allele.counts.file, output.file, imputeinfofile, is.male, problemLociFile=NA, useLociFile=NA, heterozygousFilter=0.1) {
