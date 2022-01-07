@@ -2,6 +2,7 @@ library(Battenberg)
 library(optparse)
 
 option_list = list(
+  make_option(c("-a", "--analysis_type"), type="character", default="paired", help="Type of analysis to run: paired (tumour+normal), cell_line (only tumour), germline (only normal)", metavar="character"),
   make_option(c("-t", "--tumourname"), type="character", default=NULL, help="Samplename of the tumour", metavar="character"),
   make_option(c("-n", "--normalname"), type="character", default=NULL, help="Samplename of the normal", metavar="character"),
   make_option(c("--tb"), type="character", default=NULL, help="Tumour BAM file", metavar="character"),
@@ -19,6 +20,7 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
+analysis = opt$analysis_type
 TUMOURNAME = opt$tumourname
 NORMALNAME = opt$normalname
 NORMALBAM = opt$nb
@@ -32,7 +34,12 @@ NTHREADS = opt$cpu
 PRIOR_BREAKPOINTS_FILE = opt$bp
 GENOMEBUILD = opt$ref_genome_build
 
-analysis = "paired"
+#analysis = "germline"
+
+supported_analysis = c("paired", "cell_line", "germline")
+if (!analysis %in% supported_analysis) {
+	stop(paste0("Requested analysis type ", analysis, " is not available. Please provide either of ", paste(supported_analysis, collapse=" ")))
+}
 
 supported_genome_builds = c("hg19", "hg38")
 if (!GENOMEBUILD %in% supported_genome_builds) {
@@ -40,9 +47,8 @@ if (!GENOMEBUILD %in% supported_genome_builds) {
 }
 
 ###############################################################################
-# 2018-11-01
-# A pure R Battenberg v2.2.9 WGS pipeline implementation.
-# sd11 [at] sanger.ac.uk
+# 2022-01-07
+# A pure R Battenberg v2.2.10 WGS pipeline implementation.
 ###############################################################################
 
 JAVAJRE = "java"
