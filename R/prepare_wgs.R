@@ -54,9 +54,9 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
   allele_data = concatenateG1000SnpFiles(g1000file.prefix, ".txt", chr_names)
   
   # We're no longer stripping out the "chr", which is causing problems
-  #allele_data[,1] = gsub("chr","",allele_data[,1])
-  #normal_input_data[,1] = gsub("chr","",normal_input_data[,1])
-  #input_data[,1] = gsub("chr","",input_data[,1])
+  allele_data[,1] = gsub("chr","",allele_data[,1])
+  normal_input_data[,1] = gsub("chr","",normal_input_data[,1])
+  input_data[,1] = gsub("chr","",input_data[,1])
 
   # Synchronise all the data frames
   chrpos_allele = paste(allele_data[,1], "_", allele_data[,2], sep="")
