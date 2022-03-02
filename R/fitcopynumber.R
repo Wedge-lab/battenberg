@@ -959,179 +959,197 @@ make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_fil
 #' @param TUMOURNAME The tumour name used for Battenberg (i.e. the tumour BAM file name without the .bam extension)
 #' @param X_GAMMA The PCF gamma value for segmentation of 1000G SNP LogR values (Default 1000)
 #' @param X_KMIN The min number of SNPs to support a segment in PCF of LogR values (Default 100)
-#' @param AR Should the segment carrying the androgen receptor (AR) locus to be visually distinguished in average plot? (Default TRUE)
 #' @param GENOMEBUILD The genome build used in running Battenberg (hg19 or hg38)
+#' @param AR Should the segment carrying the androgen receptor (AR) locus to be visually distinguished in average plot? (Default TRUE)
+#' @param SV A two column text file with prior genome-wide breakpoints, possibly from structural variants. This file must contain two columns with headers "chr" and "pos" representing chromosome and position.
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
-callChrXsubclones = function(TUMOURNAME,X_GAMMA=1000,X_KMIN=100,GENOMEBUILD,AR=TRUE){
-print(TUMOURNAME)
-PCFinput=data.frame(read_table_generic(paste0(TUMOURNAME,"_mutantLogR_gcCorrected.tab")),stringsAsFactors=F)
-PCFinput=PCFinput[which(PCFinput$Chromosome=="X" & PCFinput$Position>2.6e6 & PCFinput$Position<156e6),] # get nonPAR
-colnames(PCFinput)[3]=TUMOURNAME
-print(paste("Number of chrX nonPAR SNPs =",nrow(PCFinput)))
-PCF=copynumber::pcf(PCFinput,gamma=X_GAMMA,kmin=X_KMIN)
-write.table(PCF,paste0(TUMOURNAME,"_PCF_gamma_",X_GAMMA,"_chrX.txt"),col.names=T,row.names=F,quote=F,sep="\t")
-print("PCF segmentation done")
 
-if (GENOMEBUILD=="hg19"){
-x_centromere=c(58632012,61632012) # hg19
-ar=data.frame(startpos=66763874,endpos=66950461)
-} else {
-  x_centromere=c(58605580,62412542) #hg38
-  ar=data.frame(startpos=67544021,endpos=67730619)
-}
-
-# INPUT for copy number inference
-SAMPLEsegs=data.frame(PCF,stringsAsFactors=F)
-pupl=read.table(paste0(TUMOURNAME,"_purity_ploidy.txt"),header=T,stringsAsFactors=F)
-SAMPLEpurity=pupl$purity
-#SAMPLEploidy=round(pupl$ploidy/2)*2
-SAMPLEn=pupl$ploidy
-print(paste(SAMPLEpurity,SAMPLEn))
-
-# Estimating LogR deviation in diploid and gained regions (AUTOSOMAL)
-BB=read.table(paste0(TUMOURNAME,"_subclones.txt"),header=T,stringsAsFactors = F)
-
-BBdip=BB[which(BB$nMaj1_A==1 & BB$nMin1_A==1 & BB$frac1_A==1),]
-# correction for LogR values
-BBcorr=-mean(BBdip$LogR) #diploid only
-if (nrow(BBdip)<=1){
-print("likely WGD sample")
-BBdip=BB[which(BB$nMaj1_A==2 & BB$nMin1_A==2 & BB$frac1_A==1),]
-cnloh=BB[which(BB$nMaj1_A==2 & BB$nMin1_A==0 & BB$frac1_A==1),]
-if (nrow(cnloh)>0){
-BBcorr=-mean(cnloh$LogR)
-} else if (nrow(cnloh)==0){
-print("CRUDE estimation of BBcorr based on assumption of 2 copies vs ploidy")
-BBcorr=-log2(2/SAMPLEn)
-}
-}
-BBg1=BB[which(BB$nMaj1_A==2 & BB$nMin1_A==1 & BB$frac1_A==1),]
-BBg2=BB[which(BB$nMaj1_A==3 & BB$nMin1_A==1 & BB$frac1_A==1),]
-BBg3=BB[which(BB$nMaj1_A==4 & BB$nMin1_A==1 & BB$frac1_A==1),]
-BBg4=BB[which(BB$nMaj1_A==3 & BB$nMin1_A==2 & BB$frac1_A==1),] # likely observed in WGD samples
-
-# get max gain N:
-BBcomb=rbind(BBdip,BBg1,BBg2,BBg3,BBg4)
-maxNMaj=max(BBcomb$nMaj1_A)
-
-# SD for LogR values - diploid and gain regions
-BBsd=c(sd(BBdip$LogR),sd(BBg1$LogR),sd(BBg2$LogR),sd(BBg3$LogR))
-#BBsd_mean=mean(BBsd,na.rm=T)
-BBsd_max=max(BBsd, na.rm=T)
-BBsd_max=max(BBsd_max,0.05) # accept a minimum of 5% sd in LogR variation
-
-# BB LOH - estimating sd for LOH/loss events
-BBloh=BB[which(BB$nMaj1_A==1 & BB$nMin1_A==0 & BB$frac1_A==1),]
-if (nrow(BBloh)<=1){ #sd would be NA
-print("likely WGD sample or no clonal LOH event")
-BBloh=BB[which(BB$nMin1_A==0 & BB$frac1_A==1),] # all LOH events with varying nMaj1_A including 2:0 events
-}
-
-# expected ChrX logR values
-explogrgainX=function(x){log2((SAMPLEpurity*x+(1-SAMPLEpurity)*1)/1)}
-explogrGain=sapply(2:10000,explogrgainX) # up to 10000 copies!
-
-explogrLoss=max(log2(0+(1-SAMPLEpurity)*1),log2(0.01)) # if purity ~ 1, then purity of 0.99 is assumed for a realistic explogR estimate
-
-# assign CN
-SEG=data.frame()
-for (j in 1:nrow(SAMPLEsegs)){
-  seg=SAMPLEsegs[j,]
-  seg$type=ifelse(seg$mean<0,"loss","gain")
+callChrXsubclones = function(TUMOURNAME,X_GAMMA=1000,X_KMIN=100,GENOMEBUILD,AR=TRUE,SV=NULL){
   
-  # is segment different from zero?
-  seg$mean=seg$mean+BBcorr
+  print(TUMOURNAME)
   
-  if (seg$type=="gain"){
-    seg$CNA=ifelse(seg$mean>(0+1.96*BBsd_max),"yes","no")
+  PCFinput=data.frame(read_table_generic(paste0(TUMOURNAME,"_mutantLogR_gcCorrected.tab")),stringsAsFactors=F)
+  ChrNotation=unique(PCFinput[which(!is.na(match(PCFinput$Chromosome,c("X","chrX")))),]$Chromosome) # find the chromosome notation
+  PCFinput=PCFinput[which(PCFinput$Chromosome==ChrNotation & PCFinput$Position>2.6e6 & PCFinput$Position<156e6),] # get nonPAR
+  colnames(PCFinput)[3]=TUMOURNAME
+  print(paste("Number of chrX nonPAR SNPs =",nrow(PCFinput)))
+  
+  if (!is.null(SV) & !is.na(SV)) {
+    sv=read.table(SV, header=T, stringsAsFactors=F)
+    sv=sv[which(!is.na(match(sv$chr,c("X","chrX")))),]
+    breakpoints=c(min(PCFinput$Position),sv$pos,max(PCFinput$Position))
+    PCF=data.frame()
+    for (j in 1:(length(breakpoints)-1)) {
+    PCFinput_sv=PCFinput[which(PCFinput$Position>=breakpoints[j] & PCFinput$Position<breakpoints[j+1]),]
+    PCF_sv=copynumber::pcf(PCFinput_sv,gamma=X_GAMMA,kmin=X_KMIN)
+    PCF=rbind(PCF,PCF_sv)
+    }
   } else {
-    seg$CNA=ifelse(seg$mean<(0-1.96*BBsd_max),"yes","no")
+  PCF=copynumber::pcf(PCFinput,gamma=X_GAMMA,kmin=X_KMIN)
   }
-  # copy number
-  if (seg$CNA=="yes"){
+  write.table(PCF,paste0(TUMOURNAME,"_PCF_gamma_",X_GAMMA,"_chrX.txt"),col.names=T,row.names=F,quote=F,sep="\t")
+  print("PCF segmentation done")
+  
+  if (GENOMEBUILD=="hg19"){
+    x_centromere=c(58632012,61632012) # hg19
+    ar=data.frame(startpos=66763874,endpos=66950461)
+  } else {
+    x_centromere=c(58605580,62412542) #hg38
+    ar=data.frame(startpos=67544021,endpos=67730619)
+  }
+  
+  # INPUT for copy number inference
+  SAMPLEsegs=data.frame(PCF,stringsAsFactors=F)
+  pupl=read.table(paste0(TUMOURNAME,"_purity_ploidy.txt"),header=T,stringsAsFactors=F)
+  SAMPLEpurity=pupl[,1] # SAMPLEpurity=pupl$cellularity in previous Battenberg version; change from pupl$purity to pupl[,1] for universality
+  #SAMPLEwgd=ifelse(round(pupl$ploidy/2)*2==4,T,F)
+  SAMPLEn=pupl$ploidy
+  print(paste(SAMPLEpurity,SAMPLEn))
+  
+  # Estimating LogR deviation in diploid and gained regions (AUTOSOMAL)
+  BB=read.table(paste0(TUMOURNAME,"_subclones.txt"),header=T,stringsAsFactors = F)
+  
+  BBdip=BB[which(BB$nMaj1_A==1 & BB$nMin1_A==1 & BB$frac1_A==1),]
+  # correction for LogR values
+  BBcorr=-mean(BBdip$LogR) #diploid only
+  if (nrow(BBdip)<=1){
+    print("likely WGD sample")
+    BBdip=BB[which(BB$nMaj1_A==2 & BB$nMin1_A==2 & BB$frac1_A==1),]
+    cnloh=BB[which(BB$nMaj1_A==2 & BB$nMin1_A==0 & BB$frac1_A==1),]
+    if (nrow(cnloh)>0){
+      BBcorr=-mean(cnloh$LogR)
+    } else if (nrow(cnloh)==0){
+      print("CRUDE estimation of BBcorr based on assumption of 2 copies vs ploidy")
+      BBcorr=-log2(2/SAMPLEn)
+    }
+  }
+  BBg1=BB[which(BB$nMaj1_A==2 & BB$nMin1_A==1 & BB$frac1_A==1),]
+  BBg2=BB[which(BB$nMaj1_A==3 & BB$nMin1_A==1 & BB$frac1_A==1),]
+  BBg3=BB[which(BB$nMaj1_A==4 & BB$nMin1_A==1 & BB$frac1_A==1),]
+  BBg4=BB[which(BB$nMaj1_A==3 & BB$nMin1_A==2 & BB$frac1_A==1),] # likely observed in WGD samples
+  
+  # get max gain N:
+  BBcomb=rbind(BBdip,BBg1,BBg2,BBg3,BBg4)
+  maxNMaj=max(BBcomb$nMaj1_A)
+  
+  # SD for LogR values - diploid and gain regions
+  BBsd=c(sd(BBdip$LogR),sd(BBg1$LogR),sd(BBg2$LogR),sd(BBg3$LogR))
+  #BBsd_mean=mean(BBsd,na.rm=T)
+  BBsd_max=max(BBsd, na.rm=T)
+  BBsd_max=max(BBsd_max,0.05) # accept a minimum of 5% sd in LogR variation
+  
+  # BB LOH - estimating sd for LOH/loss events
+  BBloh=BB[which(BB$nMaj1_A==1 & BB$nMin1_A==0 & BB$frac1_A==1),]
+  if (nrow(BBloh)<=1){ #sd would be NA
+    print("likely WGD sample or no clonal LOH event")
+    BBloh=BB[which(BB$nMin1_A==0 & BB$frac1_A==1),] # all LOH events with varying nMaj1_A including 2:0 events
+  }
+  
+  # expected ChrX logR values
+  explogrgainX=function(x){log2((SAMPLEpurity*x+(1-SAMPLEpurity)*1)/1)}
+  explogrGain=sapply(2:10000,explogrgainX) # up to 10000 copies!
+  
+  explogrLoss=max(log2(0+(1-SAMPLEpurity)*1),log2(0.01)) # if purity ~ 1, then purity of 0.99 is assumed for a realistic explogR estimate
+  
+  # assign CN
+  SEG=data.frame()
+  for (j in 1:nrow(SAMPLEsegs)){
+    seg=SAMPLEsegs[j,]
+    seg$type=ifelse(seg$mean<0,"loss","gain")
+    
+    # is segment different from zero?
+    seg$mean=seg$mean+BBcorr
+    
     if (seg$type=="gain"){
-      rank=which(sort(c(explogrGain,seg$mean))==seg$mean) # rank of observed logR mean for segment among the expected logR values
-      seg$CN=rank+1
-      # clonality test
-      if (rank==1){
-        seg$clonal=ifelse(round(explogrGain[rank]-seg$mean,digits=2)<=round((BBsd_max/explogrGain[rank]),digits=2),"yes","no") # CV
-        
-      } else if (rank>=5){ # STOPS calling 'subclonal' events when copy number is >=5
-        if (abs(seg$mean-explogrGain[rank-1])<abs(seg$mean-explogrGain[rank])){
+      seg$CNA=ifelse(seg$mean>(0+1.96*BBsd_max),"yes","no")
+    } else {
+      seg$CNA=ifelse(seg$mean<(0-1.96*BBsd_max),"yes","no")
+    }
+    # copy number
+    if (seg$CNA=="yes"){
+      if (seg$type=="gain"){
+        rank=which(sort(c(explogrGain,seg$mean))==seg$mean) # rank of observed logR mean for segment among the expected logR values
+        seg$CN=rank+1
+        # clonality test
+        if (rank==1){
+          seg$clonal=ifelse(round(explogrGain[rank]-seg$mean,digits=2)<=round((BBsd_max/explogrGain[rank]),digits=2),"yes","no") # CV
           
-          seg$clonal="yes"
-          seg$CN=seg$CN-1
-        } else {
-          seg$clonal="yes"
-        }
-      } else {
-        if (abs(seg$mean-explogrGain[rank-1])<abs(seg$mean-explogrGain[rank])){
-          
-          seg$clonal=ifelse(round(seg$mean-explogrGain[rank-1],digits = 2)<=round((BBsd_max/explogrGain[rank-1]),digits=2),"yes","no")
-          if (seg$clonal=="yes"){
+        } else if (rank>=5){ # STOPS calling 'subclonal' events when copy number is >=5
+          if (abs(seg$mean-explogrGain[rank-1])<abs(seg$mean-explogrGain[rank])){
+            
+            seg$clonal="yes"
             seg$CN=seg$CN-1
+          } else {
+            seg$clonal="yes"
+          }
+        } else {
+          if (abs(seg$mean-explogrGain[rank-1])<abs(seg$mean-explogrGain[rank])){
+            
+            seg$clonal=ifelse(round(seg$mean-explogrGain[rank-1],digits = 2)<=round((BBsd_max/explogrGain[rank-1]),digits=2),"yes","no")
+            if (seg$clonal=="yes"){
+              seg$CN=seg$CN-1
+            }
+          }
+          else {
+            seg$clonal=ifelse(round(explogrGain[rank]-seg$mean,digits=2)<round((BBsd_max/explogrGain[rank]),digits = 2),"yes","no")
           }
         }
-        else {
-          seg$clonal=ifelse(round(explogrGain[rank]-seg$mean,digits=2)<round((BBsd_max/explogrGain[rank]),digits = 2),"yes","no")
+      } else if (seg$type=="loss"){
+        seg$CN=0
+        if (nrow(BBloh)>0){
+          seg$clonal=ifelse(round(abs(explogrLoss-seg$mean),digits=2)<round(abs(sd(BBloh$LogR)/explogrLoss),digits=2),"yes","no")
+        } else if (nrow(BBloh)==0){
+          seg$clonal=ifelse(round(abs(explogrLoss-seg$mean),digits=2)<round(abs(BBsd_max/explogrLoss),digits=2),"yes","no")
         }
       }
-    } else if (seg$type=="loss"){
-      seg$CN=0
-      if (nrow(BBloh)>0){
-        seg$clonal=ifelse(round(abs(explogrLoss-seg$mean),digits=2)<round(abs(sd(BBloh$LogR)/explogrLoss),digits=2),"yes","no")
-      } else if (nrow(BBloh)==0){
-        seg$clonal=ifelse(round(abs(explogrLoss-seg$mean),digits=2)<round(abs(BBsd_max/explogrLoss),digits=2),"yes","no")
-      }
+    }
+    else {
+      seg$CN=1
+      seg$clonal=NA
+      print(paste("no CNA for segment",j))
+    }
+    if (seg$arm=="p" & seg$end.pos>x_centromere[1]-1e6 & seg$CNA=="yes" & seg$end.pos<seg$start.pos+1e6){
+      print("segment is p-arm centromere noise")
+      print(seg)
+    } else if (seg$arm=="q" & seg$end.pos<x_centromere[2]+1e6 & seg$CNA=="yes" & seg$end.pos<seg$start.pos+1e6){
+      print("segment is q-arm centromere noise")
+      print(seg)
+    } else {
+      SEG=rbind(SEG,seg)
     }
   }
-  else {
-    seg$CN=1
-    seg$clonal=NA
-    print(paste("no CNA for segment",j))
-  }
-  if (seg$arm=="p" & seg$end.pos>x_centromere[1]-1e6 & seg$CNA=="yes" & seg$end.pos<seg$start.pos+1e6){
-    print("segment is p-arm centromere noise")
-    print(seg)
-  } else if (seg$arm=="q" & seg$end.pos<x_centromere[2]+1e6 & seg$CNA=="yes" & seg$end.pos<seg$start.pos+1e6){
-    print("segment is q-arm centromere noise")
-    print(seg)
-  } else {
-    SEG=rbind(SEG,seg)
-  }
-}
-
-# CALCULATE CCF 
-CCF=data.frame()
-for (j in 1:nrow(SEG)){
+  
+  # CALCULATE CCF 
+  CCF=data.frame()
+  for (j in 1:nrow(SEG)){
     seg=SEG[j,]
-  if (seg$CNA=="yes"){
-  if (seg$type=="gain"){
-    if (seg$clonal=="no"){
-    seg$CCF=(2^seg$mean-(SAMPLEpurity*(seg$CN-1)+(1-SAMPLEpurity)*1))/SAMPLEpurity 
+    if (seg$CNA=="yes"){
+      if (seg$type=="gain"){
+        if (seg$clonal=="no"){
+          seg$CCF=(2^seg$mean-(SAMPLEpurity*(seg$CN-1)+(1-SAMPLEpurity)*1))/SAMPLEpurity 
+        } else {
+          seg$CCF=1
+        }
+      } else if (seg$type=="loss"){
+        if (seg$clonal=="no"){
+          seg$CCF=(1-2^(seg$mean))/SAMPLEpurity # for Loss (assuming one chrX in all cells prior to Loss)
+          if (seg$CCF>=0.95){
+            seg$CCF=1
+            seg$clonal="yes"
+          }
+        } else {
+          seg$CCF=1
+        }
+      }
     } else {
-    seg$CCF=1
-  }
-  } else if (seg$type=="loss"){
-    if (seg$clonal=="no"){
-    seg$CCF=(1-2^(seg$mean))/SAMPLEpurity # for Loss (assuming one chrX in all cells prior to Loss)
-      if (seg$CCF>=0.95){
       seg$CCF=1
-      seg$clonal="yes"
     }
-    } else {
-    seg$CCF=1
-    }
+    CCF=rbind(CCF,seg)
   }
-  } else {
-    seg$CCF=1
-  }
-  CCF=rbind(CCF,seg)
-}
-
-# GENERATE FINAL OUTPUT
-SUBCLONES=data.frame()
+  
+  # GENERATE FINAL OUTPUT
+  SUBCLONES=data.frame()
   for (j in 1:nrow(CCF)){
     subclones=CCF[j,]
     if (subclones$CNA=="no"){
@@ -1142,7 +1160,7 @@ SUBCLONES=data.frame()
       }
       else if (subclones$type=="gain" & subclones$clonal=="no"){
         if(subclones$CCF>0.5){ # switch nMaj/nMin so that the first nMaj/nMin represent the MAJOR CLONE
-        subclones=data.frame(subclones,nMaj1=subclones$CN,nMin1=0,frac1=subclones$CCF,nMaj2=subclones$CN-1,nMin2=0,frac2=1-subclones$CCF)
+          subclones=data.frame(subclones,nMaj1=subclones$CN,nMin1=0,frac1=subclones$CCF,nMaj2=subclones$CN-1,nMin2=0,frac2=1-subclones$CCF)
         } else {
           subclones=data.frame(subclones,nMaj1=subclones$CN-1,nMin1=0,frac1=1-subclones$CCF,nMaj2=subclones$CN,nMin2=0,frac2=subclones$CCF)  
         }
@@ -1152,25 +1170,25 @@ SUBCLONES=data.frame()
       }
       else if (subclones$type=="loss" & subclones$clonal=="no"){
         if(subclones$CCF>0.5){ # switch nMaj/nMin so that the first nMaj/nMin represent the MAJOR CLONE
-        subclones=data.frame(subclones,nMaj1=subclones$CN,nMin1=0,frac1=subclones$CCF,nMaj2=1,nMin2=0,frac2=1-subclones$CCF)
+          subclones=data.frame(subclones,nMaj1=subclones$CN,nMin1=0,frac1=subclones$CCF,nMaj2=1,nMin2=0,frac2=1-subclones$CCF)
         } else {
           subclones=data.frame(subclones,nMaj1=1,nMin1=0,frac1=1-subclones$CCF,nMaj2=subclones$CN,nMin2=0,frac2=subclones$CCF)
+        }
       }
-    }
     }
     print(j)
     SUBCLONES=rbind(SUBCLONES,subclones)
-}
-
-SUBCLONES$average=(SUBCLONES$nMaj1+SUBCLONES$nMin1)*SUBCLONES$frac1+(SUBCLONES$nMaj2+SUBCLONES$nMin2)*SUBCLONES$frac2
-
-SUBCLONESout=data.frame(SUBCLONES[,c("chrom","arm")],startpos=SUBCLONES$start.pos,endpos=SUBCLONES$end.pos,nSNPs=SUBCLONES$n.probes,
-                      LogR=SUBCLONES$mean,SUBCLONES[,c("type","CNA","CN","clonal","nMaj1","nMin1","frac1","nMaj2","nMin2","frac2")],
-                      subclonalCN=SUBCLONES$average,stringsAsFactors = F)
-SUBCLONESout$type[SUBCLONESout$type=="gain"]="+ve"
-SUBCLONESout$type[SUBCLONESout$type=="loss"]="-ve"
-
-# merge adjacent segments with same copy number  
+  }
+  
+  SUBCLONES$average=(SUBCLONES$nMaj1+SUBCLONES$nMin1)*SUBCLONES$frac1+(SUBCLONES$nMaj2+SUBCLONES$nMin2)*SUBCLONES$frac2
+  
+  SUBCLONESout=data.frame(SUBCLONES[,c("chrom","arm")],startpos=SUBCLONES$start.pos,endpos=SUBCLONES$end.pos,nSNPs=SUBCLONES$n.probes,
+                          LogR=SUBCLONES$mean,SUBCLONES[,c("type","CNA","CN","clonal","nMaj1","nMin1","frac1","nMaj2","nMin2","frac2")],
+                          subclonalCN=SUBCLONES$average,stringsAsFactors = F)
+  SUBCLONESout$type[SUBCLONESout$type=="gain"]="+ve"
+  SUBCLONESout$type[SUBCLONESout$type=="loss"]="-ve"
+  
+  # merge adjacent segments with same copy number  
   SUBCLONESout$rank=1:nrow(SUBCLONESout)
   SUBCLONESout=SUBCLONESout[order(SUBCLONESout$subclonalCN),]
   
@@ -1181,47 +1199,47 @@ SUBCLONESout$type[SUBCLONESout$type=="loss"]="-ve"
       print(length(SPLIT[[j]]))
       SUBsplit=SUBCLONESout[which(!is.na(match(SUBCLONESout$rank,SPLIT[[j]]))),]
       if (length(unique(SUBsplit$arm))==1){
-      if (sd(SUBsplit$subclonalCN)<=0.01){
-        mergedseg=SUBsplit[1,]
-        mergedseg$endpos=SUBsplit[length(SPLIT[[j]]),"endpos"]
-        mergedseg$nSNPs=sum(SUBsplit$nSNPs)
-        mergedseg$LogR=weighted.mean(SUBsplit$LogR,SUBsplit$nSNPs)
-        outputDF=rbind(outputDF,mergedseg)
-      } else {
-        outputDF=rbind(outputDF,SUBsplit)
-        print("adjacent not same subclonalCN in SPLIT")
+        if (sd(SUBsplit$subclonalCN)<=0.01){
+          mergedseg=SUBsplit[1,]
+          mergedseg$endpos=SUBsplit[length(SPLIT[[j]]),"endpos"]
+          mergedseg$nSNPs=sum(SUBsplit$nSNPs)
+          mergedseg$LogR=weighted.mean(SUBsplit$LogR,SUBsplit$nSNPs)
+          outputDF=rbind(outputDF,mergedseg)
+        } else {
+          outputDF=rbind(outputDF,SUBsplit)
+          print("adjacent not same subclonalCN in SPLIT")
         }
       } else if (length(SPLIT[[j]])==2){
-      outputDF=rbind(outputDF,SUBsplit)
+        outputDF=rbind(outputDF,SUBsplit)
       } else{
         # if (length(SUBsplit$arm=="p"))
-     pseg=SUBsplit[SUBsplit$arm=="p",]
-     if (nrow(pseg)>1){
-       if (sd(pseg$subclonalCN)<=0.01){
-         mergedseg=pseg[1,]
-         mergedseg$endpos=pseg[nrow(pseg),"endpos"]
-         mergedseg$nSNPs=sum(pseg$nSNPs)
-         mergedseg$LogR=weighted.mean(pseg$LogR,pseg$nSNPs)
-         outputDF=rbind(outputDF,mergedseg)
-       } else {
-         outputDF=rbind(outputDF,pseg)
-         print("adjacent not same subclonalCN in pseg")
-         }
-     } else {outputDF=rbind(outputDF,pseg)}
-     qseg=SUBsplit[SUBsplit$arm=="q",]
-     if (nrow(qseg)>1){
-       if (sd(qseg$subclonalCN)<=0.01){
-         mergedseg=qseg[1,]
-         mergedseg$endpos=qseg[nrow(qseg),"endpos"]
-         mergedseg$nSNPs=sum(qseg$nSNPs)
-         mergedseg$LogR=weighted.mean(qseg$LogR,qseg$nSNPs)
-         outputDF=rbind(outputDF,mergedseg)
-       } else {
-         outputDF=rbind(outputDF,qseg)
-         print("adjacent not same subclonalCN in qseg")
-         }
-     } else {outputDF=rbind(outputDF,qseg)}
-    }
+        pseg=SUBsplit[SUBsplit$arm=="p",]
+        if (nrow(pseg)>1){
+          if (sd(pseg$subclonalCN)<=0.01){
+            mergedseg=pseg[1,]
+            mergedseg$endpos=pseg[nrow(pseg),"endpos"]
+            mergedseg$nSNPs=sum(pseg$nSNPs)
+            mergedseg$LogR=weighted.mean(pseg$LogR,pseg$nSNPs)
+            outputDF=rbind(outputDF,mergedseg)
+          } else {
+            outputDF=rbind(outputDF,pseg)
+            print("adjacent not same subclonalCN in pseg")
+          }
+        } else {outputDF=rbind(outputDF,pseg)}
+        qseg=SUBsplit[SUBsplit$arm=="q",]
+        if (nrow(qseg)>1){
+          if (sd(qseg$subclonalCN)<=0.01){
+            mergedseg=qseg[1,]
+            mergedseg$endpos=qseg[nrow(qseg),"endpos"]
+            mergedseg$nSNPs=sum(qseg$nSNPs)
+            mergedseg$LogR=weighted.mean(qseg$LogR,qseg$nSNPs)
+            outputDF=rbind(outputDF,mergedseg)
+          } else {
+            outputDF=rbind(outputDF,qseg)
+            print("adjacent not same subclonalCN in qseg")
+          }
+        } else {outputDF=rbind(outputDF,qseg)}
+      }
     }  else {
       SUBsplit=SUBCLONESout[which(SUBCLONESout$rank==SPLIT[[j]]),]
       outputDF=rbind(outputDF,SUBsplit)
@@ -1229,37 +1247,44 @@ SUBCLONESout$type[SUBCLONESout$type=="loss"]="-ve"
   }
   outputDF=outputDF[order(outputDF$startpos),]
   outputDF$rank=NULL
-
-print(paste("Number of rows merged =",nrow(SUBCLONESout)-nrow(outputDF)))
-write.table(outputDF,paste0(TUMOURNAME,"_chrX_subclones.txt"),col.names = T,row.names = F,quote = F,sep="\t")
-
-# PLOT
-outputDF$diff=outputDF$endpos-outputDF$startpos
-PGAclonal=sum(outputDF[which(outputDF$clonal=="yes"),]$diff)/sum(outputDF[which(!is.na(outputDF$clonal)),]$diff)
-
-
-plot_BB=ggplot()+geom_hline(yintercept = 0:ceiling(max(outputDF$subclonalCN)),linetype="longdash",col="grey",size=0.2)+
-  geom_rect(data=outputDF,aes(xmin=startpos,xmax=endpos,ymin=subclonalCN-0.02,ymax=subclonalCN+0.02))+
-  geom_vline(xintercept = x_centromere,linetype="longdash",col="green")+
-  #geom_hline(yintercept = nonpar,linetype="dotted",col="blue")+
-  ylim(-0.2,ceiling(max(outputDF$subclonalCN))+0.2)+labs(x="ChrX coordinate (bp)",y="Average Ploidy")+
-  theme(plot.title = element_text(hjust = 0.5,size=12),panel.background = element_blank())+
-  ggtitle(paste0(TUMOURNAME," , PLOIDY: ",round(SAMPLEn,digits = 3)," , PURITY: ",round(SAMPLEpurity*100,digits = 0),
-                 "%, PGAclonal: ",round(PGAclonal*100,digits = 1),"%"))
-
-# ANDROGEN RECEPTOR LOCUS
-if (AR){
-  data.table::setDT(ar)
-  data.table::setkey(ar,"startpos","endpos")
-  data.table::setDT(outputDF)
-  data.table::setkey(outputDF,"startpos","endpos")
-  segAR=data.table::foverlaps(ar,outputDF,type="any",nomatch = 0)
-  segAR$subclonalCN=(segAR$nMaj1+segAR$nMin1)*segAR$frac1+(segAR$nMaj2+segAR$nMin2)*segAR$frac2
-  plot_BB=plot_BB+geom_rect(data=segAR,aes(xmin=startpos,xmax=endpos,ymin=subclonalCN-0.02,ymax=subclonalCN+0.02),fill="red")
-}
-
-pdf(paste0(TUMOURNAME,"_chrX_average_ploidy.pdf"))
-print(plot_BB)
-dev.off()
-
+  
+  print(paste("Number of rows merged =",nrow(SUBCLONESout)-nrow(outputDF)))
+  
+  BBnew=BB[which(is.na(match(BB$chr,c("X","chrX")))),1:17]
+  outputDF_for_merge=data.frame(chr=outputDF$chrom,startpos=outputDF$startpos,endpos=outputDF$endpos,BAF=NA,pval=NA,LogR=outputDF$LogR,ntot=outputDF$CN,nMaj1_A=outputDF$nMaj1,
+                                nMin1_A=outputDF$nMin1,frac1_A=outputDF$frac1,nMaj2_A=outputDF$nMaj2,nMin2_A=outputDF$nMin2,frac2_A=outputDF$frac2,
+                                SDfrac_A=NA, SDfrac_A_BS=NA, frac1_A_0.025=NA, frac1_A_0.975=NA,stringsAsFactors = F)
+  BBnew=rbind(BBnew,outputDF_for_merge)
+  write.table(BBnew,paste0(TUMOURNAME,"_subclones.txt"),col.names = T,row.names = F,quote = F,sep="\t")
+  write.table(outputDF,paste0(TUMOURNAME,"_chrX_subclones.txt"),col.names = T,row.names = F,quote = F,sep="\t")
+  
+  # PLOT
+  outputDF$diff=outputDF$endpos-outputDF$startpos
+  PGAclonal=sum(outputDF[which(outputDF$clonal=="yes"),]$diff)/sum(outputDF[which(!is.na(outputDF$clonal)),]$diff)
+  
+  
+  plot_BB=ggplot()+geom_hline(yintercept = 0:ceiling(max(outputDF$subclonalCN)),linetype="longdash",col="grey",size=0.2)+
+    geom_rect(data=outputDF,aes(xmin=startpos,xmax=endpos,ymin=subclonalCN-0.02,ymax=subclonalCN+0.02))+
+    geom_vline(xintercept = x_centromere,linetype="longdash",col="green")+
+    #geom_hline(yintercept = nonpar,linetype="dotted",col="blue")+
+    ylim(-0.2,ceiling(max(outputDF$subclonalCN))+0.2)+labs(x="ChrX coordinate (bp)",y="Average Ploidy")+
+    theme(plot.title = element_text(hjust = 0.5,size=12),panel.background = element_blank())+
+    ggtitle(paste0(TUMOURNAME," , PLOIDY: ",round(SAMPLEn,digits = 3)," , PURITY: ",round(SAMPLEpurity*100,digits = 0),
+                   "%, PGAclonal: ",round(PGAclonal*100,digits = 1),"%"))
+  
+  # ANDROGEN RECEPTOR LOCUS
+  if (AR){
+    data.table::setDT(ar)
+    data.table::setkey(ar,"startpos","endpos")
+    data.table::setDT(outputDF)
+    data.table::setkey(outputDF,"startpos","endpos")
+    segAR=data.table::foverlaps(ar,outputDF,type="any",nomatch = 0)
+    segAR$subclonalCN=(segAR$nMaj1+segAR$nMin1)*segAR$frac1+(segAR$nMaj2+segAR$nMin2)*segAR$frac2
+    plot_BB=plot_BB+geom_rect(data=segAR,aes(xmin=startpos,xmax=endpos,ymin=subclonalCN-0.02,ymax=subclonalCN+0.02),fill="red")
+  }
+  
+  pdf(paste0(TUMOURNAME,"_chrX_average_ploidy.pdf"))
+  print(plot_BB)
+  dev.off()
+  
 }
