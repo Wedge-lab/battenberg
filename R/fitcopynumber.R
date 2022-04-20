@@ -975,7 +975,7 @@ callChrXsubclones = function(TUMOURNAME,X_GAMMA=1000,X_KMIN=100,GENOMEBUILD,AR=T
   colnames(PCFinput)[3]=TUMOURNAME
   print(paste("Number of chrX nonPAR SNPs =",nrow(PCFinput)))
   
-  if (!is.null(SV) & !is.na(SV)) {
+  if (!is.null(SV)) {
     sv=read.table(SV, header=T, stringsAsFactors=F)
     sv=sv[which(!is.na(match(sv$chr,c("X","chrX")))),]
     breakpoints=c(min(PCFinput$Position),sv$pos,max(PCFinput$Position))
