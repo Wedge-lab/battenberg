@@ -956,6 +956,8 @@ make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_fil
 #' requires the following libraries: copynumber, data.table and ggplot2. It reads in three files generated
 #' by previous steps of Battenberg, namely TUMOURNAME_mutantLogR_gcCorrected.tab, TUMOURNAME_purity_ploidy.txt
 #' and TUMOURNAME_subclones.txt.
+#' This function will also update the Battenberg genome-wide profile plots (*average.png and *subclones.png) to include the chrX profile by also
+#' reading in the TUMOURNAME.BAFsegmented.txt and TUMOURNAME_rho_psi.txt files
 #' @param TUMOURNAME The tumour name used for Battenberg (i.e. the tumour BAM file name without the .bam extension)
 #' @param X_GAMMA The PCF gamma value for segmentation of 1000G SNP LogR values (Default 1000)
 #' @param X_KMIN The min number of SNPs to support a segment in PCF of LogR values (Default 100)
@@ -1286,5 +1288,29 @@ callChrXsubclones = function(TUMOURNAME,X_GAMMA=1000,X_KMIN=100,GENOMEBUILD,AR=T
   pdf(paste0(TUMOURNAME,"_chrX_average_ploidy.pdf"))
   print(plot_BB)
   dev.off()
+  
+  # Update the genomewide Battenberg plots
+  # goodness from rho_psi file (i.e. column named 'distance')
+  goodness=read.table(paste0(TUMOURNAME,"_rho_and_psi.txt"),header=T,stringsAsFactors = F,sep="\t")
+  goodness=goodness[which(goodness$is.best=="TRUE"),"distance"]
+  # rho and ploidy from purity_ploidy file
+  rho_psi=read.table(paste0(TUMOURNAME,"_purity_ploidy.txt"),header=T,stringsAsFactors = F,sep="\t")
+  rho=rho_psi$cellularity
+  ploidy=rho_psi$ploidy
+  # Need BAFsegment file
+  BAFvals=as.data.frame(Battenberg:::read_bafsegmented(paste0(TUMOURNAME,".BAFsegmented.txt")))
+  BAFvals=rbind(BAFvals[which(is.na(match(BAFvals$Chromosome,c("X","chrX")))),],
+                data.frame(Chromosome="X",Position=sort(sample(1:155e6,90000,replace=F)), # 155e6: approximate length of chrX
+                           BAF=sample(c(0,1),90000,replace=T),BAFphased=1,BAFseg=1)) # 90000 = typical no. of het SNPs expected based on chrX length (roughly around chr 7 and 8 average hetSNP counts) 
+  
+  Battenberg:::plot.gw.subclonal.cn(subclones=BBnew, 
+                       BAFvals=BAFvals, 
+                       rho=rho, 
+                       ploidy=ploidy, 
+                       goodness=goodness, 
+                       output.gw.figures.prefix=paste(TUMOURNAME,"_BattenbergProfile", sep=""), 
+                       chr.names=chr_names, 
+                       tumourname=TUMOURNAME)
+  
   
 }
