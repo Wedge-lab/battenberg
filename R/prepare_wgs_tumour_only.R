@@ -5,7 +5,7 @@
 #' @param tumourname The tumour name used for Battenberg (i.e. the cell line BAM file name without the '.bam' extension).
 #' @param g1000alleles.prefix Prefix to where 1000 Genomes allele files can be found.
 #' @param chrom_names A vector with allowed chromosome names.
-#' @param snv_rho Estimated purity or aberrant cell fraction of the tumour sample based on SNV VAF-based approach 
+#' @param snv_rho Estimated purity or aberrant cell fraction of the tumour sample based on SNV VAF-based approach with range of (0,1]
 #' @author Naser Ansari-Pour (WIMM, Oxford)
 #' @export
 
@@ -68,8 +68,8 @@ tumour_only_baf_logR = function(tumourname,g1000alleles.prefix,chrom_names,snv_r
   
   # output for tumour_only_generate_normal
   if (!is.na(snv_rho)){
-    if (snv_rho<0.95){
-    # get heterozygous filter for run_haplotyping_tumour_only
+    if (snv_rho<=0.95){
+    # get heterozygous filter for run_haplotyping_tumour_only (specifically for generate impute functions)
     heterozygousFilter <<- baf_threshold
     } else if (snv_rho>0.95 & snv_rho<=1){
       
@@ -98,6 +98,86 @@ tumour_only_baf_logR = function(tumourname,g1000alleles.prefix,chrom_names,snv_r
     }
   print("STEP 1 - BAF and LogR - completed")
 }
+
+#' Prepare data for impute in tumour-only mode for non-high purity tumours (rho <= 0.95)
+#'
+#' @param chrom The chromosome for which impute input should be generated.
+#' @param tumour.allele.counts.file Output from the allele counter on the matched tumour for this chromosome.
+#' @param output.file File where the impute input for this chromosome will be written.
+#' @param imputeinfofile Info file with impute reference information.
+#' @param is.male Boolean denoting whether this sample is male (TRUE), or female (FALSE).
+#' @param problemLociFile A file containing genomic locations that must be discarded (optional).
+#' @param useLociFile A file containing genomic locations that must be included (optional).
+#' @param heterozygousFilter The cutoff where a SNP will be considered as heterozygous - this is inherited from tumour_only_BAF_and_LogR (required).
+#' @author dw9, sd11, Naser Ansari-Pour (WIMM, Oxford)
+#' @export
+generate.impute.input.wgs.tumour.counts.only = function(chrom, tumour.allele.counts.file, output.file, imputeinfofile, is.male, problemLociFile=NA, useLociFile=NA, heterozygousFilter=NA) {
+  
+  # Read in the 1000 genomes reference file paths for the specified chrom
+  impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
+  chr_names = unique(impute.info$chrom)
+  chrom_name = chrom
+  
+  #print(paste("GenerateImputeInput is.male? ", is.male,sep=""))
+  #print(paste("GenerateImputeInput #impute files? ", nrow(impute.info),sep=""))
+  
+  # Read in the known SNP locations from the 1000 genomes reference files
+  known_SNPs = read.table(impute.info$impute_legend[1], sep=" ", header=T, stringsAsFactors=F)
+  if(nrow(impute.info)>1){
+    for(r in 2:nrow(impute.info)){
+      known_SNPs = rbind(known_SNPs, read.table(impute.info$impute_legend[r], sep=" ", header=T, stringsAsFactors=F))
+    }
+  }
+  
+  # filter out bad SNPs (streaks in BAF)
+  if((problemLociFile != "NA") & (!is.na(problemLociFile))) {
+    problemSNPs = read.table(problemLociFile, header=T, sep="\t", stringsAsFactors=F)
+    problemSNPs = problemSNPs$Pos[problemSNPs$Chr==chrom_name]
+    badIndices = match(known_SNPs$position, problemSNPs)
+    known_SNPs = known_SNPs[is.na(badIndices),]
+    rm(problemSNPs, badIndices)
+  }
+  
+  # filter 'good' SNPs (e.g. SNP6 positions)
+  if((useLociFile != "NA") & (!is.na(useLociFile))) {
+    goodSNPs = read.table(useLociFile, header=T, sep="\t", stringsAsFactors=F)
+    goodSNPs = goodSNPs$pos[goodSNPs$chr==chrom_name]
+    len = length(goodSNPs)
+    goodIndices = match(known_SNPs$position, goodSNPs)
+    known_SNPs = known_SNPs[!is.na(goodIndices),]
+    rm(goodSNPs, goodIndices)
+  }
+  
+  # Read in the allele counts and see which known SNPs are covered
+  snp_data = read.table(tumour.allele.counts.file, comment.char="#", sep="\t", header=F, stringsAsFactors=F)
+  indices = match(known_SNPs$position, snp_data[,2])
+  found_snp_data = snp_data[indices[!is.na(indices)],]
+  rm(snp_data)
+  
+  # Obtain BAF for this chromosome (note: this is quicker than reading in the whole genome BAF file generated in the earlier step)
+  nucleotides = c("A","C","G","T")
+  ref_indices = match(known_SNPs[!is.na(indices),3], nucleotides)+2 # this picks the ref allele - usually from the normal but from tumour in here
+  alt_indices = match(known_SNPs[!is.na(indices),4], nucleotides)+2 # this picks the alt allele - usually from the normal but from tumour in here
+  BAFs = as.numeric(found_snp_data[cbind(1:nrow(found_snp_data),alt_indices)])/(as.numeric(found_snp_data[cbind(1:nrow(found_snp_data),alt_indices)])+as.numeric(found_snp_data[cbind(1:nrow(found_snp_data),ref_indices)]))
+  BAFs[is.nan(BAFs)] = 0
+  rm(nucleotides, ref_indices, alt_indices, found_snp_data)
+  
+  # Set the minimum level to use for obtaining genotypes
+  minBaf = min(heterozygousFilter, 1.0-heterozygousFilter)
+  maxBaf = max(heterozygousFilter, 1.0-heterozygousFilter)
+  
+  # Obtain genotypes that impute2 is able to understand
+  genotypes = array(0,c(sum(!is.na(indices)),3))
+  genotypes[BAFs<=minBaf,1] = 1
+  genotypes[BAFs>minBaf & BAFs<maxBaf,2] = 1
+  genotypes[BAFs>=maxBaf,3] = 1
+  
+  # Create the output
+  snp.names = paste("snp",1:sum(!is.na(indices)), sep="")
+  out.data = cbind(snp.names, known_SNPs[!is.na(indices),1:4], genotypes)
+  write.table(out.data, file=output.file, row.names=F, col.names=F, quote=F)
+}
+
 
 #' Prepare WGS tumour-only data for haplotype construction
 #' 
