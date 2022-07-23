@@ -71,7 +71,7 @@ tumour_only_baf_logR = function(tumourname,g1000alleles.prefix,chrom_names,snv_r
     if (snv_rho<0.95){
     # get heterozygous filter for run_haplotyping_tumour_only
     heterozygousFilter <<- baf_threshold
-    } else {
+    } else if (snv_rho>0.95 & snv_rho<=1){
       
       # extract hetSNPs by taking into account alt>=2, minCount=10 and baf range depending on average depth of loci with coverage > 0
       # (i.e. regions with mapped reads and not whole-genome average of the sample which includes all coverage==0)
@@ -92,9 +92,111 @@ tumour_only_baf_logR = function(tumourname,g1000alleles.prefix,chrom_names,snv_r
         TUM_OHET <<- OHET
         TUM_AL <<- AL
         TUM_AC <<- AC
-        TUM_LogR <<- LogR 
+        TUM_LogR <<- LogR
+        heterozygousFilter <<- baf_threshold
       }
     }
   print("STEP 1 - BAF and LogR - completed")
 }
 
+#' Prepare WGS tumour-only data for haplotype construction
+#' 
+#' This function performs part of the Battenberg WGS pipeline: Counting alleles, generating BAF and logR, 
+#' reconstructing normal-pair allele counts for high-purity (rho > 0.95) tumours and performing GC content correction.
+#' 
+#' @param chrom_names A vector containing the names of chromosomes to be included
+#' @param tumourbam Full path to the tumour BAM file 
+#' @param tumourname Identifier to be used for tumour output files (i.e. the cell line BAM file name without the '.bam' extension).
+#' @param g1000lociprefix Prefix path to the 1000 Genomes loci reference files
+#' @param g1000allelesprefix Prefix path to the 1000 Genomes SNP allele reference files
+#' @param snv_rho Estimated purity or aberrant cell fraction of the tumour sample based on SNV VAF-based approach 
+#' @param gamma_ivd The PCF gamma value for segmentation of 1000G hetSNP IVD values (Default 1e5).
+#' @param kmin_ivd The min number of SNPs to support a segment in PCF of 1000G hetSNP IVD values (Default 50)
+#' @param centromere_noise_seg_size The maximum size of PCF segment to be removed as noise when it overlaps with the centromere due to the noisy nature of data (Default 1e6)
+#' @param centromere_dist The minimum distance from the centromere to ignore in analysis due to the noisy nature of data in the vicinity of centromeres (Default 5e5)
+#' @param min_het_dist The minimum distance for detecting higher resolution inter-hetSNP regions with potential LOH while accounting for inherent homozygote stretches (Default 1e5)
+#' @param gamma_logr The PCF gamma value for confirming LOH within each inter-hetSNP candidate segment (Default 100)
+#' @param length_adjacent The length of adjacent regions either side of a candidate inter-hetSNP LOH region to be plotted (Default 5e4)
+#' @param gccorrectprefix Prefix path to GC content reference data
+#' @param repliccorrectprefix Prefix path to replication timing reference data (supply NULL if no replication timing correction is to be applied)
+#' @param min_base_qual Minimum base quality required for a read to be counted
+#' @param min_map_qual Minimum mapping quality required for a read to be counted
+#' @param allelecounter_exe Path to the allele counter executable (can be found in $PATH)
+#' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
+#' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
+#' @author Naser Ansari-Pour (BDI, Oxford)
+#' @export
+prepare_wgs_tumour_only = function(chrom_names, chrom_coord, tumourbam, tumourname, g1000lociprefix, g1000allelesprefix, snv_rho, gamma_ivd=1e5, kmin_ivd=50, centromere_noise_seg_size=1e6, 
+                                 centromere_dist=5e5, min_het_dist=1e5, gamma_logr=100, length_adjacent=5e4, gccorrectprefix,repliccorrectprefix, min_base_qual, min_map_qual, 
+                                 allelecounter_exe, min_normal_depth, skip_allele_counting) {
+  
+  requireNamespace("foreach")
+  requireNamespace("doParallel")
+  requireNamespace("parallel")
+  
+  if (!skip_allele_counting) {
+    # Obtain allele counts for 1000 Genomes locations for the cell line
+    foreach::foreach(i=1:length(chrom_names)) %dopar% {
+      getAlleleCounts(bam.file=tumourbam,
+                      output.file=paste(tumourname,"_alleleFrequencies_chr", i, ".txt", sep=""),
+                      g1000.loci=paste(g1000lociprefix, i, ".txt", sep=""),
+                      min.base.qual=min_base_qual,
+                      min.map.qual=min_map_qual,
+                      allelecounter.exe=allelecounter_exe)
+    }
+  }
+  
+  # Standardise Chr notation (removes 'chr' string if present; essential for cell_line_baf_logR)
+  
+  standardiseChrNotation(tumourname=tumourname,
+                         normalname=NULL) 
+  
+  # Obtain BAF and LogR from the raw allele counts of the cell line
+  tumour_only_baf_logR(tumourname=tumourname,
+                     g1000alleles.prefix=g1000allelesprefix,
+                     chrom_names=chrom_names,
+                     snv_rho=snv_rho
+  )
+  
+  MIN_RHO <<- snv_rho-0.01
+  MAX_RHO <<- snv_rho+0.01
+  
+  if (snv_rho<=0.95){
+    print("STEP 2 completed - Min and Max rho updated")
+  } else if (snv_rho>0.95 & snv_rho<=1){
+  # Reconstruct normal-pair allele count files for high-purity tumours
+  
+  foreach::foreach(i=1:length(chrom_names),.export=c("tumour_only_reconstruct_normal","TUM_OHET","TUM_AL","TUM_AC","TUM_LogR"),.packages=c("copynumber","ggplot2","grid")) %dopar% {
+    
+    tumour_only_reconstruct_normal(TUMOURNAME=tumourname,
+                                 NORMALNAME=paste0(tumourname,"_normal"),
+                                 chrom_coord=chrom_coord,
+                                 chrom=i,
+                                 TUM_OHET=TUM_OHET,
+                                 TUM_AL=TUM_AL,
+                                 TUM_AC=TUM_AC,
+                                 TUM_LogR=TUM_LogR,
+                                 GAMMA_IVD=gamma_ivd,
+                                 KMIN_IVD=kmin_ivd,
+                                 CENTROMERE_NOISE_SEG_SIZE=centromere_noise_seg_size,
+                                 CENTROMERE_DIST=centromere_dist,
+                                 MIN_HET_DIST=min_het_dist,
+                                 GAMMA_LOGR=gamma_logr,
+                                 LENGTH_ADJACENT=length_adjacent)
+  }
+  
+  if (length(list.files(pattern="normal_alleleFrequencies"))==length(chrom_names)){
+    print("STEP 2 - Normal allelecounts reconstruction - completed")
+  } else { 
+    stop("Missing 'normal' allelecount files - all chromosomes NOT reconstructed")
+  }
+  }
+  # Perform GC correction
+  gc.correct.wgs(Tumour_LogR_file=paste(tumourname,"_mutantLogR.tab", sep=""),
+                 outfile=paste(tumourname,"_mutantLogR_gcCorrected.tab", sep=""),
+                 correlations_outfile=paste(tumourname, "_GCwindowCorrelations.txt", sep=""),
+                 gc_content_file_prefix=gccorrectprefix,
+                 replic_timing_file_prefix=repliccorrectprefix,
+                 chrom_names=chrom_names)
+  print("GC and replication correction completed")
+}
