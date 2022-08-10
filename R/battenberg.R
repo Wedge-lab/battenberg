@@ -53,7 +53,7 @@
 #' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
 #' @param heterozygousFilter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
 #' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
-#' @param GENOMEBUILD Genome build upon which the 1000G SNP coordinates were obtained (Default: hg19; options: "hg19" or "hg38")  
+#' @param genomebuild Genome build upon which the 1000G SNP coordinates were obtained (Default: hg19; options: "hg19" or "hg38")  
 #' @param externalhaplotypefile Vcf containing externally obtained haplotype blocks (Default: NA)
 #' @param write_battenberg_phasing Write the Battenberg phasing results as vcf to disk, e.g. for multisample cases (Default: TRUE)
 #' @param multisample_maxlag Maximal number of upstream SNPs used in the multisample haplotyping to inform the haplotype at another SNP (Default: 100)
@@ -77,7 +77,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
                       write_battenberg_phasing = T, multisample_relative_weight_balanced = 0.25, multisample_maxlag = 100, segmentation_gamma_multisample = 5,
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize",
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
-                      prior_breakpoints_file=NULL, GENOMEBUILD="hg19", chrom_coord_file=NULL) {
+                      prior_breakpoints_file=NULL, genomebuild="hg19", chrom_coord_file=NULL) {
   
   requireNamespace("foreach")
   requireNamespace("doParallel")
@@ -464,7 +464,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
                                    prior_breakpoints_file=prior_breakpoints_file,
                                    gamma=segmentation_gamma_multisample,
                                    calc_seg_baf_option=calc_seg_baf_option,
-                                   GENOMEBUILD=GENOMEBUILD)
+                                   GENOMEBUILD=genomebuild)
     
   }
   
@@ -512,7 +512,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
                   baf.segmented.file=paste(samplename[sampleidx], ".BAFsegmented.txt", sep=""),
                   logr.file=logr_file,
                   rho.psi.file=paste(samplename[sampleidx], "_rho_and_psi.txt",sep=""),
-                  output.file=paste(samplename[sampleidx],"_subclones.txt", sep=""),
+                  output.file=paste(samplename[sampleidx],"_copynumber.txt", sep=""),
                   output.figures.prefix=paste(samplename[sampleidx],"_subclones_chr", sep=""),
                   output.gw.figures.prefix=paste(samplename[sampleidx],"_BattenbergProfile", sep=""),
                   masking_output_file=paste(samplename[sampleidx], "_segment_masking_details.txt", sep=""),
@@ -528,11 +528,12 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
     # Only do this when X chromosome is included
     if (ismale & "X" %in% chrom_names){
-      callChrXsubclones(TUMOURNAME=samplename[sampleidx],
-                        X_GAMMA=1000,
-                        X_KMIN=100,
-                        GENOMEBUILD=GENOMEBUILD,
-                        AR=TRUE)
+      callChrXsubclones(tumourname=samplename[sampleidx],
+                        X_gamma=1000,
+                        X_kmin=100,
+                        genomebuild=genomebuild,
+                        AR=TRUE,
+                        prior_breakpoints_file=prior_breakpoints_file)
     }
     
     # Make some post-hoc plots
