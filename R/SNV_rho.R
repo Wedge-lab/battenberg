@@ -104,20 +104,106 @@ getSNValleleCounts = function(bam.file, output.file, loci, min.base.qual=20, min
   system(cmd, wait=T)
 }
 
+#' Run ANNOVAR on somatic SNV loci to allow identification of germline variants
+#'
+#' The function assumes you have the latest version of ANNOVAR (Version 2019-10-24)
+#' @param annovar_install_dir The full path to where table_annovar.pl can be found (if module load is used for annovar, use NULL).
+#' @param humandb_dir
+#' @param input.vcf
+#' @param output.filename
+#' @param genomebuild
+#' @param avsnp_version
+#' @param exac_version
+#' @param gnomad_version
+#' @param clinvar_version
+#' @author Naser Ansari-Pour (WIMM, Oxford)
+#' @export
+
+runANNOVAR = function(annovar_install_dir,humandb_dir,input.vcf,output.filename,genomebuild,avsnp_version,exac_version,gnomad_version,clinvar_version) {
+  
+  Operations=c(avsnp_version,exac_version,gnomad_version,clinvar_version)
+  Noperation=length(Operations[!is.na(Operations)])
+  
+  cmd = paste(paste0(annovar_install_dir,"table_annovar.pl"),
+              input.vcf,
+              humandb_dir,
+              "-buildver",
+              genomebuild,
+              "-out", output.filename,
+              "-remove",
+              "-protocol",
+              paste("refGene",paste(Operations[which(!is.na(Operations))],collapse = ","),sep = ","),
+              "-operation",
+              paste("g",paste(rep("f",Noperation),collapse = ","),sep = ","),
+              "-nastring .",
+              "-vcfinput")
+
+  print(cmd)
+  
+  system(cmd, wait=T)
+  
+  avinput_nrow = as.integer(system(paste0("wc -l ",input.vcf,".avinput | awk '{print $1}'"),intern = T))
+  multianno_nrow = as.integer(system(paste0("wc -l ",input.vcf,".",genomebuild,"_multianno.txt | awk '{print $1}'"),intern = T))
+  
+  if ((avinput_nrow+1)==multianno_nrow){
+    print("Successful annotation by ANNOVAR")
+    VARtype <<-"vcf"
+  } else {
+    print("VCF file format error - restarting annotation from generated avinput")
+    
+    # clean up variants in avinput based on FILTER=="PASS" in the VCF file
+    VCF=read.table(input.vcf,sep="\t",stringsAsFactors = F)
+    avinput_file=read.table(paste0(input.vcf,".avinput"),sep="\t",stringsAsFactors = F)
+    avinput_file=avinput_file[,1:5]
+    if (nrow(avinput_file)==nrow(VCF)){
+      avinput_pass=avinput_file[which(VCF$V7=="PASS"),]
+      write.table(avinput_pass,paste0(input.vcf,".avinput"),col.names = F,row.names = F,quote = F,sep="\t")
+    } else { stop("Clean-up of variants in avinput file failed - number of rows in avinput does not match variant count in VCF")}
+    
+    cmd_avinput = paste(paste0(annovar_install_dir,"table_annovar.pl"),
+                paste0(input.vcf,".avinput"),
+                humandb_dir,
+                "-buildver",
+                genomebuild,
+                "-out", output.filename,
+                "-remove",
+                "-protocol",
+                paste("refGene",paste(Operations[which(!is.na(Operations))],collapse = ","),sep = ","),
+                "-operation",
+                paste("g",paste(rep("f",Noperation),collapse = ","),sep = ","),
+                "-nastring .")
+    
+    print(cmd_avinput)
+    
+    system(cmd_avinput, wait=T)
+    
+    multianno_nrow = as.integer(system(paste0("wc -l ",input.vcf,".",genomebuild,"_multianno.txt | awk '{print $1}'"),intern = T))
+    
+    if ((avinput_nrow+1)==multianno_nrow){
+      print("Successful annotation by ANNOVAR from avinput file")
+      VARtype <<- "avinput"
+    } else {
+      stop("Unknown VCF file format error - please regenerate VCF file")
+    }
+  }
+}
+
+
 #' Obtain an independent purity (rho) estimate based on the VAF distribution of somatic SNVs
 #'
 #' @param tumourbam The BAM file of the sample
 #' @param To be filled (NAP)
-#' @param 
-#' @param 
-#' @param 
 #' @param allelecounter.exe The full path to where the alleleCounter executable can be found (optional, default points to $PATH).
 #' @author Naser Ansari-Pour (WIMM, Oxford)
+#' @export
 
-getSNVrho=function(tumourname,tumourbam,chrom_coord,min_count=10,kmin=50,gamma=150,
-                     baf_tolerance=0.02,chrom_names,VARtype,VARprefix,VARsuffix,maxAF,
-                     gnomAD=T,min_base_qual,min_map_qual,allelecounter.exe,min_snv_depth=10,peak_threshold=0.02){
+getSNVrho=function(tumourname,tumourbam,skip_balanced_region_finding=FALSE,chrom_coord,g1000alleles.prefix,min_count=10,kmin=50,gamma=150,
+                     baf_tolerance=0.02,chrom_names=1:22,skip_run_annovar=FALSE,VARtype=NULL,VARprefix=NULL,VARsuffix=NULL,genomebuild,VCFprefix,VCFsuffix,annovar_install_dir,
+                     humandb_dir,maxAF,avsnp_version,exac_version,gnomad_version,clinvar_version,
+                     min_base_qual,min_map_qual,allelecounter.exe,min_snv_depth,peak_threshold=0.02){
 
+  if (!skip_balanced_region_finding){
+colClasses=c(chr="numeric",start="numeric",cen.left.base="numeric",cen.right.base="numeric",end="numeric")
 chr_loc=read.table(chrom_coord,colClasses = colClasses,header=T,stringsAsFactors = F) # chrom_coord = full path to chromosome coordinates 
 chr_loc$length=(chr_loc$cen.left.base-chr_loc$start)+(chr_loc$end-chr_loc$cen.right.base)
 
@@ -143,44 +229,60 @@ for (chr in chrom_names){
   hetmac=mac[which(mac$baf>0.1 & mac$baf<0.9),]
   pcf_input=data.frame(chr=chr,hetmac[,c("position","baf")])
   pcf_output=copynumber::pcf(pcf_input,kmin = kmin,gamma=gamma)
-  pcf_balanced=pcf_output[which(pcf_output$mean>0.5-baf_tolerance & pcf_output$mean<0.5+baf_tolerance),]
+  pcf_balanced=pcf_output[which(pcf_output$mean>(0.5-baf_tolerance) & pcf_output$mean<(0.5+baf_tolerance)),]
   balanced_regions=rbind(balanced_regions,pcf_balanced)
-  balanced_regions$length=balanced_regions$end.pos-balanced_regions$start.pos
 }
+balanced_regions$length=balanced_regions$end.pos-balanced_regions$start.pos
 print(paste("Proportion of genome in balanced state :",sum(balanced_regions$length)/sum(chr_loc$length)))
 write.table(balanced_regions,paste0(tumourname,"_balanced_regions_for_snv_rho.txt"),col.names = T,row.names = F,quote = F,sep="\t")
+}
 
+  if (!skip_run_annovar){
+runANNOVAR(annovar_install_dir=annovar_install_dir,
+           humandb_dir=humandb_dir,
+           input.vcf=paste0(VCFprefix,tumourname,VCFsuffix), 
+           output.filename=paste0(VCFprefix,tumourname,VCFsuffix), 
+           genomebuild=genomebuild,
+           avsnp_version=avsnp_version,
+           exac_version=exac_version,
+           gnomad_version=gnomad_version,
+           clinvar_version=clinvar_version)
+}
 # get variants from the variant file (VCF or ANNOVAR multianno.txt file)
-if (VARtype=="ANNOVAR"){
-  VAR=data.frame(data.table::fread(paste0(VARprefix,tumourname,VARsuffix),stringsAsFactors=F)) # variant calls
-  if (length(which(grepl("Otherinfo",names(VAR))))>0){
+
+  if (VARtype=="vcf"){
+  VAR=data.frame(data.table::fread(paste0(VCFprefix,tumourname,VCFsuffix,".",genomebuild,"_multianno.txt"),stringsAsFactors=F)) # variant calls
   VARpass=VAR[VAR$Otherinfo10=="PASS",]
+  } else if (VARtype=="avinput"){
+    VARpass=data.frame(data.table::fread(paste0(VCFprefix,tumourname,VCFsuffix,".",genomebuild,"_multianno.txt"),stringsAsFactors=F)) # variant calls # already cleaned up in runANNOVAR
+  } else {
+    VARpass=read.table(paste0(VARprefix,tumourname,VARsuffix),stringsAsFactors = F)
   }
-  if (gnomAD){
+  if (!is.null(VARtype)){
+  # remove germline variants with maxAF cutoff
   VARpass$AF[VARpass$AF=="."]=0
   VARpass$AF=as.numeric(VARpass$AF)
-  VARpass=VARpass[which(VARpass$AF<maxAF),]
+  if (maxAF>0){
+    VARpass=VARpass[which(VARpass$AF<maxAF),]
+  } else if (maxAF==0){
+    VARpass=VARpass[which(VARpass$AF==maxAF),]
   }
   # remove indels from variants
   VARpass$var=paste0(VARpass$Ref,VARpass$Alt)
   VARpass=VARpass[which(nchar(VARpass$var)==2 & !grepl("-",VARpass$var)),]
-} else if (VARtype=="VCF"){
-  VAR=data.frame(data.table::fread(paste0(VARprefix,tumourname,VARsuffix),sep="\t", header=TRUE, skip="#CHROM")) # variant calls
-  VARpass=VAR[VAR$FILTER=="PASS",]
-  VARpass$var=paste0(VARpass$REF,VARpass$ALT)
-  VARpass=VARpass[which(nchar(VARpass$var)==2 & !grepl("-",VARpass$var)),]
-} else {stop("Unknown variant file type")}
-
-VARpass=VARpass[,c(1,2,4,5)]
-names(VARpass)=c("chr","pos","ref","alt")
-notation=VARpass$chr[1]
-print(paste("Chr notation example :",notation))
-if (nchar(notation)>3){
-VARpass$chr=gsub("chr","",VARpass$chr)
-}
-VARpass=VARpass[which(!is.na(match(VARpass$chr,chrom_names))),]
-VARpass$chr=as.numeric(VARpass$chr)
-VARpass=VARpass[order(VARpass$chr,VARpass$pos),]
+  
+  # prepare input for allelecounting
+  VARpass=VARpass[,c(1,2,4,5)]
+  names(VARpass)=c("chr","pos","ref","alt")
+  notation=VARpass$chr[1]
+  print(paste("Chr notation example :",notation))
+  if (nchar(notation)>3){
+    VARpass$chr=gsub("chr","",VARpass$chr)
+  }
+  VARpass=VARpass[which(!is.na(match(VARpass$chr,chrom_names))),]
+  VARpass$chr=as.numeric(VARpass$chr)
+  VARpass=VARpass[order(VARpass$chr,VARpass$pos),]
+  }
 
 # overlap with balanced regions
 balanced_regions=read.table(paste0(tumourname,"_balanced_regions_for_snv_rho.txt"),header=T,stringsAsFactors = F)
@@ -242,4 +344,3 @@ ggsave(paste0(tumourname,"_VAF_peaks.pdf"),device="pdf")
 write.table(data.frame(vaf_peaks=round(peak_vaf,digits = 2),stringsAsFactors = F),paste0(tumourname,"_VAF_peaks.txt"),col.names = T,row.names = F,quote = F)
 write.table(data.frame(snv_rho=round(2*max(peak_vaf),digits = 2),stringsAsFactors = F),paste0(tumourname,"_snv_rho.txt"),col.names = T,row.names = F,quote = F)
 }
-
