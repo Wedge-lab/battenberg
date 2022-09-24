@@ -283,7 +283,6 @@ runANNOVAR(annovar_install_dir=annovar_install_dir,
   VARpass=VARpass[which(!is.na(match(VARpass$chr,chrom_names))),]
   VARpass$chr=as.numeric(VARpass$chr)
   VARpass=VARpass[order(VARpass$chr,VARpass$pos),]
-  }
 
 # overlap with balanced regions
 balanced_regions=read.table(paste0(tumourname,"_balanced_regions_for_snv_rho.txt"),header=T,stringsAsFactors = F)
