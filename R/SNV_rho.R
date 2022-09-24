@@ -250,15 +250,13 @@ runANNOVAR(annovar_install_dir=annovar_install_dir,
 }
 # get variants from the variant file (VCF or ANNOVAR multianno.txt file)
 
+  if (!is.null(VARtype)){
   if (VARtype=="vcf"){
   VAR=data.frame(data.table::fread(paste0(VCFprefix,tumourname,VCFsuffix,".",genomebuild,"_multianno.txt"),stringsAsFactors=F)) # variant calls
   VARpass=VAR[VAR$Otherinfo10=="PASS",]
   } else if (VARtype=="avinput"){
     VARpass=data.frame(data.table::fread(paste0(VCFprefix,tumourname,VCFsuffix,".",genomebuild,"_multianno.txt"),stringsAsFactors=F)) # variant calls # already cleaned up in runANNOVAR
-  } else {
-    VARpass=read.table(paste0(VARprefix,tumourname,VARsuffix),stringsAsFactors = F)
   }
-  if (!is.null(VARtype)){
   # remove germline variants with maxAF cutoff
   VARpass$AF[VARpass$AF=="."]=0
   VARpass$AF=as.numeric(VARpass$AF)
@@ -266,6 +264,9 @@ runANNOVAR(annovar_install_dir=annovar_install_dir,
     VARpass=VARpass[which(VARpass$AF<maxAF),]
   } else if (maxAF==0){
     VARpass=VARpass[which(VARpass$AF==maxAF),]
+  }
+  } else {
+    VARpass=read.table(paste0(VARprefix,tumourname,VARsuffix),stringsAsFactors = F)
   }
   # remove indels from variants
   VARpass$var=paste0(VARpass$Ref,VARpass$Alt)
