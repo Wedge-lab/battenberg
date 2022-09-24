@@ -198,8 +198,8 @@ runANNOVAR = function(annovar_install_dir,humandb_dir,input.vcf,output.filename,
 #' @export
 
 getSNVrho=function(tumourname,tumourbam,skip_balanced_region_finding=FALSE,chrom_coord,g1000alleles.prefix,min_count=10,kmin=50,gamma=150,
-                     baf_tolerance=0.02,chrom_names=1:22,skip_run_annovar=FALSE,VARtype=NULL,VARprefix=NULL,VARsuffix=NULL,genomebuild,VCFprefix,VCFsuffix,annovar_install_dir,
-                     humandb_dir,maxAF,avsnp_version,exac_version,gnomad_version,clinvar_version,
+                     baf_tolerance=0.02,chrom_names=1:22,skip_run_annovar=FALSE,genomebuild,VCFprefix,VCFsuffix,annovar_install_dir,
+                     humandb_dir,maxAF,avsnp_version,exac_version,gnomad_version,clinvar_version,VARprefix=NULL,VARsuffix=NULL,
                      min_base_qual,min_map_qual,allelecounter.exe,min_snv_depth,peak_threshold=0.02){
 
   if (!skip_balanced_region_finding){
@@ -247,10 +247,9 @@ runANNOVAR(annovar_install_dir=annovar_install_dir,
            exac_version=exac_version,
            gnomad_version=gnomad_version,
            clinvar_version=clinvar_version)
-}
+    
 # get variants from the variant file (VCF or ANNOVAR multianno.txt file)
-
-  if (!is.null(VARtype)){
+  
   if (VARtype=="vcf"){
   VAR=data.frame(data.table::fread(paste0(VCFprefix,tumourname,VCFsuffix,".",genomebuild,"_multianno.txt"),stringsAsFactors=F)) # variant calls
   VARpass=VAR[VAR$Otherinfo10=="PASS",]
@@ -266,7 +265,7 @@ runANNOVAR(annovar_install_dir=annovar_install_dir,
     VARpass=VARpass[which(VARpass$AF==maxAF),]
   }
   } else {
-    VARpass=read.table(paste0(VARprefix,tumourname,VARsuffix),stringsAsFactors = F)
+    VARpass=read.table(paste0(VARprefix,tumourname,VARsuffix),stringsAsFactors = F) # read in existing somatic variant file with five columns: chr, start, end, ref, alt
   }
   # remove indels from variants
   VARpass$var=paste0(VARpass$Ref,VARpass$Alt)
