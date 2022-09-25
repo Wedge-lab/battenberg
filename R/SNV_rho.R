@@ -108,14 +108,14 @@ getSNValleleCounts = function(bam.file, output.file, loci, min.base.qual=20, min
 #'
 #' The function assumes you have the latest version of ANNOVAR (Version 2019-10-24)
 #' @param annovar_install_dir The full path to where table_annovar.pl can be found (if module load is used for annovar, use NULL).
-#' @param humandb_dir
-#' @param input.vcf
-#' @param output.filename
-#' @param genomebuild
-#' @param avsnp_version
-#' @param exac_version
-#' @param gnomad_version
-#' @param clinvar_version
+#' @param humandb_dir The full path to where annovar human reference datasets can be found (i.e. gnomAD and other reference files)
+#' @param input.vcf The name of the VCF file to be annotated (expected to be in working directory)
+#' @param output.filename The name of the file to be used for the output (Default input.vcf)
+#' @param genomebuild Genome build of the BAM file upon which the VCF file was obtained (options: "hg19" or "hg38") 
+#' @param avsnp_version The version of dbSNP dataset of known SNPs (Default NULL)
+#' @param exac_version The version of ExAC dataset for population frequencies of variants (Default NULL)
+#' @param gnomad_version The version of gnomAD dataset for population frequencies of variants (Default gnomad211_genome)
+#' @param clinvar_version The version of clinvar dataset for known pathogenic variants with clinical significance (Default NULL)
 #' @author Naser Ansari-Pour (WIMM, Oxford)
 #' @export
 
@@ -191,16 +191,41 @@ runANNOVAR = function(annovar_install_dir,humandb_dir,input.vcf,output.filename,
 
 #' Obtain an independent purity (rho) estimate based on the VAF distribution of somatic SNVs
 #'
-#' @param tumourbam The BAM file of the sample
-#' @param To be filled (NAP)
-#' @param allelecounter.exe The full path to where the alleleCounter executable can be found (optional, default points to $PATH).
+#' @param tumourname Identifier to be used for tumour output files (i.e. the tumour BAM file name without the '.bam' extension).
+#' @param tumourbam Full path to the tumour BAM file
+#' @param skip_balanced_region_finding Flag, set to TRUE if a prior balanced region bed file is available (Default FALSE)
+#' @param chrom_coord Full path to the file with chromosome coordinates including start, end and left/right centromere positions
+#' @param g1000alleles.prefix Prefix path to the 1000 Genomes SNP allele reference files
+#' @param min_count Integer, minimum depth required for a SNP to be included in identifying hetSNPs (required, Default 10)
+#' @param kmin The min number of SNPs to support a segment in PCF of 1000G hetSNP BAF values (Default 50)
+#' @param gamma The PCF gamma value for segmentation of 1000G hetSNP BAF values (Default 150).
+#' @param baf_tolerance The maximum deviation allowed for segmented BAF from 0.5 which is the expected mean for balanced regions (Default 0.02)
+#' @param chrom_names A vector containing the names of chromosomes to be included (Default 1:22 or chr1,...,chr22)
+#' @param skip_run_annovar Flag, set to TRUE if a prior somatic SNV file is already available (Default FALSE, a tumour-only VCF file is required in working directory)
+#' @param genomebuild Genome build of the BAM file upon which the VCF file was obtained (options: "hg19" or "hg38") 
+#' @param VCFprefix The character string that may have been assigned to the VCF file preceding the tumourname (Default=NULL)
+#' @param VCFsuffix The character string that may have been assigned to the VCF file after the tumourname (Default=".vcf")
+#' @param annovar_install_dir The full path to where table_annovar.pl can be found (if module load is used on the HPC cluster for annovar, use NULL).
+#' @param humandb_dir The full path to where annovar human reference datasets can be found (i.e. gnomAD and other reference files)
+#' @param maxAF The maximum gnomAD population allele frequency (AF) allowed for selecting somatic SNVs and removing SNPs (a value of 0 will remove all variants observed in gnomAD)  
+#' @param avsnp_version The version of dbSNP dataset of known SNPs (Default NULL)
+#' @param exac_version The version of ExAC dataset for population frequencies of variants (Default NULL)
+#' @param gnomad_version The version of gnomAD dataset for population frequencies of variants (Default gnomad211_genome)
+#' @param clinvar_version The version of clinvar dataset for known pathogenic variants with clinical significance (Default NULL)
+#' @param VARprefix The character string that may have been assigned to the alleleCounter output file preceding the samplename (Default=NULL)
+#' @param VARsuffix The character string that may have been assigned to the alleleCounter output file preceding the samplename (Default=NULL)
+#' @param min_base_qual Minimum base quality required for a read to be counted when allele counting (Default: 20)
+#' @param min_map_qual Minimum mapping quality required for a read to be counted when allele counting (Default: 35)
+#' @param allelecounter_exe The full path to where the alleleCounter executable can be found (optional, default points to $PATH).
+#' @param min_snv_depth Integer, minimum depth required for an SNV to be included in calculating rho (required, Default 10)
+#' @param peak_threshold The minimum density required for a peak to be retained in the SNV VAF density distribution (Default 0.02)
 #' @author Naser Ansari-Pour (WIMM, Oxford)
 #' @export
 
 getSNVrho=function(tumourname,tumourbam,skip_balanced_region_finding=FALSE,chrom_coord,g1000alleles.prefix,min_count=10,kmin=50,gamma=150,
                      baf_tolerance=0.02,chrom_names=1:22,skip_run_annovar=FALSE,genomebuild,VCFprefix,VCFsuffix,annovar_install_dir,
                      humandb_dir,maxAF,avsnp_version,exac_version,gnomad_version,clinvar_version,VARprefix=NULL,VARsuffix=NULL,
-                     min_base_qual,min_map_qual,allelecounter.exe,min_snv_depth,peak_threshold=0.02){
+                     min_base_qual,min_map_qual,allelecounter_exe,min_snv_depth,peak_threshold=0.02){
 
   if (!skip_balanced_region_finding){
 colClasses=c(chr="numeric",start="numeric",cen.left.base="numeric",cen.right.base="numeric",end="numeric")
