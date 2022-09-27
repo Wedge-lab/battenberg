@@ -6,24 +6,56 @@
 #' @param is.male Boolean describing whether the sample is male (TRUE) or female (FALSE)
 #' @param imputeinfofile Path to the imputeinfofile on disk.
 #' @param impute.exe Pointer to where the impute2 executable can be found (optional).
+#' @param targeted.file Path to the targeted region file containing c("Chr", "Start", "End") (optional).
+#' @param targeted.impute Boolean whether to run Impute using standard intervals (FALSE) or intervals around target regions (TRUE).
 #' @param region.size An integer describing the region size to be used by impute (optional).
 #' @param chrom The name of a chromosome on which this function should run (names are used, supply X as 'X') (optional).
 #' @param seed The seed to be set
 #' @author dw9
+#' @comment New functionality for targeted regions, added by nataliagarciamartin.
 #' @export
-run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, impute.exe="impute2", region.size=5000000, chrom=NA, seed=as.integer(Sys.time())) {
-  
+
+library(GenomicRanges)
+library(IRanges)
+
+run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, impute.exe="impute2", targeted.file, targeted.impute, region.size=5000000, overlap=10000, chrom=NA, seed=as.integer(Sys.time())) {
   # Read in the impute file information
   impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
   
-  # Run impute for each region of the size specified above
+  # Standard version of Impute: equally sized segments:
+  
   for(r in 1:nrow(impute.info)){
+  
+  if (is.null(targeted.file)||targeted.impute==FALSE) {
+
     boundaries = seq(as.numeric(impute.info[r,]$start),as.numeric(impute.info[r,]$end),region.size)
     if(boundaries[length(boundaries)] != impute.info[r,]$end){
       boundaries = c(boundaries,impute.info[r,]$end)
+  }} else {
+    
+    chr_start = as.numeric(impute.info[r,]$start)
+    chr_end = as.numeric(impute.info[r,]$end)
+    
+    # Read panel information to get targeted regions
+    
+    targeted_regions = as.data.frame(read.table(targeted.file, header=F, stringsAsFactors=F))
+    names(targeted_regions) = c("Chr", "Start", "End", "Name")
+    targeted_regions = targeted_regions[targeted_regions$Chr == chrom,]
+    
+    # Get midpoint of gaps
+    gr_targets = GenomicRanges::GRanges(targeted_regions$Chr, IRanges::IRanges(targeted_regions$Start, targeted_regions$End))
+    gap_list = GenomicRanges::gaps(gr_targets)
+    
+    # Find boundaries given by [chr start, midpoints of gaps, chr end]
+    boundaries = c(chr_start)
+    for (region in 1:length(gap_list)){ # no overlap for now
+      boundaries = c(boundaries, GenomicRanges::start(gap_list[region]) + ((GenomicRanges::end(gap_list[region])-GenomicRanges::start(gap_list[region]))/2))
+    }
+    boundaries = c(boundaries, chr_end)
+    write.table(boundaries, file=paste0(outputfile.prefix, 'boundaries'), row.names=F, col.names=F, quote=F, sep=" ")
     }
 
-    # Take the start of the region+1 here to make sure there are no overlapping regions, wich causes a 
+    # Take the start of the region+1 here to make sure there are no overlapping regions, wich causes a
     # problem with SNPs on exactly the boundary. It does mean the first base on the first chromosome
     # cannot be phased
     for(b in 1:(length(boundaries)-1)){
@@ -34,15 +66,17 @@ run.impute = function(inputfile, outputfile.prefix, is.male, imputeinfofile, imp
                   " -g ", inputfile,
                   " -int ", boundaries[b]+1, " ", boundaries[b+1],
                   " -Ne 20000", # Authors of impute2 mention that this parameter works best on all population types, thus hardcoded.
-                  " -o ", outputfile.prefix, "_", boundaries[b]/1000, "K_", boundaries[b+1]/1000, "K.txt", 
-                  " -phase", 
-                  " -seed ",
+                  " -o ", outputfile.prefix, "_", boundaries[b]/1000, "K_", boundaries[b+1]/1000, "K.txt",
+                  " -phase",
+                  " -seed ", 
+                  " -allow_large_regions",
                   " -os 2", sep="") # lowers computational cost by not imputing reference only SNPs
       system(cmd, wait=T)
     }
   }
 }
-
+  
+ 
 #' Read in the imputeinfofile.
 #'
 #' Reads in a file with the following columns: 
@@ -106,19 +140,46 @@ get.chrom.names = function(imputeinfofile, is.male, chrom=NA) {
 #' @param chrom The name of a chromosome on which this function should run (names are used, supply X as 'X').
 #' @author dw9
 #' @export
-combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputeinfofile, region.size=5000000, chrom=NA) {
+combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputeinfofile, targeted.file, targeted.impute, region.size=5000000, chrom=NA) {
   # Read in the impute file information
   impute.info = parse.imputeinfofile(imputeinfofile, is.male, chrom=chrom)
   
   # Assemble the start and end points of all regions
   all.boundaries = array(0,c(0,2))
-  for(r in 1:nrow(impute.info)){
-    boundaries = seq(as.numeric(impute.info[r,]$start),as.numeric(impute.info[r,]$end),region.size)
-    if(boundaries[length(boundaries)] != impute.info[r,]$end){
-      boundaries = c(boundaries,impute.info[r,]$end)
+  
+  if (is.null(targeted.file)||targeted.impute==FALSE) {
+    
+    for(r in 1:nrow(impute.info)){
+      boundaries = seq(as.numeric(impute.info[r,]$start),as.numeric(impute.info[r,]$end),region.size)
+      if(boundaries[length(boundaries)] != impute.info[r,]$end){
+        boundaries = c(boundaries,impute.info[r,]$end)
+      }
+      all.boundaries = rbind(all.boundaries,cbind(boundaries[-(length(boundaries))],boundaries[-1]))
+  }} else {
+    
+    for(r in 1:nrow(impute.info)){
+      chr_start = as.numeric(impute.info[r,]$start)
+      chr_end = as.numeric(impute.info[r,]$end)
+    
+      # Read panel information to get targeted regions
+      targeted_regions = as.data.frame(read.table(targeted.file, header=F, stringsAsFactors=F))
+      names(targeted_regions) = c("Chr", "Start", "End", "Name")
+      targeted_regions = targeted_regions[targeted_regions$Chr == chrom,]
+    
+      # Get midpoint of gaps
+      gr_targets = GenomicRanges::GRanges(targeted_regions$Chr, IRanges::IRanges(targeted_regions$Start, targeted_regions$End))
+      gap_list = GenomicRanges::gaps(gr_targets)
+    
+      # Find boundaries given by [chr start, midpoints of gaps, chr end]
+      boundaries = c(chr_start)
+      for (region in 1:length(gap_list)){ # no overlap for now
+        boundaries = c(boundaries, GenomicRanges::start(gap_list[region]) + ((GenomicRanges::end(gap_list[region])-GenomicRanges::start(gap_list[region]))/2))
+      }
+      boundaries = c(boundaries, chr_end)
+      all.boundaries = rbind(all.boundaries,cbind(boundaries[-(length(boundaries))],boundaries[-1]))
     }
-    all.boundaries = rbind(all.boundaries,cbind(boundaries[-(length(boundaries))],boundaries[-1]))
   }
+    
   # Concatenate all the regions  
   impute.output = concatenateImputeFiles(inputfile.prefix, all.boundaries)
   write.table(impute.output, file=outputfile, row.names=F, col.names=F, quote=F, sep=" ")
@@ -142,7 +203,7 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
 #' @param heterozygousFilter SNP6 only parameter Default: NA
 #' @author sd11
 #' @export
-run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names,
+run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, targeted_file, targeted_impute, problemloci, impute_exe, min_normal_depth, chrom_names,
                            snp6_reference_info_file=NA, heterozygousFilter=NA) {
   
   if (file.exists(paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep=""))) {
@@ -171,6 +232,8 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
   run.impute(inputfile=paste(tumourname, "_impute_input_chr", chrom, ".txt", sep=""),
              outputfile.prefix=paste(tumourname, "_impute_output_chr", chrom, ".txt", sep=""),
              is.male=ismale,
+             targeted.file=targeted_file,
+             targeted.impute=targeted_impute,
              imputeinfofile=imputeinfofile,
              impute.exe=impute_exe,
              region.size=5000000,
@@ -180,6 +243,8 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
   combine.impute.output(inputfile.prefix=paste(tumourname, "_impute_output_chr", chrom, ".txt", sep=""),
                         outputfile=paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep=""),
                         is.male=ismale,
+                        targeted.file = targeted_file,
+                        targeted.impute = targeted_impute,
                         imputeinfofile=imputeinfofile,
                         region.size=5000000,
                         chrom=chrom)
