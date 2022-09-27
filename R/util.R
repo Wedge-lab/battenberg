@@ -121,7 +121,7 @@ concatenateAlleleCountFiles = function(inputStart, inputEnd, no.chrs) {
       infiles = c(infiles, filename)
     }
   }
-  return(as.data.frame(do.call(rbind, lapply(infiles, FUN=function(x) { read_table_generic(x) }))))
+  return(as.data.frame(do.call(rbind, lapply(infiles, FUN=function(x) { read_table_generic(x, header=F) }))))
 }
 
 #' Function to concatenate 1000 Genomes SNP reference files
