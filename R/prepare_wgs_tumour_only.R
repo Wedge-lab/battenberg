@@ -182,14 +182,15 @@ generate.impute.input.wgs.tumour.counts.only = function(chrom, tumour.allele.cou
 #' Prepare WGS tumour-only data for haplotype construction
 #' 
 #' This function performs part of the Battenberg WGS pipeline: Counting alleles, generating BAF and logR, 
-#' reconstructing normal-pair allele counts for high-purity (rho > 0.95) tumours and performing GC content correction.
+#' reconstructing normal-pair allele counts for high-purity (rho > 0.95) tumours only (ignored for rho <= 0.95) and performing GC/replication correction.
 #' 
 #' @param chrom_names A vector containing the names of chromosomes to be included
 #' @param tumourbam Full path to the tumour BAM file 
 #' @param tumourname Identifier to be used for tumour output files (i.e. the cell line BAM file name without the '.bam' extension).
 #' @param g1000lociprefix Prefix path to the 1000 Genomes loci reference files
 #' @param g1000allelesprefix Prefix path to the 1000 Genomes SNP allele reference files
-#' @param snv_rho Estimated purity or aberrant cell fraction of the tumour sample based on SNV VAF-based approach 
+#' @param snv_rho Estimated purity or aberrant cell fraction of the tumour sample based on SNV VAF-based approach
+#' @param snv_rho_range Range around estimated SNV-based purity or aberrant cell fraction of the tumour sample to be used in fit.copy.number grid search 
 #' @param gamma_ivd The PCF gamma value for segmentation of 1000G hetSNP IVD values (Default 1e5).
 #' @param kmin_ivd The min number of SNPs to support a segment in PCF of 1000G hetSNP IVD values (Default 50)
 #' @param centromere_noise_seg_size The maximum size of PCF segment to be removed as noise when it overlaps with the centromere due to the noisy nature of data (Default 1e6)
@@ -206,7 +207,7 @@ generate.impute.input.wgs.tumour.counts.only = function(chrom, tumour.allele.cou
 #' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
-prepare_wgs_tumour_only = function(chrom_names, chrom_coord, tumourbam, tumourname, g1000lociprefix, g1000allelesprefix, snv_rho, gamma_ivd=1e5, kmin_ivd=50, centromere_noise_seg_size=1e6, 
+prepare_wgs_tumour_only = function(chrom_names, chrom_coord, tumourbam, tumourname, g1000lociprefix, g1000allelesprefix, snv_rho, snv_rho_range,gamma_ivd=1e5, kmin_ivd=50, centromere_noise_seg_size=1e6, 
                                  centromere_dist=5e5, min_het_dist=1e5, gamma_logr=100, length_adjacent=5e4, gccorrectprefix,repliccorrectprefix, min_base_qual, min_map_qual, 
                                  allelecounter_exe, min_normal_depth, skip_allele_counting) {
   
@@ -214,6 +215,7 @@ prepare_wgs_tumour_only = function(chrom_names, chrom_coord, tumourbam, tumourna
   requireNamespace("doParallel")
   requireNamespace("parallel")
   
+  # the following loop is skipped if snv_rho estimation is required - if prior rho estimate is available then it starts running alleleCounting here
   if (!skip_allele_counting) {
     # Obtain allele counts for 1000 Genomes locations for the cell line
     foreach::foreach(i=1:length(chrom_names)) %dopar% {
@@ -224,12 +226,12 @@ prepare_wgs_tumour_only = function(chrom_names, chrom_coord, tumourbam, tumourna
                       min.map.qual=min_map_qual,
                       allelecounter.exe=allelecounter_exe)
     }
-  }
   
   # Standardise Chr notation (removes 'chr' string if present; essential for cell_line_baf_logR)
   
   standardiseChrNotation(tumourname=tumourname,
                          normalname=NULL) 
+  }
   
   # Obtain BAF and LogR from the raw allele counts of the cell line
   tumour_only_baf_logR(tumourname=tumourname,
@@ -238,8 +240,8 @@ prepare_wgs_tumour_only = function(chrom_names, chrom_coord, tumourbam, tumourna
                      snv_rho=snv_rho
   )
   
-  MIN_RHO <<- snv_rho-0.01
-  MAX_RHO <<- snv_rho+0.01
+  MIN_RHO <<- snv_rho-(snv_rho_range/2)
+  MAX_RHO <<- snv_rho+(snv_rho_range/2)
   
   if (snv_rho<=0.95){
     print("STEP 2 completed - Min and Max rho updated")
