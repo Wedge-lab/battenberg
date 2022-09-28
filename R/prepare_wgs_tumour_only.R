@@ -1,11 +1,11 @@
 #' Obtain BAF and LogR for tumour-only mode allele counts
 #'
-#' Function to generate BAF and LogR files based on allele counts of the Cell line.
-#' It also generates the input data required by the following 'cell_line_reconstruct_normal' function.
-#' @param tumourname The tumour name used for Battenberg (i.e. the cell line BAM file name without the '.bam' extension).
+#' Function to generate BAF and LogR files based on allele counts of the tumour sample.
+#' It also generates the input data required by the following function (tumour_only_reconstruct_normal) if snv_rho>0.95.
+#' @param tumourname The tumour name used for Battenberg (i.e. the tumour BAM file name without the '.bam' extension).
 #' @param g1000alleles.prefix Prefix to where 1000 Genomes allele files can be found.
 #' @param chrom_names A vector with allowed chromosome names.
-#' @param snv_rho Estimated purity or aberrant cell fraction of the tumour sample based on SNV VAF-based approach with range of (0,1]
+#' @param snv_rho Estimated purity or aberrant cell fraction of the tumour sample based on SNV VAF-based approach 
 #' @author Naser Ansari-Pour (WIMM, Oxford)
 #' @export
 
@@ -69,33 +69,33 @@ tumour_only_baf_logR = function(tumourname,g1000alleles.prefix,chrom_names,snv_r
   # output for tumour_only_generate_normal
   if (!is.na(snv_rho)){
     if (snv_rho<=0.95){
-    # get heterozygous filter for run_haplotyping_tumour_only (specifically for generate impute functions)
-    heterozygousFilter <<- baf_threshold
+      # get heterozygous filter for run_haplotyping_tumour_only
+      heterozygousFilter <<- baf_threshold
     } else if (snv_rho>0.95 & snv_rho<=1){
       
       # extract hetSNPs by taking into account alt>=2, minCount=10 and baf range depending on average depth of loci with coverage > 0
       # (i.e. regions with mapped reads and not whole-genome average of the sample which includes all coverage==0)
       
       for (chr in chrom_names){
-          ohet=MACC[which(MACC$chr==chr & MACC$coverage>=10 & MACC$baf>=baf_threshold & MACC$baf<=(1-baf_threshold)),]
-          names(ohet)[names(ohet) == "position"]="Position"
-          ohet$Position2=c(ohet$Position[2:nrow(ohet)],2*ohet$Position[nrow(ohet)]-ohet$Position[nrow(ohet)-1])
-          ohet$Position_dist=ohet$Position2-ohet$Position
-          ohet$Position_dist_percent=ohet$Position_dist/max(ohet$Position_dist)
-          OHET[[chr]]=ohet
-          print(paste("chromosome",chr,"hetSNP output read"))
-        }
-        
-        rm(MAC)
-        rm(MaC)
-        rm(MACC)
-        TUM_OHET <<- OHET
-        TUM_AL <<- AL
-        TUM_AC <<- AC
-        TUM_LogR <<- LogR
-        heterozygousFilter <<- baf_threshold
+        ohet=MACC[which(MACC$chr==chr & MACC$coverage>=10 & MACC$baf>=baf_threshold & MACC$baf<=(1-baf_threshold)),]
+        names(ohet)[names(ohet) == "position"]="Position"
+        ohet$Position2=c(ohet$Position[2:nrow(ohet)],2*ohet$Position[nrow(ohet)]-ohet$Position[nrow(ohet)-1])
+        ohet$Position_dist=ohet$Position2-ohet$Position
+        ohet$Position_dist_percent=ohet$Position_dist/max(ohet$Position_dist)
+        OHET[[chr]]=ohet
+        print(paste("chromosome",chr,"hetSNP output read"))
       }
+      
+      rm(MAC)
+      rm(MaC)
+      rm(MACC)
+      TUM_OHET <<- OHET
+      TUM_AL <<- AL
+      TUM_AC <<- AC
+      TUM_LogR <<- LogR
+      heterozygousFilter <<- baf_threshold
     }
+  }
   print("STEP 1 - BAF and LogR - completed")
 }
 
