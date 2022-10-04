@@ -92,6 +92,10 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     # no matched normal required, but we  are generating normal counts which have this name coded
     normalname = paste0(samplename, "_normal")
     # other cell_line specific parameter values
+    min_ploidy=min_ploidy
+    max_ploidy=max_ploidy
+    min_rho=0.99
+    max_rho=1.01
   }
   if (analysis == "germline"){
     calc_seg_baf_option=1
@@ -99,6 +103,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     phasing_kmin=1
     segmentation_gamma=3
     segmentation_kmin=3
+    # no matched normal required, but we  are generating normal counts which have this name coded
     normalname = paste0(samplename, "_normal")
     min_ploidy=1.5
     max_ploidy=2.5
@@ -166,6 +171,10 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
         doParallel::registerDoParallel(clp)
         
         if (analysis == "paired"){
+          
+          if (is.null(normalname)|is.na(normalname)){
+            stop("No normal sample is specified for 'paired analysis' - a normal paired BAM is required")
+            }
           prepare_wgs(chrom_names=chrom_names,
                       tumourbam=sample_data_file[sampleidx],
                       normalbam=normal_data_file,
