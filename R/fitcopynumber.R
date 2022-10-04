@@ -964,10 +964,10 @@ make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_fil
 #' @param genomebuild The genome build used in running Battenberg (hg19 or hg38)
 #' @param AR Should the segment carrying the androgen receptor (AR) locus to be visually distinguished in average plot? (Default TRUE)
 #' @param prior_breakpoints_file A two column text file with prior genome-wide breakpoints, possibly from structural variants. This file must contain two columns with headers "chr" and "pos" representing chromosome and position.
-#' @author Naser Ansari-Pour (BDI, Oxford)
+#' @author Naser Ansari-Pour (WIMM, Oxford)
 #' @export
 
-callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=TRUE,prior_breakpoints_file=NULL){
+callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=TRUE,prior_breakpoints_file=NULL,chrom_names){
   
   print(tumourname)
   
@@ -1252,15 +1252,27 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
   
   print(paste("Number of rows merged =",nrow(SUBCLONESout)-nrow(outputDF)))
   
+  BBnew=BB[which(is.na(match(BB$chr,c("X","chrX")))),c(1:3,8:13)] # copynumber.txt columns to be populated with chrX calls
   
-  BBnew=BB[which(is.na(match(BB$chr,c("X","chrX")))),c(1:3,8:13)] # copynumber.txt columns for chrX
   outputDF_for_merge=data.frame(chr=outputDF$chrom,startpos=outputDF$startpos,endpos=outputDF$endpos,
                                 nMaj1_A=outputDF$nMaj1,nMin1_A=outputDF$nMin1,frac1_A=outputDF$frac1,
                                 nMaj2_A=outputDF$nMaj2,nMin2_A=outputDF$nMin2,frac2_A=outputDF$frac2,
                                 stringsAsFactors = F)
+  
   BBnew=rbind(BBnew,outputDF_for_merge)
   write.table(BBnew,paste0(tumourname,"_copynumber.txt"),col.names = T,row.names = F,quote = F,sep="\t")
-  write.table(outputDF,paste0(tumourname,"_chrX_subclones.txt"),col.names = T,row.names = F,quote = F,sep="\t")
+  
+  BBnew_extended=BB[which(is.na(match(BB$chr,c("X","chrX")))),] # copynumber_extended.txt columns for chrX
+  
+  outputDF_for_merge_extended=data.frame(chr=outputDF$chrom,startpos=outputDF$startpos,endpos=outputDF$endpos,BAF=NA,pval=NA,LogR=outputDF$LogR,ntot=outputDF$CN,
+                                         nMaj1_A=outputDF$nMaj1,nMin1_A=outputDF$nMin1,frac1_A=outputDF$frac1,nMaj2_A=outputDF$nMaj2,nMin2_A=outputDF$nMin2,
+                                         frac2_A=outputDF$frac2)
+  BtoFsolutions=data.frame(matrix(nrow= nrow(outputDF),ncol = ncol(BB)-ncol(outputDF_for_merge_extended)))
+  names(BtoFsolutions)=names(BB)[(ncol(outputDF_for_merge_extended)+1):ncol(BB)]
+  
+  BBnew_extended=rbind(BBnew_extended,cbind(outputDF_for_merge_extended,BtoFsolutions))
+  write.table(BBnew_extended,paste0(tumourname,"_copynumber_extended.txt"),col.names = T,row.names = F,quote = F,sep="\t")
+  write.table(outputDF,paste0(tumourname,"_chrX_copynumber.txt"),col.names = T,row.names = F,quote = F,sep="\t")
   
   # PLOT
   outputDF$diff=outputDF$endpos-outputDF$startpos
@@ -1311,7 +1323,7 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
                                     ploidy=ploidy, 
                                     goodness=goodness, 
                                     output.gw.figures.prefix=paste(tumourname,"_BattenbergProfile", sep=""), 
-                                    chr.names=chr_names, 
+                                    chr.names=chrom_names, 
                                     tumourname=tumourname)
   
   
