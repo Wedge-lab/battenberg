@@ -240,8 +240,8 @@ prepare_wgs_tumour_only = function(chrom_names, chrom_coord, tumourbam, tumourna
                      snv_rho=snv_rho
   )
   
-  MIN_RHO <<- snv_rho-(snv_rho_range/2)
-  MAX_RHO <<- snv_rho+(snv_rho_range/2)
+  MIN_RHO <<- max(snv_rho-(snv_rho_range/2),0.1)
+  MAX_RHO <<- min(snv_rho+(snv_rho_range/2),1)
   
   if (snv_rho<=0.95){
     print("STEP 2 completed - Min and Max rho updated")
