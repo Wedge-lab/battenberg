@@ -289,8 +289,20 @@ runANNOVAR(annovar_install_dir=annovar_install_dir,
   } else if (maxAF==0){
     VARpass=VARpass[which(VARpass$AF==maxAF),]
   }
+  } else if (file.exists(paste0(VCFprefix,tumourname,VCFsuffix,".",genomebuild,"_multianno.txt"))) {
+    VAR=data.frame(data.table::fread(paste0(VCFprefix,tumourname,VCFsuffix,".",genomebuild,"_multianno.txt"),stringsAsFactors=F)) # variant calls
+    VARpass=VAR[VAR$Otherinfo10=="PASS",]
+    VARpass$AF[VARpass$AF=="."]=0
+    VARpass$AF=as.numeric(VARpass$AF)
+    if (maxAF>0){
+      VARpass=VARpass[which(VARpass$AF<maxAF),]
+    } else if (maxAF==0){
+      VARpass=VARpass[which(VARpass$AF==maxAF),]
+    }
+    print("Existing ANNOVAR multianno.txt file read")
   } else {
     VARpass=read.table(paste0(VARprefix,tumourname,VARsuffix),stringsAsFactors = F) # read in existing somatic variant file with five columns: chr, start, end, ref, alt
+    print("Prior somatic variant file read")
   }
   # remove indels from variants
   VARpass$var=paste0(VARpass$Ref,VARpass$Alt)
