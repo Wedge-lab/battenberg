@@ -65,6 +65,7 @@ tumour_only_baf_logR = function(tumourname,g1000alleles.prefix,chrom_names,snv_r
   write.table(LogR,paste0(tumourname,"_mutantLogR.tab"),col.names=T,row.names=F,quote=F,sep="\t")
   
   baf_threshold=2/mean(MACC$coverage) # 2 = min no. of reads supporting the SNP (alt>=2)
+  write.table(data.frame(coverage=mean(MACC$coverage),baf_threshold=baf_threshold),paste0(tumourname,"_coverage_and_hetSNP_baf_threshold.txt"),col.names=T,row.names=F,quote=F,sep="\t")
   
   # output for tumour_only_generate_normal
   if (!is.na(snv_rho)){
