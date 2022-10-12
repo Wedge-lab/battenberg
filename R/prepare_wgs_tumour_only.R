@@ -792,7 +792,7 @@ generate.impute.input.wgs.tumour.counts.only = function(chrom, tumour.allele.cou
 #' @export
 prepare_wgs_tumour_only = function(chrom_names, chrom_coord, tumourbam, tumourname, g1000lociprefix, g1000allelesprefix, snv_rho, snv_rho_range,gamma_ivd=1e5, kmin_ivd=50, centromere_noise_seg_size=1e6, 
                                  centromere_dist=5e5, min_het_dist=1e5, gamma_logr=100, length_adjacent=5e4, gccorrectprefix,repliccorrectprefix, min_base_qual, min_map_qual, 
-                                 allelecounter_exe, min_normal_depth, skip_allele_counting) {
+                                 allelecounter_exe, min_normal_depth, skip_allele_counting, skip_baf_logR) {
   
   requireNamespace("foreach")
   requireNamespace("doParallel")
@@ -816,13 +816,17 @@ prepare_wgs_tumour_only = function(chrom_names, chrom_coord, tumourbam, tumourna
                          normalname=NULL) 
   }
   
+  if (!skip_baf_logR){
   # Obtain BAF and LogR from the raw allele counts of the cell line
   tumour_only_baf_logR(tumourname=tumourname,
                      g1000alleles.prefix=g1000allelesprefix,
                      chrom_names=chrom_names,
                      snv_rho=snv_rho
   )
-  
+  } else {
+    heterozygousFilter <<- read.table(paste0(tumourname,"_coverage_and_hetSNP_baf_threshold.txt"),header=T,sep="\t",stringsAsFactors = F)$baf_threshold
+    }
+    
   MIN_RHO <<- max(snv_rho-(snv_rho_range/2),0.1)
   MAX_RHO <<- min(snv_rho+(snv_rho_range/2),1)
   
