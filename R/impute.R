@@ -296,7 +296,7 @@ run.beagle5 = function(beaglejar,
 #' @param min_normal_depth Minimal depth in the matched normal required for a SNP to be used
 #' @param chrom_names A vector containing the names of chromosomes to be included
 #' @param snp6_reference_info_file SNP6 only parameter Default: NA
-#' @param heterozygousFilter SNP6 only parameter Default: NA
+#' @param heterozygousFilter The cutoff where a SNP will be considered as heterozygous (WGS default 0.1).
 #' @param usebeagle Should use beagle5 instead of impute2 Default: FALSE
 #' @param beaglejar Full path to Beagle java jar file Default: NA
 #' @param beagleref Full path to Beagle reference file Default: NA
@@ -311,7 +311,8 @@ run.beagle5 = function(beaglejar,
 run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names, 
                            externalhaplotypeprefix = NA,
                            use_previous_imputation=F,
-                           snp6_reference_info_file=NA, heterozygousFilter=NA,
+                           snp6_reference_info_file=NA,
+			   heterozygousFilter=0.1,
                            usebeagle=FALSE,
                            beaglejar=NA,
                            beagleref=NA,
@@ -342,7 +343,8 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                                 imputeinfofile=imputeinfofile,
                                 is.male=ismale,
                                 problemLociFile=problemloci,
-                                useLociFile=NA)
+                                useLociFile=NA,
+			        heterozygousFilter=heterozygousFilter)
     } else {
       generate.impute.input.snp6(infile.germlineBAF=paste(tumourname, "_germlineBAF.tab", sep=""),
                                  infile.tumourBAF=paste(tumourname, "_mutantBAF.tab", sep=""),
