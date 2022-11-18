@@ -78,7 +78,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
                       snp6_reference_info_file=NA, apt.probeset.genotype.exe="apt-probeset-genotype", apt.probeset.summarize.exe="apt-probeset-summarize",
                       norm.geno.clust.exe="normalize_affy_geno_cluster.pl", birdseed_report_file="birdseed.report.txt", heterozygousFilter="none",
                       prior_breakpoints_file=NULL, genomebuild="hg19", chrom_coord_file=NULL) {
-  
+
   requireNamespace("foreach")
   requireNamespace("doParallel")
   requireNamespace("parallel")
@@ -123,7 +123,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     stop("Please provide a path to GC content reference files")
   }
   
-  if (!file.exists(problemloci)) {
+  if (data_type=="wgs" && !file.exists(problemloci)) {
     stop("Please provide a path to a problematic loci file")
   }
   
@@ -381,7 +381,6 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     
   }
   
-  
   # if this is a multisample run, combine the battenberg phasing outputs, incorporate it and resegment
   if (nsamples > 1) {
     print("Constructing multisample phasing")
@@ -442,8 +441,8 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
                           outfile=paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),
                           chr_names=chrom_names,
                           minCounts=min_normal_depth)
-        
-        # Plot what we have until this point
+
+	# Plot what we have until this point
         plot.haplotype.data(haplotyped.baf.file=paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),
                             imageFileName=paste0(samplename[sampleidx],"_chr",chrom,"_heterozygousData.png"),
                             samplename=samplename[sampleidx],
@@ -477,11 +476,9 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     
   }
   
-  
   # Setup for parallel computing
   clp = parallel::makeCluster(min(nthreads, nsamples))
   doParallel::registerDoParallel(clp)
-  
   # for (sampleidx in 1:nsamples) {
   foreach::foreach (sampleidx=1:nsamples) %dopar% {
     print(paste0("Fitting final copy number and calling subclones for sample ", samplename[sampleidx]))
@@ -548,7 +545,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     # Make some post-hoc plots
     make_posthoc_plots(samplename=samplename[sampleidx],
                        logr_file=logr_file,
-                       subclones_file=paste(samplename[sampleidx], "_subclones.txt", sep=""),
+                       subclones_file=paste(samplename[sampleidx], "_copynumber_extended.txt", sep=""),
                        rho_psi_file=paste(samplename[sampleidx], "_rho_and_psi.txt", sep=""),
                        bafsegmented_file=paste(samplename[sampleidx], ".BAFsegmented.txt", sep=""),
                        logrsegmented_file=paste(samplename[sampleidx], ".logRsegmented.txt", sep=""),
@@ -556,10 +553,9 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     
     # Save refit suggestions for a future rerun
     cnfit_to_refit_suggestions(samplename=samplename[sampleidx],
-                               subclones_file=paste(samplename[sampleidx], "_subclones.txt", sep=""),
+                               subclones_file=paste(samplename[sampleidx], "_copynumber_extended.txt", sep=""),
                                rho_psi_file=paste(samplename[sampleidx], "_rho_and_psi.txt", sep=""),
                                gamma_param=platform_gamma)
-    
   }
   
   # Kill the threads as last part again is single core
@@ -568,7 +564,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
   if (nsamples > 1) {
     print("Assessing mirrored subclonal allelic imbalance (MSAI)")
     call_multisample_MSAI(rdsprefix = multisamplehaplotypeprefix,
-                          subclonesfiles = paste0(samplename, "_subclones.txt"),
+                          subclonesfiles = paste0(samplename, "_copynumber_extended.txt"),
                           chrom_names = chrom_names,
                           tumournames = samplename,
                           plotting = T)
