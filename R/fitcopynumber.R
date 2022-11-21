@@ -918,21 +918,14 @@ collapse_bafsegmented_to_segments = function(bafsegmented) {
 #'
 #' @param samplename Name of the sample for the plot title
 #' @param logr_file File containing all logR data
-#' @param subclones_file File with the copy number fit
-#' @param rho_psi_file File with rho and psi parameters
 #' @param bafsegmented_file File containing the BAFsegmented data
 #' @param logrsegmented_file File with the logRsegmented data
 #' @param allelecounts_file Optional file with raw allele counts (Default: NULL)
 #' @author sd11
 #' @export
-make_posthoc_plots = function(samplename, logr_file, subclones_file, rho_psi_file, bafsegmented_file, logrsegmented_file, allelecounts_file=NULL) {
+make_posthoc_plots = function(samplename, logr_file, bafsegmented_file, logrsegmented_file, allelecounts_file=NULL) {
   # Make some post-hoc plots
   logr = Battenberg::read_table_generic(logr_file)
-  subclones = Battenberg::read_table_generic(subclones_file)
-  rho_psi = read.table(rho_psi_file, header=T, stringsAsFactors=F)
-  purity = rho_psi["FRAC_GENOME", "rho"]
-  totalcn_chrom_plot(samplename, subclones, logr, paste0(samplename, "_totalcn_chrom_plot.png"), purity)
-  
   bafsegmented = as.data.frame(Battenberg::read_table_generic(bafsegmented_file))
   logrsegmented = as.data.frame(Battenberg::read_table_generic(logrsegmented_file, header=F))
   colnames(logrsegmented) = c("Chromosome", "Position", "logRseg")
