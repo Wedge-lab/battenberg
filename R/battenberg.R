@@ -545,8 +545,6 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     # Make some post-hoc plots
     make_posthoc_plots(samplename=samplename[sampleidx],
                        logr_file=logr_file,
-                       subclones_file=paste(samplename[sampleidx], "_copynumber_extended.txt", sep=""),
-                       rho_psi_file=paste(samplename[sampleidx], "_rho_and_psi.txt", sep=""),
                        bafsegmented_file=paste(samplename[sampleidx], ".BAFsegmented.txt", sep=""),
                        logrsegmented_file=paste(samplename[sampleidx], ".logRsegmented.txt", sep=""),
                        allelecounts_file=allelecounts_file)
