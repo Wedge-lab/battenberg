@@ -79,7 +79,7 @@ MaC=function(samplename,allelecount.prefix,allelecount.suffix,allelesfile.prefix
 #'
 #' @param bam.file The BAM file of the sample
 #' @param output.file The filename where count output will be written to.
-#' @param g1000.loci A file with 1000 Genomes SNP loci.
+#' @param loci A file with tumour-only somatic SNV loci (two column; chr & pos with no header).
 #' @param min.base.qual The minimum base quality required for a base be counted (optional, default=20).
 #' @param min.map.qual The minimum mapping quality required for a read to be counted (optional, default=35).
 #' @param allelecounter.exe The full path to where the alleleCounter executable can be found (optional, default points to $PATH).
