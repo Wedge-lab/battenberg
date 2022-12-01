@@ -885,3 +885,62 @@ run_haplotyping_tumour_only = function(chrom, tumourname, normalname=NA,ismale, 
                       chrom=chrom,
                       chr_names=chrom_names)
 }
+
+#' Cleans up homozygote SNPs (homSNPs) for a chromosome in tumour-only mode for high purity (rho > 0.95) tumours - WGS version
+#'
+#' This PCF-based function removes homSNPs in non-LOH regions for really high purity samples which are not removed by the stringent hetFilter = homSNP_cutoff (default = 0.001).
+#'
+#' @param chrom The chromosome for which to reconstruct haplotypes
+#' @param samplename Identifier of the sample (e.g. tumour), used to match data files on disk
+#' @param g1000file.prefix Prefix to where 1000 Genomes reference files can be found.
+#' @param min_count Integer, minimum depth required for a SNP to be included in identifying hetSNPs (required, Default 10)
+#' @param heterozygousFilter The cutoff where a SNP will be considered as heterozygous - this is inherited from tumour_only_BAF_and_LogR (required).
+#' @param kmin The min number of SNPs to support a segment in PCF of 1000G hetSNP BAF values (Default 50).
+#' @param gamma The PCF gamma value for segmentation of 1000G hetSNP BAF values (Default 1e4).
+#' @param maxBAF_pcf_cleanup The maximum PCF mean value (i.e. one-sided BAF; 0.5 to 1) as cutoff for selecting nonLOH region across a chromosome (Default=0.85)
+#' @param homSNP_cutoff Initial BAF-based SNP filter to keep all SNPs except those with BAFs equal to 0 and 1 in the data
+#' @author naser.ansari-pour
+#' @export
+cleanup_homSNP=function(chrom,samplename,g1000file.prefix,min_count=10,heterozygousFilter,kmin=50,gamma=1e4,maxBAF_pcf_cleanup=0.85,homSNP_cutoff){
+  
+  print(chrom)
+  # read in alleleCounter output for each chromosome
+  ac=read.table(paste0(samplename,"_alleleFrequencies_chr",chrom,".txt"),stringsAsFactors = F)
+  ac=ac[order(ac$V2),]
+  # match allele counts with respective SNP alleles
+  al=read.table(paste0(g1000file.prefix,chrom,".txt"),header=T,stringsAsFactors = F)
+  ref=al$a0
+  ref_df=data.frame(pos=1:nrow(al),ref=ref+2)
+  REF=ac[cbind(ref_df$pos,ref_df$ref)]
+  alt=al$a1
+  alt_df=data.frame(pos=1:nrow(al),alt=alt+2)
+  ALT=ac[cbind(alt_df$pos,alt_df$alt)]
+  mac=data.frame(ref=REF,alt=ALT)
+  mac$depth=as.numeric(mac$ref)+as.numeric(mac$alt)
+  mac$baf=as.numeric(mac$alt)/as.numeric(mac$depth)
+  mac=cbind(al,mac)
+  mac=mac[which(mac$depth>=min_count),]
+  hetmac=mac[which(mac$baf>homSNP_cutoff & mac$baf<(1-homSNP_cutoff)),]
+  pcf_input=data.frame(chr=chrom,hetmac[,c("position","baf")])
+  pcf_input$baf=ifelse(pcf_input$baf<0.5,1-pcf_input$baf,pcf_input$baf)
+  pcf_output=copynumber::pcf(pcf_input,kmin = kmin,gamma=gamma)
+  if (!is.na(match(chrom,c(13:15,21:22)))){
+    pcf_output=pcf_output[pcf_output$arm!="p",]
+  }
+  write.table(pcf_output[,-1],paste0(samplename,"_chr",chrom,"_pcf_for_homSNP_cleanup_",homSNP_cutoff,".txt"),col.names = T,row.names = F,quote = F,sep="\t")
+  cleanup_regions=pcf_output[which(pcf_output$mean<maxBAF_pcf_cleanup),-1]
+  
+  # modify the samplename_chr{i}_heterozygousMutBAFs_haplotyped.txt file - exclude homSNPs
+  haplotyped.baf.file=read.table(paste0(samplename, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),header=T,stringsAsFactors = F)
+  exclude_homSNPs_all=NULL
+  for (region in 1:nrow(cleanup_regions)){
+    start_region=min(which(haplotyped.baf.file$Position>=cleanup_regions[region,"start.pos"]))
+    end_region=max(which(haplotyped.baf.file$Position<=cleanup_regions[region,"end.pos"]))
+    region_snps=haplotyped.baf.file[start_region:end_region,]
+    # user-defined 'heterozygousFilter' variable calculated based on sample WGS coverage in get BAF and LogR function
+    exclude_homSNPs=as.numeric(row.names(region_snps[which(region_snps[,3]<heterozygousFilter | region_snps[,3]>(1-heterozygousFilter)),])) # get row numbers of haplotyped.baf.file
+    exclude_homSNPs_all=append(exclude_homSNPs_all,exclude_homSNPs)
+  }
+  haplotyped.baf.file=haplotyped.baf.file[-exclude_homSNPs_all,]
+  write.table(haplotyped.baf.file,paste0(samplename, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),col.names = T,row.names = F,quote = F,sep="\t")
+}
