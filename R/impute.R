@@ -645,12 +645,13 @@ run_haplotyping_germline = function(chrom, germlinename, normalname, ismale, imp
                       chr_names=chrom_names)
 }
 
-#' Construct haplotypes for a chromosome in tumour-only mode for non-high purity (rho <= 0.95) tumours - WGS version
+#' Construct haplotypes for a chromosome in tumour-only mode for non-high purity (rho <= 0.95) and high purity (rho > 0.95) tumours - WGS version
 #'
 #' This function takes preprocessed data and performs haplotype reconstruction.
 #'
 #' @param chrom The chromosome for which to reconstruct haplotypes
 #' @param tumourname Identifier of the tumour, used to match data files on disk
+#' @param normalname Identifier of the normal, used to match data files on disk
 #' @param ismale Boolean, set to TRUE if the sample is male
 #' @param imputeinfofile Full path to the imputeinfo reference file
 #' @param problemloci Full path to the problematic loci reference file
@@ -668,22 +669,35 @@ run_haplotyping_germline = function(chrom, germlinename, normalname, ismale, imp
 #' @param beaglewindow Integer size of the genomic window for beagle5 (cM) Default:40
 #' @param beagleoverlap Integer size of the overlap between windows beagle5 Default:4
 #' @param javajre Path to the Java JRE executable (default java, i.e. in $PATH)
-#' @author sd11, maxime.tarabichi, jdemeul, Naser Ansari-Pour (WIMM, Oxford)
+#' @param g1000file.prefix Prefix to where 1000 Genomes reference files can be found.
+#' @param homSNP_cutoff Initial BAF-based SNP filter to keep all SNPs except those with BAFs equal to 0 and 1 in the data (for snv_rho > 0.95)
+#' @param homSNP_cleaning Should homozygous SNPs be cleaned up (optional; mainly for snv_rho > 0.95) Default: FALSE
+#' @param kmin The min number of SNPs to support a segment in PCF of 1000G hetSNP BAF values (Default 50).
+#' @param gamma The PCF gamma value for segmentation of 1000G hetSNP BAF values (Default 1e4).
+#' @param maxBAF_pcf_cleanup The maximum PCF mean value (i.e. one-sided BAF; 0.5 to 1) as cutoff for selecting nonLOH region across a chromosome (Default=0.85 for snv_rho > 0.95)
+#' @author sd11, maxime.tarabichi, jdemeul, naser.ansari-pour
 #' @export
-run_haplotyping_tumour_only = function(chrom, tumourname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names, 
-                           externalhaplotypeprefix = NA,
-                           use_previous_imputation=F,
-                           snp6_reference_info_file=NA, 
-                           heterozygousFilter=heterozygousFilter,
-                           usebeagle=FALSE,
-                           beaglejar=NA,
-                           beagleref=NA,
-                           beagleplink=NA,
-                           beaglemaxmem=10,
-                           beaglenthreads=1,
-                           beaglewindow=40,
-                           beagleoverlap=4,
-                           javajre="java")
+run_haplotyping_tumour_only = function(chrom, tumourname, normalname=NA,ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names, 
+                                       externalhaplotypeprefix = NA,
+                                       use_previous_imputation=F,
+                                       snp6_reference_info_file=NA,
+                                       snv_rho=snv_rho,
+                                       heterozygousFilter=heterozygousFilter,
+                                       usebeagle=FALSE,
+                                       beaglejar=NA,
+                                       beagleref=NA,
+                                       beagleplink=NA,
+                                       beaglemaxmem=10,
+                                       beaglenthreads=1,
+                                       beaglewindow=40,
+                                       beagleoverlap=4,
+                                       javajre="java",
+                                       g1000file.prefix=NA,
+                                       homSNP_cutoff=NA,
+                                       homSNP_cleaning=FALSE,
+                                       kmin=50,
+                                       gamma=1e4,
+                                       maxBAF_pcf_cleanup=0.85)
 {
   
   previoushaplotypefile <- list.files(pattern = paste0("_impute_output_chr", chrom, "_allHaplotypeInfo.txt"))[1]
@@ -698,6 +712,7 @@ run_haplotyping_tumour_only = function(chrom, tumourname, ismale, imputeinfofile
   } else {
     
     if (file.exists(paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep=""))) {
+      if (snv_rho<=0.95){
       generate.impute.input.wgs.tumour.counts.only(chrom=chrom,
                                                    tumour.allele.counts.file=paste(tumourname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
                                                    output.file=paste(tumourname, "_impute_input_chr", chrom, ".txt", sep=""),
@@ -706,6 +721,17 @@ run_haplotyping_tumour_only = function(chrom, tumourname, ismale, imputeinfofile
                                                    problemLociFile=problemloci,
                                                    useLociFile=NA,
                                                    heterozygousFilter=heterozygousFilter)
+      } else if (snv_rho > 0.95){
+        generate.impute.input.wgs(chrom=chrom,
+                                  tumour.allele.counts.file=paste(tumourname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
+                                  normal.allele.counts.file=paste(normalname,"_alleleFrequencies_chr", chrom, ".txt", sep=""),
+                                  output.file=paste(tumourname, "_impute_input_chr", chrom, ".txt", sep=""),
+                                  imputeinfofile=imputeinfofile,
+                                  is.male=ismale,
+                                  problemLociFile=problemloci,
+                                  useLociFile=NA,
+                                  heterozygousFilter=homSNP_cutoff)
+      }
     } 
     # else {
     #   generate.impute.input.snp6(infile.germlineBAF=paste(tumourname, "_germlineBAF.tab", sep=""),
@@ -815,6 +841,31 @@ run_haplotyping_tumour_only = function(chrom, tumourname, ismale, imputeinfofile
                       outfile=paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                       chr_names=chrom_names,
                       minCounts=min_normal_depth)
+    
+  if (homSNP_cleaning){
+    if (snv_rho > 0.95){
+     cleanup_homSNP(chrom=chrom,
+                    samplename=tumourname,
+                    g1000file.prefix=g1000file.prefix,
+                    min_count=min_normal_depth,
+                    heterozygousFilter=heterozygousFilter,
+                    kmin=kmin,
+                    gamma=gamma,
+                    maxBAF_pcf_cleanup=maxBAF_pcf_cleanup,
+                    homSNP_cutoff=homSNP_cutoff) 
+    } else if (snv_rho <= 0.95){
+      # extra filtering (by extra_filter=0.1 magnitude) after heterozygousFilter in non-LOH regions; clean up hetSNP noise in balanced/gain/amp regions
+      cleanup_homSNP(chrom=chrom,
+                     samplename=tumourname,
+                     g1000file.prefix=g1000file.prefix,
+                     min_count=min_normal_depth,
+                     heterozygousFilter=heterozygousFilter+0.1, 
+                     kmin=kmin,
+                     gamma=gamma,
+                     maxBAF_pcf_cleanup=maxBAF_pcf_cleanup,
+                     homSNP_cutoff=homSNP_cutoff) 
+    }
+  }
   } 
   # else {
   #   print("SNP6 get BAFs")
