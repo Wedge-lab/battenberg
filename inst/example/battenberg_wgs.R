@@ -34,6 +34,14 @@ NTHREADS = opt$cpu
 PRIOR_BREAKPOINTS_FILE = opt$bp
 GENOMEBUILD = opt$ref_genome_build
 
+if (grepl(",", TUMOURNAME)) {
+	TUMOURNAME = unlist(strsplit(TUMOURNAME, ","))
+	TUMOURBAM = unlist(strsplit(TUMOURBAM, ","))
+}
+print(TUMOURNAME)
+print(TUMOURBAM)
+
+
 #analysis = "germline"
 
 supported_analysis = c("paired", "cell_line", "germline")
@@ -55,6 +63,8 @@ JAVAJRE = "java"
 ALLELECOUNTER = "alleleCounter"
 IMPUTE_EXE = "impute2"
 USEBEAGLE = T
+
+refdir = "/lustre/scratch124/casm/team299/sd11/reference/human"
 
 # General static
 if (GENOMEBUILD=="hg19") {
@@ -78,11 +88,12 @@ if (GENOMEBUILD=="hg19") {
 
 } else if (GENOMEBUILD=="hg38") {
 	
-	BEAGLE_BASEDIR = "/hps/research/gerstung/sdentro/reference/human/battenberg_hg38"
+	BEAGLE_BASEDIR = file.path(refdir, "battenberg_hg38")
+	BEAGLE_BASEDIR_chrstring = file.path(refdir, "battenberg_hg38_chrstring")
 	GENOMEBUILD = "hg38"
 	IMPUTEINFOFILE = file.path(BEAGLE_BASEDIR, "imputation/impute_info.txt")
 	G1000ALLELESPREFIX = file.path(BEAGLE_BASEDIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_allele_index_chr")
-	G1000LOCIPREFIX = file.path(BEAGLE_BASEDIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_loci_chr")
+	G1000LOCIPREFIX = file.path(BEAGLE_BASEDIR_chrstring, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_loci_chr")
 	GCCORRECTPREFIX = file.path(BEAGLE_BASEDIR, "GC_correction_hg38/1000G_GC_chr")
 	REPLICCORRECTPREFIX = file.path(BEAGLE_BASEDIR, "RT_correction_hg38/1000G_RT_chr")
 	PROBLEMLOCI = file.path(BEAGLE_BASEDIR, "probloci/probloci.txt.gz")
@@ -92,7 +103,12 @@ if (GENOMEBUILD=="hg19") {
 	BEAGLEJAR = file.path(BEAGLE_BASEDIR, "beagle.18May20.d20.jar")
 
 	CHROM_COORD_FILE = "/homes/sdentro/repo/battenberg/chromosome_coordinates_hg38.txt"
+	#CHROM_COORD_FILE = "/nfs/users/nfs_s/sd11/repo/Battenberg/chromosome_coordinates_hg38_chrstring.txt"
 } 
+
+print(IMPUTEINFOFILE)
+print(G1000ALLELESPREFIX)
+
 
 PLATFORM_GAMMA = 1
 PHASING_GAMMA = 1
