@@ -617,7 +617,7 @@ germline_reconstruct_normal = function(GERMLINENAME,NORMALNAME,chrom_coord,chrom
     # the non-LOH region length from PCF is:
     if (!is.null(nrow(non_LOH))){
       non_LOH$length=non_LOH$end-non_LOH$start
-      non_LOH=non_LOH[non_LOH$length>0,]
+      non_LOH=non_LOH[non_LOH$length>=0,] # picks all non_LOH segments even if 1bp in length
       non_LOH_length=sum(non_LOH$length) # total length of non-LOH regions in chr i
       print(paste("Total length of non LOH regions =",non_LOH_length))
       # average Het SNP interval:
