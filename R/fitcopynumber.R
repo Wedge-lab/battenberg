@@ -977,6 +977,7 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
     PCF=data.frame()
     for (j in 1:(length(breakpoints)-1)) {
       PCFinput_sv=PCFinput[which(PCFinput$Position>=breakpoints[j] & PCFinput$Position<breakpoints[j+1]),]
+      if (nrow(PCFinput_sv)==0) next
       PCF_sv=copynumber::pcf(PCFinput_sv,gamma=X_gamma,kmin=X_kmin)
       PCF=rbind(PCF,PCF_sv)
     }
