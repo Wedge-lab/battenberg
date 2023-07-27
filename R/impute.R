@@ -670,7 +670,7 @@ run_haplotyping_germline = function(chrom, germlinename, normalname, ismale, imp
 #' @param beagleoverlap Integer size of the overlap between windows beagle5 Default:4
 #' @param javajre Path to the Java JRE executable (default java, i.e. in $PATH)
 #' @param g1000file.prefix Prefix to where 1000 Genomes reference files can be found.
-#' @param homSNP_cutoff Initial BAF-based SNP filter to keep all SNPs except those with BAFs equal to 0 and 1 in the data (for snv_rho > 0.95)
+#' @param homSNP_cutoff Initial BAF-based SNP filter to keep all SNPs except those with BAFs equal to 0 and 1 in the data (for snv_rho > 0.95) - Default: 0.001
 #' @param homSNP_cleaning Should homozygous SNPs be cleaned up (optional; mainly for snv_rho > 0.95) Default: FALSE
 #' @param kmin The min number of SNPs to support a segment in PCF of 1000G hetSNP BAF values (Default 50).
 #' @param gamma The PCF gamma value for segmentation of 1000G hetSNP BAF values (Default 1e4).
@@ -693,7 +693,7 @@ run_haplotyping_tumour_only = function(chrom, tumourname, normalname=NA,ismale, 
                                        beagleoverlap=4,
                                        javajre="java",
                                        g1000file.prefix=NA,
-                                       homSNP_cutoff=NA,
+                                       homSNP_cutoff=0.001,
                                        homSNP_cleaning=FALSE,
                                        kmin=50,
                                        gamma=1e4,
