@@ -695,6 +695,7 @@ cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,
 #' reconstructing normal-pair allele counts for the cell line and performing GC content correction.
 #' 
 #' @param chrom_names A vector containing the names of chromosomes to be included
+#' @param chrom_coord Full path to the file with chromosome coordinates including start, end and left/right centromere positions
 #' @param tumourbam Full path to the tumour BAM file 
 #' @param tumourname Identifier to be used for tumour output files (i.e. the cell line BAM file name without the '.bam' extension).
 #' @param g1000lociprefix Prefix path to the 1000 Genomes loci reference files
