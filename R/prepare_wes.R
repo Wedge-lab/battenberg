@@ -24,6 +24,10 @@ add_snp_proxies=function(chrom_names,tumourname,normalname,g1000prefix_al,proxy_
     ac=read.table(paste0(normalname,"_alleleFrequencies_chr",chrom,".txt"),header=F,stringsAsFactors=F)
     names(ac)=c("Chr","Position","A","C","G","T","Depth")
     
+    # Chr Notation standardisation within function
+    ac$Chr=gsub("chr","",ac$Chr)
+    ac$Chr=as.numeric(ac$Chr)
+    
     al=read.table(paste0(g1000prefix_al,chrom,".txt"),header=T,stringsAsFactors=F)
     dim(al)
     ac$baf=ac[cbind(1:nrow(ac),al$a1+2)]/(ac[cbind(1:nrow(ac),al$a1+2)]+ac[cbind(1:nrow(ac),al$a0+2)])
@@ -61,7 +65,10 @@ add_snp_proxies=function(chrom_names,tumourname,normalname,g1000prefix_al,proxy_
     
     tac=read.table(paste0(tumourname,"_alleleFrequencies_chr",chrom,".txt"),header=F,stringsAsFactors=F)
     names(tac)=c("Chr","Position","A","C","G","T","Depth")
-    dim(tac)
+    
+    # Chr Notation standardisation within function
+    tac$Chr=gsub("chr","",tac$Chr)
+    tac$Chr=as.numeric(tac$Chr)
     
     # add het_ac_proxy Proxy SNPs to tac and add imputed allelecounts from tac
     
