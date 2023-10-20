@@ -167,7 +167,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     if (!skip_preprocessing[sampleidx]) {
       if (data_type=="wgs" | data_type=="WGS") {
         # Setup for parallel computing
-        clp = parallel::makeCluster(nthreads)
+        clp = parallel::makeCluster(nthreads,outfile="")
         doParallel::registerDoParallel(clp)
         
         if (analysis == "paired"){
@@ -287,7 +287,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
       }
       
       # Setup for parallel computing
-      clp = parallel::makeCluster(nthreads)
+      clp = parallel::makeCluster(nthreads,outfile="")
       doParallel::registerDoParallel(clp)
       
       # Reconstruct haplotypes
@@ -388,7 +388,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     
     
     # Setup for parallel computing
-    clp = parallel::makeCluster(nthreads)
+    clp = parallel::makeCluster(nthreads,outfile="")
     doParallel::registerDoParallel(clp)
     
     # Reconstruct haplotypes
@@ -477,7 +477,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
   }
   
   # Setup for parallel computing
-  clp = parallel::makeCluster(min(nthreads, nsamples))
+  clp = parallel::makeCluster(min(nthreads, nsamples),outfile="")
   doParallel::registerDoParallel(clp)
   # for (sampleidx in 1:nsamples) {
   foreach::foreach (sampleidx=1:nsamples) %dopar% {
