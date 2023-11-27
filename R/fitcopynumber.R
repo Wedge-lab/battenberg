@@ -283,6 +283,15 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # NAP: generating two output files: first reporting solution A and the second reporting alternative solutions (B to F)
   write.table(subcloneres[,c(1:3,8:13)], output.file, quote=F, col.names=T, row.names=F, sep="\t")
   write.table(subcloneres, gsub(".txt","_extended.txt",output.file), quote=F, col.names=T, row.names=F, sep="\t")
+
+  # NAP - November 2023
+  # Recalculate PGA.is.clonal to match the final copy number profile in subclones.txt file
+  subcloneres$length=subcloneres$endpos-subcloneres$startpos
+  subcloneres_subclonal=subcloneres[which(subcloneres$frac1_A<1),]
+  diploid=which(subcloneres$nMaj1_A==1 & subcloneres$nMin1_A==1 & subcloneres$frac1_A==1)
+  cna=subcloneres[-diploid,]
+  goodness=1-sum(subcloneres_subclonal$length)/sum(cna$length)
+  print(paste0("PGA.is.clonal = ",sprintf("%2.1f",goodness*100),"%"))
   
   ################################################################################################
   # Make a plot per chromosome
