@@ -38,29 +38,6 @@ adjustSegmValues = function(baf_chrom) {
 #' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)
 #' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default: 3)
 #' @param phasekmin Kmin parameter used when correcting phasing mistakes (Default: 3)
-#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
-#' @author dw9
-#' @export
-segment.baf.phased.legacy = function(samplename, inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3, calc_seg_baf_option=1) {
-  
-  
-}
-
-#' Segment the haplotyped and phased data using fastPCF. This is the legacy segmentation function as it was used in the original Battenberg versions
-#' 
-#' This function performs segmentation. This is done in two steps. First a segmentation step
-#' that aims to find short segments. These are used to find haplotype blocks that have been
-#' switched. These blocks are switched into the correct order first after which the second
-#' segmentation step is performed. This second step aims to segment the data that will go into
-#' fit.copy.number. This function produces a BAF segmented file with 5 columns: chromosome, position,
-#' original BAF, switched BAF and BAF segment. The BAF segment column should be used subsequently
-#' @param samplename Name of the sample, which is used to name output figures
-#' @param inputfile String that points to the output from the \code{combine.baf.files} function. This contains the phased SNPs with their BAF values
-#' @param outputfile String where the segmentation output will be written
-#' @param gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 10)
-#' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)
-#' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default: 3)
-#' @param phasekmin Kmin parameter used when correcting phasing mistakes (Default: 3)
 #' @author dw9
 #' @export
 segment.baf.phased.legacy = function(samplename, inputfile, outputfile, gamma=10, phasegamma=3, kmin=3, phasekmin=3) {
@@ -325,7 +302,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
         # but the median is generally a better estimate that is less sensitive to
         # how well the haplotypes have been reconstructed
         BAFphseg_median = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
-        BAFphseg = ifelse(BAFphseg_median %in% c(0,1), BAFphseg, BAFphseg_median)
+        BAFphseg = ifelse(BAFphseg_median %in% c(0,1), BAFphseg_median, BAFphseg)
         # if (BAFphseg_median!=0 & BAFphseg_median!=1) {
         #   BAFphseg = BAFphseg_median
         # }
@@ -400,7 +377,115 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
 }
 
 
-
+#' Segment the haplotyped and phased whole-exome sequencing (WES) data using fastPCF.
+#' 
+#' This function performs segmentation. This is done in two steps. First a segmentation step
+#' that aims to find short segments. These are used to find haplotype blocks that have been
+#' switched. These blocks are switched into the correct order first after which the second
+#' segmentation step is performed. This second step aims to segment the data that will go into
+#' fit.copy.number. This function produces a BAF segmented file with 5 columns: chromosome, position,
+#' original BAF, switched BAF and BAF segment. The BAF segment column should be used subsequently
+#' @param samplename Name of the sample, which is used to name output figures
+#' @param inputfile String that points to the output from the \code{combine.baf.files} function. This contains the phased SNPs with their BAF values
+#' @param outputfile String where the segmentation output will be written
+#' @param gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 5)
+#' @param kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)
+#' @param phasegamma Gamma parameter used when correcting phasing mistakes (Default: 3)
+#' @param phasekmin Kmin parameter used when correcting phasing mistakes (Default: 1)
+#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0 or 1, median, mean. (Default: 3)
+#' @author dw9, sd11, naser.ansari-pour
+#' @export
+segment.baf.phased.wes = function(samplename, inputfile, outputfile, gamma=5, phasegamma=3, kmin=3, phasekmin=1, calc_seg_baf_option=3) {
+  BAFraw = read.table(inputfile,sep="\t",header=T, stringsAsFactors=F)
+  
+  BAFoutput = NULL
+  for (chr in unique(BAFraw[,1])) {
+    BAFrawchr = BAFraw[BAFraw[,1]==chr,c(2,3)]
+    BAFrawchr = BAFrawchr[!is.na(BAFrawchr[,2]),]
+    
+    BAF = BAFrawchr[,2]
+    pos = BAFrawchr[,1]
+    names(BAF) = rownames(BAFrawchr)
+    names(pos) = rownames(BAFrawchr)
+    
+    sdev <- getMad(ifelse(BAF<0.5,BAF,1-BAF),k=25)
+    # Standard deviation is not defined for a single value
+    if (is.na(sdev)) {
+      sdev = 0
+    }
+    #DCW 250314
+    #for cell lines, sdev goes to zero in regions of LOH, which causes problems.
+    #0.09 is around the value expected for a binomial distribution around 0.5 with depth 30
+    if(sdev<0.09){
+      sdev = 0.09
+    }
+    
+    print(paste("BAFlen=",length(BAF),sep=""))
+    if(length(BAF)<50){
+      BAFsegm = rep(mean(BAF),length(BAF))
+    }else{
+      res= selectFastPcf(BAF,phasekmin,phasegamma*sdev,T)
+      BAFsegm = res$yhat
+    }
+    
+    png(filename = paste(samplename,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+    create.segmented.plot(chrom.position=pos/1000000, 
+                          points.red=BAF, 
+                          points.green=BAFsegm, 
+                          x.min=min(pos)/1000000, 
+                          x.max=max(pos)/1000000, 
+                          title=paste(samplename,", chromosome ", chr, sep=""), 
+                          xlab="Position (Mb)", 
+                          ylab="BAF (phased)")
+    dev.off()
+    
+    BAFphased = ifelse(BAFsegm>0.5,BAF,1-BAF)
+    
+    if(length(BAFphased)<50){
+      BAFphseg = rep(mean(BAFphased),length(BAFphased))
+    }else{
+      res = selectFastPcf(BAFphased,kmin,gamma*sdev,T)
+      BAFphseg = res$yhat
+    }
+    
+    # Recalculate the BAF of each segment, if required
+      if (calc_seg_baf_option==1) {
+        # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
+        BAFphseg = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
+      } else if (calc_seg_baf_option==2) {
+        # Don't do anything, the BAF is already the mean
+      } else if (calc_seg_baf_option==3) {
+        # Take the median, unless the median is exactly 0 or 1. At the extreme
+        # there is no difference between lets say 40 and 41 copies and BB cannot
+        # fit a copy number state. The mean is less prone to become exactly 0 or 1
+        # but the median is generally a better estimate that is less sensitive to
+        # how well the haplotypes have been reconstructed
+        BAFphseg_median = adjustSegmValues(data.frame(BAFphased=BAFphased, BAFseg=BAFphseg))$BAFseg
+        BAFphseg = ifelse(BAFphseg_median %in% c(0,1), BAFphseg_median, BAFphseg)
+      } else {
+        warning("Supplied calc_seg_baf_option to segment.baf.phased not valid, using mean BAF by default")
+      }
+    
+    png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+    create.baf.plot(chrom.position=pos/1000000, 
+                    points.red.blue=BAF, 
+                    plot.red=BAFsegm>0.5,
+                    points.darkred=BAFphseg, 
+                    points.darkblue=1-BAFphseg, 
+                    x.min=min(pos)/1000000, 
+                    x.max=max(pos)/1000000, 
+                    title=paste(samplename,", chromosome ", chr, sep=""), 
+                    xlab="Position (Mb)", 
+                    ylab="BAF (phased)")
+    dev.off()
+    
+    BAFphased = ifelse(BAFsegm>0.5, BAF, 1-BAF)
+    BAFoutputchr = data.frame(Chromosome=rep(chr, length(BAFphseg)), Position=pos, BAF=BAF, BAFphased=BAFphased, BAFseg=BAFphseg)
+    BAFoutput = rbind(BAFoutput, BAFoutputchr)
+  }
+  colnames(BAFoutput) = c("Chromosome","Position","BAF","BAFphased","BAFseg")
+  write.table(BAFoutput, outputfile, sep="\t", row.names=F, col.names=T, quote=F)
+}
 
 
 #' Segment BAF, with the possible inclusion of structural variant breakpoints
