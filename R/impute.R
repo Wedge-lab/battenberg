@@ -134,7 +134,7 @@ combine.impute.output = function(inputfile.prefix, outputfile, is.male, imputein
   }
   # Concatenate all the regions
   impute.output = concatenateImputeFiles(inputfile.prefix, all.boundaries)
-  write.table(impute.output, file=outputfile, row.names=F, col.names=F, quote=F, sep=" ")
+  write.table(impute.output, file=outputfile, row.names=F, col.names=T, quote=F, sep=" ")
 }
 
 
