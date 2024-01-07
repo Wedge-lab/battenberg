@@ -78,7 +78,7 @@ read_bafsegmented = function(filename, header=T) {
 #' @param filename Filename of the file to read in
 #' @return A data frame with the imputed genotype output
 read_imputed_output = function(filename) {
-  return(readr::read_tsv(file = filename, col_names = c("snpidx", "rsidx", "pos", "ref", "alt", "hap1", "hap2"), col_types = "cciccii"))
+  return(readr::read_delim(file = filename, delim = " ", col_names = c("snpidx", "rsidx", "pos", "ref", "alt", "hap1", "hap2"), col_types = "cciccii"))
 }
 
 #' Parser for allele frequencies data
