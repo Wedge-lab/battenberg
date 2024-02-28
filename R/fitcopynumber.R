@@ -977,6 +977,7 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
     PCF=data.frame()
     for (j in 1:(length(breakpoints)-1)) {
       PCFinput_sv=PCFinput[which(PCFinput$Position>=breakpoints[j] & PCFinput$Position<breakpoints[j+1]),]
+      if (nrow(PCFinput_sv)==0) next
       PCF_sv=copynumber::pcf(PCFinput_sv,gamma=X_gamma,kmin=X_kmin)
       PCF=rbind(PCF,PCF_sv)
     }
@@ -1302,7 +1303,7 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
   goodness=goodness[which(goodness$is.best=="TRUE"),"distance"]
   # rho and ploidy from purity_ploidy file
   rho_psi=read.table(paste0(tumourname,"_purity_ploidy.txt"),header=T,stringsAsFactors = F,sep="\t")
-  rho=rho_psi$cellularity
+  rho=rho_psi$purity
   ploidy=rho_psi$ploidy
   # Need BAFsegment file
   BAFvals=as.data.frame(Battenberg:::read_bafsegmented(paste0(tumourname,".BAFsegmented.txt")))
