@@ -11,7 +11,7 @@
 #' @param R2threshold Minimum linkage disequilibrium R2 value threshold for choosing proxy SNPs (range accepted = 0.8-1 inclusive, default 1 i.e. complete LD)
 #' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
 #' @param heterozygousFilter The cutoff where a SNP in the normalname sample will be considered as heterozygous (default 0.1)
-#' @author nansari-pour
+#' @author naser.ansari-pour
 #' @export
 
 add_snp_proxies=function(chrom_names,tumourname,normalname,g1000prefix_al,proxy_snps,R2threshold=1,min_normal_depth=10,heterozygousFilter=0.1){
@@ -134,7 +134,7 @@ add_snp_proxies=function(chrom_names,tumourname,normalname,g1000prefix_al,proxy_
 #' @param allelecounter_exe Path to the allele counter executable (can be found in $PATH)
 #' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
 #' @param nthreads The number of parallel processes to run for allelecounting
-#' @author nansari-pour
+#' @author naser.ansari-pour
 #' @export
 
 prepare_wes = function(chrom_names, tumourbam, normalbam, tumourname, normalname, g1000prefix, g1000allelesprefix, heterozygousFilter,
