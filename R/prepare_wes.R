@@ -17,6 +17,7 @@
 add_snp_proxies=function(chrom_names,tumourname,normalname,g1000prefix_al,proxy_snps,R2threshold=1,min_normal_depth=10,heterozygousFilter=0.1){
   
   proxy_summary=data.frame()
+  
   for (chrom in chrom_names){
     
     print(chrom)
@@ -43,7 +44,7 @@ add_snp_proxies=function(chrom_names,tumourname,normalname,g1000prefix_al,proxy_
     het_ac_proxy=merge(het_ac,proxy_snp_file,by=c("Chr","Position"))
     
     # Find the rows with the maximum Depth for each unique Proxy SNP and remove other duplicated rows (rule: one additional row of imputed allelecounts per added Proxy SNP)
-    
+    if (nrow(het_ac_proxy)>0){
     het_ac_proxy$maxID=paste(het_ac_proxy$Proxy_Position,het_ac_proxy$Depth,sep="_")
     het_ac_proxy_unique=aggregate(Depth ~ Proxy_Position, data = het_ac_proxy, FUN = function(x){max(x)})
     het_ac_proxy_unique$ID=paste(het_ac_proxy_unique$Proxy_Position,het_ac_proxy_unique$Depth,sep="_")
@@ -55,7 +56,7 @@ add_snp_proxies=function(chrom_names,tumourname,normalname,g1000prefix_al,proxy_
     out_ac=rbind(ac,data.frame(Chr=het_ac_proxy$Proxy_Chr,Position=het_ac_proxy$Proxy_Position,het_ac_proxy[,c("A","C","G","T","Depth","baf")]))
     out_ac=out_ac[order(out_ac$Position),]
     out_ac$baf=NULL
-    dim(out_ac)
+    
     
     
     cat(paste("#CHR","POS","Count_A","Count_C","Count_G","Count_T","Good_depth",sep="\t"),sep="\n",file=paste0(normalname,"_alleleFrequencies_chr",chrom,".txt"))
@@ -90,13 +91,18 @@ add_snp_proxies=function(chrom_names,tumourname,normalname,g1000prefix_al,proxy_
     
     # create a temporary alleles file to match the updated/longer allelecount files with proxies for getBAFandLogR, etc.
     
-    dim(het_ac_proxy)
     al_proxy=data.frame(position=het_ac_proxy$Proxy_Position,al[match(het_ac_proxy$Position,al$position),][,-1])
     dim(al_proxy)
     out_al=rbind(al,al_proxy)
     out_al=out_al[order(out_al$position),]
     
     write.table(out_al,paste0(tumourname,"_WES_1000genomes_alleles_",genomebuild,"_chr",chrom,".txt"),col.names=T,row.names=F,quote=F,sep="\t")
+    } else {
+      # define out_al with al as no 'proxy' SNP is there to be added but need to generate the alleles file for this chromosome with consistent naming i.e. *_WES_1000genomes_alleles_*
+      # ac and tac stay the same so no output required
+      out_al=al
+      write.table(out_al,paste0(tumourname,"_WES_1000genomes_alleles_",genomebuild,"_chr",chrom,".txt"),col.names=T,row.names=F,quote=F,sep="\t")
+    }
   }
   
   write.table(proxy_summary,paste0(tumourname,"_proxy_hetSNP_summary.txt"),col.names = T,row.names = F,quote = F,sep="\t")
