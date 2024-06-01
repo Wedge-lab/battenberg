@@ -285,7 +285,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   write.table(subcloneres, gsub(".txt","_extended.txt",output.file), quote=F, col.names=T, row.names=F, sep="\t")
 
   # NAP - November 2023
-  # Recalculate PGA.is.clonal to match the final copy number profile in subclones.txt file
+  # Recalculate PGA.is.clonal to match the final copy number profile in copynumber.txt file (previously subclones.txt file)
   subcloneres$length=subcloneres$endpos-subcloneres$startpos
   subcloneres_subclonal=subcloneres[which(subcloneres$frac1_A<1),]
   diploid=which(subcloneres$nMaj1_A==1 & subcloneres$nMin1_A==1 & subcloneres$frac1_A==1)
@@ -357,7 +357,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   
   # Create user friendly cellularity and ploidy output file
   cellularity_ploidy_output = data.frame(purity = c(rho), ploidy = c(ploidy), psi = c(psit))
-  cellularity_file = gsub("_copynumber.txt", "_purity_ploidy.txt", output.file) # NAP: updated the name of the output file, consistent with new title
+  cellularity_file = gsub("_.+\\.txt$", "_purity_ploidy.txt", output.file) # NAP: updated the name of the output file, consistent with new title (and added flexibility with what output.file is named)
   write.table(cellularity_ploidy_output, cellularity_file, quote=F, sep="\t", row.names=F)
 }
 
