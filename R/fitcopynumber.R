@@ -374,7 +374,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
 #' @param siglevel Level at which a segment can become significantly different from the nearest clonal state
 #' @param noperms Number of bootstrap permutations
 #' @return A data.frame with copy number determined for each segment
-#' @author dw9
+#' @author dw9 naser.ansari-pour
 #' @noRd
 determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms) {
   BAFphased = BAFvals[,4]
@@ -416,7 +416,11 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
     nMinor = (rho-1+(1-l)*psi*2^(LogR/gamma))/rho
     
     # Increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
-    if (nMinor<0) {
+    # NAP: allow for slightly negative nMinors to be called usually due to LOH in pure tumours;
+    # nMinor=0.1 threshold represents 10% error in estimating rho correctly, i.e. rho~0.9 when it should be 1
+    if (nMinor < 0 & nMinor > -0.1) {
+      nMinor = 0.01
+    } else if (nMinor <= -0.1){
       if (l==1) {
         # Avoid calling infinite copy number
         nMajor = 1000
