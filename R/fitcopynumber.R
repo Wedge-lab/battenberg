@@ -258,7 +258,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ################################################################################################
   res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
   subcloneres = res$subcloneres
-  write.table(subcloneres, gsub(".txt", "_1.txt", output.file), quote=F, col.names=T, row.names=F, sep="\t")
+  #write.table(subcloneres, gsub(".txt", "_1.txt", output.file), quote=F, col.names=T, row.names=F, sep="\t")
+  write.table(subcloneres, paste0(tools::file_path_sans_ext(output.file),"_1.",tools::file_ext(output.file),sep=""), quote=F, col.names=T, row.names=F, sep="\t")
   
   # Scan the segments for cases that should be merged
   res = merge_segments(subcloneres, BAFvals, LogRvals, rho, psi, gamma, calc_seg_baf_option)
@@ -281,7 +282,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # Write the final copy number profile 
   # NAP: generating two output files: first reporting solution A and the second reporting alternative solutions (B to F)
   write.table(subcloneres[,c(1:3,8:13)], output.file, quote=F, col.names=T, row.names=F, sep="\t")
-  write.table(subcloneres, gsub(".txt","_extended.txt",output.file), quote=F, col.names=T, row.names=F, sep="\t")
+  #write.table(subcloneres, gsub(".txt","_extended.txt",output.file), quote=F, col.names=T, row.names=F, sep="\t")
+  write.table(subcloneres, paste0(tools::file_path_sans_ext(output.file),"_extended.",tools::file_ext(output.file),sep=""), quote=F, col.names=T, row.names=F, sep="\t")
   
   ################################################################################################
   # Make a plot per chromosome
@@ -347,7 +349,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   
   # Create user friendly cellularity and ploidy output file
   cellularity_ploidy_output = data.frame(purity = c(rho), ploidy = c(ploidy), psi = c(psit))
-  cellularity_file = gsub("_copynumber.txt", "_purity_ploidy.txt", output.file) # NAP: updated the name of the output file, consistent with new title
+  #cellularity_file = gsub("_copynumber.txt", "_purity_ploidy.txt", output.file) # NAP: updated the name of the output file, consistent with new title
+  cellularity_file = paste0(sample.name,"_purity_ploidy.txt",sep="")
   write.table(cellularity_ploidy_output, cellularity_file, quote=F, sep="\t", row.names=F)
 }
 
