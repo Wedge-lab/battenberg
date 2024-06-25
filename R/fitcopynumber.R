@@ -404,7 +404,12 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
     }
     nMajor = (rho-1+l*psi*2^(LogR/gamma))/rho
     nMinor = (rho-1+(1-l)*psi*2^(LogR/gamma))/rho
-    
+   
+    # Occasionally nMinor can be NA due to zero coverage, skip when this occurs
+    if (is.na(nMinor)) {
+      next
+    }
+
     # Increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
     if (nMinor<0) {
       if (l==1) {
