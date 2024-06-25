@@ -96,7 +96,7 @@ segment.baf.phased.legacy = function(samplename, inputfile, outputfile, gamma=10
       BAFsegm = res$yhat
     }
     
-    png(filename = paste(samplename,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+    png(filename = paste(samplename,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200, type = "cairo")
     create.segmented.plot(chrom.position=pos/1000000, 
                           points.red=BAF, 
                           points.green=BAFsegm, 
@@ -116,7 +116,7 @@ segment.baf.phased.legacy = function(samplename, inputfile, outputfile, gamma=10
       BAFphseg = res$yhat
     }
     
-    png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+    png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200, type = "cairo")
     create.baf.plot(chrom.position=pos/1000000, 
                     points.red.blue=BAF, 
                     plot.red=BAFsegm>0.5,
@@ -365,7 +365,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
       BAFoutputchr = rbind(BAFoutputchr, BAFoutput_preseg)
     }
     
-    png(filename = paste(samplename,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+    png(filename = paste(samplename,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200, type = "cairo")
     create.segmented.plot(chrom.position=BAFoutputchr$Position/1000000, 
                           points.red=BAFoutputchr$BAF, 
                           points.green=BAFoutputchr$tempBAFsegm, 
@@ -377,7 +377,7 @@ segment.baf.phased = function(samplename, inputfile, outputfile, prior_breakpoin
                           prior_bkps_pos=bkps_chrom$position/1000000)
     dev.off()
     
-    png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+    png(filename = paste(samplename,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200, type = "cairo")
     create.baf.plot(chrom.position=BAFoutputchr$Position/1000000, 
                     points.red.blue=BAFoutputchr$BAF, 
                     plot.red=BAFoutputchr$tempBAFsegm>0.5,
@@ -618,7 +618,7 @@ segment.baf.phased.multisample = function(samplename, inputfile, outputfile, pri
     names(BAFoutputchr) <- samplename
     
     for (id in samplename) {
-      png(filename = paste(id,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+      png(filename = paste(id,"_RAFseg_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200, type = "cairo")
       create.segmented.plot(chrom.position=BAFoutputchr[[id]]$Position/1000000, 
                                          points.red=BAFoutputchr[[id]]$BAF, 
                                          points.green=BAFoutputchr[[id]]$tempBAFsegm, 
@@ -630,7 +630,7 @@ segment.baf.phased.multisample = function(samplename, inputfile, outputfile, pri
                                          prior_bkps_pos=bkps_chrom$position/1000000)
       dev.off()
       
-      png(filename = paste(id,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200)
+      png(filename = paste(id,"_segment_chr",chr,".png",sep=""), width = 2000, height = 1000, res = 200, type = "cairo")
       create.baf.plot(chrom.position=BAFoutputchr[[id]]$Position/1000000, 
                                    points.red.blue=BAFoutputchr[[id]]$BAF, 
                                    plot.red=BAFoutputchr[[id]]$tempBAFsegm>0.5,
