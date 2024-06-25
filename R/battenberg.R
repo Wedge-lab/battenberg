@@ -82,6 +82,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
   requireNamespace("foreach")
   requireNamespace("doParallel")
   requireNamespace("parallel")
+  libs <- .libPaths()
  
   if (analysis == "cell_line"){
     calc_seg_baf_option=1
@@ -294,6 +295,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
       # mclapply(1:length(chrom_names), function(chrom) {
       if (analysis=="germline"){
         foreach::foreach (i=1:length(chrom_names)) %dopar% {
+          .libPaths(libs)
           chrom = chrom_names[i]
           print(chrom)
           
@@ -321,6 +323,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
         }
       } else {
         foreach::foreach (i=1:length(chrom_names)) %dopar% {
+          .libPaths(libs)
           chrom = chrom_names[i]
           print(chrom)      
           run_haplotyping(chrom=chrom,
@@ -394,6 +397,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     # Reconstruct haplotypes
     # mclapply(1:length(chrom_names), function(chrom) {
     foreach::foreach (i=1:length(chrom_names)) %dopar% {
+      .libPaths(libs)
       chrom = chrom_names[i]
       print(chrom)
       
@@ -425,6 +429,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
       
       
       foreach::foreach (i=1:length(chrom_names)) %dopar% {
+        .libPaths(libs)
         chrom = chrom_names[i]
         print(chrom)
         
@@ -481,6 +486,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
   doParallel::registerDoParallel(clp)
   # for (sampleidx in 1:nsamples) {
   foreach::foreach (sampleidx=1:nsamples) %dopar% {
+    .libPaths(libs)
     print(paste0("Fitting final copy number and calling subclones for sample ", samplename[sampleidx]))
     
     if (data_type=="wgs" | data_type=="WGS") {
@@ -514,6 +520,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
                     analysis=analysis)
     
     # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
+    print("callSubclones")
     callSubclones(sample.name=samplename[sampleidx],
                   baf.segmented.file=paste(samplename[sampleidx], ".BAFsegmented.txt", sep=""),
                   logr.file=logr_file,
@@ -534,6 +541,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
     # Only do this when X chromosome is included
     if (ismale & "X" %in% chrom_names){
+      print("callChrXsubclones")
       callChrXsubclones(tumourname=samplename[sampleidx],
                         X_gamma=1000,
                         X_kmin=100,
@@ -543,6 +551,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
     }
     
     # Make some post-hoc plots
+    print("make_posthoc_plots")
     make_posthoc_plots(samplename=samplename[sampleidx],
                        logr_file=logr_file,
                        bafsegmented_file=paste(samplename[sampleidx], ".BAFsegmented.txt", sep=""),
@@ -550,6 +559,7 @@ battenberg = function(analysis="paired", samplename, normalname, sample_data_fil
                        allelecounts_file=allelecounts_file)
     
     # Save refit suggestions for a future rerun
+    print("cnfit_to_refit_suggestions")
     cnfit_to_refit_suggestions(samplename=samplename[sampleidx],
                                subclones_file=paste(samplename[sampleidx], "_copynumber_extended.txt", sep=""),
                                rho_psi_file=paste(samplename[sampleidx], "_rho_and_psi.txt", sep=""),

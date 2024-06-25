@@ -346,7 +346,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
   Tumor_LogR[,3] = residuals(model)
   rm(model, corrdata)
 
-  readr::write_tsv(x=Tumor_LogR[which(!is.na(Tumor_LogR[,3])), ], path=outfile)
+  readr::write_tsv(x=Tumor_LogR[which(!is.na(Tumor_LogR[,3])), ], file=outfile)
 
   if (recalc_corr_afterwards) {
     # Recalculate the correlations to see how much there is left

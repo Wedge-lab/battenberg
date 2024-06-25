@@ -889,7 +889,7 @@ gc.correct.wgs.germline = function(germline_LogR_file, outfile, correlations_out
   Germline_LogR[,3] = residuals(model)
   rm(model, corrdata)
   
-  readr::write_tsv(x=Germline_LogR[which(!is.na(Germline_LogR[,3])), ], path=outfile)
+  readr::write_tsv(x=Germline_LogR[which(!is.na(Germline_LogR[,3])), ], file=outfile)
   
   if (recalc_corr_afterwards) {
     # Recalculate the correlations to see how much there is left

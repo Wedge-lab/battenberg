@@ -30,7 +30,6 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
   assert.file.exists(inputfile.baf.segmented)
   assert.file.exists(inputfile.baf)
   assert.file.exists(inputfile.logr)
-  
   # Check for enough options supplied for rho and psi
   if ((max.ploidy - min.ploidy) < 0.05) {
     stop(paste("Supplied ploidy range must be larger than 0.05: ", min.ploidy, "-", max.ploidy, sep=""))
@@ -87,7 +86,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     chr.BAF.data = baf_split[[chr]]
     
     # Skip the rest if there is no data for this chromosome
-    if(nrow(chr.BAF.data)==0){ next }
+    if(is.null(chr.BAF.data) || nrow(chr.BAF.data)==0){ next }
     # Match segments with chromosome position
     chr.segmented.BAF.data = baf_segmented_split[[chr]]
     indices = match(chr.segmented.BAF.data[,2],chr.BAF.data$Position )
@@ -308,7 +307,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     breakpoints_pos = segment_breakpoints[segment_breakpoints$chromosome==chr,]
     breakpoints_pos = sort(unique(c(breakpoints_pos$start, breakpoints_pos$end) / 1000000))
     
-    png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200)
+    png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200, type = "cairo")
     create.subclonal.cn.plot(chrom=chr,
                              chrom.position=pos/1000000,
                              LogRposke=LogRvals[LogRvals[,1]==chr,2],
@@ -665,7 +664,9 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
   # Convert DFs into GRanges objects
   if (verbose) print('Convert DFs into GRanges objects')
   subclones=df2gr(subclones,'chr','startpos','endpos')
+  str(bafsegmented)
   bafsegmented=df2gr(bafsegmented,'Chromosome','Position','Position')
+  str(logR)
   logR=df2gr(logR,'Chromosome','Position','Position')
   names(GenomicRanges::mcols(logR))='logR'
   # Split GRanges objects by chromosomes
@@ -673,6 +674,7 @@ merge_segments=function(subclones, bafsegmented, logR, rho, psi, platform_gamma,
   subclones=lapply(chr_names,function(x) subclones[GenomicRanges::seqnames(subclones)==x])
   bafsegmented=lapply(chr_names,function(x) bafsegmented[GenomicRanges::seqnames(bafsegmented)==x])
   logR=lapply(chr_names,function(x) logR[GenomicRanges::seqnames(logR)==x])
+  
   stopifnot(all(sapply(subclones,length)>0) && all(sapply(bafsegmented,length)>0) && all(sapply(logR,length)>0))
   names(subclones)=chr_names
   names(bafsegmented)=chr_names
@@ -850,7 +852,7 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, ploidy, goodness, outpu
   chr.segs = lapply(1:length(chr.names), function(ch) { which(BAFvals$Chromosome==chr.names[ch]) })
   
   # Plot subclonal copy number as mixtures of two states
-  png(filename = paste(output.gw.figures.prefix, "_average.png", sep=""), width = 2000, height = 500, res = 200)
+  png(filename = paste(output.gw.figures.prefix, "_average.png", sep=""), width = 2000, height = 500, res = 200, type = "cairo")
   create.bb.plot.average(bafsegmented=BAFvals,
                          ploidy=ploidy,
                          rho=rho,
@@ -865,7 +867,7 @@ plot.gw.subclonal.cn = function(subclones, BAFvals, rho, ploidy, goodness, outpu
   dev.off()
   
   # Plot subclonal copy number as two separate states
-  png(filename = paste(output.gw.figures.prefix, "_subclones.png", sep=""), width = 2000, height = 500, res = 200)
+  png(filename = paste(output.gw.figures.prefix, "_subclones.png", sep=""), width = 2000, height = 500, res = 200, type = "cairo")
   create.bb.plot.subclones(bafsegmented=BAFvals,
                            subclones=subclones,
                            ploidy=ploidy,
@@ -978,7 +980,10 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
   if (!is.null(prior_breakpoints_file)) {
     sv=read.table(prior_breakpoints_file, header=T, stringsAsFactors=F)
     sv=sv[which(!is.na(match(sv$chr,c("X","chrX")))),]
-    breakpoints=c(min(PCFinput$Position),sv$pos,max(PCFinput$Position))
+    #Correction submitted by Atef Ahli on 23/10/23
+    #breakpoints=c(min(PCFinput$Position),sv$pos,max(PCFinput$Position))
+    svpos=sv[which((sv$pos > min(PCFinput$Position)) & (sv$pos < max(PCFinput$Position))),"pos"]
+    breakpoints=c(min(PCFinput$Position),svpos,max(PCFinput$Position))
     PCF=data.frame()
     for (j in 1:(length(breakpoints)-1)) {
       PCFinput_sv=PCFinput[which(PCFinput$Position>=breakpoints[j] & PCFinput$Position<breakpoints[j+1]),]
@@ -1176,7 +1181,7 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
         }
       }
     }
-    print(j)
+    #print(j)
     SUBCLONES=rbind(SUBCLONES,subclones)
   }
   
@@ -1196,7 +1201,7 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
   outputDF=data.frame()
   for (j in 1:length(SPLIT)){
     if (length(SPLIT[[j]])>1){
-      print(length(SPLIT[[j]]))
+      #print(length(SPLIT[[j]]))
       SUBsplit=SUBCLONESout[which(!is.na(match(SUBCLONESout$rank,SPLIT[[j]]))),]
       if (length(unique(SUBsplit$arm))==1){
         if (sd(SUBsplit$subclonalCN)<=0.01){
