@@ -196,7 +196,8 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param output.gw.figures.prefix Prefix of the filenames for the genome wide copy number figures
 #' @param chr_names Vector of allowed chromosome names
 #' @param masking_output_file Filename of where the masking details need to be written. Masking is performed to remove very high copy number state segments
-#' @param max_allowed_state The maximum CN state allowed (Default 100)
+#' @param max_allowed_state The maximum CN state allowed (Default 250)
+#' @param cn_upper_limit The maximum CN that can be called (Default 1000)
 #' @param prior_breakpoints_file A two column file with prior breakpoints, possibly from structural variants. This file must contain two columns: chromosome and position. These are used when making the figures
 #' @param gamma Technology specific scaling parameter for LogR (Default 1)
 #' @param segmentation.gamma Legacy parameter that is no longer used (Default NA)
@@ -208,7 +209,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @author dw9, sd11
 #' @export
 
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, prior_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=3) {
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, cn_upper_limit=1000, prior_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=3) {
   
   set.seed(seed)
   
@@ -256,7 +257,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ################################################################################################
   # Determine copy number for each segment
   ################################################################################################
-  res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
+  res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms, cn_upper_limit)
   subcloneres = res$subcloneres
   #write.table(subcloneres, gsub(".txt", "_1.txt", output.file), quote=F, col.names=T, row.names=F, sep="\t")
   write.table(subcloneres, paste0(tools::file_path_sans_ext(output.file),"_1.",tools::file_ext(output.file),sep=""), quote=F, col.names=T, row.names=F, sep="\t")
@@ -265,7 +266,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   res = merge_segments(subcloneres, BAFvals, LogRvals, rho, psi, gamma, calc_seg_baf_option)
   BAFvals = res$bafsegmented
   
-  res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
+  res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms, cn_upper_limit)
   subcloneres = res$subcloneres
   BAFpvals = res$BAFpvals
   
@@ -366,10 +367,11 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
 #' @param maxdist Max distance a segment is tolerated to be not considered for subclonal copy number
 #' @param siglevel Level at which a segment can become significantly different from the nearest clonal state
 #' @param noperms Number of bootstrap permutations
+#' @param cn_upper_limit Maximum number of CN that can be called
 #' @return A data.frame with copy number determined for each segment
 #' @author dw9
 #' @noRd
-determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms) {
+determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms, cn_upper_limit) {
   BAFphased = BAFvals[,4]
   BAFseg = BAFvals[,5]
   BAFpos = as.vector(ctrans[as.vector(BAFvals[,1])]*1000000000+BAFvals[,2])
@@ -417,7 +419,7 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
     if (nMinor<0) {
       if (l==1) {
         # Avoid calling infinite copy number
-        nMajor = 1000
+        nMajor = cn_upper_limit
       } else {
         nMajor = nMajor + l * (0.01 - nMinor) / (1-l)
       }
