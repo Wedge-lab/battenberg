@@ -28,6 +28,7 @@
 #' @param min_ploidy Minimum ploidy to be considered (Default: 1.6)
 #' @param max_ploidy Maximum ploidy to be considered (Default: 4.8)
 #' @param min_rho Minimum purity to be considered (Default: 0.1)
+#' @param max_rho Maximum purity to be considered (Default: 1.0)
 #' @param min_goodness Minimum goodness of fit required for a purity/ploidy combination to be accepted as a solution (Default: 0.63)
 #' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative (Default: 0.51)
 #' @param min_normal_depth Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)
@@ -88,6 +89,7 @@ battenberg = function(analysis="paired",
                       min_ploidy=1.6,
                       max_ploidy=4.8,
                       min_rho=0.1,
+                      max_rho=1.0,
                       min_goodness=0.63,
                       uninformative_BAF_threshold=0.51,
                       min_normal_depth=10,
@@ -554,6 +556,7 @@ battenberg = function(analysis="paired",
                     min.ploidy=min_ploidy,
                     max.ploidy=max_ploidy,
                     min.rho=min_rho,
+                    max.rho=max_rho,
                     min.goodness=min_goodness,
                     uninformative_BAF_threshold=uninformative_BAF_threshold,
                     gamma_param=platform_gamma,
