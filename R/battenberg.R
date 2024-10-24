@@ -596,7 +596,8 @@ battenberg = function(analysis="paired",
                         X_kmin=100,
                         genomebuild=genomebuild,
                         AR=TRUE,
-                        prior_breakpoints_file=prior_breakpoints_file)
+                        prior_breakpoints_file=prior_breakpoints_file,
+			chrom_names=chrom_names)
     }
     
     # Make some post-hoc plots
