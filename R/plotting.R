@@ -248,7 +248,7 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
   if (pdf)
     pdf(file = paste(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".pdf", sep=""), width = 7, height = 7)
   else
-    png(filename = paste(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".png", sep=""), width = 1200, height = 1200, res = 200)
+    png(filename = paste(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".png", sep=""), width = 1200, height = 1200, res = 200, type = "cairo")
   
   # read in and augment data
   segment_pos <- as.numeric(gsub("M", "000000", segment_pos))
@@ -441,7 +441,7 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
     p = p + geom_rect(data=subclones[sel, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_cn-rect_height_padding, ymax=total_cn+rect_height_padding), fill="#E55300")
   }
   
-  png(outputfile, width=2000, height=1300)
+  png(outputfile, width=2000, height=1300, type = "cairo")
   print(p)
   dev.off()
 }
@@ -537,7 +537,7 @@ allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile
                        axis.title.y = element_text(colour="black",size=20,face="plain"),
                        strip.text.x = element_text(colour="black",size=16,face="plain"),
                        plot.title = element_text(colour="black",size=36,face="plain"))
-  png(outputfile, width=2000, height=750)
+  png(outputfile, width=2000, height=750, type = "cairo")
   gridExtra::grid.arrange(gridExtra::arrangeGrob(copy_ratio, as_copy_ratio_seg, ncol=1))
   dev.off()
 }
@@ -600,7 +600,7 @@ coverage_plot = function(samplename, allelecounts, outputfile, max.y=4) {
                        axis.title.y = element_text(colour="black",size=20,face="plain"),
                        strip.text.x = element_text(colour="black",size=16,face="plain"),
                        plot.title = element_text(colour="black",size=36,face="plain"))
-  png(outputfile, width=2000, height=750)
+  png(outputfile, width=2000, height=750, type = "cairo")
   gridExtra::grid.arrange(gridExtra::arrangeGrob(p, p3, ncol=1))
   dev.off()
 }

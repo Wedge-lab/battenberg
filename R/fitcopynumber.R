@@ -163,6 +163,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     
     ascat_optimum_pair = runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, cnaStatusFile=cnaStatusFile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness, chr.names=chr.names, analysis=analysis) # kjd 4-2-2014
   }
+print(paste0("Ces: "," 0 ", ascat_optimum_pair))
   
   distance.outfile=paste(outputfile.prefix,"second_distance.png",sep="",collapse="") # kjd 20-2-2014
   copynumberprofile.outfile=paste(outputfile.prefix,"second_copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
@@ -212,7 +213,6 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, cn_upper_limit=1000, prior_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=3) {
   
   set.seed(seed)
-  
   # Load rho/psi/goodness of fit
   res = load.rho.psi.file(rho.psi.file)
   rho = res$rho
@@ -319,7 +319,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     breakpoints_pos = segment_breakpoints[segment_breakpoints$chromosome==chr,]
     breakpoints_pos = sort(unique(c(breakpoints_pos$start, breakpoints_pos$end) / 1000000))
     
-    png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200)
+    png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200, type = "cairo")
     create.subclonal.cn.plot(chrom=chr,
                              chrom.position=pos/1000000,
                              LogRposke=LogRvals[LogRvals[,1]==chr,2],
@@ -359,7 +359,8 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   
   # Create user friendly cellularity and ploidy output file
   cellularity_ploidy_output = data.frame(purity = c(rho), ploidy = c(ploidy), psi = c(psit))
-  cellularity_file = gsub("_.+\\.txt$", "_purity_ploidy.txt", output.file) # NAP: updated the name of the output file, consistent with new title (and added flexibility with what output.file is named)
+  # cellularity_file = gsub("_.+\\.txt$", "_purity_ploidy.txt", output.file) # NAP: updated the name of the output file, consistent with new title (and added flexibility with what output.file is named)
+  cellularity_file = paste0(sample.name,"_purity_ploidy.txt") 
   write.table(cellularity_ploidy_output, cellularity_file, quote=F, sep="\t", row.names=F)
 }
 
@@ -1036,7 +1037,6 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
   #SAMPLEwgd=ifelse(round(pupl$ploidy/2)*2==4,T,F)
   SAMPLEn=pupl$ploidy
   print(paste(SAMPLEpurity,SAMPLEn))
-  
   # Estimating LogR deviation in diploid and gained regions (AUTOSOMAL)
   BB=read.table(paste0(tumourname,"_copynumber_extended.txt"),header=T,stringsAsFactors = F)
   
@@ -1357,6 +1357,4 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
                                     output.gw.figures.prefix=paste(tumourname,"_BattenbergProfile", sep=""), 
                                     chr.names=chrom_names, 
                                     tumourname=tumourname)
-  
-  
 }
