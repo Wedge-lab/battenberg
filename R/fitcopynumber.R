@@ -1298,8 +1298,14 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
   
   # PLOT
   outputDF$diff=outputDF$endpos-outputDF$startpos
+  # print(outputDF)
+  if (nrow(outputDF[which(outputDF$CNA=="yes"),])>0){
   PGAclonal=sum(outputDF[which(outputDF$clonal=="yes"),]$diff)/sum(outputDF[which(!is.na(outputDF$clonal)),]$diff)
-  
+  print(paste("chrX-based PGA.is.clonal =",PGAclonal))
+  } else {
+    print("no chrX CNA identified")
+    PGAclonal = "NA"
+  }
   
   plot_BB=ggplot()+geom_hline(yintercept = 0:ceiling(max(outputDF$subclonalCN)),linetype="longdash",col="grey",linewidth=0.2)+
     geom_rect(data=outputDF,aes(xmin=startpos,xmax=endpos,ymin=subclonalCN-0.02,ymax=subclonalCN+0.02))+
@@ -1308,7 +1314,7 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
     ylim(-0.2,ceiling(max(outputDF$subclonalCN))+0.2)+labs(x="ChrX coordinate (bp)",y="Average Ploidy")+
     theme(plot.title = element_text(hjust = 0.5,size=12),panel.background = element_blank())+
     ggtitle(paste0(tumourname," , Ploidy: ",round(SAMPLEn,digits = 3)," , Purity: ",round(SAMPLEpurity*100,digits = 0),
-                   "%, PGAclonal: ",round(PGAclonal*100,digits = 1),"%"))
+                   "%, chrX PGA.is.clonal: ",ifelse(PGAclonal=="NA","NA",paste0(round(PGAclonal*100,digits = 1),"%"))))
   
   # ANDROGEN RECEPTOR LOCUS
   if (AR){
@@ -1341,9 +1347,19 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
   ploidy=rho_psi$ploidy
   # Need BAFsegment file
   BAFvals=as.data.frame(Battenberg:::read_bafsegmented(paste0(tumourname,".BAFsegmented.txt")))
+  print("BAFvals")
+  
+  # replacing constant value of 90000 with chrX_BAFvals_length as a sample-specific way of counting the typical no. of het SNPs expected based on chrX length (chr 7 and 8 average hetSNP count) 
+  # option 1 (may not always work if chr7 or chr8 have any kind of LOH in a pure or high-purity sample)
+  #chrX_BAFvals_length=round((nrow(BAFvals[which(!is.na(match(BAFvals$Chromosome,c(7,"chr7")))),])+nrow(BAFvals[which(!is.na(match(BAFvals$Chromosome,c(8,"chr8")))),]))/2,0)
+  # option 2 (based on the proportion of genome covered by chrX (i.e. 156e6/3e9 = 5%) and the number of hetSNPs in a sample-specific manner)
+  chrX_BAFvals_length = round(nrow(BAFvals)*0.05,0)
+  print(paste("chrX BAFvals length =",chrX_BAFvals_length))
+  
+  
   BAFvals=rbind(BAFvals[which(is.na(match(BAFvals$Chromosome,c("X","chrX")))),],
-                data.frame(Chromosome="X",Position=sort(sample(1:155e6,90000,replace=F)), # 155e6: approximate length of chrX
-                           BAF=sample(c(0,1),90000,replace=T),BAFphased=1,BAFseg=1)) # 90000 = typical no. of het SNPs expected based on chrX length (roughly around chr 7 and 8 average hetSNP counts) 
+                data.frame(Chromosome="X",Position=sort(sample(1:155e6,chrX_BAFvals_length,replace=F)), # 155e6: approximate length of chrX
+                           BAF=sample(c(0,1),chrX_BAFvals_length,replace=T),BAFphased=1,BAFseg=1)) 
   
   Battenberg:::plot.gw.subclonal.cn(subclones=BBnew, 
                                     BAFvals=BAFvals, 
