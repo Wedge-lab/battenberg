@@ -208,7 +208,7 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, rela
     singlevcf <- vcfs_common[[vcfidx]]
     sid <- VariantAnnotation::samples(VariantAnnotation::header(singlevcf))
     adddf <- S4Vectors::DataFrame(Major = VariantAnnotation::geno(singlevcf)$GT[,1], #Major = as.integer(ifelse(test = grepl(pattern = "|", x = geno(singlevcf)$GT, fixed = T), substr(x = geno(singlevcf)$GT, 1, 1), NA)),
-                       BAF = VariantAnnotation::geno(singlevcf)$AD[,1,2]/BiocGenerics::rowSums(VariantAnnotation::geno(singlevcf)$AD[,1,]),
+                       BAF = VariantAnnotation::geno(singlevcf)$AD[,1,2]/rowSums(VariantAnnotation::geno(singlevcf)$AD[,1,]),
                        PS = VariantAnnotation::geno(singlevcf)$PS[,1])
     colnames(adddf) <- paste0(sid, "_", colnames(adddf))
     S4Vectors::mcols(loci) <- cbind(S4Vectors::mcols(loci), adddf)
