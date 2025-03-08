@@ -511,7 +511,8 @@ segment.baf.phased.multisample = function(samplename, inputfile, outputfile, pri
   # @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
   # @return A data.frame with columns Chromosome,Position,BAF,BAFphased,BAFseg
   run_pcf = function(BAFrawchr, presegment_chrom_start, presegment_chrom_end, gamma) {
-    
+    print("run_pcf input = ")
+    print(BAFrawchr)
     row.indices = which(BAFrawchr$Position >= presegment_chrom_start & 
                           BAFrawchr$Position <= presegment_chrom_end)
     
@@ -593,7 +594,8 @@ segment.baf.phased.multisample = function(samplename, inputfile, outputfile, pri
   BAFraw <- Reduce(f = function(...) merge(..., sort = F, all = F), x = lapply(X = inputfile, FUN = Battenberg:::read_baf))
   # BAFraw = as.data.frame(read_tsv(inputfile, col_types = paste0("ci", paste0(rep("n", length(samplename)), collapse = ""), collapse = "")))
   if (!is.null(prior_breakpoints_file)) { bkps = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F) } else { bkps = NULL }
-  
+  print("BAFraw just after reading input files:")
+  print(BAFraw)
   BAFoutput = list()
   for (chr in unique(BAFraw[,1])) {
     print(paste0("Segmenting ", chr))
