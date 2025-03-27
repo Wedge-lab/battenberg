@@ -123,6 +123,9 @@ battenberg = function(analysis="paired", tumourname, normalname, tumour_data_fil
   
   # check whether the impute_info.txt file contains correct paths
   check.imputeinfofile(imputeinfofile = imputeinfofile, is.male = ismale, usebeagle = usebeagle)
+
+  # set the skip_allele_counting_normal variable based on the provided skip_allele_counting variable
+  skip_allele_counting_normal <- skip_allele_counting
   
   # check whether multisample case
   nsamples <- length(tumourname)
@@ -176,8 +179,13 @@ battenberg = function(analysis="paired", tumourname, normalname, tumour_data_fil
                     min_normal_depth=min_normal_depth,
                     nthreads=nthreads,
                     skip_allele_counting=skip_allele_counting[sampleidx],
-                    skip_allele_counting_normal = (sampleidx > 1))
-          
+                    skip_allele_counting_normal = skip_allele_counting_normal)
+		# In the first iteration of the loop, the skip_allele_counting_normal variable
+		# is set based on the user-provided or default value, depending on the 
+		# number of samples (nsamples).
+		# After this, it is changed to FALSE, ensuring it is not regenerated in subsequent iterations.
+		skip_allele_counting_normal = FALSE
+		
          } else if (analysis == "cell_line") {
 prepare_wgs_cell_line(chrom_names=chrom_names,
                       chrom_coord=chrom_coord_file,
