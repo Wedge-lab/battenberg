@@ -65,7 +65,7 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
   matched_data = Reduce(intersect, list(chrpos_allele, chrpos_normal, chrpos_tumour))
 
   allele_data = allele_data[chrpos_allele %in% matched_data,]
-  normal_input_data = normal_input_data[chrpos_tumour %in% matched_data,]
+  normal_input_data = normal_input_data[chrpos_normal %in% matched_data,]
   input_data = input_data[chrpos_tumour %in% matched_data,]
 
   # Clean up and reduce amount of unneeded data

@@ -163,6 +163,7 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     
     ascat_optimum_pair = runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, cnaStatusFile=cnaStatusFile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness, chr.names=chr.names, analysis=analysis) # kjd 4-2-2014
   }
+print(paste0("Ces: "," 0 ", ascat_optimum_pair))
   
   distance.outfile=paste(outputfile.prefix,"second_distance.png",sep="",collapse="") # kjd 20-2-2014
   copynumberprofile.outfile=paste(outputfile.prefix,"second_copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
@@ -196,7 +197,8 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @param output.gw.figures.prefix Prefix of the filenames for the genome wide copy number figures
 #' @param chr_names Vector of allowed chromosome names
 #' @param masking_output_file Filename of where the masking details need to be written. Masking is performed to remove very high copy number state segments
-#' @param max_allowed_state The maximum CN state allowed (Default 100)
+#' @param max_allowed_state The maximum CN state allowed (Default 250)
+#' @param cn_upper_limit The maximum CN that can be called (Default 1000)
 #' @param prior_breakpoints_file A two column file with prior breakpoints, possibly from structural variants. This file must contain two columns: chromosome and position. These are used when making the figures
 #' @param gamma Technology specific scaling parameter for LogR (Default 1)
 #' @param segmentation.gamma Legacy parameter that is no longer used (Default NA)
@@ -208,10 +210,9 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
 #' @author dw9, sd11
 #' @export
 
-callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, prior_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=3) {
+callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.file, output.file, output.figures.prefix, output.gw.figures.prefix, chr_names, masking_output_file, max_allowed_state=250, cn_upper_limit=1000, prior_breakpoints_file=NULL, gamma=1, segmentation.gamma=NA, siglevel=0.05, maxdist=0.01, noperms=1000, seed=as.integer(Sys.time()), calc_seg_baf_option=3) {
   
   set.seed(seed)
-  
   # Load rho/psi/goodness of fit
   res = load.rho.psi.file(rho.psi.file)
   rho = res$rho
@@ -256,15 +257,16 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   ################################################################################################
   # Determine copy number for each segment
   ################################################################################################
-  res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
+  res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms, cn_upper_limit)
   subcloneres = res$subcloneres
-  write.table(subcloneres, gsub(".txt", "_1.txt", output.file), quote=F, col.names=T, row.names=F, sep="\t")
+  #write.table(subcloneres, gsub(".txt", "_1.txt", output.file), quote=F, col.names=T, row.names=F, sep="\t")
+  write.table(subcloneres, paste0(tools::file_path_sans_ext(output.file),"_1.",tools::file_ext(output.file),sep=""), quote=F, col.names=T, row.names=F, sep="\t")
   
   # Scan the segments for cases that should be merged
   res = merge_segments(subcloneres, BAFvals, LogRvals, rho, psi, gamma, calc_seg_baf_option)
   BAFvals = res$bafsegmented
   
-  res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms)
+  res = determine_copynumber(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms, cn_upper_limit)
   subcloneres = res$subcloneres
   BAFpvals = res$BAFpvals
   
@@ -281,7 +283,9 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   # Write the final copy number profile 
   # NAP: generating two output files: first reporting solution A and the second reporting alternative solutions (B to F)
   write.table(subcloneres[,c(1:3,8:13)], output.file, quote=F, col.names=T, row.names=F, sep="\t")
-  write.table(subcloneres, gsub(".txt","_extended.txt",output.file), quote=F, col.names=T, row.names=F, sep="\t")
+
+  #write.table(subcloneres, gsub(".txt","_extended.txt",output.file), quote=F, col.names=T, row.names=F, sep="\t")
+  write.table(subcloneres, paste0(tools::file_path_sans_ext(output.file),"_extended.",tools::file_ext(output.file),sep=""), quote=F, col.names=T, row.names=F, sep="\t")
 
   # NAP - November 2023
   # Recalculate PGA.is.clonal to match the final copy number profile in copynumber.txt file (previously subclones.txt file)
@@ -316,7 +320,7 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
     breakpoints_pos = segment_breakpoints[segment_breakpoints$chromosome==chr,]
     breakpoints_pos = sort(unique(c(breakpoints_pos$start, breakpoints_pos$end) / 1000000))
     
-    png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200)
+    png(filename = paste(output.figures.prefix, chr,".png",sep=""), width = 2000, height = 2000, res = 200, type = "cairo")
     create.subclonal.cn.plot(chrom=chr,
                              chrom.position=pos/1000000,
                              LogRposke=LogRvals[LogRvals[,1]==chr,2],
@@ -356,7 +360,10 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   
   # Create user friendly cellularity and ploidy output file
   cellularity_ploidy_output = data.frame(purity = c(rho), ploidy = c(ploidy), psi = c(psit))
-  cellularity_file = gsub("_[^_]+\\.txt$", "_purity_ploidy.txt", output.file) # NAP: updated the name of the output file, consistent with new title allowing flexible naming of output.file by user (default: "_copynumber.txt")
+
+  # cellularity_file = gsub("_.+\\.txt$", "_purity_ploidy.txt", output.file) # NAP: updated the name of the output file, consistent with new title (and added flexibility with what output.file is named)
+  cellularity_file = paste0(sample.name,"_purity_ploidy.txt") 
+
   write.table(cellularity_ploidy_output, cellularity_file, quote=F, sep="\t", row.names=F)
 }
 
@@ -373,10 +380,11 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
 #' @param maxdist Max distance a segment is tolerated to be not considered for subclonal copy number
 #' @param siglevel Level at which a segment can become significantly different from the nearest clonal state
 #' @param noperms Number of bootstrap permutations
+#' @param cn_upper_limit Maximum number of CN that can be called
 #' @return A data.frame with copy number determined for each segment
 #' @author dw9
 #' @noRd
-determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms) {
+determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms, cn_upper_limit) {
   BAFphased = BAFvals[,4]
   BAFseg = BAFvals[,5]
   BAFpos = as.vector(ctrans[as.vector(BAFvals[,1])]*1000000000+BAFvals[,2])
@@ -424,7 +432,7 @@ determine_copynumber = function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctra
     if (nMinor<0) {
       if (l==1) {
         # Avoid calling infinite copy number
-        nMajor = 1000
+        nMajor = cn_upper_limit
       } else {
         nMajor = nMajor + l * (0.01 - nMinor) / (1-l)
       }
@@ -1032,7 +1040,6 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
   #SAMPLEwgd=ifelse(round(pupl$ploidy/2)*2==4,T,F)
   SAMPLEn=pupl$ploidy
   print(paste(SAMPLEpurity,SAMPLEn))
-  
   # Estimating LogR deviation in diploid and gained regions (AUTOSOMAL)
   BB=read.table(paste0(tumourname,"_copynumber_extended.txt"),header=T,stringsAsFactors = F)
   
@@ -1369,6 +1376,4 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
                                     output.gw.figures.prefix=paste(tumourname,"_BattenbergProfile", sep=""), 
                                     chr.names=chrom_names, 
                                     tumourname=tumourname)
-  
-  
 }
