@@ -91,11 +91,12 @@ create.subclonal.cn.plot = function(chrom, chrom.position, LogRposke, LogRchr, B
 
 #' Make GW CN plot where subclonal CN is represented as a mixture of two states
 #' NAP - July 2020 - updated main title now replacing 'cellularity' with 'purity' and 'goodness-of-fit' with 'PGAclonal' + adding TUMOURNAME
+#' NAP - November 2023 - Replacing 'PGAclonal' with 'PGA.is.clonal' for more clarity
 #' @noRd
 create.bb.plot.average = function(bafsegmented, ploidy, rho, goodnessOfFit, pos_min, pos_max, segment_states_min, segment_states_tot, chr.segs, chr.names, tumourname, ylim=5) {
   # Plot main frame and title
   par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
-  maintitle = paste0(substring(tumourname, 40, first = T),", Ploidy: ",sprintf("%1.2f",ploidy),", Purity: ",sprintf("%2.0f",rho*100),"%, PGAclonal: ",sprintf("%2.1f",goodnessOfFit*100),"%")
+  maintitle = paste0(substring(tumourname, 36, first = T),", Ploidy: ",sprintf("%1.2f",ploidy),", Purity: ",sprintf("%2.0f",rho*100),"%, PGA.is.clonal: ",sprintf("%2.1f",goodnessOfFit*100),"%")
   #maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
   plot(c(1,nrow(bafsegmented)), c(0,ylim), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
   abline(v=0,lty=1,col="lightgrey")
@@ -121,10 +122,11 @@ create.bb.plot.average = function(bafsegmented, ploidy, rho, goodnessOfFit, pos_
 
 #' Make GW CN plot where subclonal CN is represented by two separate states
 #' NAP - July 2020 - updated main title now replacing 'cellularity' with 'purity' and 'goodness-of-fit' with 'PGAclonal' + adding TUMOURNAME
+#' NAP - November 2023 - Replacing 'PGAclonal' with 'PGA.is.clonal' for more clarity
 #' @noRd
 create.bb.plot.subclones = function(bafsegmented, subclones, ploidy, rho, goodnessOfFit, pos_min, pos_max, subcl_min, subcl_max, is_subclonal, is_subclonal_maj, is_subclonal_min, chr.segs, chr.names, tumourname, ylim=5) {
 	par(mar = c(0.5,5,5,0.5), cex = 0.4, cex.main=3, cex.axis = 2.5)
-	maintitle = paste0(substring(tumourname, 40, first = T),", Ploidy: ",sprintf("%1.2f",ploidy),", Purity: ",sprintf("%2.0f",rho*100),"%, PGAclonal: ",sprintf("%2.1f",goodnessOfFit*100),"%")
+	maintitle = paste0(substring(tumourname, 36, first = T),", Ploidy: ",sprintf("%1.2f",ploidy),", Purity: ",sprintf("%2.0f",rho*100),"%, PGA.is.clonal: ",sprintf("%2.1f",goodnessOfFit*100),"%")
         # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
 	plot(c(1,nrow(bafsegmented)), c(0,ylim), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
 	abline(v=0,lty=1,col="lightgrey")
@@ -246,7 +248,7 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
   if (pdf)
     pdf(file = paste(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".pdf", sep=""), width = 7, height = 7)
   else
-    png(filename = paste(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".png", sep=""), width = 1200, height = 1200, res = 200)
+    png(filename = paste(run_dir,tumourname,"_squares","_chr",segment_chr,"_",segment_pos,".png", sep=""), width = 1200, height = 1200, res = 200, type = "cairo")
   
   # read in and augment data
   segment_pos <- as.numeric(gsub("M", "000000", segment_pos))
@@ -439,7 +441,7 @@ totalcn_chrom_plot = function(samplename, subclones, logr, outputfile, purity) {
     p = p + geom_rect(data=subclones[sel, ], mapping=aes(xmin=startpos, xmax=endpos, ymin=total_cn-rect_height_padding, ymax=total_cn+rect_height_padding), fill="#E55300")
   }
   
-  png(outputfile, width=2000, height=1300)
+  png(outputfile, width=2000, height=1300, type = "cairo")
   print(p)
   dev.off()
 }
@@ -535,7 +537,7 @@ allele_ratio_plot = function(samplename, bafsegmented, logrsegmented, outputfile
                        axis.title.y = element_text(colour="black",size=20,face="plain"),
                        strip.text.x = element_text(colour="black",size=16,face="plain"),
                        plot.title = element_text(colour="black",size=36,face="plain"))
-  png(outputfile, width=2000, height=750)
+  png(outputfile, width=2000, height=750, type = "cairo")
   gridExtra::grid.arrange(gridExtra::arrangeGrob(copy_ratio, as_copy_ratio_seg, ncol=1))
   dev.off()
 }
@@ -598,10 +600,7 @@ coverage_plot = function(samplename, allelecounts, outputfile, max.y=4) {
                        axis.title.y = element_text(colour="black",size=20,face="plain"),
                        strip.text.x = element_text(colour="black",size=16,face="plain"),
                        plot.title = element_text(colour="black",size=36,face="plain"))
-  png(outputfile, width=2000, height=750)
+  png(outputfile, width=2000, height=750, type = "cairo")
   gridExtra::grid.arrange(gridExtra::arrangeGrob(p, p3, ncol=1))
   dev.off()
 }
-
-
-

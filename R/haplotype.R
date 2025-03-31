@@ -126,7 +126,7 @@ plot.haplotype.data = function(haplotyped.baf.file, imageFileName, samplename, c
     x_max = 2
   }
 
-  png(filename = imageFileName, width = 10000, height = 2500, res = 500)
+  png(filename = imageFileName, width = 10000, height = 2500, res = 500, type = "cairo")
   create.haplotype.plot(chrom.position=mut_data$Position, 
                         points.blue=mut_data[,3], 
                         points.red=1-mut_data[,3], 

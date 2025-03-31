@@ -281,6 +281,10 @@ cnfit_to_refit_suggestions = function(samplename, subclones_file, rho_psi_file, 
   subclones$len = subclones$endpos/1000000-subclones$startpos/1000000
   subclones$is_cna = subclones$nMaj1_A!=subclones$nMin1_A
   
+  #df[c("is_cna")][is.na(df[c("is_cna")])] <- FALSE
+  #print(subclones$len)
+  print(min_segment_size_mb)
+  print(subclones$is_cna)
   if (any(subclones$len > min_segment_size_mb & subclones$is_cna)) {
     # There are large scale alterations, save the top couple as suggestions
     rho_psi = read.table(rho_psi_file, header=T, stringsAsFactors=F)

@@ -7,7 +7,7 @@
 split_genome = function(SNPpos) {
   # look for gaps of more than 1Mb and chromosome borders
   holesOver1Mb = which(diff(SNPpos[,2])>=1000000)+1
-  chrBorders = which(diff(as.numeric(SNPpos[,1]))!=0)+1
+  chrBorders = which(diff(as.numeric(factor(SNPpos[,1],levels=unique(SNPpos[,1]))))!=0)+1
   holes = unique(sort(c(holesOver1Mb,chrBorders)))
 
   # find which segments are too small
@@ -160,6 +160,7 @@ calc_ln_likelihood_ratio <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mea
       nMajor = 1000
     }else{
       nMajor = nMajor + BAFreq * (0.01 - nMinor) / (1-BAFreq)
+      if (nMajor<0) nMajor=1000
     }
     nMinor = 0.01		
   }
@@ -398,6 +399,7 @@ is.segment.clonal <-function( LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
 			nMajor = 1000
 		}else{
 			nMajor = nMajor + BAFreq * (0.01 - nMinor) / (1-BAFreq)
+			if (nMajor<0) nMajor=1000
 		}
 		nMinor = 0.01		
 	}
@@ -874,7 +876,6 @@ get_segment_info = function(segLogR , segBAF.table) {
 #' @noRd
 get_new_bounds = function( input_optimum_pair, ininitial_bounds ) # kjd 21-2-2014
 {
-  
   psi_optimum = input_optimum_pair$psi
   rho_optimum = input_optimum_pair$rho
   
@@ -1245,7 +1246,7 @@ find_centroid_of_global_minima <- function( d, ref_seg_matrix, ref_major, ref_mi
   
   # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
-    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
+    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7, type = "cairo")
   }
   clonal_findcentroid.plot(minimise, dist_choice, -d, psis, rhos, new_bounds)
   if (!is.na(distancepng)) { dev.off() }
@@ -1429,10 +1430,10 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
   }
   
   # NAP: only create this plot for 'paired' analysis mode and not cell_line or germline; it shows strange behaviour and halts execution
-  if (analysis=="paired"){	
+  if (analysis=="paired"){
   # separated plotting from logic: create distanceplot here
   if (!is.na(distancepng)) {
-    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7)
+    png(filename = distancepng, width = 1000, height = 1000, res = 1000/7, type = "cairo")
   }
   ASCAT::ascat.plotSunrise(-d, psi_opt1_plot, rho_opt1_plot,minimise)
   if (!is.na(distancepng)) { dev.off() }
@@ -1461,14 +1462,14 @@ runASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choi
 
 	# Create plot
 	if (!is.na(copynumberprofilespng)) {
-	  png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200)
+	  png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200, type = "cairo")
 	}
 	ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented, chrs=chr.names)
 	if (!is.na(copynumberprofilespng)) { dev.off() }
 	
 	# separated plotting from logic: create nonrounded copy number profile plot here
 	if (!is.na(nonroundedprofilepng)) {
-	  png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200)
+	  png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200, type = "cairo")
 	}
 	# clonal_runascat.plot3(rho_opt1, goodnessOfFit_opt1, ploidy_opt1, nAfull, nBfull, ch, lrr, bafsegmented)
 	ASCAT::ascat.plotNonRounded(ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs=chr.names)
@@ -1533,6 +1534,8 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 #   rho_max_initial = 1.05
   
   ininitial_bounds = list( psi_min = psi_min_initial, psi_max = psi_max_initial, rho_min = rho_min_initial, rho_max = rho_max_initial )
+print(paste0("Ces: ", "1 ", ininitial_bounds))
+print(paste0("Ces: ", "1 ", input_optimum_pair))
   
   new_bounds = get_new_bounds( input_optimum_pair, ininitial_bounds ) # kjd 21-2-2014
   
@@ -1540,14 +1543,19 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   ch = chromosomes
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
+print(paste0("Ces: ", "2 ", r))
 
   s = get_segment_info(lrrsegmented,segBAF.table)  
+print(paste0("Ces: ", "3 ", s ))
   # Make sure no segment of length 1 remains - TODO: this should not occur and needs to be prevented upstream
   s = s[s[,3] > 1,]
   dist_matrix_info <- create_distance_matrix_clonal( s, dist_choice, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold, new_bounds)# kjd 10-2-2013
+print(paste0("Ces: ", "4 ", dist_matrix_info))
   
   d = dist_matrix_info$distance_matrix # kjd 10-2-2013
   minimise = dist_matrix_info$minimise # kjd 10-2-2013
+print(paste0("Ces: ", "5 ", d ))
+print(paste0("Ces: ", "5 ", minimise ))
   
   #DCW 210314
   if(minimise){
@@ -1576,6 +1584,7 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   distance.from.ref.seg = goodnessOfFit_opt1
   
   is.ref.better = F
+print(paste0("Ces: ", "5 ", rho_opt1))
   if (is.na(rho_opt1)) {
 	  print("reference segment did not provide a possible solution")
   } else if(psi_opt1>= psi_min_initial & psi_opt1<= psi_max_initial & rho_opt1>= rho_min_initial & rho_opt1<= rho_max_initial & ((minimise & distance.from.ref.seg<best.distance)|(!minimise & distance.from.ref.seg>best.distance))){
@@ -1592,7 +1601,7 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 	
   #########################################################
 
-
+print(paste0("Ces: ", "6 ", nropt))
   if(nropt>0) {
 	
 	#310314 DCW - always use grid search solution, because ref segment sometimes gives strange results
@@ -1627,12 +1636,12 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 
 	
   	# Make plots
-  	if (!is.na(copynumberprofilespng)) { png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200) }
+  	if (!is.na(copynumberprofilespng)) { png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200, type = "cairo") }
   	ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy, rho = rho, goodnessOfFit = goodnessOfFit, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented, chrs=chr.names)
   	if (!is.na(copynumberprofilespng)) { dev.off() }
       
   	# separated plotting from logic: create nonrounded copy number profile plot here
-  	if (!is.na(nonroundedprofilepng)) { png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200) }
+  	if (!is.na(nonroundedprofilepng)) { png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200, type = "cairo") }
   	ASCAT::ascat.plotNonRounded(ploidy = ploidy, rho = rho, goodnessOfFit = goodnessOfFit, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs=chr.names)
   	if (!is.na(nonroundedprofilepng)) { dev.off() }
   }
@@ -1641,6 +1650,7 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   psi_t = recalc_psi_t(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments=F)
 
   # If there aren't any clonally fit segments, the above yields NA. In this case, revert to the original grid search psi_t
+print(paste0("Ces: ", "7 ", psi_t))
   if (is.na(psi_t)) {
 	  print("Recalculated psi_t was NA, reverting to grid search solution. This occurs when no segment could be fit with a clonal state, check sample for contamination")
 	  psi_t = psi_without_ref
@@ -1650,6 +1660,7 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
   #output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)
   # Use the recalculated psi_t from the clonal segments as our final estimate of psi_t which is data driven with rho fixed
   output_optimum_pair_without_ref = list(psi = psi_t, rho = rho_without_ref, ploidy = ploidy_without_ref)
+print(paste0("Ces: ", "8 ", output_optimum_pair_without_ref))
   return(list(output_optimum_pair=output_optimum_pair, output_optimum_pair_without_ref=output_optimum_pair_without_ref, distance = distance.from.ref.seg, distance_without_ref = best.distance, minimise = minimise, is.ref.better = is.ref.better)) # kjd 20-2-2014, adapted by DCW 140314
 }
 

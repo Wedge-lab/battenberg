@@ -23,7 +23,8 @@ getAlleleCounts = function(bam.file, output.file, g1000.loci, min.base.qual=20, 
   if (as.integer(substr(x = counter_version, start = 1, stop = 1)) >= 4)
     cmd = paste(cmd, "--dense-snps")
 
-  system(cmd, wait=T)
+  EXIT_CODE=system(cmd, wait=T)
+  stopifnot(EXIT_CODE==0)
 }
 
 
@@ -53,9 +54,9 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
   allele_data = concatenateG1000SnpFiles(g1000file.prefix, ".txt", chr_names)
   
   # We're no longer stripping out the "chr", which is causing problems
-  #allele_data[,1] = gsub("chr","",allele_data[,1])
-  #normal_input_data[,1] = gsub("chr","",normal_input_data[,1])
-  #input_data[,1] = gsub("chr","",input_data[,1])
+  allele_data[,1] = gsub("chr","",allele_data[,1])
+  normal_input_data[,1] = gsub("chr","",normal_input_data[,1])
+  input_data[,1] = gsub("chr","",input_data[,1])
 
   # Synchronise all the data frames
   chrpos_allele = paste(allele_data[,1], "_", allele_data[,2], sep="")
@@ -64,7 +65,7 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
   matched_data = Reduce(intersect, list(chrpos_allele, chrpos_normal, chrpos_tumour))
 
   allele_data = allele_data[chrpos_allele %in% matched_data,]
-  normal_input_data = normal_input_data[chrpos_tumour %in% matched_data,]
+  normal_input_data = normal_input_data[chrpos_normal %in% matched_data,]
   input_data = input_data[chrpos_tumour %in% matched_data,]
 
   # Clean up and reduce amount of unneeded data
@@ -164,7 +165,7 @@ getBAFsAndLogRs = function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile
 #' @param is.male Boolean denoting whether this sample is male (TRUE), or female (FALSE).
 #' @param problemLociFile A file containing genomic locations that must be discarded (optional).
 #' @param useLociFile A file containing genomic locations that must be included (optional).
-#' @param heterozygousFilter The cutoff where a SNP will be considered as heterozygous (default 0.01).
+#' @param heterozygousFilter The cutoff where a SNP will be considered as heterozygous (default 0.1).
 #' @author dw9, sd11
 #' @export
 generate.impute.input.wgs = function(chrom, tumour.allele.counts.file, normal.allele.counts.file, output.file, imputeinfofile, is.male, problemLociFile=NA, useLociFile=NA, heterozygousFilter=0.1) {
@@ -345,7 +346,7 @@ gc.correct.wgs = function(Tumour_LogR_file, outfile, correlations_outfile, gc_co
   Tumor_LogR[,3] = residuals(model)
   rm(model, corrdata)
 
-  readr::write_tsv(x=Tumor_LogR[which(!is.na(Tumor_LogR[,3])), ], path=outfile)
+  readr::write_tsv(x=Tumor_LogR[which(!is.na(Tumor_LogR[,3])), ], file=outfile)
 
   if (recalc_corr_afterwards) {
     # Recalculate the correlations to see how much there is left
