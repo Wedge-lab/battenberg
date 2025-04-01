@@ -1534,8 +1534,6 @@ run_clonal_ASCAT = function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, s
 #   rho_max_initial = 1.05
   
   ininitial_bounds = list( psi_min = psi_min_initial, psi_max = psi_max_initial, rho_min = rho_min_initial, rho_max = rho_max_initial )
-print(paste0("Ces: ", "1 ", ininitial_bounds))
-print(paste0("Ces: ", "1 ", input_optimum_pair))
   
   new_bounds = get_new_bounds( input_optimum_pair, ininitial_bounds ) # kjd 21-2-2014
   
@@ -1543,19 +1541,14 @@ print(paste0("Ces: ", "1 ", input_optimum_pair))
   ch = chromosomes
   b = bafsegmented
   r = lrrsegmented[names(bafsegmented)]
-print(paste0("Ces: ", "2 ", r))
 
   s = get_segment_info(lrrsegmented,segBAF.table)  
-print(paste0("Ces: ", "3 ", s ))
   # Make sure no segment of length 1 remains - TODO: this should not occur and needs to be prevented upstream
   s = s[s[,3] > 1,]
   dist_matrix_info <- create_distance_matrix_clonal( s, dist_choice, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_BAF_threshold, new_bounds)# kjd 10-2-2013
-print(paste0("Ces: ", "4 ", dist_matrix_info))
   
   d = dist_matrix_info$distance_matrix # kjd 10-2-2013
   minimise = dist_matrix_info$minimise # kjd 10-2-2013
-print(paste0("Ces: ", "5 ", d ))
-print(paste0("Ces: ", "5 ", minimise ))
   
   #DCW 210314
   if(minimise){
@@ -1584,7 +1577,6 @@ print(paste0("Ces: ", "5 ", minimise ))
   distance.from.ref.seg = goodnessOfFit_opt1
   
   is.ref.better = F
-print(paste0("Ces: ", "5 ", rho_opt1))
   if (is.na(rho_opt1)) {
 	  print("reference segment did not provide a possible solution")
   } else if(psi_opt1>= psi_min_initial & psi_opt1<= psi_max_initial & rho_opt1>= rho_min_initial & rho_opt1<= rho_max_initial & ((minimise & distance.from.ref.seg<best.distance)|(!minimise & distance.from.ref.seg>best.distance))){
@@ -1601,7 +1593,6 @@ print(paste0("Ces: ", "5 ", rho_opt1))
 	
   #########################################################
 
-print(paste0("Ces: ", "6 ", nropt))
   if(nropt>0) {
 	
 	#310314 DCW - always use grid search solution, because ref segment sometimes gives strange results
@@ -1650,7 +1641,6 @@ print(paste0("Ces: ", "6 ", nropt))
   psi_t = recalc_psi_t(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments=F)
 
   # If there aren't any clonally fit segments, the above yields NA. In this case, revert to the original grid search psi_t
-print(paste0("Ces: ", "7 ", psi_t))
   if (is.na(psi_t)) {
 	  print("Recalculated psi_t was NA, reverting to grid search solution. This occurs when no segment could be fit with a clonal state, check sample for contamination")
 	  psi_t = psi_without_ref
@@ -1660,7 +1650,6 @@ print(paste0("Ces: ", "7 ", psi_t))
   #output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)
   # Use the recalculated psi_t from the clonal segments as our final estimate of psi_t which is data driven with rho fixed
   output_optimum_pair_without_ref = list(psi = psi_t, rho = rho_without_ref, ploidy = ploidy_without_ref)
-print(paste0("Ces: ", "8 ", output_optimum_pair_without_ref))
   return(list(output_optimum_pair=output_optimum_pair, output_optimum_pair_without_ref=output_optimum_pair_without_ref, distance = distance.from.ref.seg, distance_without_ref = best.distance, minimise = minimise, is.ref.better = is.ref.better)) # kjd 20-2-2014, adapted by DCW 140314
 }
 

@@ -209,8 +209,9 @@ battenberg = function(analysis="paired",
     allelecounts_file = NULL
   }
   print(chrom_names) 
+  print(normalname) 
+  print(samplename) 
   for (sampleidx in 1:nsamples) {
-    
     if (!skip_preprocessing[sampleidx]) {
       if (data_type=="wgs" | data_type=="WGS") {
         # Setup for parallel computing
