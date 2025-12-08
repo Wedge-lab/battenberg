@@ -6,9 +6,9 @@
 \usage{
 battenberg(
   analysis = "paired",
-  tumourname,
+  samplename,
   normalname,
-  tumour_data_file,
+  sample_data_file,
   normal_data_file,
   imputeinfofile,
   g1000prefix,
@@ -31,11 +31,14 @@ battenberg(
   min_ploidy = 1.6,
   max_ploidy = 4.8,
   min_rho = 0.1,
+  max_rho = 1,
   min_goodness = 0.63,
   uninformative_BAF_threshold = 0.51,
   min_normal_depth = 10,
   min_base_qual = 20,
   min_map_qual = 35,
+  max_allowed_state = 250,
+  cn_upper_limit = 1000,
   calc_seg_baf_option = 3,
   skip_allele_counting = F,
   skip_preprocessing = F,
@@ -52,7 +55,7 @@ battenberg(
   javajre = "java",
   write_battenberg_phasing = T,
   multisample_relative_weight_balanced = 0.25,
-  multisample_maxlag = 100,
+  multisample_maxlag = 90,
   segmentation_gamma_multisample = 5,
   snp6_reference_info_file = NA,
   apt.probeset.genotype.exe = "apt-probeset-genotype",
@@ -61,17 +64,21 @@ battenberg(
   birdseed_report_file = "birdseed.report.txt",
   heterozygousFilter = "none",
   prior_breakpoints_file = NULL,
-  GENOMEBUILD = "hg19"
+  genomebuild = "hg19",
+  chrom_coord_file = NULL,
+  enhanced_grid_search = F
 )
 }
 \arguments{
-\item{tumourname}{Tumour identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.}
+\item{analysis}{The mode of Battenberg copy number analysis to be undertaken: 'paired' for tumour-normal pair, 'cell_line' for Cell line tumour-only and 'germline' for germline CNV of normal sample (Default: 'paired')}
+
+\item{samplename}{Sample identifier (tumour or germline), this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.}
 
 \item{normalname}{Matched normal identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.}
 
-\item{tumour_data_file}{A BAM or CEL file for the tumour}
+\item{sample_data_file}{A BAM or CEL file for the sample}
 
-\item{normal_data_file}{A BAM or CEL file for the normal}
+\item{normal_data_file}{A BAM or CEL file for the normal-pair (paired analysis)}
 
 \item{imputeinfofile}{Full path to a Battenberg impute info file with pointers to Impute2 reference data}
 
@@ -115,6 +122,8 @@ battenberg(
 
 \item{min_rho}{Minimum purity to be considered (Default: 0.1)}
 
+\item{max_rho}{Maximum purity to be considered (Default: 1.0)}
+
 \item{min_goodness}{Minimum goodness of fit required for a purity/ploidy combination to be accepted as a solution (Default: 0.63)}
 
 \item{uninformative_BAF_threshold}{The threshold beyond which BAF becomes uninformative (Default: 0.51)}
@@ -125,7 +134,11 @@ battenberg(
 
 \item{min_map_qual}{Minimum mapping quality required for a read to be counted when allele counting (Default: 35)}
 
-\item{calc_seg_baf_option}{Sets way to calculate BAF per segment: 1=mean, 2=median, 3=ifelse median==0 | 1, mean, median (Default: 3)}
+\item{max_allowed_state}{The maximum CN state allowed (Default 250)}
+
+\item{cn_upper_limit}{Maximum number of copy number that can be called (Default 1000)}
+
+\item{calc_seg_baf_option}{Sets way to calculate BAF per segment: 1=mean, 2=median, 3=ifelse median==0 | 1, mean, median (Default (paired): 3, cell_line & germline: 1)}
 
 \item{skip_allele_counting}{Provide TRUE when allele counting can be skipped (i.e. its already done) (Default: FALSE)}
 
@@ -175,11 +188,13 @@ battenberg(
 
 \item{prior_breakpoints_file}{A two column file with prior breakpoints to be used during segmentation (Default: NULL)}
 
-\item{GENOMEBUILD}{Genome build upon which the 1000G SNP coordinates were obtained (Default: hg19; options: "hg19" or "hg38")}
+\item{genomebuild}{Genome build upon which the 1000G SNP coordinates were obtained (Default: hg19; options: "hg19" or "hg38")}
+
+\item{enhanced_grid_search}{Should use multi-start, parallelized and multi-approach grid search (Default: FALSE)}
 }
 \description{
 Run the Battenberg pipeline
 }
 \author{
-sd11, jdemeul, Naser Ansari-Pour
+sd11, jdemeul, Naser Ansari-Pour, Julio Cesar Cortes Rios
 }

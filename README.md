@@ -36,7 +36,21 @@ The bundle contains the following files:
   * battenberg_snp6_exe.tgz (SNP6 only)
   * battenberg_snp6_ref.tgz (SNP6 only)
 
-`GRCh38` reference files may be downloaded from here: https://ora.ox.ac.uk/objects/uuid:08e24957-7e76-438a-bd38-66c48008cf52
+`GRCh38` reference files for Battenberg v3.0.0 may be downloaded from here: https://doi.org/10.48420/30406441
+
+The bundle contains the following files:
+  * 1000G_loci_hg38.zip
+  * imputation.zip
+  * shapeit2.zip
+  * beagle5.zip
+  * probloci.zip
+  * GC_correction_hg38.zip
+  * RT_correction_hg38.zip
+  * chromosome_coordinates_hg38.txt
+  * chromosome_coordinates_hg38_chr.txt
+  * README.txt
+
+Original `GRCh38` reference files for previous versions of Battenberg may be downloaded from here: https://ora.ox.ac.uk/objects/uuid:08e24957-7e76-438a-bd38-66c48008cf52
 
 The bundle contains the following files:
   * 1000G_loci_hg38.zip
@@ -55,13 +69,13 @@ Go into ```inst/example``` for example WGS and SNP6 R-only pipelines.
 
 ### Key output files
 
-* `[samplename]_subclones.txt` contains the copy number data (see table below)
+* `[samplename]_copynumber.txt` contains the copy number data (see table below)
 * `[samplename]_rho_and_psi.txt` contains the purity estimate (make sure to use the FRAC_genome, rho field in the second row, first column)
 * `[samplename]_BattenbergProfile*png` shows the profile (the two variants show subclonal copy number in a different way)
 * `[samplename]_subclones_chr*.png` show detailed figures of the copy number calls per chromosome
 * `[samplename]_distance.png` This shows the purity and ploidy solution space and can be used to pick alternative solutions
 
-The copy number profile saved in the `[samplename]_subclones.txt` is a tab delimited file in text format. Within this file there is a line for each segment in the tumour genome.
+The copy number profile saved in the `[samplename]_copynumber.txt` is a tab delimited file in text format. Within this file there is a line for each segment in the tumour genome.
 Each segment will have either one or two copy number states:
 
 * If there is one state that line represents the clonal copy number (i.e. all tumour cells have this state)
@@ -113,41 +127,15 @@ Finally, a range of plots show intermediate steps and can occasionally be useful
 
 Battenberg can take prior breakpoints, from structural variants (SVs) for example, as input. SV breakpoints are typically much more precise and a pair of SVs can be closer together then what typically can be obtained from a BAF or coverage track. It is therefore adventageous to include prior breakpoints in a Battenberg run. However, including too many (as in 100s) incorrect breakpoints can have adverse effects by allowing many small segments to be affected by noise where there isn't any signal and increasing the runtime of the pipeline. It is therefore advised to `filter prior breakpoints from SVs such that the genome is slightly oversegmented.` Finally, some SV types, such as inversions, do not constitute a change in copy number and therefore also add breakpoints that should not be considered. It is therefore also advised to `filter breakpoints from SVs that do not cause a change in copynumber, such as inversions`. Please note that the chromosome names in the SV file **do not** include the "chr" prefix.
 
-## Docker - experimental
+## Documentation
 
-Battenberg can be run inside a Docker container. Please follow the instructions below.
+Full documentation for this package is available at: https://wedge-lab.github.io/battenberg/
+The documentation includes:
+- Function reference with examples
+- Getting started guide
+- Illustrative vignettes
 
-#### Installation
-
-```
-git clone git@github.com:Wedge-Oxford/battenberg.git
-cd battenberg
-docker build -t battenberg:2.2.9 .
-```
-
-#### Reference data
-
-First, download the Battenberg reference data from the URL provided further in this README. Then in the ```impute_info.txt``` file, replace the paths to the reference files with ```/opt/battenberg_reference```. I.e. the path to the first legend file should become:
-
-```
-/opt/battenberg_reference/1000genomes_2012_v3_impute/ALL_1000G_phase1integrated_v3_chr1_impute.legend
-```
-
-#### Run interactively
-
-These commands run the Battenberg pipeline within a Docker container in interactive mode. This command assumes the data is available locally in `$PWD/data/pcawg/HCC1143_ds` and the reference files have been placed in `$PWD/battenberg_reference`
-
-```
-docker run -it -v `pwd`/data/pcawg/HCC1143_ds:/mnt/battenberg/ -v `pwd`/battenberg_reference:/opt/battenberg_reference battenberg:2.2.8
-```
-
-Within the Docker terminal run the pipeline, in this case on the ICGC PCAWG testing data available [here](https://s3-eu-west-1.amazonaws.com/wtsi-pancancer/testdata/HCC1143_ds.tar).
-
-```
-R CMD BATCH '--no-restore-data --no-save --args -t HCC1143 -n HCC1143_BL --nb /mnt/battenberg/HCC1143_BL.bam --tb /mnt/battenberg/HCC1143.bam --sex female -o /mnt/battenberg/' /usr/local/bin/battenberg_wgs.R /mnt/battenberg/battenberg.Rout
-```
-  
-### Building a release
+## Building a release
 
 In RStudio: In the Build tab, click Check Package
 
@@ -165,7 +153,7 @@ export(plot.haplotype.data)
 
 
 
-##### hg38 for Beagle5
+## hg38 for Beagle5
 
 Modified original code to derive the input vcf for Beagle5 and hg38:
 
@@ -510,7 +498,7 @@ mclapply(CHRS,function(chr)
    
 ```
 
-###### Example run
+#### Example run
 
 To run using Beagle5, simply parametrise the same way you would run
 under impute2. It should be back compatible, so you can run impute2

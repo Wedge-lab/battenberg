@@ -4,7 +4,7 @@
 \alias{get.chrom.names}
 \title{Returns the chromosome names that are supported}
 \usage{
-get.chrom.names(imputeinfofile, is.male, chrom = NA)
+get.chrom.names(imputeinfofile, is.male, chrom = NA, analysis = "paired")
 }
 \arguments{
 \item{imputeinfofile}{Path to the imputeinfofile on disk.}
@@ -12,6 +12,8 @@ get.chrom.names(imputeinfofile, is.male, chrom = NA)
 \item{is.male}{A boolean describing whether the sample under study is male.}
 
 \item{chrom}{The name of a chromosome to subset the contents of the imputeinfofile with (optional)}
+
+\item{analaysis}{Depending on the type of analysis different sets of chromosomes are returned (Default:  paired)}
 }
 \value{
 A vector containing the supported chromosome names

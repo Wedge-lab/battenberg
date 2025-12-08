@@ -58,6 +58,4 @@ original BAF, switched BAF and BAF segment. The BAF segment column should be use
 }
 \author{
 dw9
-
-dw9
 }

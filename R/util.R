@@ -41,7 +41,8 @@ read_table_generic = function(file, header=T, row.names=F, stringsAsFactor=F, se
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with logR content
 read_logr = function(filename, header=T) {
-  return(readr::read_tsv(file = filename, col_names = header, col_types = "cin"))
+  #return(readr::read_tsv(file = filename, col_names = header, col_types = "cin"))
+  return(readr::read_delim(file = filename, delim = NULL, col_names = header, col_types = "cin"))
 }
 
 #' Parser for BAF data
@@ -49,21 +50,24 @@ read_logr = function(filename, header=T) {
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with BAF content
 read_baf = function(filename, header=T) {
-  return(readr::read_tsv(file = filename, col_names = header, col_types = "cin"))
+  #return(readr::read_tsv(file = filename, col_names = header, col_types = "cin"))
+  return(readr::read_delim(file = filename, delim = NULL, col_names = header, col_types = "cin"))
 }
 
 #' Parser for GC content reference data
 #' @param filename Filename of the file to read in
 #' @return A data frame with GC content
 read_gccontent = function(filename) {
-  return(readr::read_tsv(file=filename, skip = 1, col_names = F, col_types = "-cinnnnnnnnnnnn------"))
+  #return(readr::read_tsv(file=filename, skip = 1, col_names = F, col_types = "-cinnnnnnnnnnnn------"))
+  return(readr::read_delim(file=filename, skip = 1, delim = NULL, col_names = F, col_types = "-cinnnnnnnnnnnn------"))
 }
 
 #' Parser for replication timing reference data
 #' @param filename Filename of the file to read in
 #' @return A data frame with replication timing
 read_replication = function(filename) {
-  return(readr::read_tsv(file=filename, col_types = paste0("ci", paste0(rep("n", 15), collapse = ""))))
+  #return(readr::read_tsv(file=filename, col_types = paste0("ci", paste0(rep("n", 15), collapse = ""))))
+  return(readr::read_delim(file=filename, delim = NULL, col_types = paste0("ci", paste0(rep("n", 15), collapse = ""))))
 }
 
 #' Parser for BAFsegmented data
@@ -71,35 +75,40 @@ read_replication = function(filename) {
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with BAFsegmented content
 read_bafsegmented = function(filename, header=T) {
-  return(readr::read_tsv(file = filename, col_names = header, col_types = "cinnn"))
+  #return(readr::read_tsv(file = filename, col_names = header, col_types = "cinnn"))
+  return(readr::read_delim(file = filename, delim = NULL, col_names = header, col_types = "cinnn"))
 }
 
 #' Parser for imputed genotype data
 #' @param filename Filename of the file to read in
 #' @return A data frame with the imputed genotype output
 read_imputed_output = function(filename) {
-  return(readr::read_tsv(file = filename, col_names = c("snpidx", "rsidx", "pos", "ref", "alt", "hap1", "hap2"), col_types = "cciccii"))
+  #return(readr::read_tsv(file = filename, col_names = c("snpidx", "rsidx", "pos", "ref", "alt", "hap1", "hap2"), col_types = "cciccii"))
+  return(readr::read_delim(file = filename, delim = NULL, col_names = c("snpidx", "rsidx", "pos", "ref", "alt", "hap1", "hap2"), col_types = "cciccii"))
 }
 
 #' Parser for allele frequencies data
 #' @param filename Filename of the file to read in
 #' @return A data frame with the alleleCounter output
 read_alleleFrequencies = function(filename) {
-  return(readr::read_tsv(file = filename, col_names = c("CHR", "POS", "Count_A", "Count_C", "Count_G", "Count_T", "Good_depth"), col_types = "ciiiiii", comment = "#"))
+  #return(readr::read_tsv(file = filename, col_names = c("CHR", "POS", "Count_A", "Count_C", "Count_G", "Count_T", "Good_depth"), col_types = "ciiiiii", comment = "#"))
+  return(readr::read_delim(file = filename, delim = NULL, col_names = c("CHR", "POS", "Count_A", "Count_C", "Count_G", "Count_T", "Good_depth"), col_types = "ciiiiii", comment = "#"))
 }
 
 #' Parser for impute input data
 #' @param filename Filename of the file to read in
 #' @return A data frame with the input for impute
 read_impute_input = function(filename) {
-  return(readr::read_delim(file = filename, col_names = F, col_types = "ccicciii", delim = " "))
+  #return(readr::read_delim(file = filename, col_names = F, col_types = "ccicciii", delim = " "))
+  return(readr::read_delim(file = filename, col_names = F, col_types = "ccicciii", delim = NULL))
 }
 
 #' Parser for beagle5 output data
 #' @param filename Filename of the file to read in
 #' @return A data frame with the beagle5 output
 read_beagle_output = function(filename) {
-  return(readr::read_tsv(file = filename, col_names = c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "SAMP001"), col_types = "cicccccccc", comment = "#"))
+  #return(readr::read_tsv(file = filename, col_names = c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "SAMP001"), col_types = "cicccccccc", comment = "#"))
+  return(readr::read_delim(file = filename, delim = NULL, col_names = c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT", "SAMP001"), col_types = "cicccccccc", comment = "#"))
 }
 
 

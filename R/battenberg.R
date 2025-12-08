@@ -61,7 +61,8 @@
 #' @param write_battenberg_phasing Write the Battenberg phasing results as vcf to disk, e.g. for multisample cases (Default: TRUE)
 #' @param multisample_maxlag Maximal number of upstream SNPs used in the multisample haplotyping to inform the haplotype at another SNP (Default: 100)
 #' @param multisample_relative_weight_balanced Relative weight to give to haplotype info from a sample without allelic imbalance in the region (Default: 0.25)
-#' @author sd11, jdemeul, Naser Ansari-Pour
+#' @param enhanced_grid_search Should use multi-start, parallelized and multi-approach grid search (Default: FALSE)
+#' @author sd11, jdemeul, Naser Ansari-Pour, Julio Cesar Cortes Rios
 #' @export
 battenberg = function(analysis="paired",
                       samplename,
@@ -113,7 +114,7 @@ battenberg = function(analysis="paired",
                       javajre="java",
                       write_battenberg_phasing = T,
                       multisample_relative_weight_balanced = 0.25,
-                      multisample_maxlag = 100,
+                      multisample_maxlag = 90,
                       segmentation_gamma_multisample = 5,
                       snp6_reference_info_file=NA,
                       apt.probeset.genotype.exe="apt-probeset-genotype",
@@ -123,7 +124,8 @@ battenberg = function(analysis="paired",
                       heterozygousFilter="none",
                       prior_breakpoints_file=NULL,
                       genomebuild="hg19",
-                      chrom_coord_file=NULL) {
+                      chrom_coord_file=NULL,
+		      enhanced_grid_search = F) {
 
   requireNamespace("foreach")
   requireNamespace("doParallel")
@@ -210,7 +212,6 @@ battenberg = function(analysis="paired",
   }
   print(chrom_names) 
   for (sampleidx in 1:nsamples) {
-    
     if (!skip_preprocessing[sampleidx]) {
       if (data_type=="wgs" | data_type=="WGS") {
         # Setup for parallel computing
@@ -298,7 +299,8 @@ battenberg = function(analysis="paired",
                      apt.probeset.genotype.exe=apt.probeset.genotype.exe,
                      apt.probeset.summarize.exe=apt.probeset.summarize.exe,
                      norm.geno.clust.exe=norm.geno.clust.exe,
-                     birdseed_report_file=birdseed_report_file)
+                     birdseed_report_file=birdseed_report_file,
+                     genomebuild=genomebuild)
         
       } else {
         print("Unknown data type provided, please provide wgs or snp6")
@@ -441,9 +443,10 @@ battenberg = function(analysis="paired",
     doParallel::registerDoParallel(clp)
     
     # Reconstruct haplotypes
-    # mclapply(1:length(chrom_names), function(chrom) {
+    .libPaths()
     foreach::foreach (i=1:length(chrom_names)) %dopar% {
       .libPaths(libs)
+    .libPaths()
       chrom = chrom_names[i]
       print(chrom)
       
@@ -452,9 +455,7 @@ battenberg = function(analysis="paired",
                               maxlag = multisample_maxlag,
                               relative_weight_balanced = multisample_relative_weight_balanced,
                               outprefix = multisamplehaplotypeprefix)
-      
     }
-    
     
     # continue over all samples to incorporate the multisample phasing
     for (sampleidx in 1:nsamples) {
@@ -515,7 +516,6 @@ battenberg = function(analysis="paired",
                         chr_names=chrom_names)
       
     }
-    
     # Segment the phased and haplotyped BAF data
     segment.baf.phased.multisample(samplename=samplename,
                                    inputfile=paste(samplename, "_heterozygousMutBAFs_haplotyped.txt", sep=""), 
@@ -540,7 +540,7 @@ battenberg = function(analysis="paired",
       if (analysis=="paired") {
         allelecounts_file = paste(samplename[sampleidx], "_alleleCounts.tab", sep="")
       } else {
-        # Not produced by a number of analysis and is required for some plots. Setting to NULL  makes the pipeline not attempt to create these plots
+      # Not produced by a number of analysis and is required for some plots. Setting to NULL  makes the pipeline not attempt to create these plots
         allelecounts_file = NULL
       }
     }
@@ -564,7 +564,9 @@ battenberg = function(analysis="paired",
                     preset_rho=NA,
                     preset_psi=NA,
                     read_depth=30,
-                    analysis=analysis)
+                    analysis=analysis,
+                    nthreads=nthreads,
+                    enhanced_grid_search=enhanced_grid_search)
     
     # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
     print("callSubclones")
@@ -597,7 +599,8 @@ battenberg = function(analysis="paired",
                         genomebuild=genomebuild,
                         AR=TRUE,
                         prior_breakpoints_file=prior_breakpoints_file,
-			chrom_names=chrom_names)
+			chrom_names=chrom_names,
+                        data_type=data_type)
     }
     
     # Make some post-hoc plots

@@ -25,7 +25,7 @@
 #' @param analysis A String representing the type of analysis to be run, this determines whether the distance figure is produced (Default paired)
 #' @author dw9, sd11
 #' @export
-fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmented, inputfile.baf, inputfile.logr, dist_choice, ascat_dist_choice, min.ploidy=1.6, max.ploidy=4.8, min.rho=0.1,  max.rho=1.0, min.goodness=63, uninformative_BAF_threshold=0.51, gamma_param=1, use_preset_rho_psi=F, preset_rho=NA, preset_psi=NA, read_depth=30, analysis="paired") {
+fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmented, inputfile.baf, inputfile.logr, dist_choice, ascat_dist_choice, min.ploidy=1.6, max.ploidy=4.8, min.rho=0.1,  max.rho=1.0, min.goodness=63, uninformative_BAF_threshold=0.51, gamma_param=1, use_preset_rho_psi=F, preset_rho=NA, preset_psi=NA, read_depth=30, analysis="paired", nthreads, enhanced_grid_search=F) {
   
   assert.file.exists(inputfile.baf.segmented)
   assert.file.exists(inputfile.baf)
@@ -161,9 +161,12 @@ fit.copy.number = function(samplename, outputfile.prefix, inputfile.baf.segmente
     nonroundedprofile.outfile=paste(outputfile.prefix, "nonroundedprofile.png", sep="", collapse="") # kjd 20-2-2014
     cnaStatusFile = paste(outputfile.prefix, "copynumber_solution_status.txt", sep="", collapse="")
     
-    ascat_optimum_pair = runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, cnaStatusFile=cnaStatusFile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness, chr.names=chr.names, analysis=analysis) # kjd 4-2-2014
+    if(enhanced_grid_search) {
+      ascat_optimum_pair = runASCAT_enhanced(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, cnaStatusFile=cnaStatusFile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness, chr.names=chr.names, analysis=analysis, uninformative_BAF_threshold=uninformative_BAF_threshold, verbose=TRUE)
+    } else {
+      ascat_optimum_pair = runASCAT(logR, 1-BAF.data[,3], segLogR, segBAF, chr.segs, ascat_dist_choice,distance.outfile, copynumberprofile.outfile, nonroundedprofile.outfile, cnaStatusFile=cnaStatusFile, gamma=gamma_param, allow100percent=T, reliabilityFile=NA, min.ploidy=min.ploidy, max.ploidy=max.ploidy, min.rho=min.rho, max.rho=max.rho, min.goodness, chr.names=chr.names, analysis=analysis) # kjd 4-2-2014
+    }
   }
-print(paste0("Ces: "," 0 ", ascat_optimum_pair))
   
   distance.outfile=paste(outputfile.prefix,"second_distance.png",sep="",collapse="") # kjd 20-2-2014
   copynumberprofile.outfile=paste(outputfile.prefix,"second_copynumberprofile.png",sep="",collapse="") # kjd 20-2-2014
@@ -261,7 +264,6 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
   subcloneres = res$subcloneres
   #write.table(subcloneres, gsub(".txt", "_1.txt", output.file), quote=F, col.names=T, row.names=F, sep="\t")
   write.table(subcloneres, paste0(tools::file_path_sans_ext(output.file),"_1.",tools::file_ext(output.file),sep=""), quote=F, col.names=T, row.names=F, sep="\t")
-  
   # Scan the segments for cases that should be merged
   res = merge_segments(subcloneres, BAFvals, LogRvals, rho, psi, gamma, calc_seg_baf_option)
   BAFvals = res$bafsegmented
@@ -289,11 +291,33 @@ callSubclones = function(sample.name, baf.segmented.file, logr.file, rho.psi.fil
 
   # NAP - November 2023
   # Recalculate PGA.is.clonal to match the final copy number profile in copynumber.txt file (previously subclones.txt file)
-  subcloneres$length=subcloneres$endpos-subcloneres$startpos
-  subcloneres_subclonal=subcloneres[which(subcloneres$frac1_A<1),]
-  diploid=which(subcloneres$nMaj1_A==1 & subcloneres$nMin1_A==1 & subcloneres$frac1_A==1)
-  cna=subcloneres[-diploid,]
-  goodness=1-sum(subcloneres_subclonal$length)/sum(cna$length)
+  subcloneres$length = subcloneres$endpos-subcloneres$startpos
+  subcloneres_subclonal = subcloneres[which(subcloneres$frac1_A<1),]
+  diploid = which(subcloneres$nMaj1_A==1 & subcloneres$nMin1_A==1 & subcloneres$frac1_A==1)
+  # NAP - June 2025 
+  # Check 'diploid' length for rare edge cases
+  if (length(diploid) > 0) {
+    cna = subcloneres[-diploid,]
+  } else {
+    cna = subcloneres
+    print("No diploid region found in copy number profile - likely due to WGD or error in fitting copy number in rare cases") 
+  }
+  
+  if(nrow(cna) == 0 || sum(cna$length) == 0) {
+    # No copy number alterations found
+    goodness <- 1.0  # 100% clonal (no CNAs to be subclonal)
+    print("No copy number alterations detected - setting PGA.is.clonal to 100%\n")
+  } else if(nrow(subcloneres_subclonal) == 0) {
+    # No subclonal segments
+    goodness <- 1.0  # 100% clonal
+    print("No subclonal segments detected - setting PGA.is.clonal to 100%\n")
+  } else {
+    subclonal_fraction <- sum(subcloneres_subclonal$length) / sum(cna$length)
+    goodness <- 1 - subclonal_fraction
+  
+    # Ensure goodness is within valid range [0,1]
+    goodness <- max(0, min(1, goodness))
+  }
   print(paste0("PGA.is.clonal = ",sprintf("%2.1f",goodness*100),"%"))
   
   ################################################################################################
@@ -986,7 +1010,7 @@ make_posthoc_plots = function(samplename, logr_file, bafsegmented_file, logrsegm
 #' @author naser.ansari-pour
 #' @export
 
-callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=TRUE,prior_breakpoints_file=NULL,chrom_names){
+callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=TRUE,prior_breakpoints_file=NULL,chrom_names,data_type="wgs"){
   
   print(tumourname)
   
@@ -1002,7 +1026,11 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
     stop("Genomebuild not supported for callChrXsubclones")
   }
   
-  PCFinput=data.frame(read_table_generic(paste0(tumourname,"_mutantLogR_gcCorrected.tab")),stringsAsFactors=F)
+  if (data_type=="wgs" | data_type=="WGS") {
+    PCFinput=data.frame(read_table_generic(paste0(tumourname,"_mutantLogR_gcCorrected.tab")),stringsAsFactors=F)
+  } else {
+    PCFinput=data.frame(read_table_generic(paste0(tumourname,"_mutantLogR.tab")),stringsAsFactors=F)
+  }
   ChrNotation=unique(PCFinput[which(!is.na(match(PCFinput$Chromosome,c("X","chrX")))),]$Chromosome) # find the chromosome notation
   PCFinput=PCFinput[which(PCFinput$Chromosome==ChrNotation & PCFinput$Position>par_regions[1] & PCFinput$Position<par_regions[2]),] # get nonPAR using par_regions based on genomebuild
   colnames(PCFinput)[3]=tumourname
@@ -1013,25 +1041,25 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
     sv=sv[which(!is.na(match(sv$chr,c("X","chrX")))),]
     # check if there are breakpoints within chrX
     if (nrow(sv)>0){
-    # make sure all SV breakpoint positions are within the LogR data range and not outside of it  
-    svpos=sv[which((sv$pos > min(PCFinput$Position)) & (sv$pos < max(PCFinput$Position))),"pos"]
-    breakpoints=c(min(PCFinput$Position),svpos,max(PCFinput$Position))
-    PCF=data.frame()
-    for (j in 1:(length(breakpoints)-1)) {
-      PCFinput_sv=PCFinput[which(PCFinput$Position>=breakpoints[j] & PCFinput$Position<breakpoints[j+1]),]
-      # in case there is no SNP between two SVs on chrX
-      if (nrow(PCFinput_sv)==0) next
-      PCF_sv=copynumber::pcf(PCFinput_sv,gamma=X_gamma,kmin=X_kmin)
-      PCF=rbind(PCF,PCF_sv)
-    }
-  }
+      # make sure all SV breakpoint positions are within the LogR data range and not outside of it  
+      svpos=sv[which((sv$pos > min(PCFinput$Position)) & (sv$pos < max(PCFinput$Position))),"pos"]
+      breakpoints=c(min(PCFinput$Position),svpos,max(PCFinput$Position))
+      PCF=data.frame()
+      for (j in 1:(length(breakpoints)-1)) {
+        PCFinput_sv=PCFinput[which(PCFinput$Position>=breakpoints[j] & PCFinput$Position<breakpoints[j+1]),]
+        # in case there is no SNP between two SVs on chrX
+        if (nrow(PCFinput_sv)==0) next
+        PCF_sv=copynumber::pcf(PCFinput_sv,gamma=X_gamma,kmin=X_kmin)
+        PCF=rbind(PCF,PCF_sv)
+      }
     } else {
+      PCF=copynumber::pcf(PCFinput,gamma=X_gamma,kmin=X_kmin)
+    }
+  } else {
     PCF=copynumber::pcf(PCFinput,gamma=X_gamma,kmin=X_kmin)
   }
   write.table(PCF,paste0(tumourname,"_PCF_gamma_",X_gamma,"_chrX.txt"),col.names=T,row.names=F,quote=F,sep="\t")
   print("PCF segmentation done")
-  
-  
   
   # INPUT for copy number inference
   SAMPLEsegs=data.frame(PCF,stringsAsFactors=F)

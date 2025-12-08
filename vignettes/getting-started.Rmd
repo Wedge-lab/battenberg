@@ -1,0 +1,204 @@
+---
+title: "Getting Started with Battenberg"
+author: "David Wedge Group"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with Battenberg}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+```{r setup}
+library(Battenberg)
+```
+
+## Introduction
+
+Battenberg is a whole genome sequencing subclonal copy number caller that estimates subclonal copy number alterations from matched tumor-normal whole genome sequencing data. It can detect both clonal and subclonal copy number changes and provides estimates of tumor purity and ploidy.
+
+## Installation
+
+### Prerequisites
+
+Battenberg requires several dependencies. Install them first:
+
+```{r eval = FALSE}
+# Install Bioconductor packages
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install(c("devtools", "splines", "readr", "doParallel", 
+                       "ggplot2", "RColorBrewer", "gridExtra", "gtools", 
+                       "parallel", "VariantAnnotation", "GenomicRanges"))
+
+# Install modified copynumber package
+devtools::install_github("igordot/copynumber")
+
+# Install ASCAT
+devtools::install_github("VanLoo-lab/ascat/ASCAT")
+```
+
+### Install Battenberg
+
+```{r eval = FALSE}
+# Install from GitHub (pre_3.0 branch)
+devtools::install_github("Wedge-lab/battenberg", ref="pre_3.0")
+```
+
+## Reference Data Requirements
+
+Before running Battenberg, you need to download reference data:
+
+### For GRCh37/hg19:
+- Download from: https://ora.ox.ac.uk/objects/uuid:2c1fec09-a504-49ab-9ce9-3f17bac531bc
+- Files include: 1000G loci, imputation reference, GC correction, replication timing correction
+
+### For GRCh38/hg38:
+- Download from: https://ora.ox.ac.uk/objects/uuid:08e24957-7e76-438a-bd38-66c48008cf52
+- Files include: 1000G loci, imputation reference, GC correction, replication timing correction
+
+## Basic Usage
+
+### Running the Full Pipeline
+
+The main function `battenberg()` runs the complete analysis pipeline:
+
+```{r eval = FALSE}
+# Define sample names and file paths
+TUMOURNAME <- "sample_tumor"
+NORMALNAME <- "sample_normal"
+TUMOURBAM <- "path/to/tumor.bam"
+NORMALBAM <- "path/to/normal.bam"
+
+# Reference file paths (adjust to your setup)
+IMPUTEINFOFILE <- "path/to/impute_info.txt"
+G1000PREFIX <- "path/to/1000genomes/prefix"
+PROBLEMLOCI <- "path/to/probloci.txt"
+GCCORRECTPREFIX <- "path/to/gc_correction/prefix"
+REPLICCORRECTPREFIX <- "path/to/replic_correction/prefix"
+G1000PREFIX_AC <- "path/to/1000genomes_alleles/prefix"
+
+# Determine if sample is male (TRUE) or female (FALSE)
+IS_MALE <- FALSE
+
+# Number of threads to use
+NTHREADS <- 8
+
+# Run Battenberg
+result <- battenberg(
+  tumourname = TUMOURNAME,
+  normalname = NORMALNAME,
+  tumour_data_file = TUMOURBAM,
+  normal_data_file = NORMALBAM,
+  imputeinfofile = IMPUTEINFOFILE,
+  g1000prefix = G1000PREFIX,
+  problemloci = PROBLEMLOCI,
+  gccorrectprefix = GCCORRECTPREFIX,
+  repliccorrectprefix = REPLICCORRECTPREFIX,
+  g1000allelesprefix = G1000PREFIX_AC,
+  ismale = IS_MALE,
+  data_type = "wgs",
+  nthreads = NTHREADS,
+  platform_gamma = 1,
+  phasing_gamma = 1,
+  segmentation_gamma = 10,
+  segmentation_kmin = 3,
+  phasing_kmin = 1,
+  min_ploidy = 1.6,
+  max_ploidy = 4.8,
+  min_rho = 0.1,
+  min_goodness = 0.63,
+  uninformative_BAF_threshold = 0.51,
+  min_normal_depth = 10,
+  min_base_qual = 20,
+  min_map_qual = 35
+)
+```
+
+### Key Parameters
+
+- **tumourname/normalname**: Sample identifiers used as prefixes for output files
+- **tumour_data_file/normal_data_file**: Paths to BAM files
+- **data_type**: "wgs" for whole genome sequencing, "snp6" for SNP array data
+- **ismale**: TRUE for male samples, FALSE for female samples
+- **platform_gamma**: Platform-specific gamma parameter (1 for WGS, 1 for SNP6)
+- **segmentation_gamma**: Controls segmentation sensitivity (higher = more segments)
+- **min_ploidy/max_ploidy**: Expected range of tumor ploidy
+- **min_rho**: Minimum tumor purity to consider
+
+## Output Files
+
+Battenberg produces several key output files:
+
+### Output Files
+
+Battenberg produces several key output files:
+
+### Primary Results
+- `[samplename]_copynumber.txt`: Copy number segments with clonal/subclonal states
+- `[samplename]_rho_and_psi.txt`: Tumor purity and ploidy estimates
+
+### Visualization
+- `[samplename]_BattenbergProfile.png`: Genome-wide copy number profile
+- `[samplename]_BattenbergProfile_subclones.png`: Alternative subclonal view
+- `[samplename]_subclones_chr*.png`: Per-chromosome detailed plots
+- `[samplename]_distance.png`: Purity/ploidy solution space
+
+### Quality Control
+- `[samplename].tumour.png`: Raw tumor BAF and LogR
+- `[samplename].germline.png`: Raw normal BAF and LogR
+- `[samplename]_coverage.png`: Coverage profiles
+
+## Reading Results
+
+### Load Copy Number Data
+```{r eval = FALSE}
+# Read the main results file
+cn_data <- read.delim("sample_tumor_copynumber.txt")
+
+# Examine the structure
+head(cn_data)
+str(cn_data)
+```
+
+### Load Purity/Ploidy Estimates
+```{r eval = FALSE}
+# Read purity and ploidy estimates
+rho_psi <- read.delim("sample_tumor_rho_and_psi.txt")
+
+# Extract purity (rho) - use FRAC_genome value from second row
+tumor_purity <- rho_psi$rho[2]
+tumor_ploidy <- rho_psi$psi[2]
+
+cat("Estimated tumor purity:", tumor_purity, "\n")
+cat("Estimated tumor ploidy:", tumor_ploidy, "\n")
+```
+
+## Understanding the Output
+
+### Copy Number States
+Each segment can have:
+- **Clonal**: Single copy number state (frac1_A = 1, frac2_A = NA)
+- **Subclonal**: Two copy number states (frac1_A + frac2_A = 1)
+
+### Key Columns in copynumber.txt
+- `nMaj1_A`, `nMin1_A`: Major/minor allele copy numbers for state 1
+- `nMaj2_A`, `nMin2_A`: Major/minor allele copy numbers for state 2 (if subclonal)
+- `frac1_A`, `frac2_A`: Fraction of tumor cells with each state
+- `pval`: P-value for subclonal vs clonal model
+
+## Next Steps
+
+- Read [Advanced Usage](advanced-usage.html) for parameter optimization
+- See [Data Interpretation](data-interpretation.html) for result analysis
+- Check [Troubleshooting](troubleshooting.html) for common issues

@@ -3,7 +3,8 @@ Maintainer: Stefan Dentro <sd11@sanger.ac.uk>
 License: GPL-3
 Type: Package
 Title: Battenberg subclonal copy number caller
-Version: 2.9.9.9000
+Version: 3.0.0
+Encoding: UTF-8
 Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
     person("Peter", "Van Loo", role=c("aut")),
     person("Naser", "Ansari-Pour", role=c("aut"), email="naser.ansari-pour@imm.ox.ac.uk"),
@@ -39,10 +40,14 @@ Imports:
   data.table
 Remotes:
   VanLoo-lab/ascat/ASCAT
-VignetteBuilder: 
-  knitr
 URL: https://github.com/Wedge-Oxford/battenberg
 LazyLoad: yes
 Suggests:
-    testthat
-RoxygenNote: 7.1.1
+  testthat,
+  knitr,
+  rmarkdown,
+  ggplot2,
+  dplyr
+VignetteBuilder: 
+  knitr
+RoxygenNote: 7.3.2

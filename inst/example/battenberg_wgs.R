@@ -1,6 +1,7 @@
-library(Battenberg)
-library(optparse)
-
+suppressMessages(library(Battenberg))
+suppressMessages(library(optparse))
+suppressMessages(library(Rsamtools))
+suppressMessages(library(tictoc))
 option_list = list(
   make_option(c("-a", "--analysis_type"), type="character", default="paired", help="Type of analysis to run: paired (tumour+normal), cell_line (only tumour), germline (only normal)", metavar="character"),
   make_option(c("-t", "--samplename"), type="character", default=NULL, help="Samplename of the tumour", metavar="character"),
@@ -17,17 +18,27 @@ option_list = list(
   make_option(c("--skip_phasing"), type="logical", default=FALSE, action="store_true", help="Provide when phasing has previously completed. This expects the files on disk", metavar="character"),
   make_option(c("--cpu"), type="numeric", default=8, help="The number of CPU cores to be used by the pipeline (Default: 8)", metavar="character"),
   make_option(c("--bp"), type="character", default=NULL, help="Optional two column file (chromosome and position) specifying prior breakpoints to be used during segmentation", metavar="character"),
-  make_option(c("-g", "--ref_genome_build"), type="character", default="hg19", help="Reference genome build to which the reads have been aligned. Options are hg19 and hg38", metavar="character")
+  make_option(c("--max_allowed_state"), type="character", default=NULL, help="Maximum allowed state", metavar="character"),
+  make_option(c("-g", "--ref_genome_build"), type="character", default="hg19", help="Reference genome build to which the reads have been aligned. Options are hg19 and hg38", metavar="character"),
+  make_option(c("--enhanced_grid_search"), type="logical", default=TRUE, action="store_true", help="Enables multi-start optimization grid search, particularly aimed at complex scenarios where normal grid search is too slow or provides suboptimal solutions", metavar="character")
 )
 
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 analysis = opt$analysis_type
-SAMPLENAME = opt$samplename
+if (startsWith(opt$samplename, "c(")) {
+ SAMPLENAME = unlist(strsplit(substr(opt$samplename,3,nchar(opt$samplename)-1), ","))
+} else {
+ SAMPLENAME = opt$samplename
+}
 NORMALNAME = opt$normalname
+if (startsWith(opt$tb, "c(")) {
+ SAMPLEBAM = unlist(strsplit(substr(opt$tb,3,nchar(opt$tb)-1), ","))
+} else {
+ SAMPLEBAM = opt$tb
+}
 NORMALBAM = opt$nb
-SAMPLEBAM = opt$tb
 BEAGLEJAR = opt$beagle_jar
 BEAGLEREF.template = opt$beagle_ref_template
 BEAGLEPLINK.template = opt$beagle_plink_template
@@ -38,69 +49,75 @@ SKIP_PREPROCESSING = opt$skip_preprocessing
 SKIP_PHASING = opt$skip_phasing
 NTHREADS = opt$cpu
 PRIOR_BREAKPOINTS_FILE = opt$bp
+MAX_ALLOWED_STATE = opt$max_allowed_state
 GENOMEBUILD = opt$ref_genome_build
+ENHANCED_GRID_SEARCH = opt$enhanced_grid_search
+#analysis = "germline"
 
 supported_analysis = c("paired", "cell_line", "germline")
 if (!analysis %in% supported_analysis) {
-        stop(paste0("Requested analysis type ", analysis, " is not available. Please provide either of ", paste(supported_analysis, collapse=" ")))
+	stop(paste0("Requested analysis type ", analysis, " is not available. Please provide either of ", paste(supported_analysis, collapse=" ")))
 }
 
 supported_genome_builds = c("hg19", "hg38")
 if (!GENOMEBUILD %in% supported_genome_builds) {
-        stop(paste0("Provided genome build ", GENOMEBUILD, " is not supported. Please provide either of ", paste(supported_genome_builds, collapse=" ")))
+	stop(paste0("Provided genome build ", GENOMEBUILD, " is not supported. Please provide either of ", paste(supported_genome_builds, collapse=" ")))
 }
 
 ###############################################################################
-# 2022-01-07
-# A pure R Battenberg v2.2.10 WGS pipeline implementation.
+# 2025-06-27
+# A pure R Battenberg v3.0.0 WGS pipeline implementation.
 ###############################################################################
 
 JAVAJRE = "java"
 ALLELECOUNTER = "alleleCounter"
 IMPUTE_EXE = "impute2"
-USEBEAGLE = T
 
-# General static
 if (GENOMEBUILD=="hg19") {
-	impute_basedir = "/hps/research/gerstung/sdentro/reference/human/battenberg/"
-	IMPUTEINFOFILE = file.path(impute_basedir, "battenberg_impute_v3/impute_info.txt")
-	G1000PREFIX_AC = file.path(impute_basedir, "battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr")
-	G1000PREFIX = file.path(impute_basedir, "battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr")
-	GCCORRECTPREFIX = file.path(impute_basedir, "battenberg_wgs_gc_correction_1000g_v3_noNA/1000_genomes_GC_corr_chr_")
-	REPLICCORRECTPREFIX = file.path(impute_basedir, "battenberg_wgs_replic_correction_1000g_v3/1000_genomes_replication_timing_chr_")
-	
-	# WGS specific static
-	PROBLEMLOCI = "/hps/research/gerstung/sdentro/reference/human/battenberg/battenberg_probloci/probloci_270415.txt.gz"
+# General static
+	BASE_DIR = "/mnt/bmh01-rds/UoOxford_David_W/shared/projects/battenberg/reference/hg19"
+	IMPUTEINFOFILE = file.path(BASE_DIR, "impute_info.txt")
+	G1000PREFIX_AC = file.path(BASE_DIR, "battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr")
+	G1000PREFIX = file.path(BASE_DIR, "battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr")
+	GCCORRECTPREFIX = file.path(BASE_DIR, "battenberg_wgs_gc_correction_1000g_v3/1000_genomes_GC_corr_chr_")
+	REPLICCORRECTPREFIX = file.path(BASE_DIR, "battenberg_wgs_replic_correction_1000g_v3/1000_genomes_replication_timing_chr_")
+
+# WGS specific static
+	PROBLEMLOCI = file.path(BASE_DIR, "probloci.hg19.noMHCregion_10082022.txt.gz")
 	GENOME_VERSION = "b37"
 	GENOMEBUILD = "hg19"
-	BEAGLE_BASEDIR = "/hps/research/gerstung/sdentro/reference/human/battenberg/battenberg_beagle"
-	BEAGLEJAR = file.path(BEAGLE_BASEDIR, "beagle.24Aug19.3e8.jar")
+	BEAGLE_BASEDIR = file.path(BASE_DIR, "beagle")
+	BEAGLEJAR = file.path(BEAGLE_BASEDIR, "beagle.22Jul22.46e.jar")
 	BEAGLEREF.template = file.path(BEAGLE_BASEDIR, GENOME_VERSION, "chrCHROMNAME.1kg.phase3.v5a.b37.bref3")
 	BEAGLEPLINK.template = file.path(BEAGLE_BASEDIR, GENOME_VERSION, "plink.chrCHROMNAME.GRCh37.map")
+	CHROM_COORD_FILE = file.path(BASE_DIR, "gcCorrect_chromosome_coordinates_hg19.txt")
 
-	CHROM_COORD_FILE = "/homes/sdentro/repo/battenberg/gcCorrect_chromosome_coordinates_hg19.txt"
 
 } else if (GENOMEBUILD=="hg38") {
-	
-	BEAGLE_BASEDIR = "/hps/research/gerstung/sdentro/reference/human/battenberg_hg38"
-	GENOMEBUILD = "hg38"
-	IMPUTEINFOFILE = file.path(BEAGLE_BASEDIR, "imputation/impute_info.txt")
-	G1000PREFIX_AC = file.path(BEAGLE_BASEDIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_allele_index_chr")
-	G1000PREFIX = file.path(BEAGLE_BASEDIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_loci_chr")
-	GCCORRECTPREFIX = file.path(BEAGLE_BASEDIR, "GC_correction_hg38/1000G_GC_chr")
-	REPLICCORRECTPREFIX = file.path(BEAGLE_BASEDIR, "RT_correction_hg38/1000G_RT_chr")
-	PROBLEMLOCI = file.path(BEAGLE_BASEDIR, "probloci/probloci.txt.gz")
-	
-	BEAGLEREF.template = file.path(BEAGLE_BASEDIR, "beagle5/chrCHROMNAME.1kg.phase3.v5a_GRCh38nounref.vcf.gz")
-	BEAGLEPLINK.template = file.path(BEAGLE_BASEDIR, "beagle5/plink.chrCHROMNAME.GRCh38.map")
-	BEAGLEJAR = file.path(BEAGLE_BASEDIR, "beagle.18May20.d20.jar")
+	BASE_DIR = "/mnt/bmh01-rds/UoOxford_David_W/shared/projects/battenberg/reference/hg38"
+	IMPUTEINFOFILE = file.path(BASE_DIR, "impute_info.txt")
+	G1000PREFIX_AC = file.path(BASE_DIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_allele_index_chr")
+	GCCORRECTPREFIX = file.path(BASE_DIR, "GC_correction_hg38/1000G_GC_chr")
+	REPLICCORRECTPREFIX = file.path(BASE_DIR, "RT_correction_hg38/1000G_RT_chr")
+	PROBLEMLOCI = file.path(BASE_DIR, "probloci/probloci.hg38_22072022.txt.gz")
 
-	CHROM_COORD_FILE = "/homes/sdentro/repo/battenberg/chromosome_coordinates_hg38.txt"
+	BAM_HEADER <- scanBamHeader(SAMPLEBAM)
+	CHR_NAME <- BAM_HEADER[[1]]$text[[2]][[1]]
+	if (grepl('CHR',toupper(CHR_NAME),fixed=TRUE)) {
+	  G1000PREFIX = file.path(BASE_DIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_loci_chrstring_chr")
+	  CHROM_COORD_FILE = file.path(BASE_DIR, "chromosome_coordinates_hg38_chr.txt")
+	} else {
+	  G1000PREFIX = file.path(BASE_DIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_loci_chr")
+	  CHROM_COORD_FILE = file.path(BASE_DIR, "chromosome_coordinates_hg38.txt")
+	}
 } 
+
+print(IMPUTEINFOFILE)
+print(G1000PREFIX_AC)
 
 PLATFORM_GAMMA = 1
 PHASING_GAMMA = 1
-SEGMENTATION_GAMMA = 10
+SEGMENTATION_GAMMA = 20 #10
 SEGMENTATIIN_KMIN = 3
 PHASING_KMIN = 1
 CLONALITY_DIST_METRIC = 0
@@ -108,6 +125,7 @@ ASCAT_DIST_METRIC = 1
 MIN_PLOIDY = 1.6
 MAX_PLOIDY = 4.8
 MIN_RHO = 0.1
+MAX_RHO = 1.02 #NA
 MIN_GOODNESS_OF_FIT = 0.63
 BALANCED_THRESHOLD = 0.51
 MIN_NORMAL_DEPTH = 10
@@ -121,20 +139,23 @@ BEAGLENTHREADS=1
 BEAGLEWINDOW=40
 BEAGLEOVERLAP=4
 
-# Enable cairo device (needed to prevent 'X11 not available' errors)
-options(bitmapType='cairo')
-
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
 
+# Enable cairo device (needed to prevent 'X11 not available' errors)
+options(bitmapType='cairo')
+
+.libPaths()
+tic()
+
 battenberg(analysis=analysis,
-	   samplename=SAMPLENAME,
-           normalname=NORMALNAME,
-           sample_data_file=SAMPLEBAM,
+	   samplename=SAMPLENAME, 
+           normalname=NORMALNAME, 
+           sample_data_file=SAMPLEBAM, 
            normal_data_file=NORMALBAM, 
            ismale=IS.MALE, 
            imputeinfofile=IMPUTEINFOFILE, 
-           g1000prefix=G1000PREFIX,
+           g1000prefix=G1000PREFIX, 
            g1000allelesprefix=G1000PREFIX_AC, 
            gccorrectprefix=GCCORRECTPREFIX, 
            repliccorrectprefix=REPLICCORRECTPREFIX, 
@@ -142,7 +163,7 @@ battenberg(analysis=analysis,
            data_type="wgs",
            impute_exe=IMPUTE_EXE,
            allelecounter_exe=ALLELECOUNTER,
-	   usebeagle=USEBEAGLE, ##set to TRUE to use beagle
+           usebeagle=USEBEAGLE, ##set to TRUE to use beagle
            beaglejar=BEAGLEJAR, ##path
            beagleref=BEAGLEREF.template, ##pathtemplate
            beagleplink=BEAGLEPLINK.template, ##pathtemplate
@@ -162,6 +183,7 @@ battenberg(analysis=analysis,
            min_ploidy=MIN_PLOIDY,
            max_ploidy=MAX_PLOIDY,
            min_rho=MIN_RHO,
+           max_rho=MAX_RHO,
            min_goodness=MIN_GOODNESS_OF_FIT,
            uninformative_BAF_threshold=BALANCED_THRESHOLD,
            min_normal_depth=MIN_NORMAL_DEPTH,
@@ -172,5 +194,13 @@ battenberg(analysis=analysis,
            skip_preprocessing=SKIP_PREPROCESSING,
            skip_phasing=SKIP_PHASING,
            prior_breakpoints_file=PRIOR_BREAKPOINTS_FILE,
+           max_allowed_state=MAX_ALLOWED_STATE,
            genomebuild=GENOMEBUILD,
-           chrom_coord_file=CHROM_COORD_FILE)
+           chrom_coord_file=CHROM_COORD_FILE,
+           enhanced_grid_search=ENHANCED_GRID_SEARCH)
+
+traceback()
+warnings()
+sessionInfo()
+version
+toc()

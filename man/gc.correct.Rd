@@ -14,7 +14,8 @@ gc.correct(
   outfile.probeBAF,
   snp6_reference_info_file,
   chr_names,
-  birdseed_report_file = "birdseed.report.txt"
+  birdseed_report_file = "birdseed.report.txt",
+  genomebuild = "hg19"
 )
 }
 \arguments{

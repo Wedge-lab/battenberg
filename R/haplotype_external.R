@@ -122,7 +122,6 @@ write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
   
   bafsegmented <- read_bafsegmented(bafsegmented_file)[, c("Chromosome", "Position", "BAFphased", "BAFseg")]
   bafsegmented <- split(x = bafsegmented[, c("Position", "BAFphased", "BAFseg")], f = bafsegmented$Chromosome)
-  
   for (i in 1:length(chrom_names)) {
     chrom = chrom_names[i] 
     # read allele counts and imputed haplotypes (for the actually used alleles & loci)
@@ -188,8 +187,7 @@ write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles
 #' @param outprefix Prefix of the ouput multisample phasing files
 #' @author jdemeul
 #' @export
-get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, relative_weight_balanced = .25, outprefix) {
-
+get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 90, relative_weight_balanced = .25, outprefix) {
   vcfs <- lapply(X = paste0(bbphasingprefixes, chrom, ".vcf"), FUN = VariantAnnotation::readVcf)
   samplenames <- sapply(X = vcfs, FUN = function(x) VariantAnnotation::samples(VariantAnnotation::header(x)))
   
@@ -208,7 +206,8 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, rela
     singlevcf <- vcfs_common[[vcfidx]]
     sid <- VariantAnnotation::samples(VariantAnnotation::header(singlevcf))
     adddf <- S4Vectors::DataFrame(Major = VariantAnnotation::geno(singlevcf)$GT[,1], #Major = as.integer(ifelse(test = grepl(pattern = "|", x = geno(singlevcf)$GT, fixed = T), substr(x = geno(singlevcf)$GT, 1, 1), NA)),
-                       BAF = VariantAnnotation::geno(singlevcf)$AD[,1,2]/BiocGenerics::rowSums(VariantAnnotation::geno(singlevcf)$AD[,1,]),
+                       #BAF = VariantAnnotation::geno(singlevcf)$AD[,1,2]/BiocGenerics::rowSums(VariantAnnotation::geno(singlevcf)$AD[,1,]),
+                       BAF = VariantAnnotation::geno(singlevcf)$AD[,1,2]/rowSums(VariantAnnotation::geno(singlevcf)$AD[,1,]),
                        PS = VariantAnnotation::geno(singlevcf)$PS[,1])
     colnames(adddf) <- paste0(sid, "_", colnames(adddf))
     S4Vectors::mcols(loci) <- cbind(S4Vectors::mcols(loci), adddf)
@@ -226,8 +225,29 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 100, rela
                                                                                                  FUN = function(x, lag) abs(diff(as.integer(substr(x,1,1)), lag = lag)), lag = lag))
     
     # check whether all are phased, note that the filter takes into account past values only here! So needs to be shifted in next step
-    evidencelist[[lag]] <- apply(MARGIN = 2, X = S4Vectors::mcols(loci)[,grep(pattern = "Major", x = colnames(S4Vectors::mcols(loci)))],
-                                 FUN = function(x, lag) filter(x = grepl(pattern = "|", x = x, fixed = T), filter = rep(1, lag + 1), sides = 1) == lag+1, lag = lag)
+    #evidencelist[[lag]] <- apply(MARGIN = 2, X = S4Vectors::mcols(loci)[,grep(pattern = "Major", x = colnames(S4Vectors::mcols(loci)))],
+    #                             FUN = function(x, lag) dplyr::filter(x = grepl(pattern = "|", x = x, fixed = T), filter = rep(1, lag + 1), sides = 1) == lag+1, lag = lag)
+	evidencelist[[lag]] <- apply(
+	  MARGIN = 2, 
+	  X = S4Vectors::mcols(loci)[, grep(pattern = "Major", x = colnames(S4Vectors::mcols(loci)))],
+	  FUN = function(x, lag) {
+		# First, find positions where the pattern "|" exists
+		logical_vector <- grepl(pattern = "|", x = x, fixed = TRUE)
+                numeric_vector <- as.numeric(logical_vector)
+                result <- rep(FALSE, length(numeric_vector))
+
+                if (length(numeric_vector) > lag) {
+		  # Then apply time series smoothing using stats::filter
+		  smoothed <- stats::filter(x = numeric_vector, filter = rep(1, lag + 1), sides = 1)
+                  smoothed[is.na(smoothed)] <- 0
+		
+		  # Check where the smoothed values equal lag+1
+		  result[1:length(smoothed)] <- (smoothed == lag + 1)
+                } 
+		return(result)
+	  }, 
+	  lag = lag
+	)
     # and they have the same PS
     # evidencelist[[lag]] <- (evidencelist[[lag]][-1,] * rbind(matrix(NA, nrow = lag-1, ncol = length(vcfs_common)), apply(MARGIN = 2, X = mcols(loci)[,grep(pattern = "PS", x = colnames(mcols(loci)))],
     #                                                 FUN = function(x, lag) diff(x = x, lag = lag) == 0, lag = lag))) == 1
@@ -312,13 +332,14 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
   
   # for every chromosome with imbalance
   for (i in 1:length(chrom_names)) {
-    chrom = chrom_names[i]
+    chrom = as.character(chrom_names[i])
     # load loci.RDS file and simplify genotype formatting
     loci <- readRDS(file = paste0(rdsprefix, chrom, "_loci.RDS"))
     S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")] <- S4Vectors::DataFrame(apply(X = S4Vectors::mcols(loci)[,paste0(tumournames, "_Major")],
                                                                     MARGIN = 2, FUN = function(x) as.numeric(substr(x = x, start = 1, stop = 1))))
     
-    if (length(imbalancedregions_disj[[chrom]]) > 0) {
+    #if (length(imbalancedregions_disj[[chrom]]) > 0) {
+    if (chrom %in% names(imbalancedregions_disj)) {
       # split loci by abberrated region, compare only ranges to avoid chr naming scheme mismatch
       locioverlaps <- IRanges::findOverlaps(query = IRanges::ranges(imbalancedregions_disj[[chrom]]), subject = IRanges::ranges(loci))
       imballoci <- split(x = loci[S4Vectors::subjectHits(locioverlaps)], f = S4Vectors::queryHits(locioverlaps), drop = F)
@@ -334,7 +355,11 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
       imbalancedregions_disj[[chrom]]$frac_consensus <- sapply(X = frac_consensus, FUN = function(x) paste0(names(x), "=", round(x, digits = 2), collapse = ";"))
       imbalancedregions_disj[[chrom]]$msai <- sapply(X = frac_consensus, FUN = function(x) max(x, na.rm = T) - min(x, na.rm = T) > .9)
       
-      msaidf <- GenomicRanges::as.data.frame(imbalancedregions_disj[[chrom]][imbalancedregions_disj[[chrom]]$msai])
+      if (length(GenomicRanges::mcols(imbalancedregions_disj[[chrom]])$msai) > 0) {
+        msaidf <- GenomicRanges::as.data.frame(imbalancedregions_disj[[chrom]][GenomicRanges::mcols(imbalancedregions_disj[[chrom]])$msai])
+      } else {
+        msaidf <- data.frame()
+      }
     } else {
       msaidf <- data.frame()
     }
@@ -363,6 +388,10 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
 
   # write out final MSAI dataframe
   msaiout <- GenomicRanges::as.data.frame(unlist(imbalancedregions_disj, use.names = F))
+  list_cols <- sapply(msaiout, is.list)
+  for (col in names(msaiout)[list_cols]) {
+    msaiout[[col]] <- sapply(msaiout[[col]], function(x) paste(x, collapse=","))
+  }
   write.table(x = msaiout[, -c(4:6)], file = paste0("multisample_MSAI.txt"), row.names = F, sep = "\t", quote = F)
   return(NULL)
 }

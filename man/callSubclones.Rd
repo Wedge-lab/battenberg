@@ -15,6 +15,7 @@ callSubclones(
   chr_names,
   masking_output_file,
   max_allowed_state = 250,
+  cn_upper_limit = 1000,
   prior_breakpoints_file = NULL,
   gamma = 1,
   segmentation.gamma = NA,
@@ -44,7 +45,9 @@ callSubclones(
 
 \item{masking_output_file}{Filename of where the masking details need to be written. Masking is performed to remove very high copy number state segments}
 
-\item{max_allowed_state}{The maximum CN state allowed (Default 100)}
+\item{max_allowed_state}{The maximum CN state allowed (Default 250)}
+
+\item{cn_upper_limit}{The maximum CN that can be called (Default 1000)}
 
 \item{prior_breakpoints_file}{A two column file with prior breakpoints, possibly from structural variants. This file must contain two columns: chromosome and position. These are used when making the figures}
 

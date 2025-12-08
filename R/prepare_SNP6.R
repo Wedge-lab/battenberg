@@ -155,7 +155,7 @@ cel2baf.logr = function(normal_cel_file, tumour_cel_file, output_file, snp6_refe
 #' @param birdseed_report_file Name of the birdseed output file. This is a temp output file of one of the internally called functions of which the name cannot be defined. Don't change this parameter. (Default birdseed.report.txt)
 #' @author sd11
 #' @export
-gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.tumor.BAF, outfile.normal.LogR, outfile.normal.BAF, outfile.probeBAF, snp6_reference_info_file, chr_names, birdseed_report_file="birdseed.report.txt") {
+gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.tumor.BAF, outfile.normal.LogR, outfile.normal.BAF, outfile.probeBAF, snp6_reference_info_file, chr_names, birdseed_report_file="birdseed.report.txt",genomebuild="hg19") {
   # Read in needed reference files
   ref.files = parseSNP6refFile(snp6_reference_info_file)
   SNP_POS_REF = ref.files[ref.files$variable == "SNP_POS",]$reference_file
@@ -209,9 +209,9 @@ gc.correct = function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.t
   sex[sex == "male"] <- "XY"
   sex[sex == "unknown"] <- NA
   
-  ascat.bc <- ASCAT::ascat.loadData(paste(outfile.tumor.LogR, "_noGCcorr.txt", sep=""), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep=""),paste(outfile.normal.LogR, "_noGCcorr.txt", sep=""), paste(outfile.normal.BAF, "_noGCcorr.txt", sep=""), chrs=chr_names, gender=sex)
+  ascat.bc <- ASCAT::ascat.loadData(paste(outfile.tumor.LogR, "_noGCcorr.txt", sep=""), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep=""),paste(outfile.normal.LogR, "_noGCcorr.txt", sep=""), paste(outfile.normal.BAF, "_noGCcorr.txt", sep=""), chrs=chr_names, gender=sex, genomeVersion=genomebuild)
   ASCAT::ascat.plotRawData(ascat.bc)
-  ascat.bc <- ASCAT::ascat.GCcorrect(ascat.bc, GC_SNP6)
+  ascat.bc <- ASCAT::ascat.correctLogR(ascat.bc, GC_SNP6)
 
   # Make sure the right column names are added here, because these are expected by fitcopynumber
   colnames(ascat.bc$SNPpos) = c("Chromosome", "Position")
@@ -445,7 +445,7 @@ infer_gender_birdseed = function(birdseed_report_file) {
 prepare_snp6 = function(tumour_cel_file, normal_cel_file, tumourname, chrom_names, 
                         snp6_reference_info_file, apt.probeset.genotype.exe="apt-probeset-genotype", 
                         apt.probeset.summarize.exe="apt-probeset-summarize", norm.geno.clust.exe="normalize_affy_geno_cluster.pl",
-                        birdseed_report_file="birdseed.report.txt") {
+                        birdseed_report_file="birdseed.report.txt",genomebuild="hg19") {
   
   # Extract the LogR and BAF from both tumour and normal cel files.
   cel2baf.logr(normal_cel_file=normal_cel_file,
@@ -465,6 +465,7 @@ prepare_snp6 = function(tumour_cel_file, normal_cel_file, tumourname, chrom_name
              outfile.probeBAF=paste(tumourname, "_probeBAF.txt", sep=""),
              snp6_reference_info_file=snp6_reference_info_file,
              birdseed_report_file=birdseed_report_file,
-             chr_names=chrom_names)
+             chr_names=chrom_names,
+             genomebuild=genomebuild)
   
 }

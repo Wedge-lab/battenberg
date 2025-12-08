@@ -1,0 +1,406 @@
+---
+title: "Data Interpretation and Analysis"
+author: "David Wedge Group"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Data Interpretation and Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/interpretation-",
+  out.width = "100%"
+)
+```
+
+```{r setup}
+library(Battenberg)
+library(ggplot2)
+library(dplyr)
+```
+
+## Understanding Battenberg Output
+
+### Copy Number Segments File
+
+The main output file `[samplename]_copynumber.txt` contains detailed copy number information:
+
+```{r eval = FALSE}
+# Read the copy number data
+cn_data <- read.delim("sample_tumor_copynumber.txt")
+
+# Examine the structure
+head(cn_data)
+colnames(cn_data)
+```
+
+### Key Columns Explained
+
+**Basic Information:**
+- `chr`: Chromosome
+- `startpos`, `endpos`: Segment boundaries
+- `BAF`: B-allele frequency
+- `LogR`: Log ratio of tumor vs normal coverage
+
+**Statistical Measures:**
+- `pval`: P-value for subclonal vs clonal model
+- `ntot`: Internal copy number value (NOT total copy number)
+
+**Copy Number States (Solution A):**
+- `nMaj1_A`, `nMin1_A`: Major/minor allele copy numbers for state 1
+- `frac1_A`: Fraction of tumor cells with state 1
+- `nMaj2_A`, `nMin2_A`: Major/minor alleles for state 2 (if subclonal)
+- `frac2_A`: Fraction of tumor cells with state 2
+- `SDfrac_A`: Standard deviation of BAF (uncertainty measure)
+
+## Identifying Copy Number Alterations
+
+### Clonal vs Subclonal Segments
+
+```{r eval = FALSE}
+# Identify clonal segments (single copy number state)
+clonal_segments <- cn_data[cn_data$frac1_A == 1, ]
+
+# Identify subclonal segments (two copy number states)
+subclonal_segments <- cn_data[cn_data$frac1_A < 1 & !is.na(cn_data$frac2_A), ]
+
+cat("Clonal segments:", nrow(clonal_segments), "\n")
+cat("Subclonal segments:", nrow(subclonal_segments), "\n")
+```
+
+### Calculate Total Copy Number
+
+```{r eval = FALSE}
+# For clonal segments
+cn_data$total_cn_clonal <- cn_data$nMaj1_A + cn_data$nMin1_A
+
+# For subclonal segments, calculate weighted average
+cn_data$total_cn_subclonal <- ifelse(
+  !is.na(cn_data$nMaj2_A),
+  (cn_data$nMaj1_A + cn_data$nMin1_A) * cn_data$frac1_A + 
+  (cn_data$nMaj2_A + cn_data$nMin2_A) * cn_data$frac2_A,
+  cn_data$nMaj1_A + cn_data$nMin1_A
+)
+
+# Primary copy number for analysis
+cn_data$primary_total_cn <- ifelse(
+  is.na(cn_data$total_cn_subclonal),
+  cn_data$total_cn_clonal,
+  cn_data$total_cn_subclonal
+)
+```
+
+### Classify Copy Number Events
+
+```{r eval = FALSE}
+# Classify events based on copy number
+cn_data$cn_event <- case_when(
+  cn_data$primary_total_cn == 0 ~ "Homozygous deletion",
+  cn_data$primary_total_cn == 1 ~ "Heterozygous deletion",
+  cn_data$primary_total_cn == 2 ~ "Neutral",
+  cn_data$primary_total_cn == 3 ~ "Single copy gain",
+  cn_data$primary_total_cn == 4 ~ "Two copy gain",
+  cn_data$primary_total_cn >= 5 ~ "High-level amplification",
+  TRUE ~ "Other"
+)
+
+# Summary of events
+table(cn_data$cn_event)
+```
+
+## Analyzing Loss of Heterozygosity (LOH)
+
+### Identify LOH Segments
+
+```{r eval = FALSE}
+# LOH occurs when minor allele copy number is 0
+cn_data$loh_state1 <- cn_data$nMin1_A == 0
+cn_data$loh_state2 <- ifelse(is.na(cn_data$nMin2_A), FALSE, cn_data$nMin2_A == 0)
+
+# Clonal LOH (all cells have LOH)
+clonal_loh <- cn_data[cn_data$loh_state1 & cn_data$frac1_A == 1, ]
+
+# Subclonal LOH (some cells have LOH)
+subclonal_loh <- cn_data[
+  (cn_data$loh_state1 & cn_data$frac1_A < 1) |
+  (cn_data$loh_state2 & !is.na(cn_data$frac2_A)), 
+]
+
+cat("Clonal LOH segments:", nrow(clonal_loh), "\n")
+cat("Subclonal LOH segments:", nrow(subclonal_loh), "\n")
+```
+
+### Calculate LOH Burden
+
+```{r eval = FALSE}
+# Calculate total LOH burden
+total_loh_length <- sum(clonal_loh$endpos - clonal_loh$startpos) + 
+                   sum(subclonal_loh$endpos - subclonal_loh$startpos)
+
+# Genome size (approximate)
+genome_size <- 3e9
+
+loh_fraction <- total_loh_length / genome_size
+cat("LOH burden:", round(loh_fraction * 100, 2), "% of genome\n")
+```
+
+## Analyzing Chromosomal Instability
+
+### Calculate Segment Counts
+
+```{r eval = FALSE}
+# Count segments per chromosome
+segments_per_chr <- table(cn_data$chr)
+
+# Total number of segments
+total_segments <- nrow(cn_data)
+
+# Segments with copy number alterations
+altered_segments <- sum(cn_data$primary_total_cn != 2)
+
+cat("Total segments:", total_segments, "\n")
+cat("Altered segments:", altered_segments, "\n")
+cat("Fraction altered:", round(altered_segments/total_segments, 3), "\n")
+```
+
+### Identify Chromothripsis
+
+```{r eval = FALSE}
+# Chromothripsis: many segments in localized regions
+# Look for chromosomes with >10 segments in <50Mb regions
+
+identify_chromothripsis <- function(chr_data, min_segments = 10, max_size = 50e6) {
+  chr_data <- chr_data[order(chr_data$startpos), ]
+  
+  for(i in 1:(nrow(chr_data) - min_segments + 1)) {
+    window_end <- i + min_segments - 1
+    region_size <- chr_data$endpos[window_end] - chr_data$startpos[i]
+    
+    if(region_size <= max_size) {
+      return(TRUE)
+    }
+  }
+  return(FALSE)
+}
+
+# Check each chromosome
+chromothripsis_chrs <- c()
+for(chr in unique(cn_data$chr)) {
+  chr_data <- cn_data[cn_data$chr == chr, ]
+  if(identify_chromothripsis(chr_data)) {
+    chromothripsis_chrs <- c(chromothripsis_chrs, chr)
+  }
+}
+
+cat("Potential chromothripsis chromosomes:", paste(chromothripsis_chrs, collapse = ", "), "\n")
+```
+
+## Tumor Purity and Ploidy Analysis
+
+### Extract Purity and Ploidy
+
+```{r eval = FALSE}
+# Read purity/ploidy file
+rho_psi <- read.delim("sample_tumor_rho_and_psi.txt")
+
+# Extract values (use second row for FRAC_genome)
+tumor_purity <- rho_psi$rho[2]
+tumor_ploidy <- rho_psi$psi[2]
+
+cat("Tumor purity (rho):", round(tumor_purity, 3), "\n")
+cat("Tumor ploidy (psi):", round(tumor_ploidy, 3), "\n")
+```
+
+### Validate Purity Estimates
+
+```{r eval = FALSE}
+# Check consistency with copy number data
+# Normal regions should have total CN close to purity-adjusted diploid
+
+normal_regions <- cn_data[cn_data$primary_total_cn == 2, ]
+expected_logr <- log2(tumor_purity * 2 + (1 - tumor_purity) * 2) - log2(2)
+
+# Compare with observed LogR in normal regions
+observed_logr <- median(normal_regions$LogR)
+cat("Expected LogR for normal regions:", round(expected_logr, 3), "\n")
+cat("Observed LogR for normal regions:", round(observed_logr, 3), "\n")
+```
+
+## Subclonal Analysis
+
+### Identify Subclonal Events
+
+```{r eval = FALSE}
+# Subclonal events with significant fraction
+significant_subclonal <- cn_data[
+  !is.na(cn_data$frac2_A) & 
+  cn_data$frac2_A >= 0.1 &  # At least 10% of cells
+  cn_data$pval < 0.05,      # Significant subclonal call
+]
+
+cat("Significant subclonal events:", nrow(significant_subclonal), "\n")
+```
+
+### Analyze Subclonal Fraction Distribution
+
+```{r eval = FALSE}
+# Plot distribution of subclonal fractions
+subclonal_fractions <- cn_data$frac2_A[!is.na(cn_data$frac2_A)]
+
+if(length(subclonal_fractions) > 0) {
+  hist(subclonal_fractions, breaks = 20, 
+       main = "Distribution of Subclonal Fractions",
+       xlab = "Fraction of cells with subclonal state",
+       ylab = "Number of segments")
+}
+```
+
+## Generating Summary Statistics
+
+### Create Analysis Summary
+
+```{r eval = FALSE}
+# Create comprehensive summary
+analysis_summary <- list(
+  sample_info = list(
+    tumor_purity = tumor_purity,
+    tumor_ploidy = tumor_ploidy,
+    total_segments = nrow(cn_data),
+    altered_segments = sum(cn_data$primary_total_cn != 2)
+  ),
+  
+  copy_number_events = list(
+    homozygous_deletions = sum(cn_data$primary_total_cn == 0),
+    heterozygous_deletions = sum(cn_data$primary_total_cn == 1),
+    neutral_regions = sum(cn_data$primary_total_cn == 2),
+    single_copy_gains = sum(cn_data$primary_total_cn == 3),
+    two_copy_gains = sum(cn_data$primary_total_cn == 4),
+    high_level_amplifications = sum(cn_data$primary_total_cn >= 5)
+  ),
+  
+  subclonal_info = list(
+    subclonal_segments = nrow(subclonal_segments),
+    significant_subclonal = nrow(significant_subclonal),
+    clonal_loh_segments = nrow(clonal_loh),
+    subclonal_loh_segments = nrow(subclonal_loh)
+  )
+)
+
+# Print summary
+print(analysis_summary)
+```
+
+### Export Results
+
+```{r eval = FALSE}
+# Create detailed results table
+results_table <- cn_data %>%
+  select(chr, startpos, endpos, primary_total_cn, cn_event, 
+         nMaj1_A, nMin1_A, frac1_A, nMaj2_A, nMin2_A, frac2_A, pval) %>%
+  filter(primary_total_cn != 2)  # Only altered segments
+
+# Write results
+write.table(results_table, "battenberg_analysis_results.txt", 
+            sep = "\t", row.names = FALSE, quote = FALSE)
+
+# Write summary
+write.table(analysis_summary, "battenberg_analysis_summary.txt", 
+            sep = "\t", row.names = TRUE, quote = FALSE)
+```
+
+## Visualization Examples
+
+### Copy Number Profile Plot
+
+```{r eval = FALSE}
+# Create simple copy number profile
+cn_data$midpoint <- (cn_data$startpos + cn_data$endpos) / 2
+
+# Plot by chromosome
+ggplot(cn_data, aes(x = midpoint, y = primary_total_cn)) +
+  geom_point(size = 0.5) +
+  geom_line() +
+  facet_wrap(~chr, scales = "free_x") +
+  labs(title = "Copy Number Profile",
+       x = "Genomic Position",
+       y = "Total Copy Number") +
+  theme_minimal()
+```
+
+### Subclonal Fraction Plot
+
+```{r eval = FALSE}
+# Plot subclonal fractions across genome
+subclonal_data <- cn_data[!is.na(cn_data$frac2_A), ]
+
+if(nrow(subclonal_data) > 0) {
+  ggplot(subclonal_data, aes(x = midpoint, y = frac2_A)) +
+    geom_point(aes(color = chr), size = 1) +
+    facet_wrap(~chr, scales = "free_x") +
+    labs(title = "Subclonal Fractions Across Genome",
+         x = "Genomic Position",
+         y = "Fraction of Cells with Subclonal State") +
+    theme_minimal() +
+    theme(legend.position = "none")
+}
+```
+
+## Utility Functions
+
+### Refit Analysis
+
+```{r eval = FALSE}
+# Use utility functions for refit analysis
+# Calculate refit values for specific segments
+refit_result <- calc_rho_psi_refit(
+  refBAF = 0.65,      # BAF of segment
+  refLogR = 0.3,      # LogR of segment  
+  refMajor = 3,       # Major allele CN
+  refMinor = 1,       # Minor allele CN
+  rho = tumor_purity, # Current purity
+  gamma_param = 1     # Platform gamma
+)
+
+print(refit_result)
+```
+
+### Generate Refit Suggestions
+
+```{r eval = FALSE}
+# Generate refit suggestions from results
+cnfit_to_refit_suggestions(
+  samplename = "sample_tumor",
+  subclones_file = "sample_tumor_copynumber.txt",
+  rho_psi_file = "sample_tumor_rho_and_psi.txt",
+  gamma_param = 1,
+  min_segment_size_mb = 2
+)
+```
+
+## Quality Control Checks
+
+### Assess Result Quality
+
+```{r eval = FALSE}
+# Check for potential issues
+quality_checks <- list(
+  # Very short segments might be artifacts
+  short_segments = sum((cn_data$endpos - cn_data$startpos) < 1e6),
+  
+  # Very low purity might indicate contamination
+  low_purity = tumor_purity < 0.3,
+  
+  # Excessive segmentation might indicate noise
+  excessive_segments = nrow(cn_data) > 1000,
+  
+  # Check for failed subclonal calls
+  failed_subclonal = sum(is.na(cn_data$frac1_A))
+)
+
+print(quality_checks)
+```

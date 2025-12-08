@@ -216,6 +216,28 @@ cell_line_reconstruct_normal <-function(TUMOURNAME,NORMALNAME,chrom_coord,chrom,
     LOH_regions=LOH_regions[which(LOH_regions$arm!="p"),]
   }
   ####
+  #remove LOH regions which do not have negative LogR and are essentially stretches of homozygosity
+  if (!is.null(nrow(LOH_regions))){
+    logr=CL_LogR[which(CL_LogR$Chromosome==i),]
+    hom_stretch = NULL
+    for (j in 1:nrow(LOH_regions)){
+    COV=logr[which(logr$Position>LOH_regions$start.pos[j] & logr$Position<LOH_regions$end.pos[j]),] # logR of homozygote SNPs within
+    medcov=median(COV[,3])
+    cov=mean(COV[,3])
+    print(paste("mean COV for region",j,"is",cov,"and median is",medcov))
+    # cov and medcov to be more than -0.8 and the segment has at least 10 SNPs for cov and medcov calculation
+    if (!is.na(cov) & cov < -0.8 & !is.na(medcov) & medcov < -0.8 & nrow(COV)>=10){
+      print(paste("Retaining region",j,"due to clear evidence of LOH"))
+    } else {
+       print(paste("Region",j,"is likely to be a stretch of homozygosity or sequencing gap in rare cases"))
+       hom_stretch = append(hom_stretch,j)
+    }
+    }
+    if (!is.null(hom_stretch)){
+      LOH_regions=LOH_regions[-hom_stretch,]
+    }
+  }
+  ####
   if (is.null(dim(LOH_regions))){
     print(paste("no LOH detected in chr",i))
     LOH[[i]]=0

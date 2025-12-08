@@ -1,0 +1,8 @@
+pandoc: 2.14.0.3
+pkgdown: 2.1.2
+pkgdown_sha: ~
+articles:
+  advanced-usage: advanced-usage.html
+  data-interpretation: data-interpretation.html
+  getting-started: getting-started.html
+last_built: 2025-07-04T17:53Z

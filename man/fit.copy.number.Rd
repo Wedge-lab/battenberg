@@ -23,7 +23,9 @@ fit.copy.number(
   preset_rho = NA,
   preset_psi = NA,
   read_depth = 30,
-  analysis = "paired"
+  analysis = "paired",
+  nthreads,
+  enhanced_grid_search = F
 )
 }
 \arguments{
