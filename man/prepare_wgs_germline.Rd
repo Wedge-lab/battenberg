@@ -67,7 +67,7 @@ prepare_wgs_germline(
 \item{skip_allele_counting}{Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)}
 }
 \description{
-This function performs part of the Battenberg WGS pipeline: Counting alleles, generating BAF and logR, 
+This function performs part of the Battenberg WGS pipeline: Counting alleles, generating BAF and logR,
 reconstructing normal-pair allele counts for the germline and performing GC content correction.
 }
 \author{

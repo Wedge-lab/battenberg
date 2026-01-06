@@ -5,7 +5,7 @@
 \title{This function is an alternative procedure for finding the optimum (psi, rho) pair.
 This function first finds all the find all the global optima,
 and then finds the centroid of this set of globla optima.
-Then we find the global optimum which is nearest to the centroid. 
+Then we find the global optimum which is nearest to the centroid.
 (When the set of global optima is convex, we expect the selected optimum to be at the centroid.)}
 \usage{
 find_centroid_of_global_minima(
@@ -70,6 +70,6 @@ A list with fields optima_info_without_ref and optima_info
 This function is an alternative procedure for finding the optimum (psi, rho) pair.
 This function first finds all the find all the global optima,
 and then finds the centroid of this set of globla optima.
-Then we find the global optimum which is nearest to the centroid. 
+Then we find the global optimum which is nearest to the centroid.
 (When the set of global optima is convex, we expect the selected optimum to be at the centroid.)
 }

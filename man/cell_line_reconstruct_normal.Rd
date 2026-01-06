@@ -54,7 +54,7 @@ cell_line_reconstruct_normal(
 \item{LENGTH_ADJACENT}{The length of adjacent regions either side of a candidate inter-hetSNP LOH region to be plotted (Default 5e4)}
 }
 \description{
-Function to generate normal-pair allele count files based on IVD-PCF and inter-hetSNP logR-based LOH detection (IVD: Inter-Variant Distance, het: heterozygote) 
+Function to generate normal-pair allele count files based on IVD-PCF and inter-hetSNP logR-based LOH detection (IVD: Inter-Variant Distance, het: heterozygote)
 This method reconstructs the normal-pair counts by using the allele counts of the Cell line as template.
 It fills the detected LOH regions with evenly-distributed hetSNPs with the density estimated based on each chromosome in each tumour sample.
 It essentially informs Battenberg of the location of hetSNPs across the genome in the tumour sample.

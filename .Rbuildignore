@@ -1,0 +1,6 @@
+^\.github$
+^\.lintr$
+^Makefile$
+^docs$
+^gcCorrect_chromosome_coordinates_.*\.txt$
+^LICENSE$

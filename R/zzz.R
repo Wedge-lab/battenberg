@@ -1,3 +1,3 @@
 .onLoad <- function(libname, pkgname) {
-    options(scipen = 999)
+  options(scipen = 999)
 }

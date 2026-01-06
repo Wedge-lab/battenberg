@@ -18,7 +18,7 @@ totalcn_chrom_plot(samplename, subclones, logr, outputfile, purity)
 \item{purity}{The samples purity estimate}
 }
 \description{
-This plot contains estimated total copy number from logR, the copy number fit in different colours and a few general stats. 
+This plot contains estimated total copy number from logR, the copy number fit in different colours and a few general stats.
 It is meant as a single figure replacement for the per chromosome subclones.png figures that can be used for refitting.
 }
 \author{

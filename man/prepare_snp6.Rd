@@ -37,7 +37,7 @@ prepare_snp6(
 \item{birdseed_report_file}{Name of the birdseed output file. This is a temp output file of one of the internally called functions of which the name cannot be defined. Don't change this parameter. (Default: birdseed.report.txt)}
 }
 \description{
-This function performs part of the Battenberg SNP6 pipeline: Extract BAF and logR from the CEL files 
+This function performs part of the Battenberg SNP6 pipeline: Extract BAF and logR from the CEL files
 and performing GC content correction.
 }
 \author{
