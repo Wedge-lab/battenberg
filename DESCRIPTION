@@ -37,7 +37,11 @@ Imports:
   GenomicRanges,
   VariantAnnotation,
   copynumber,
-  data.table
+  data.table,
+  IRanges,
+  S4Vectors,
+  logger,
+  SummarizedExperiment
 Remotes:
   Crick-CancerGenomics/ascat/ASCAT,
   igordot/copynumber
@@ -49,7 +53,9 @@ Suggests:
   testthat,
   knitr,
   rmarkdown,
-  dplyr
+  dplyr,
+  sinew,
+  attachment,
 VignetteBuilder:
   knitr
 RoxygenNote: 7.3.3

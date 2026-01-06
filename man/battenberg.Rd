@@ -40,20 +40,20 @@ battenberg(
   max_allowed_state = 250,
   cn_upper_limit = 1000,
   calc_seg_baf_option = 3,
-  skip_allele_counting = F,
-  skip_preprocessing = F,
-  skip_phasing = F,
+  skip_allele_counting = FALSE,
+  skip_preprocessing = FALSE,
+  skip_phasing = FALSE,
   externalhaplotypefile = NA,
   usebeagle = FALSE,
   beaglejar = NA,
-  beagleref.template = NA,
+  beagleref_template = NA,
   beagleplink.template = NA,
   beaglemaxmem = 10,
   beaglenthreads = 1,
   beaglewindow = 40,
   beagleoverlap = 4,
   javajre = "java",
-  write_battenberg_phasing = T,
+  write_battenberg_phasing = TRUE,
   multisample_relative_weight_balanced = 0.25,
   multisample_maxlag = 90,
   segmentation_gamma_multisample = 5,
@@ -66,7 +66,8 @@ battenberg(
   prior_breakpoints_file = NULL,
   genomebuild = "hg19",
   chrom_coord_file = NULL,
-  enhanced_grid_search = F
+  enhanced_grid_search = FALSE,
+  verbose_logging = FALSE
 )
 }
 \arguments{
@@ -152,7 +153,7 @@ battenberg(
 
 \item{beaglejar}{Full path to Beagle java jar file Default: NA}
 
-\item{beagleref.template}{Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA}
+\item{beagleref_template}{Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA}
 
 \item{beagleplink.template}{Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA}
 

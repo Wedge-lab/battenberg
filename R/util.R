@@ -11,7 +11,7 @@
 #' @param skip The number of rows to skip before reading (Default: 0)
 #' @return A data frame with contents of the file
 #' @export
-read_table_generic <- function(file, header = T, row.names = F, stringsAsFactor = F, sep = "\t", chrom_col = 1, skip = 0) {
+read_table_generic <- function(file, header = TRUE, row.names = FALSE, stringsAsFactor = FALSE, sep = "\t", chrom_col = 1, skip = 0) {
   # stringsAsFactor is not needed here, but kept for legacy purposes
 
   # Read in first line to obtain the header
@@ -40,7 +40,7 @@ read_table_generic <- function(file, header = T, row.names = F, stringsAsFactor 
 #' @param filename Filename of the file to read in
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with logR content
-read_logr <- function(filename, header = T) {
+read_logr <- function(filename, header = TRUE) {
   # return(readr::read_tsv(file = filename, col_names = header, col_types = "cin"))
   return(readr::read_delim(file = filename, delim = NULL, col_names = header, col_types = "cin"))
 }
@@ -49,7 +49,7 @@ read_logr <- function(filename, header = T) {
 #' @param filename Filename of the file to read in
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with BAF content
-read_baf <- function(filename, header = T) {
+read_baf <- function(filename, header = TRUE) {
   # return(readr::read_tsv(file = filename, col_names = header, col_types = "cin"))
   return(readr::read_delim(file = filename, delim = NULL, col_names = header, col_types = "cin"))
 }
@@ -58,8 +58,8 @@ read_baf <- function(filename, header = T) {
 #' @param filename Filename of the file to read in
 #' @return A data frame with GC content
 read_gccontent <- function(filename) {
-  # return(readr::read_tsv(file=filename, skip = 1, col_names = F, col_types = "-cinnnnnnnnnnnn------"))
-  return(readr::read_delim(file = filename, skip = 1, delim = NULL, col_names = F, col_types = "-cinnnnnnnnnnnn------"))
+  # return(readr::read_tsv(file=filename, skip = 1, col_names = FALSE, col_types = "-cinnnnnnnnnnnn------"))
+  return(readr::read_delim(file = filename, skip = 1, delim = NULL, col_names = FALSE, col_types = "-cinnnnnnnnnnnn------"))
 }
 
 #' Parser for replication timing reference data
@@ -74,7 +74,7 @@ read_replication <- function(filename) {
 #' @param filename Filename of the file to read in
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with BAFsegmented content
-read_bafsegmented <- function(filename, header = T) {
+read_bafsegmented <- function(filename, header = TRUE) {
   # return(readr::read_tsv(file = filename, col_names = header, col_types = "cinnn"))
   return(readr::read_delim(file = filename, delim = NULL, col_names = header, col_types = "cinnn"))
 }
@@ -99,8 +99,8 @@ read_alleleFrequencies <- function(filename) {
 #' @param filename Filename of the file to read in
 #' @return A data frame with the input for impute
 read_impute_input <- function(filename) {
-  # return(readr::read_delim(file = filename, col_names = F, col_types = "ccicciii", delim = " "))
-  return(readr::read_delim(file = filename, col_names = F, col_types = "ccicciii", delim = NULL))
+  # return(readr::read_delim(file = filename, col_names = FALSE, col_types = "ccicciii", delim = " "))
+  return(readr::read_delim(file = filename, col_names = FALSE, col_types = "ccicciii", delim = NULL))
 }
 
 #' Parser for beagle5 output data
@@ -146,7 +146,7 @@ concatenateBAFfiles <- function(inputStart, inputEnd, outputFile, chr_names) {
     }
   }
   # rnames=paste("snp",1:nrow(all_data),sep="")
-  write.table(all_data, outputFile, row.names = F, col.names = colNames, quote = F, sep = "\t")
+  write.table(all_data, outputFile, row.names = FALSE, col.names = colNames, quote = FALSE, sep = "\t")
 }
 
 #' Function to concatenate allele counter output
@@ -266,7 +266,7 @@ calc_rho_psi_refit <- function(refBAF, refLogR, refMajor, refMinor, rho, gamma_p
 #' @export
 suggest_refit <- function(subclones_file, segment_chrom, segment_pos, new_nMaj, new_nMin, rho, gamma_param) {
   # segment_pos = as.numeric(gsub("M", "000000", segment_pos))
-  subclones <- read.table(subclones_file, header = T, stringsAsFactors = F)
+  subclones <- read.table(subclones_file, header = TRUE, stringsAsFactors = FALSE)
   segment <- subclones[subclones$chr == segment_chrom & subclones$startpos <= segment_pos & subclones$endpos >= segment_pos, ]
   segment_BAF <- segment$BAF
   segment_LogR <- segment$LogR
@@ -298,21 +298,21 @@ cnfit_to_refit_suggestions <- function(samplename, subclones_file, rho_psi_file,
   print(subclones$is_cna)
   if (any(subclones$len > min_segment_size_mb & subclones$is_cna)) {
     # There are large scale alterations, save the top couple as suggestions
-    rho_psi <- read.table(rho_psi_file, header = T, stringsAsFactors = F)
+    rho_psi <- read.table(rho_psi_file, header = TRUE, stringsAsFactors = FALSE)
     rho <- rho_psi["FRAC_GENOME", "rho"]
     psi_t <- rho_psi["FRAC_GENOME", "psi"]
 
     # Take only segments that are clonal and are an alteration
     is_subclonal <- subclones$frac1_A < 1
     subclones_clonal_cna <- subset(subclones, !is_subclonal & subclones$is_cna)
-    subclones_clonal_cna <- subclones_clonal_cna[with(subclones_clonal_cna, order(len, decreasing = T)), ]
+    subclones_clonal_cna <- subclones_clonal_cna[with(subclones_clonal_cna, order(len, decreasing = TRUE)), ]
 
     if (nrow(subclones_clonal_cna) == 0) {
-      output <- data.frame(project = NA, samplename = samplename, qc = NA, cellularity_refit = T, chrom = NA, pos = NA, maj = NA, min = NA, baf = NA, logr = NA, rho_estimate = NA, psi_t_estimate = NA, rho_diff = NA, psi_t_diff = NA)
+      output <- data.frame(project = NA, samplename = samplename, qc = NA, cellularity_refit = TRUE, chrom = NA, pos = NA, maj = NA, min = NA, baf = NA, logr = NA, rho_estimate = NA, psi_t_estimate = NA, rho_diff = NA, psi_t_diff = NA)
     } else {
       # Generate a couple of solutions, but not more than are possibly available
       max_solutions <- ifelse(nrow(subclones_clonal_cna) >= 5, 5, nrow(subclones_clonal_cna))
-      subclones_clonal_cna <- subclones_clonal_cna[1:max_solutions, , drop = F]
+      subclones_clonal_cna <- subclones_clonal_cna[1:max_solutions, , drop = FALSE]
 
       # Determine position in Mb within the segment
       position <- subclones_clonal_cna$startpos + (subclones_clonal_cna$endpos - subclones_clonal_cna$startpos) / 2
@@ -343,9 +343,9 @@ cnfit_to_refit_suggestions <- function(samplename, subclones_file, rho_psi_file,
     }
   } else {
     # No large clonal alteration, save a suggestion that should use an external purity value
-    output <- data.frame(project = NA, samplename = samplename, qc = NA, cellularity_refit = T, chrom = NA, pos = NA, maj = NA, min = NA, baf = NA, logr = NA, rho_estimate = NA, psi_t_estimate = NA, rho_diff = NA, psi_t_diff = NA)
+    output <- data.frame(project = NA, samplename = samplename, qc = NA, cellularity_refit = TRUE, chrom = NA, pos = NA, maj = NA, min = NA, baf = NA, logr = NA, rho_estimate = NA, psi_t_estimate = NA, rho_diff = NA, psi_t_diff = NA)
   }
-  write.table(output, file = paste0(samplename, "_refit_suggestion.txt"), quote = F, sep = "\t", row.names = F)
+  write.table(output, file = paste0(samplename, "_refit_suggestion.txt"), quote = FALSE, sep = "\t", row.names = FALSE)
 }
 
 ########################################################################################

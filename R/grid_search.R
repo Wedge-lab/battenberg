@@ -31,7 +31,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
   d <- dist_matrix_info$distance_matrix
   minimise <- dist_matrix_info$minimise
 
-  TheoretMaxdist <- sum(rep(0.25, dim(s)[1]) * s[, "length"], na.rm = T)
+  TheoretMaxdist <- sum(rep(0.25, dim(s)[1]) * s[, "length"], na.rm = TRUE)
 
   if (!(minimise)) {
     d <- -d
@@ -152,7 +152,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
   rho_opt1_plot <- vector(mode = "numeric")
 
   if (nropt > 0) {
-    write.table(paste(nropt, " copy number solutions found", sep = ""), file = cnaStatusFile, quote = F, col.names = F, row.names = F)
+    write.table(paste(nropt, " copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col.names = FALSE, row.names = FALSE)
     optlim <- sort(localmin)[1]
 
     for (i in seq_along(optima)) {
@@ -169,7 +169,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
       }
     }
   } else {
-    write.table(paste("no copy number solutions found", sep = ""), file = cnaStatusFile, quote = F, col.names = F, row.names = F)
+    write.table(paste("no copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col.names = FALSE, row.names = FALSE)
     if (verbose) cat("No suitable copy number solution found\n")
     psi <- NA
     ploidy <- NA
@@ -227,7 +227,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
   bConf <- ifelse(bBacktransform != 0.5, pmin(100, pmax(0, ifelse(b == 0.5, 100, 100 * (1 - abs(bBacktransform - b) / abs(b - 0.5))))), NA)
 
   if (!is.na(reliabilityFile)) {
-    write.table(data.frame(segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf, segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = F)
+    write.table(data.frame(segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf, segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = FALSE)
   }
   confidence <- ifelse(is.na(rConf), bConf, ifelse(is.na(bConf), rConf, (rConf + bConf) / 2))
   message("Confidence: ", paste(confidence, collapse = ", "))

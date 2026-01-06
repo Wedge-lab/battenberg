@@ -19,13 +19,13 @@ fit.copy.number(
   min.goodness = 63,
   uninformative_BAF_threshold = 0.51,
   gamma_param = 1,
-  use_preset_rho_psi = F,
+  use_preset_rho_psi = FALSE,
   preset_rho = NA,
   preset_psi = NA,
   read_depth = 30,
   analysis = "paired",
   nthreads,
-  enhanced_grid_search = F
+  enhanced_grid_search = FALSE
 )
 }
 \arguments{
@@ -57,7 +57,7 @@ fit.copy.number(
 
 \item{gamma_param}{Technology parameter, compaction of Log R profiles. Expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays (Default 1)}
 
-\item{use_preset_rho_psi}{Boolean whether to use user specified rho and psi values (Default F)}
+\item{use_preset_rho_psi}{Boolean whether to use user specified rho and psi values (Default FALSE)}
 
 \item{preset_rho}{A user specified rho to fit a copy number profile to (Default NA)}
 

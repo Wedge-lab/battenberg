@@ -1,3 +1,6 @@
+#' @importFrom gtools mixedsort
+NULL
+
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
@@ -28,7 +31,7 @@ create.segmented.plot <- function(chrom.position, points.red, points.green, x.mi
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.baf.plot <- function(chrom.position, points.red.blue, plot.red, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab, prior_bkps_pos = NULL) {
+create_baf_plot <- function(chrom.position, points.red.blue, plot.red, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab, prior_bkps_pos = NULL) {
   par(mar = c(5, 5, 5, 0.5), cex = 0.4, cex.main = 3, cex.axis = 2, cex.lab = 2)
   plot(c(x.min, x.max), c(0, 1), pch = ".", type = "n", main = title, xlab = xlab, ylab = ylab)
   points(chrom.position, points.red.blue, pch = ".", col = ifelse(plot.red, "red", "blue"), cex = 2)
@@ -75,7 +78,7 @@ create.subclonal.cn.plot <- function(chrom, chrom.position, LogRposke, LogRchr, 
   # Plot segments in top of BAF
   points(chrom.position, BAFsegchr, pch = 19, cex = 0.5, col = ifelse(BAFpvalschr > siglevel, "darkgreen", "red"))
   points(chrom.position, 1 - BAFsegchr, pch = 19, cex = 0.5, col = ifelse(BAFpvalschr > siglevel, "darkgreen", "red"))
-  for (i in 1:dim(subcloneres)[1]) {
+  for (i in seq_len(dim(subcloneres)[1])) {
     if (subcloneres[i, 1] == chrom) {
       text((as.numeric(subcloneres[i, "startpos"]) + as.numeric(subcloneres[i, "endpos"])) / 2 / 1000000, as.numeric(subcloneres[i, "BAF"]) - 0.04,
         paste(subcloneres[i, "nMaj1_A"], "+", subcloneres[i, "nMin1_A"], ": ", 100 * round(as.numeric(subcloneres[i, "frac1_A"]), 3), "%", sep = ""),
@@ -99,7 +102,7 @@ create.subclonal.cn.plot <- function(chrom, chrom.position, LogRposke, LogRchr, 
 create.bb.plot.average <- function(bafsegmented, ploidy, rho, goodnessOfFit, pos_min, pos_max, segment_states_min, segment_states_tot, chr.segs, chr.names, tumourname, ylim = 5) {
   # Plot main frame and title
   par(mar = c(0.5, 5, 5, 0.5), cex = 0.4, cex.main = 3, cex.axis = 2.5)
-  maintitle <- paste0(substring(tumourname, 36, first = T), ", Ploidy: ", sprintf("%1.2f", ploidy), ", Purity: ", sprintf("%2.0f", rho * 100), "%, PGA.is.clonal: ", sprintf("%2.1f", goodnessOfFit * 100), "%")
+  maintitle <- paste0(substring(tumourname, 36, first = TRUE), ", Ploidy: ", sprintf("%1.2f", ploidy), ", Purity: ", sprintf("%2.0f", rho * 100), "%, PGA.is.clonal: ", sprintf("%2.1f", goodnessOfFit * 100), "%")
   # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
   plot(c(1, nrow(bafsegmented)), c(0, ylim), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
   abline(v = 0, lty = 1, col = "lightgrey")
@@ -129,7 +132,7 @@ create.bb.plot.average <- function(bafsegmented, ploidy, rho, goodnessOfFit, pos
 #' @noRd
 create.bb.plot.subclones <- function(bafsegmented, subclones, ploidy, rho, goodnessOfFit, pos_min, pos_max, subcl_min, subcl_max, is_subclonal, is_subclonal_maj, is_subclonal_min, chr.segs, chr.names, tumourname, ylim = 5) {
   par(mar = c(0.5, 5, 5, 0.5), cex = 0.4, cex.main = 3, cex.axis = 2.5)
-  maintitle <- paste0(substring(tumourname, 36, first = T), ", Ploidy: ", sprintf("%1.2f", ploidy), ", Purity: ", sprintf("%2.0f", rho * 100), "%, PGA.is.clonal: ", sprintf("%2.1f", goodnessOfFit * 100), "%")
+  maintitle <- paste0(substring(tumourname, 36, first = TRUE), ", Ploidy: ", sprintf("%1.2f", ploidy), ", Purity: ", sprintf("%2.0f", rho * 100), "%, PGA.is.clonal: ", sprintf("%2.1f", goodnessOfFit * 100), "%")
   # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
   plot(c(1, nrow(bafsegmented)), c(0, ylim), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
   abline(v = 0, lty = 1, col = "lightgrey")
@@ -209,9 +212,9 @@ clonal_findcentroid.plot <- function(minimise, dist_choice, d, psis, rhos, new_b
     hmcol <- colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256)
   }
   if (dist_choice == 4) {
-    image(d, col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+    image(d, col = hmcol, axes = FALSE, xlab = "Ploidy", ylab = "Aberrant cell fraction")
   } else {
-    image(log(d), col = hmcol, axes = F, xlab = "Ploidy", ylab = "Aberrant cell fraction")
+    image(log(d), col = hmcol, axes = FALSE, xlab = "Ploidy", ylab = "Aberrant cell fraction")
   }
   psi_min <- new_bounds$psi_min
   psi_max <- new_bounds$psi_max
@@ -269,9 +272,9 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
 
   # read in and augment data
   segment_pos <- as.numeric(gsub("M", "000000", segment_pos))
-  subclones <- read.table(paste(run_dir, tumourname, "_copynumber.txt", sep = ""), header = T, stringsAsFactors = F)
+  subclones <- read.table(paste(run_dir, tumourname, "_copynumber.txt", sep = ""), header = TRUE, stringsAsFactors = FALSE)
   subclone <- subclones[(subclones$chr == segment_chr) & (subclones$startpos <= segment_pos) & (subclones$endpos >= segment_pos), ]
-  rhopsi <- read.table(paste(run_dir, tumourname, "_rho_and_psi.txt", sep = ""), header = T, stringsAsFactors = F)
+  rhopsi <- read.table(paste(run_dir, tumourname, "_rho_and_psi.txt", sep = ""), header = TRUE, stringsAsFactors = FALSE)
   rhopsi <- rhopsi[which(rhopsi$is.best == TRUE), c("rho", "psi")]
 
   nMincalc <- (rhopsi$rho - 1 - (subclone$BAF - 1) * 2^(subclone$LogR / platform_gamma) * ((1 - rhopsi$rho) * 2 + rhopsi$rho * rhopsi$psi)) / rhopsi$rho
@@ -311,12 +314,12 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
   if (subclone$frac1_A == 1) {
     q <- q + ggplot2::geom_point(data = subclone, aes(nMaj1_A, nMin1_A), size = 5)
   } else { # if subclonal, plot all equivalent solutions
-    solutions <- matrix(unlist(subclone[, grep("nM.{5}$|^frac.{3}$", colnames(subclone))]), byrow = T, ncol = 3)
+    solutions <- matrix(unlist(subclone[, grep("nM.{5}$|^frac.{3}$", colnames(subclone))]), byrow = TRUE, ncol = 3)
     solutions <- cbind(solutions, rep(1:6, rep(2, 6)))[12:1, ]
     colnames(solutions) <- c("nMaj", "nMin", "frac", "sol")
     solutions <- na.omit(as.data.frame(solutions))
     q <- q + ggplot2::geom_point(data = solutions, aes(nMaj, nMin, size = frac, colour = factor(sol)), alpha = 0.75, position = ggplot2::position_jitter(width = .05, height = .05), shape = 79) +
-      ggplot2::scale_size_continuous(guide = F, limits = c(0, 1), range = c(2, 10)) + ggplot2::scale_color_discrete(name = "solution")
+      ggplot2::scale_size_continuous(guide = FALSE, limits = c(0, 1), range = c(2, 10)) + ggplot2::scale_color_discrete(name = "solution")
   }
 
   # plot precise values, as calculated by battenberg
@@ -373,10 +376,10 @@ totalcn_chrom_plot <- function(samplename, subclones, logr, outputfile, purity) 
   # Estimate total CN for each segment based on the logR
   logr$total_cn <- NA
   logr$total_cn_psi <- NA
-  for (i in (1:nrow(subclones))) {
+  for (i in seq_len(nrow(subclones))) {
     print(i)
     sel <- which(logr$Chromosome == subclones$chr[i] & logr$Position >= subclones$startpos[i] & logr$Position <= subclones$endpos[i])
-    tumour_cn <- calculate_bb_total_cn(subclones[i, , drop = F])
+    tumour_cn <- calculate_bb_total_cn(subclones[i, , drop = FALSE])
     total_cn <- purity * tumour_cn + 2 * (1 - purity)
     logr$total_cn[sel] <- logr2tumcn(purity, total_cn, logr$logr_smoothed[sel])
     logr$total_cn_psi[sel] <- logr2tumcn(purity, psi, logr$logr_smoothed[sel])
@@ -386,17 +389,17 @@ totalcn_chrom_plot <- function(samplename, subclones, logr, outputfile, purity) 
   logr_plot <- logr[seq(1, nrow(logr), 100), ]
 
   # Sync the levels for chromosome so that all corresponding data ends up in the same plot
-  logr_plot$Chromosome <- factor(logr_plot$Chromosome, levels = gtools::mixedsort(unique(logr_plot$Chromosome)))
+  logr_plot$Chromosome <- factor(logr_plot$Chromosome, levels = mixedsort(unique(logr_plot$Chromosome)))
   subclones$Chromosome <- factor(subclones$chr, levels = levels(logr_plot$Chromosome))
 
   # Set plot boundaries for x and y - take as y value the maximum between the data and the fit
-  max_cn_plot_data <- ceiling(quantile(logr_plot$total_cn_psi, c(.98), na.rm = T))
-  max_cn_plot_fit <- ceiling(quantile(unlist(lapply(1:nrow(subclones), function(i) rep(subclones$total_cn[i], subclones$len[i]))), c(.98), na.rm = T))
+  max_cn_plot_data <- ceiling(quantile(logr_plot$total_cn_psi, c(.98), na.rm = TRUE))
+  max_cn_plot_fit <- ceiling(quantile(unlist(lapply(seq_len(nrow(subclones)), function(i) rep(subclones$total_cn[i], subclones$len[i]))), c(.98), na.rm = TRUE))
   max_cn_plot <- ifelse(max_cn_plot_fit > max_cn_plot_data, max_cn_plot_fit, max_cn_plot_data)
   maxpos <- max(logr$Position)
 
   # catch case when there is no clonal CNA called
-  if (is.na(max_cn_plot) | max_cn_plot < 4) {
+  if (is.na(max_cn_plot) || max_cn_plot < 4) {
     max_cn_plot <- 4
   }
 
@@ -489,7 +492,7 @@ allele_ratio_plot <- function(samplename, bafsegmented, logrsegmented, outputfil
     platform <- "WGS"
   }
 
-  bafsegmented$Chromosome <- factor(bafsegmented$Chromosome, levels = gtools::mixedsort(unique(bafsegmented$Chromosome)))
+  bafsegmented$Chromosome <- factor(bafsegmented$Chromosome, levels = mixedsort(unique(bafsegmented$Chromosome)))
   colnames(logrsegmented) <- c("Chromosome", "Position", "logRseg")
   logrsegmented$Chromosome <- factor(logrsegmented$Chromosome, levels = levels(bafsegmented$Chromosome))
 
@@ -586,9 +589,9 @@ allele_ratio_plot <- function(samplename, bafsegmented, logrsegmented, outputfil
 coverage_plot <- function(samplename, allelecounts, outputfile, max.y = 4) {
   print("Normalising allele counts..")
   allelecounts$tumour <- allelecounts$mutCountT1 + allelecounts$mutCountT2
-  allelecounts$tumour <- allelecounts$tumour / median(allelecounts$tumour, na.rm = T)
+  allelecounts$tumour <- allelecounts$tumour / median(allelecounts$tumour, na.rm = TRUE)
   allelecounts$normal <- allelecounts$mutCountN1 + allelecounts$mutCountN2
-  allelecounts$normal <- allelecounts$normal / median(allelecounts$normal, na.rm = T)
+  allelecounts$normal <- allelecounts$normal / median(allelecounts$normal, na.rm = TRUE)
 
   print("Smoothing data..")
   # res = bin_coverage_tumour(allelecounts, binsize=10000)
@@ -599,7 +602,7 @@ coverage_plot <- function(samplename, allelecounts, outputfile, max.y = 4) {
   # allelecounts$normal_binned = res$normal_binned
   # rm(res)
   allelecounts$normal_binned <- runmed_data(allelecounts$Chromosome, allelecounts$normal)
-  allelecounts$Chromosome <- factor(allelecounts$Chromosome, levels = gtools::mixedsort(unique(allelecounts$Chromosome)))
+  allelecounts$Chromosome <- factor(allelecounts$Chromosome, levels = mixedsort(unique(allelecounts$Chromosome)))
 
   background <- data.frame(y = seq(0, 2, 0.5))
   plot_title <- samplename

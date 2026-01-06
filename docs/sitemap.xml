@@ -20,10 +20,10 @@
 <url><loc>/reference/cel2baf.logr.html</loc></url>
 <url><loc>/reference/cell_line_baf_logR.html</loc></url>
 <url><loc>/reference/cell_line_reconstruct_normal.html</loc></url>
-<url><loc>/reference/check.imputeinfofile.html</loc></url>
+<url><loc>/reference/check_imputeinfofile.html</loc></url>
 <url><loc>/reference/cnfit_to_refit_suggestions.html</loc></url>
 <url><loc>/reference/combine.baf.files.html</loc></url>
-<url><loc>/reference/combine.impute.output.html</loc></url>
+<url><loc>/reference/combine_impute_output.html</loc></url>
 <url><loc>/reference/convert.impute.input.to.beagle.input.html</loc></url>
 <url><loc>/reference/coverage_plot.html</loc></url>
 <url><loc>/reference/create_smart_search_order.html</loc></url>
@@ -48,8 +48,8 @@
 <url><loc>/reference/is_local_minimum_fast.html</loc></url>
 <url><loc>/reference/make_posthoc_plots.html</loc></url>
 <url><loc>/reference/mask_high_cn_segments.html</loc></url>
-<url><loc>/reference/parse.imputeinfofile.html</loc></url>
-<url><loc>/reference/plot.haplotype.data.html</loc></url>
+<url><loc>/reference/parse_imputeinfofile.html</loc></url>
+<url><loc>/reference/plot_haplotype_data.html</loc></url>
 <url><loc>/reference/prepare_snp6.html</loc></url>
 <url><loc>/reference/prepare_wgs.html</loc></url>
 <url><loc>/reference/prepare_wgs_cell_line.html</loc></url>
@@ -65,7 +65,7 @@
 <url><loc>/reference/read_replication.html</loc></url>
 <url><loc>/reference/read_table_generic.html</loc></url>
 <url><loc>/reference/run.beagle5.html</loc></url>
-<url><loc>/reference/run.impute.html</loc></url>
+<url><loc>/reference/run_impute.html</loc></url>
 <url><loc>/reference/runASCAT.html</loc></url>
 <url><loc>/reference/runASCAT_enhanced.html</loc></url>
 <url><loc>/reference/run_clonal_ASCAT.html</loc></url>
@@ -85,4 +85,3 @@
 <url><loc>/reference/writebeagle.as.impute.html</loc></url>
 <url><loc>/reference/writevcf.beagle.html</loc></url>
 </urlset>
-

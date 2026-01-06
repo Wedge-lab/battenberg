@@ -1,5 +1,4 @@
 #' Run the Battenberg pipeline
-#'
 #' @param analysis The mode of Battenberg copy number analysis to be undertaken: 'paired' for tumour-normal pair, 'cell_line' for Cell line tumour-only and 'germline' for germline CNV of normal sample (Default: 'paired')
 #' @param samplename Sample identifier (tumour or germline), this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
 #' @param normalname Matched normal identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
@@ -41,7 +40,7 @@
 #' @param skip_phasing  Provide TRUE when phasing is already complete (Default: FALSE)
 #' @param usebeagle Should use beagle5 instead of impute2 Default: FALSE
 #' @param beaglejar Full path to Beagle java jar file Default: NA
-#' @param beagleref.template Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA
+#' @param beagleref_template Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA
 #' @param beagleplink.template Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA
 #' @param beaglemaxmem Integer Beagle max heap size in Gb  Default: 10
 #' @param beaglenthreads Integer number of threads used by beagle5 Default:1
@@ -98,20 +97,20 @@ battenberg <- function(analysis = "paired",
                        max_allowed_state = 250,
                        cn_upper_limit = 1000,
                        calc_seg_baf_option = 3,
-                       skip_allele_counting = F,
-                       skip_preprocessing = F,
-                       skip_phasing = F,
+                       skip_allele_counting = FALSE,
+                       skip_preprocessing = FALSE,
+                       skip_phasing = FALSE,
                        externalhaplotypefile = NA,
                        usebeagle = FALSE,
                        beaglejar = NA,
-                       beagleref.template = NA,
+                       beagleref_template = NA,
                        beagleplink.template = NA,
                        beaglemaxmem = 10,
                        beaglenthreads = 1,
                        beaglewindow = 40,
                        beagleoverlap = 4,
                        javajre = "java",
-                       write_battenberg_phasing = T,
+                       write_battenberg_phasing = TRUE,
                        multisample_relative_weight_balanced = 0.25,
                        multisample_maxlag = 90,
                        segmentation_gamma_multisample = 5,
@@ -124,11 +123,19 @@ battenberg <- function(analysis = "paired",
                        prior_breakpoints_file = NULL,
                        genomebuild = "hg19",
                        chrom_coord_file = NULL,
-                       enhanced_grid_search = F) {
+                       enhanced_grid_search = FALSE,
+                       verbose_logging = FALSE) {
   requireNamespace("foreach")
   requireNamespace("doParallel")
   requireNamespace("parallel")
   libs <- .libPaths()
+
+
+  level <- if (verbose_logging) logger::DEBUG else logger::INFO
+  logger::log_threshold(level, namespace = "battenberg")
+
+  logger::log_info("Starting analysis for {samplename}")
+
 
   if (analysis == "cell_line") {
     calc_seg_baf_option <- 1
@@ -179,7 +186,7 @@ battenberg <- function(analysis = "paired",
   }
 
   # check whether the impute_info.txt file contains correct paths
-  check.imputeinfofile(imputeinfofile = imputeinfofile, is.male = ismale, usebeagle = usebeagle)
+  check_imputeinfofile(imputeinfofile = imputeinfofile, is.male = ismale, usebeagle = usebeagle)
 
   # check whether multisample case
   nsamples <- length(samplename)
@@ -197,14 +204,15 @@ battenberg <- function(analysis = "paired",
 
   if (data_type == "wgs" || data_type == "WGS") {
     if (nsamples > 1) {
-      print(paste0("Running Battenberg in multisample mode on ", nsamples, " samples: ", paste0(samplename, collapse = ", ")))
+      logger::log_info("Running Battenberg in multisample mode on {nsamples}\
+samples: {paste(samplename, collapse = ', ')}")
     }
-    chrom_names <- get.chrom.names(imputeinfofile, ismale, analysis = analysis)
+    chrom_names <- get_chrom_names(imputeinfofile, ismale, analysis = analysis)
   } else if (data_type == "snp6" || data_type == "SNP6") {
     if (nsamples > 1) {
       stop(paste0("Battenberg multisample mode has not been tested with SNP6 data"))
     }
-    chrom_names <- get.chrom.names(imputeinfofile, TRUE)
+    chrom_names <- get_chrom_names(imputeinfofile, TRUE)
     logr_file <- paste(samplename, "_mutantLogR.tab", sep = "")
     allelecounts_file <- NULL
   }
@@ -303,7 +311,7 @@ battenberg <- function(analysis = "paired",
           genomebuild = genomebuild
         )
       } else {
-        print("Unknown data type provided, please provide wgs or snp6")
+        message("Unknown data type provided, please provide wgs or snp6")
         q(save = "no", status = 1)
       }
     }
@@ -358,12 +366,12 @@ battenberg <- function(analysis = "paired",
             min_normal_depth = min_normal_depth,
             chrom_names = chrom_names,
             externalhaplotypeprefix = NA,
-            use_previous_imputation = F,
+            use_previous_imputation = FALSE,
             snp6_reference_info_file = NA,
             heterozygousFilter = NA,
             usebeagle = usebeagle,
             beaglejar = beaglejar,
-            beagleref = gsub("CHROMNAME", chrom, beagleref.template),
+            beagleref = gsub("CHROMNAME", chrom, beagleref_template),
             beagleplink = gsub("CHROMNAME", chrom, beagleplink.template),
             beaglemaxmem = beaglemaxmem,
             beaglenthreads = beaglenthreads,
@@ -390,7 +398,7 @@ battenberg <- function(analysis = "paired",
             heterozygousFilter = heterozygousFilter,
             usebeagle = usebeagle,
             beaglejar = beaglejar,
-            beagleref = gsub("CHROMNAME", chrom, beagleref.template),
+            beagleref = gsub("CHROMNAME", chrom, beagleref_template),
             beagleplink = gsub("CHROMNAME", chrom, beagleplink.template),
             beaglemaxmem = beaglemaxmem,
             beaglenthreads = beaglenthreads,
@@ -427,7 +435,7 @@ battenberg <- function(analysis = "paired",
       calc_seg_baf_option = calc_seg_baf_option
     )
 
-    if (nsamples > 1 | write_battenberg_phasing) {
+    if (nsamples > 1 || write_battenberg_phasing) {
       # Write the Battenberg phasing information to disk as a vcf
       write_battenberg_phasing(
         tumourname = samplename[sampleidx],
@@ -436,7 +444,7 @@ battenberg <- function(analysis = "paired",
         bafsegmented_file = paste0(samplename[sampleidx], ".BAFsegmented.txt"),
         outprefix = paste0(samplename[sampleidx], "_Battenberg_phased_chr"),
         chrom_names = chrom_names,
-        include_homozygous = F
+        include_homozygous = FALSE
       )
     }
   }
@@ -477,11 +485,11 @@ battenberg <- function(analysis = "paired",
       segfiles <- paste0(samplename[sampleidx], "_segment_chr", chrom_names, ".png")
       haplotypedandbafsegmentedfiles <- paste0(samplename[sampleidx], c("_heterozygousMutBAFs_haplotyped.txt", ".BAFsegmented.txt"))
 
-      file.copy(from = MutBAFfiles, to = gsub(pattern = ".txt$", replacement = "_noMulti.txt", x = MutBAFfiles), overwrite = T)
-      file.copy(from = heterozygousdatafiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = heterozygousdatafiles), overwrite = T)
-      file.copy(from = raffiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = raffiles), overwrite = T)
-      file.copy(from = segfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = segfiles), overwrite = T)
-      file.copy(from = haplotypedandbafsegmentedfiles, to = gsub(pattern = ".txt$", replacement = "_noMulti.txt", x = haplotypedandbafsegmentedfiles), overwrite = T)
+      file.copy(from = MutBAFfiles, to = gsub(pattern = ".txt$", replacement = "_noMulti.txt", x = MutBAFfiles), overwrite = TRUE)
+      file.copy(from = heterozygousdatafiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = heterozygousdatafiles), overwrite = TRUE)
+      file.copy(from = raffiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = raffiles), overwrite = TRUE)
+      file.copy(from = segfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = segfiles), overwrite = TRUE)
+      file.copy(from = haplotypedandbafsegmentedfiles, to = gsub(pattern = ".txt$", replacement = "_noMulti.txt", x = haplotypedandbafsegmentedfiles), overwrite = TRUE)
       # done renaming, next sections will overwrite orignals
 
 
@@ -509,7 +517,7 @@ battenberg <- function(analysis = "paired",
         )
 
         # Plot what we have until this point
-        plot.haplotype.data(
+        plot_haplotype_data(
           haplotyped.baf.file = paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),
           imageFileName = paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousData.png"),
           samplename = samplename[sampleidx],
@@ -551,7 +559,7 @@ battenberg <- function(analysis = "paired",
     .libPaths(libs)
     print(paste0("Fitting final copy number and calling subclones for sample ", samplename[sampleidx]))
 
-    if (data_type == "wgs" | data_type == "WGS") {
+    if (data_type == "wgs" || data_type == "WGS") {
       logr_file <- paste(samplename[sampleidx], "_mutantLogR_gcCorrected.tab", sep = "")
       if (analysis == "paired") {
         allelecounts_file <- paste(samplename[sampleidx], "_alleleCounts.tab", sep = "")
@@ -577,7 +585,7 @@ battenberg <- function(analysis = "paired",
       min.goodness = min_goodness,
       uninformative_BAF_threshold = uninformative_BAF_threshold,
       gamma_param = platform_gamma,
-      use_preset_rho_psi = F,
+      use_preset_rho_psi = FALSE,
       preset_rho = NA,
       preset_psi = NA,
       read_depth = 30,
@@ -587,8 +595,8 @@ battenberg <- function(analysis = "paired",
     )
 
     # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
-    print("callSubclones")
-    callSubclones(
+    print("call_subclones")
+    call_subclones(
       sample.name = samplename[sampleidx],
       baf.segmented.file = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
       logr.file = logr_file,
@@ -606,12 +614,13 @@ battenberg <- function(analysis = "paired",
       max_allowed_state = max_allowed_state,
       cn_upper_limit = cn_upper_limit,
       noperms = 1000,
-      calc_seg_baf_option = calc_seg_baf_option
+      calc_seg_baf_option = calc_seg_baf_option,
+      verbose_logging = verbose_logging,
     )
 
     # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
     # Only do this when X chromosome is included
-    if (ismale & "X" %in% chrom_names) {
+    if (ismale && "X" %in% chrom_names) {
       print("callChrXsubclones")
       callChrXsubclones(
         tumourname = samplename[sampleidx],
@@ -655,7 +664,7 @@ battenberg <- function(analysis = "paired",
       subclonesfiles = paste0(samplename, "_copynumber_extended.txt"),
       chrom_names = chrom_names,
       tumournames = samplename,
-      plotting = T
+      plotting = TRUE
     )
   }
 }

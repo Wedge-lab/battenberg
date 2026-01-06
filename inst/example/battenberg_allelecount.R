@@ -40,7 +40,7 @@ allelecounter_exe <- "alleleCounter"
 setwd(run_dir)
 
 # get all required chromosomes
-chrom_names <- get.chrom.names(imputeinfofile, ismale)
+chrom_names <- get_chrom_names(imputeinfofile, ismale)
 
 # Parallel computing setup
 clp <- parallel::makeCluster(nthreads)

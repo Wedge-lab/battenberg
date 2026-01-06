@@ -180,7 +180,7 @@ PottsCompact <- function(kmin, gamma, nr, res, sq, yest) {
     Sum[2:n] <- Sum[2:n] + res[n]
     Kvad[2:n] <- Kvad[2:n] + sq[n]
     limit <- n
-    while (limit > 2 & Ant[limit] < kmin) {
+    while (limit > 2 && Ant[limit] < kmin) {
       limit <- limit - 1
     }
     Cost[2:limit] <- bestCost[1:limit - 1] + Kvad[2:limit] - Sum[2:limit]^2 / Ant[2:limit]
@@ -282,7 +282,7 @@ markWithPotts <- function(kmin, gamma, nr, res, sq, subsize) {
     Sum[2:n] <- Sum[2:n] + res[n]
     Kvad[2:n] <- Kvad[2:n] + sq[n]
     limit <- n
-    while (limit > 2 & Ant[limit] < kmin) {
+    while (limit > 2 && Ant[limit] < kmin) {
       limit <- limit - 1
     }
     Cost[2:limit] <- bestCost[1:limit - 1] + Kvad[2:limit] - Sum[2:limit]^2 / Ant[2:limit]

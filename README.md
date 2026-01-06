@@ -148,7 +148,7 @@ S3method(plot,haplotype.data)
 to:
 
 ```
-export(plot.haplotype.data)
+export(plot_haplotype_data)
 ```
 
 
@@ -511,7 +511,7 @@ http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/
 
 ```
 BEAGLEJAR <- "$PATHTOBEAGLEFILES/beagle.24Aug19.3e8.jar"
-BEAGLEREF.template <- "$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"
+BEAGLEREF_template <- "$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"
 BEAGLEPLINK.template <- "$PATHTOBEAGLEFILES/plink.chrCHROMNAME.GRCh37.map"
 
 timed <- system.time(battenberg(tumourname=TUMOURNAME,
@@ -549,7 +549,7 @@ timed <- system.time(battenberg(tumourname=TUMOURNAME,
                                 skip_phasing=F,
                                 usebeagle=USEBEAGLE, ##set to TRUE to use beagle
                                 beaglejar=BEAGLEJAR, ##path
-                                beagleref=BEAGLEREF.template, ##pathtemplate
+                                beagleref=BEAGLEREF_template, ##pathtemplate
                                 beagleplink=BEAGLEPLINK.template, ##pathtemplate
                                 beaglemaxmem=15, 
                                 beaglenthreads=1,

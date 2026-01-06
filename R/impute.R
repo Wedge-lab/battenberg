@@ -11,12 +11,12 @@
 #' @param seed The seed to be set
 #' @author dw9
 #' @export
-run.impute <- function(inputfile, outputfile.prefix, is.male, imputeinfofile, impute.exe = "impute2", region.size = 5000000, chrom = NA, seed = as.integer(Sys.time())) {
+run_impute <- function(inputfile, outputfile.prefix, is.male, imputeinfofile, impute.exe = "impute2", region.size = 5000000, chrom = NA, seed = as.integer(Sys.time())) {
   # Read in the impute file information
-  impute.info <- parse.imputeinfofile(imputeinfofile, is.male, chrom = chrom)
+  impute.info <- parse_imputeinfofile(imputeinfofile, is.male, chrom = chrom)
 
   # Run impute for each region of the size specified above
-  for (r in 1:nrow(impute.info)) {
+  for (r in seq_len(nrow(impute.info))) {
     boundaries <- seq(as.numeric(impute.info[r, ]$start), as.numeric(impute.info[r, ]$end), region.size)
     if (boundaries[length(boundaries)] != impute.info[r, ]$end) {
       boundaries <- c(boundaries, impute.info[r, ]$end)
@@ -39,7 +39,7 @@ run.impute <- function(inputfile, outputfile.prefix, is.male, imputeinfofile, im
         " -os 2",
         sep = ""
       ) # lowers computational cost by not imputing reference only SNPs
-      EXIT_CODE <- system(cmd, wait = T)
+      EXIT_CODE <- system(cmd, wait = TRUE)
       stopifnot(EXIT_CODE == 0)
     }
   }
@@ -62,17 +62,21 @@ run.impute <- function(inputfile, outputfile.prefix, is.male, imputeinfofile, im
 #' @return A data.frame with 7 columns: Chromosome, impute_legend, genetic_map, impute_hap, start, end, is_par
 #' @author sd11
 #' @export
-parse.imputeinfofile <- function(imputeinfofile, is.male, chrom = NA) {
-  impute.info <- read.table(imputeinfofile, stringsAsFactors = F)
-  colnames(impute.info) <- c("chrom", "impute_legend", "genetic_map", "impute_hap", "start", "end", "is_par")
-  # Remove the non-pseudo autosomal region (i.e. where not both men and woman are diploid)
+parse_imputeinfofile <- function(imputeinfofile, is.male, chrom = NA) {
+  # Use fread for high-speed reading.
+  impute.info <- data.table::fread(
+    imputeinfofile,
+    col.names = c("chrom", "impute_legend", "genetic_map", "impute_hap", "start", "end", "is_par"),
+    stringsAsFactors = FALSE
+  )
+  # Efficient filtering using data.table's internal optimization
   if (is.male) {
-    impute.info <- impute.info[impute.info$is_par == 1, ]
+    # .() or list() syntax is not needed for simple logical filtering
+    impute.info <- impute.info[is_par == 1]
   }
-  chr_names <- unique(impute.info$chrom)
   # Subset for a particular chromosome
   if (!is.na(chrom)) {
-    impute.info <- impute.info[impute.info$chrom == chrom, ]
+    impute.info <- impute.info[chrom == ..chrom]
   }
   return(impute.info)
 }
@@ -80,8 +84,8 @@ parse.imputeinfofile <- function(imputeinfofile, is.male, chrom = NA) {
 #' Check impute info file consistency
 #' @param imputeinfofile Path to the imputeinfofile on disk.
 #' @author sd11
-check.imputeinfofile <- function(imputeinfofile, is.male, usebeagle) {
-  impute.info <- parse.imputeinfofile(imputeinfofile, is.male)
+check_imputeinfofile <- function(imputeinfofile, is.male, usebeagle) {
+  impute.info <- parse_imputeinfofile(imputeinfofile, is.male)
   if (usebeagle) {
     if (any(!file.exists(impute.info$impute_legend))) {
       print("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
@@ -103,9 +107,9 @@ check.imputeinfofile <- function(imputeinfofile, is.male, usebeagle) {
 #' @return A vector containing the supported chromosome names
 #' @author sd11
 #' @export
-get.chrom.names <- function(imputeinfofile, is.male, chrom = NA, analysis = "paired") {
-  chrom_names <- unique(parse.imputeinfofile(imputeinfofile, is.male, chrom = chrom)$chrom)
-  if (analysis == "cell_line" | analysis == "germline") {
+get_chrom_names <- function(imputeinfofile, is.male, chrom = NA, analysis = "paired") {
+  chrom_names <- unique(parse_imputeinfofile(imputeinfofile, is.male, chrom = chrom)$chrom)
+  if (analysis == "cell_line" || analysis == "germline") {
     # Both cell line and germline analysis do not yield usable data on X and Y, so remove
     chrom_names <- chrom_names[!chrom_names %in% c("X", "Y")]
   }
@@ -115,7 +119,7 @@ get.chrom.names <- function(imputeinfofile, is.male, chrom = NA, analysis = "pai
 #' Concatenate the impute output generated for each of the regions.
 #'
 #' This function assembles the impute output generated.
-#' @param inputfile.prefix Prefix of the input files (this is typically the outputfile.prefix option supplied when calling run.impute).
+#' @param inputfile.prefix Prefix of the input files (this is typically the outputfile.prefix option supplied when calling run_impute).
 #' @param outputfile Where to store the output.
 #' @param is.male Boolean describing whether the sample is male (TRUE) or female (FALSE).
 #' @param imputeinfofile Path to the imputeinfofile on disk.
@@ -123,13 +127,13 @@ get.chrom.names <- function(imputeinfofile, is.male, chrom = NA, analysis = "pai
 #' @param chrom The name of a chromosome on which this function should run (names are used, supply X as 'X').
 #' @author dw9
 #' @export
-combine.impute.output <- function(inputfile.prefix, outputfile, is.male, imputeinfofile, region.size = 5000000, chrom = NA) {
+combine_impute_output <- function(inputfile.prefix, outputfile, is.male, imputeinfofile, region.size = 5000000, chrom = NA) {
   # Read in the impute file information
-  impute.info <- parse.imputeinfofile(imputeinfofile, is.male, chrom = chrom)
+  impute.info <- parse_imputeinfofile(imputeinfofile, is.male, chrom = chrom)
 
   # Assemble the start and end points of all regions
   all.boundaries <- array(0, c(0, 2))
-  for (r in 1:nrow(impute.info)) {
+  for (r in seq_len(nrow(impute.info))) {
     boundaries <- seq(as.numeric(impute.info[r, ]$start), as.numeric(impute.info[r, ]$end), region.size)
     if (boundaries[length(boundaries)] != impute.info[r, ]$end) {
       boundaries <- c(boundaries, impute.info[r, ]$end)
@@ -138,7 +142,7 @@ combine.impute.output <- function(inputfile.prefix, outputfile, is.male, imputei
   }
   # Concatenate all the regions
   impute.output <- concatenateImputeFiles(inputfile.prefix, all.boundaries)
-  write.table(impute.output, file = outputfile, row.names = F, col.names = F, quote = F, sep = " ")
+  write.table(impute.output, file = outputfile, row.names = FALSE, col.names = FALSE, quote = FALSE, sep = " ")
 }
 
 
@@ -211,7 +215,7 @@ writevcf.beagle <- function(vcf,
   )
   suppressWarnings(write.table(vcf,
     file = filepath,
-    sep = "\t", col.names = T, row.names = F, quote = F, append = T
+    sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE, append = TRUE
   ))
 }
 
@@ -229,8 +233,8 @@ writebeagle.as.impute <- function(vcf,
   beagleout <- read_beagle_output(vcf)
   haplotypes <- strsplit(beagleout$SAMP001, split = "\\|")
   dt <- cbind(
-    paste0("snp_index", 1:nrow(beagleout)),
-    paste0("rs_index", 1:nrow(beagleout)),
+    paste0("snp_index", seq_len(nrow(beagleout))),
+    paste0("rs_index", seq_len(nrow(beagleout))),
     beagleout[, 2],
     beagleout[, 4],
     beagleout[, 5],
@@ -239,9 +243,9 @@ writebeagle.as.impute <- function(vcf,
   )
   write.table(dt,
     file = outfile,
-    quote = F,
-    col.names = F,
-    row.names = F,
+    quote = FALSE,
+    col.names = FALSE,
+    row.names = FALSE,
     sep = "\t"
   )
 }
@@ -289,7 +293,7 @@ run.beagle5 <- function(beaglejar,
     " overlap=", overlap,
     " impute=false"
   )
-  EXIT_CODE <- system(cmd, wait = T)
+  EXIT_CODE <- system(cmd, wait = TRUE)
   stopifnot(EXIT_CODE == 0)
 }
 
@@ -322,7 +326,7 @@ run.beagle5 <- function(beaglejar,
 #' @export
 run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names,
                             externalhaplotypeprefix = NA,
-                            use_previous_imputation = F,
+                            use_previous_imputation = FALSE,
                             snp6_reference_info_file = NA, heterozygousFilter = NA,
                             usebeagle = FALSE,
                             beaglejar = NA,
@@ -334,7 +338,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
                             beagleoverlap = 4,
                             javajre = "java") {
   previoushaplotypefile <- list.files(pattern = paste0("_impute_output_chr", chrom, "_allHaplotypeInfo.txt"))[1]
-  if (use_previous_imputation & !is.na(previoushaplotypefile)) {
+  if (use_previous_imputation && !is.na(previoushaplotypefile)) {
     print(paste0("Previous imputation results found, copying info from", previoushaplotypefile, " to flip alleles"))
     currenthaplotypefile <- paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = "")
     if (previoushaplotypefile != currenthaplotypefile) {
@@ -407,7 +411,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
       )
     } else {
       # Run impute on the files
-      run.impute(
+      run_impute(
         inputfile = paste(tumourname, "_impute_input_chr", chrom, ".txt", sep = ""),
         outputfile.prefix = paste(tumourname, "_impute_output_chr", chrom, ".txt", sep = ""),
         is.male = ismale,
@@ -418,7 +422,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
       )
 
       # As impute runs in windows across a chromosome we need to assemble the output
-      combine.impute.output(
+      combine_impute_output(
         inputfile.prefix = paste(tumourname, "_impute_output_chr", chrom, ".txt", sep = ""),
         outputfile = paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = ""),
         is.male = ismale,
@@ -456,7 +460,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
       )
 
       # Plot what we have before external haplotyping is incorporated
-      plot.haplotype.data(
+      plot_haplotype_data(
         haplotyped.baf.file = paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped_noExt.txt", sep = ""),
         imageFileName = paste(tumourname, "_chr", chrom, "_heterozygousData_noExt.png", sep = ""),
         samplename = tumourname,
@@ -495,7 +499,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
   }
 
   # Plot what we have until this point
-  plot.haplotype.data(
+  plot_haplotype_data(
     haplotyped.baf.file = paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
     imageFileName = paste(tumourname, "_chr", chrom, "_heterozygousData.png", sep = ""),
     samplename = tumourname,
@@ -533,7 +537,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
 
 run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names,
                                      externalhaplotypeprefix = NA,
-                                     use_previous_imputation = F,
+                                     use_previous_imputation = FALSE,
                                      snp6_reference_info_file = NA, heterozygousFilter = NA,
                                      usebeagle = FALSE,
                                      beaglejar = NA,
@@ -545,7 +549,7 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
                                      beagleoverlap = 4,
                                      javajre = "java") {
   previoushaplotypefile <- list.files(pattern = paste0("_impute_output_chr", chrom, "_allHaplotypeInfo.txt"))[1]
-  if (use_previous_imputation & !is.na(previoushaplotypefile)) {
+  if (use_previous_imputation && !is.na(previoushaplotypefile)) {
     print(paste0("Previous imputation results found, copying info from", previoushaplotypefile, " to flip alleles"))
     currenthaplotypefile <- paste(germlinename, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = "")
     if (previoushaplotypefile != currenthaplotypefile) {
@@ -607,7 +611,7 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
       )
     } else {
       # Run impute on the files
-      run.impute(
+      run_impute(
         inputfile = paste(germlinename, "_impute_input_chr", chrom, ".txt", sep = ""),
         outputfile.prefix = paste(germlinename, "_impute_output_chr", chrom, ".txt", sep = ""),
         is.male = ismale,
@@ -618,7 +622,7 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
       )
 
       # As impute runs in windows across a chromosome we need to assemble the output
-      combine.impute.output(
+      combine_impute_output(
         inputfile.prefix = paste(germlinename, "_impute_output_chr", chrom, ".txt", sep = ""),
         outputfile = paste(germlinename, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = ""),
         is.male = ismale,
@@ -656,7 +660,7 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
       )
 
       # Plot what we have before external haplotyping is incorporated
-      plot.haplotype.data(
+      plot_haplotype_data(
         haplotyped.baf.file = paste(germlinename, "_chr", chrom, "_heterozygousMutBAFs_haplotyped_noExt.txt", sep = ""),
         imageFileName = paste(germlinename, "_chr", chrom, "_heterozygousData_noExt.png", sep = ""),
         samplename = germlinename,
@@ -686,7 +690,7 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
   }
 
   # Plot what we have until this point
-  plot.haplotype.data(
+  plot_haplotype_data(
     haplotyped.baf.file = paste(germlinename, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
     imageFileName = paste(germlinename, "_chr", chrom, "_heterozygousData.png", sep = ""),
     samplename = germlinename,

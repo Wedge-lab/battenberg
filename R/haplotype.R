@@ -11,8 +11,8 @@
 #' @export
 GetChromosomeBAFs_SNP6 <- function(chrom, alleleFreqFile, haplotypeFile, samplename, outputfile, chr_names) {
   # Read in the allele frequencies and variant info
-  alleleFreqData <- read.csv(alleleFreqFile, header = T)
-  variant_data <- read.table(haplotypeFile, header = F)
+  alleleFreqData <- read.csv(alleleFreqFile, header = TRUE)
+  variant_data <- read.table(haplotypeFile, header = FALSE)
 
   # TODO: Check columns input
 
@@ -32,7 +32,7 @@ GetChromosomeBAFs_SNP6 <- function(chrom, alleleFreqFile, haplotypeFile, samplen
   print(paste(nrow(variant_data), length(alleleFreqs), sep = ","))
   # Combine the allele frequencies and variant info and save output
   knownMutBAFs <- cbind(chr_name, variant_data[, 3], alleleFreqs)
-  write.table(knownMutBAFs, outputfile, sep = "\t", row.names = F, col.names = c("Chromosome", "Position", samplename), quote = F)
+  write.table(knownMutBAFs, outputfile, sep = "\t", row.names = FALSE, col.names = c("Chromosome", "Position", samplename), quote = FALSE)
 }
 
 #' Morphs phased SNPs from WGS input into haplotype blocks
@@ -48,8 +48,8 @@ GetChromosomeBAFs_SNP6 <- function(chrom, alleleFreqFile, haplotypeFile, samplen
 #' @export
 GetChromosomeBAFs <- function(chrom, SNP_file, haplotypeFile, samplename, outfile, chr_names, minCounts = 1) {
   # Read in the SNP and haplotype info
-  snp_data <- read.table(SNP_file, comment.char = "", sep = "\t", header = T, stringsAsFactors = F)
-  variant_data <- read.table(haplotypeFile, header = F)
+  snp_data <- read_table(SNP_file, comment.char = "", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+  variant_data <- read.table(haplotypeFile, header = FALSE)
 
   # TODO: Check columns input
 
@@ -71,7 +71,7 @@ GetChromosomeBAFs <- function(chrom, SNP_file, haplotypeFile, samplename, outfil
 
   # No matches found, save empty file and quit
   if (nrow(het_variant_data) == 0 || is.null(het_variant_data)) {
-    write.table(array(NA, c(0, 3)), outfile, sep = "\t", col.names = c("Chromosome", "Position", samplename), quote = F, row.names = F)
+    write.table(array(NA, c(0, 3)), outfile, sep = "\t", col.names = c("Chromosome", "Position", samplename), quote = FALSE, row.names = FALSE)
     return()
   }
   print(filtered_snp_data[1:3, ])
@@ -95,13 +95,13 @@ GetChromosomeBAFs <- function(chrom, SNP_file, haplotypeFile, samplename, outfil
 
   # No matches found, save empty file and quit
   if (nrow(filtered_snp_data) == 0 || is.null(filtered_snp_data)) {
-    write.table(array(NA, c(0, 3)), outfile, sep = "\t", col.names = c("Chromosome", "Position", samplename), quote = F, row.names = F)
+    write.table(array(NA, c(0, 3)), outfile, sep = "\t", col.names = c("Chromosome", "Position", samplename), quote = FALSE, row.names = FALSE)
     return()
   }
 
   # Save all to disk
   hetMutBAFs <- cbind(chr_name, filtered_snp_data[, 2], alt.count / denom)
-  write.table(hetMutBAFs, outfile, sep = "\t", row.names = F, col.names = c("Chromosome", "Position", samplename), quote = F)
+  write.table(hetMutBAFs, outfile, sep = "\t", row.names = FALSE, col.names = c("Chromosome", "Position", samplename), quote = FALSE)
 }
 
 #' Plot haplotyped SNPs
@@ -114,13 +114,13 @@ GetChromosomeBAFs <- function(chrom, SNP_file, haplotypeFile, samplename, outfil
 #' @param chr_names A list of allowed chromosome names.
 #' @author dw9
 #' @export
-plot.haplotype.data <- function(haplotyped.baf.file, imageFileName, samplename, chrom, chr_names) {
+plot_haplotype_data <- function(haplotyped.baf.file, imageFileName, samplename, chrom, chr_names) {
   chr_name <- chrom
-  mut_data <- read.table(haplotyped.baf.file, sep = "\t", header = T)
+  mut_data <- read.table(haplotyped.baf.file, sep = "\t", header = TRUE)
 
   if (nrow(mut_data) > 0) {
-    x_min <- min(mut_data$Position, na.rm = T)
-    x_max <- max(mut_data$Position, na.rm = T)
+    x_min <- min(mut_data$Position, na.rm = TRUE)
+    x_max <- max(mut_data$Position, na.rm = TRUE)
   } else {
     x_min <- 1
     x_max <- 2

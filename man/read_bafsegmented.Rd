@@ -4,7 +4,7 @@
 \alias{read_bafsegmented}
 \title{Parser for BAFsegmented data}
 \usage{
-read_bafsegmented(filename, header = T)
+read_bafsegmented(filename, header = TRUE)
 }
 \arguments{
 \item{filename}{Filename of the file to read in}

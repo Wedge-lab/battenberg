@@ -33,20 +33,20 @@ cell_line_baf_logR <- function(TUMOURNAME, g1000alleles.prefix, chrom_names) {
   OHET <- list() # HET SNP data
   for (chr in chrom_names) {
     # read in alleleCounter output for each chromosome
-    ac <- read.table(paste0(TUMOURNAME, "_alleleFrequencies_chr", chr, ".txt"), stringsAsFactors = F)
+    ac <- read.table(paste0(TUMOURNAME, "_alleleFrequencies_chr", chr, ".txt"), stringsAsFactors = FALSE)
     ac <- ac[order(ac$V2), ]
     AC[[chr]] <- ac
     print(length(AC))
     # match allele counts with respective SNP alleles
-    al <- read.table(paste0(g1000alleles.prefix, chr, ".txt"), header = T, stringsAsFactors = F)
+    al <- read.table(paste0(g1000alleles.prefix, chr, ".txt"), header = TRUE, stringsAsFactors = FALSE)
     AL[[chr]] <- al
     print(length(AL))
     # etc
     ref <- al$a0
-    ref_df <- data.frame(pos = 1:nrow(al), ref = ref + 2)
+    ref_df <- data.frame(pos = seq_len(nrow(al)), ref = ref + 2)
     REF <- ac[cbind(ref_df$pos, ref_df$ref)]
     alt <- al$a1
-    alt_df <- data.frame(pos = 1:nrow(al), alt = alt + 2)
+    alt_df <- data.frame(pos = seq_len(nrow(al)), alt = alt + 2)
     ALT <- ac[cbind(alt_df$pos, alt_df$alt)]
     mac <- data.frame(ref = REF, alt = ALT)
     mac$depth <- as.numeric(mac$ref) + as.numeric(mac$alt)
@@ -82,14 +82,14 @@ cell_line_baf_logR <- function(TUMOURNAME, g1000alleles.prefix, chrom_names) {
   names(BAF)[names(BAF) == "cellline"] <- cellline
   BAF <- BAF[order(BAF$Chromosome, BAF$Position), ]
   BAF$Chromosome[BAF$Chromosome == 23] <- "X" # revert back from 23 to X for Chromosome name
-  write.table(BAF, paste0(cellline, "_mutantBAF.tab"), col.names = T, row.names = F, quote = F, sep = "\t")
+  write.table(BAF, paste0(cellline, "_mutantBAF.tab"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
   rm(BAF)
 
   LogR <- data.frame(Chromosome = MACC$chr, Position = MACC$pos, cellline = MACC$logr)
   names(LogR)[names(LogR) == "cellline"] <- cellline
   LogR <- LogR[order(LogR$Chromosome, LogR$Position), ]
   LogR$Chromosome[LogR$Chromosome == 23] <- "X" # revert back from 23 to X for Chromosome name
-  write.table(LogR, paste0(cellline, "_mutantLogR.tab"), col.names = T, row.names = F, quote = F, sep = "\t")
+  write.table(LogR, paste0(cellline, "_mutantLogR.tab"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 
   rm(MAC)
   rm(MaC)
@@ -128,7 +128,7 @@ cell_line_baf_logR <- function(TUMOURNAME, g1000alleles.prefix, chrom_names) {
 cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, chrom, CL_OHET, CL_AL, CL_AC, CL_LogR, GAMMA_IVD, KMIN_IVD, CENTROMERE_NOISE_SEG_SIZE, CENTROMERE_DIST, MIN_HET_DIST, GAMMA_LOGR, LENGTH_ADJACENT) {
   # IDENTIFY REGIONS OF LOH ####
   colClasses <- c(chr = "numeric", start = "numeric", cen.left.base = "numeric", cen.right.base = "numeric", end = "numeric")
-  chr_loc <- read.table(chrom_coord, colClasses = colClasses, header = T, stringsAsFactors = F) # chrom_coord = full path to chromosome coordinates
+  chr_loc <- read.table(chrom_coord, colClasses = colClasses, header = TRUE, stringsAsFactors = FALSE) # chrom_coord = full path to chromosome coordinates
   chr_loc$length <- (chr_loc$cen.left.base - chr_loc$start) + (chr_loc$end - chr_loc$cen.right.base)
   # STEP 2.0: identify LOH by IVD-PCF
   LOH <- list()
@@ -156,11 +156,11 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
   loh_regions <- PCF[which(round(PCF$mean, 3) > 0.001), ] # LOH regions
   loh_regions <- loh_regions[which(loh_regions$n.probes > 1), ] # only keep segments with minimum of 2 probes (SNPs) in PCF jump
   if (nrow(loh_regions) > 0) {
-    if (mean(pcf_input$IVD) > 0.01 & chr_snp_density < min_normal_snp_density) { # can change chr_snp_density from 0.00005 to 0.0001 as conservative measure - done
+    if (mean(pcf_input$IVD) > 0.01 && chr_snp_density < min_normal_snp_density) { # can change chr_snp_density from 0.00005 to 0.0001 as conservative measure - done
       # mean(pcf_input$IVD) or mean(PCF$mean) indicates presence of jumps in IVD
       loh_regions <- loh_regions # LOH regions
       print(paste("full-length chromosomal loss at chr", i))
-    } else if (sum(loh_regions$diff) >= ((pcf_input$position[nrow(pcf_input)] - pcf_input$position[1])) * 0.9 & chr_snp_density > min_normal_snp_density) {
+    } else if (sum(loh_regions$diff) >= ((pcf_input$position[nrow(pcf_input)] - pcf_input$position[1])) * 0.9 && chr_snp_density > min_normal_snp_density) {
       # do PCF regions cover >=90% of the chromosome & is the chromosome snp density above the minimum
       loh_regions <- 0 # LOH regions
       print(paste("no PCF jumps at chr", i))
@@ -183,12 +183,12 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
   # filter regions for those next to the centromere and 'short'
   noise <- NULL
   if (!is.null(nrow(loh_regions))) {
-    for (j in 1:nrow(loh_regions)) {
+    for (j in seq_len(nrow(loh_regions))) {
       if (loh_regions$arm[j] == "p") {
         # if (loh_regions$end.pos[j]-chr_loc$cen.left.base[i]<1e5 & loh_regions$diff[j]<1e6){ #FOR EXCLUSION: max distance to centromere = 100kb , max length of short LOH region = 1Mb
         #  noise=append(noise,j)
         # }
-        if (loh_regions$end.pos[j] > chr_loc$cen.left.base[i] & loh_regions$diff[j] < CENTROMERE_NOISE_SEG_SIZE) { # FOR EXCLUSION: segment is short IVD region (default<1Mb) and endpos is over the p-arm limit (ending point)
+        if (loh_regions$end.pos[j] > chr_loc$cen.left.base[i] && loh_regions$diff[j] < CENTROMERE_NOISE_SEG_SIZE) { # FOR EXCLUSION: segment is short IVD region (default<1Mb) and endpos is over the p-arm limit (ending point)
           noise <- append(noise, j)
         }
         # if (loh_regions$end.pos[j]>chr_loc$cen.left.base[i] & loh_regions$diff[j]>CENTROMERE_NOISE_SEG_SIZE & !is.na(match(chrom,c(1,9,16)))){ # Chr 1,9,16 have large heterochromatin region next to centromere
@@ -199,10 +199,10 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
         # if (loh_regions$start.pos[j]-chr_loc$cen.right.base[i]<1e5 & loh_regions$diff[j]<1e6){ #FOR EXCLUSION: max distance to centromere = 100kb , max length of short LOH region = 1Mb
         #  noise=append(noise,j)
         # }
-        if (loh_regions$start.pos[j] < chr_loc$cen.right.base[i] & loh_regions$diff[j] < CENTROMERE_NOISE_SEG_SIZE) { # FOR EXCLUSION: segment is short IVD region (default<1Mb) and startpos is below the q-arm limit (starting point)
+        if (loh_regions$start.pos[j] < chr_loc$cen.right.base[i] && loh_regions$diff[j] < CENTROMERE_NOISE_SEG_SIZE) { # FOR EXCLUSION: segment is short IVD region (default<1Mb) and startpos is below the q-arm limit (starting point)
           noise <- append(noise, j)
         }
-        if (loh_regions$start.pos[j] < (chr_loc$cen.right.base[i] + 1e5) & loh_regions$diff[j] > CENTROMERE_NOISE_SEG_SIZE & !is.na(match(chrom, c(1, 9, 16)))) { # qARM of Chr 1,9,16 have large heterochromatin region next to centromere + 100kb tolerance for start of heterochromatin region
+        if (loh_regions$start.pos[j] < (chr_loc$cen.right.base[i] + 1e5) && loh_regions$diff[j] > CENTROMERE_NOISE_SEG_SIZE && !is.na(match(chrom, c(1, 9, 16)))) { # qARM of Chr 1,9,16 have large heterochromatin region next to centromere + 100kb tolerance for start of heterochromatin region
           noise <- append(noise, j)
         }
       }
@@ -217,7 +217,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
   }
   ####
   # remove LOH regions in the p arm of acrocentric chromosomes 13,14,15,21 and 22
-  if (!is.na(match(i, c(13:15, 21:22))) & !is.null(nrow(LOH_regions))) {
+  if (!is.na(match(i, c(13:15, 21:22))) && !is.null(nrow(LOH_regions))) {
     LOH_regions <- LOH_regions[which(LOH_regions$arm != "p"), ]
   }
   ####
@@ -225,13 +225,13 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
   if (!is.null(nrow(LOH_regions))) {
     logr <- CL_LogR[which(CL_LogR$Chromosome == i), ]
     hom_stretch <- NULL
-    for (j in 1:nrow(LOH_regions)) {
+    for (j in seq_len(nrow(LOH_regions))) {
       COV <- logr[which(logr$Position > LOH_regions$start.pos[j] & logr$Position < LOH_regions$end.pos[j]), ] # logR of homozygote SNPs within
       medcov <- median(COV[, 3])
       cov <- mean(COV[, 3])
       print(paste("mean COV for region", j, "is", cov, "and median is", medcov))
       # cov and medcov to be more than -0.8 and the segment has at least 10 SNPs for cov and medcov calculation
-      if (!is.na(cov) & cov < -0.8 & !is.na(medcov) & medcov < -0.8 & nrow(COV) >= 10) {
+      if (!is.na(cov) && cov < -0.8 && !is.na(medcov) && medcov < -0.8 && nrow(COV) >= 10) {
         print(paste("Retaining region", j, "due to clear evidence of LOH"))
       } else {
         print(paste("Region", j, "is likely to be a stretch of homozygosity or sequencing gap in rare cases"))
@@ -246,7 +246,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
   if (is.null(dim(LOH_regions))) {
     print(paste("no LOH detected in chr", i))
     LOH[[i]] <- 0
-  } else if (dim(LOH_regions)[1] != 0 & dim(LOH_regions)[2] != 0) {
+  } else if (dim(LOH_regions)[1] != 0 && dim(LOH_regions)[2] != 0) {
     print(paste("we have LOH for", sum(LOH_regions$diff), "bp in chr", i))
     LOH[[i]] <- data.frame(chr = i, LOH_regions)
   } else if (dim(LOH_regions)[1] == 0) {
@@ -270,13 +270,13 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
   if (!is.null(nrow(LOH[[i]]))) {
     non_LOH <- data.frame() ## get all non_LOH regions ##
     for (j in 1:(nrow(LOH[[i]]) + 1)) {
-      if (j == 1 & chr_interval[1] == LOH[[i]]$start.pos[j]) {
+      if (j == 1 && chr_interval[1] == LOH[[i]]$start.pos[j]) {
         print("LOH from start of chromosome")
-      } else if (j == 1 & chr_interval[1] < LOH[[i]]$start.pos[j]) {
+      } else if (j == 1 && chr_interval[1] < LOH[[i]]$start.pos[j]) {
         non_loh <- data.frame(start = chr_interval[1], end = LOH[[i]]$start.pos[j] - 1)
-      } else if (j > 1 & j <= nrow(LOH[[i]]) & LOH[[i]]$arm[j] == LOH[[i]]$arm[j - 1]) {
+      } else if (j > 1 && j <= nrow(LOH[[i]]) && LOH[[i]]$arm[j] == LOH[[i]]$arm[j - 1]) {
         non_loh <- data.frame(start = LOH[[i]]$end.pos[j - 1] + 1, end = LOH[[i]]$start.pos[j] - 1)
-      } else if (j > 1 & j <= nrow(LOH[[i]]) & LOH[[i]]$arm[j] != LOH[[i]]$arm[j - 1]) {
+      } else if (j > 1 && j <= nrow(LOH[[i]]) && LOH[[i]]$arm[j] != LOH[[i]]$arm[j - 1]) {
         non_loh <- data.frame(start = c(LOH[[i]]$end.pos[j - 1] + 1, chr_loc[i, ]$cen.right.base), end = c(chr_loc[i, ]$cen.left.base, LOH[[i]]$start.pos[j] - 1))
       } else {
         if ((LOH[[i]]$end.pos[j - 1] + 1) < chr_interval[2]) { # avoids going over the chromosome interval
@@ -295,14 +295,14 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
     non_LOH <- data.frame(start = chr_interval[1], end = chr_interval[2])
   } # in case no LOH is identified by IVD-PCF
   if (nrow(non_LOH) > 0) {
-    for (j in 1:nrow(non_LOH)) {
-      if (non_LOH$start[j] < chr_loc[i, ]$cen.left.base & non_LOH$end[j] > chr_loc[i, ]$cen.right.base) {
+    for (j in seq_len(nrow(non_LOH))) {
+      if (non_LOH$start[j] < chr_loc[i, ]$cen.left.base && non_LOH$end[j] > chr_loc[i, ]$cen.right.base) {
         start.pos <- c(non_LOH$start[j], chr_loc[i, ]$cen.right.base)
         end.pos <- c(chr_loc[i, ]$cen.left.base, non_LOH$end[j])
         non_LOH <- non_LOH[-j, ]
         non_LOH <- rbind(non_LOH, data.frame(start = start.pos, end = end.pos))
       }
-      if (non_LOH$start[j] < chr_loc[i, ]$cen.right.base & non_LOH$start[j] > chr_loc[i, ]$cen.left.base & non_LOH$end[j] > chr_loc[i, ]$cen.right.base) { # when segment startpoint is in the centromere (noisy data; observed in hg38 SNP aC data)
+      if (non_LOH$start[j] < chr_loc[i, ]$cen.right.base && non_LOH$start[j] > chr_loc[i, ]$cen.left.base && non_LOH$end[j] > chr_loc[i, ]$cen.right.base) { # when segment startpoint is in the centromere (noisy data; observed in hg38 SNP aC data)
         start.pos <- chr_loc[i, ]$cen.right.base
         end.pos <- non_LOH$end[j]
         non_LOH <- non_LOH[-j, ]
@@ -329,7 +329,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
       if (nrow(PARM) > 0) {
         # if (nrow(PARM)==1 & non_LOH$start[1]==chr_interval[1] & non_LOH$end[1]==chr_interval[2]){
         parm <- PARM
-      } else if (nrow(PARM) == 0 & sum(non_LOH$diff) != 0) {
+      } else if (nrow(PARM) == 0 && sum(non_LOH$diff) != 0) {
         parm <- data.frame(start = chr_interval[1], end = chr_loc[i, ]$cen.left.base - CENTROMERE_DIST)
       } else {
         print("unknown issue")
@@ -341,7 +341,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
         parm <- parm[-nrow(parm), ]
       }
       #
-      for (seg in 1:nrow(parm)) {
+      for (seg in seq_len(nrow(parm))) {
         LoH <- data.frame()
         # IVD-based breakpoints for small regions#
         seg_ivd <- ohet[which(ohet$Position_dist >= MIN_HET_DIST & ohet$Position >= parm$start[seg] & ohet$Position <= parm$end[seg]), ]
@@ -360,9 +360,9 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
             medcov <- median(COV[, 3])
             cov <- mean(COV[, 3])
             denSNP <- nrow(COV) / (nSNPs / sum(chr_loc$length) * seg_ivd$Position_dist[j])
-            if (!is.na(cov) & cov < -0.8 & medcov < -0.8 & !is.null(denSNP) & denSNP > 0.5) { # to use a minimum SNP density of 0.5 to get logR estimate #CLcode
+            if (!is.na(cov) && cov < -0.8 && medcov < -0.8 && !is.null(denSNP) && denSNP > 0.5) { # to use a minimum SNP density of 0.5 to get logR estimate #CLcode
               # loh=data.frame(start=start,end=end,LogR=cov,medianLogR=medcov,denSNP=denSNP)
-              jpcf <- pcf(COV, gamma = GAMMA_LOGR, verbose = F)
+              jpcf <- pcf(COV, gamma = GAMMA_LOGR, verbose = FALSE)
               jpcf <- jpcf[which(jpcf$mean < -0.8), ]
               if (nrow(jpcf) > 0) {
                 loh <- data.frame(start = jpcf$start.pos[1], end = jpcf$end.pos[nrow(jpcf)], LogR = mean(jpcf$mean), denSNP = denSNP)
@@ -407,7 +407,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
             # add final block if it ends at the end of the LoH dataframe
             if (end == LoH$end[nrow(LoH)]) {
               LoH_regions <- rbind(LoH_regions, data.frame(chrom = i, arm = "p", start.pos = start, end.pos = end))
-            } else if (start == LoH$start[nrow(LoH)] & end == LoH$end[nrow(LoH) - 1]) {
+            } else if (start == LoH$start[nrow(LoH)] && end == LoH$end[nrow(LoH) - 1]) {
               LoH_regions <- rbind(LoH_regions, data.frame(chrom = i, arm = "p", start.pos = start, end.pos = LoH$end[nrow(LoH)]))
             }
           }
@@ -418,7 +418,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
         # pARM BAF/LogR plot(s)
         pdf(paste0(TUMOURNAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_pLOH_events.pdf"))
         suppressWarnings(
-          for (s in 1:nrow(pLOH_regions)) {
+          for (s in seq_len(nrow(pLOH_regions))) {
             sBAF <- ggplot(ohet, aes(Position, baf)) +
               geom_jitter() +
               ylim(0, 1) +
@@ -450,7 +450,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
     if (nrow(QARM) > 0) {
       # if (nrow(PARM)==1 & non_LOH$start[1]==chr_interval[1] & non_LOH$end[1]==chr_interval[2]){
       qarm <- QARM
-    } else if (nrow(QARM) == 0 & sum(non_LOH$diff) != 0) {
+    } else if (nrow(QARM) == 0 && sum(non_LOH$diff) != 0) {
       qarm <- data.frame(start = chr_loc[i, ]$cen.right.base, end = chr_interval[2])
     } else {
       print("unknown issue")
@@ -459,7 +459,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
     qarm$diff <- qarm$end - qarm$start
     #
     # search per non_LOH segment
-    for (seg in 1:nrow(qarm)) {
+    for (seg in seq_len(nrow(qarm))) {
       LoH <- data.frame()
       # IVD-based breakpoints for small regions#
       seg_ivd <- ohet[which(ohet$Position_dist >= MIN_HET_DIST & ohet$Position >= qarm$start[seg] & ohet$Position <= qarm$end[seg]), ]
@@ -478,9 +478,9 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
           cov <- mean(COV[, 3])
           medcov <- median(COV[, 3])
           denSNP <- nrow(COV) / (nSNPs / sum(chr_loc$length) * seg_ivd$Position_dist[j])
-          if (!is.na(cov) & cov < -0.8 & medcov < -0.8 & !is.null(denSNP) & denSNP > 0.5) { # to use a minimum SNP density of 0.5 to get logR estimate #CLcode
+          if (!is.na(cov) && cov < -0.8 && medcov < -0.8 && !is.null(denSNP) && denSNP > 0.5) { # to use a minimum SNP density of 0.5 to get logR estimate #CLcode
             # loh=data.frame(start=start,end=end,LogR=cov,medianLogR=medcov,denSNP=denSNP)
-            jpcf <- pcf(COV, gamma = GAMMA_LOGR, verbose = F)
+            jpcf <- pcf(COV, gamma = GAMMA_LOGR, verbose = FALSE)
             jpcf <- jpcf[which(jpcf$mean < -0.8), ]
             if (nrow(jpcf) > 0) {
               loh <- data.frame(start = jpcf$start.pos[1], end = jpcf$end.pos[nrow(jpcf)], LogR = mean(jpcf$mean), denSNP = denSNP)
@@ -526,7 +526,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
           # add final block if it ends at the end of the LOH dataframe
           if (end == LoH$end[nrow(LoH)]) {
             LoH_regions <- rbind(LoH_regions, data.frame(chrom = i, arm = "q", start.pos = start, end.pos = end))
-          } else if (start == LoH$start[nrow(LoH)] & end == LoH$end[nrow(LoH) - 1]) {
+          } else if (start == LoH$start[nrow(LoH)] && end == LoH$end[nrow(LoH) - 1]) {
             LoH_regions <- rbind(LoH_regions, data.frame(chrom = i, arm = "q", start.pos = start, end.pos = LoH$end[nrow(LoH)]))
           }
         }
@@ -537,7 +537,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
       # qARM BAF/LogR plot(s)
       pdf(paste0(TUMOURNAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_qLOH_events.pdf"))
       suppressWarnings(
-        for (s in 1:nrow(qLOH_regions)) {
+        for (s in seq_len(nrow(qLOH_regions))) {
           sBAF <- ggplot(ohet, aes(Position, baf)) +
             geom_jitter() +
             ylim(0, 1) +
@@ -609,7 +609,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
           # add final block if it ends at the end of the LoH dataframe
           if (end == LOHarm$end.pos[nrow(LOHarm)]) {
             LOHall <- rbind(LOHall, data.frame(chrom = i, arm = arm, start.pos = start, end.pos = end))
-          } else if (start == LOHarm$start.pos[nrow(LOHarm)] & end == LOHarm$end.pos[nrow(LOHarm) - 1]) {
+          } else if (start == LOHarm$start.pos[nrow(LOHarm)] && end == LOHarm$end.pos[nrow(LOHarm) - 1]) {
             LOHall <- rbind(LOHall, data.frame(chrom = i, arm = arm, start.pos = start, end.pos = LOHarm$end.pos[nrow(LOHarm)]))
           }
         } else {
@@ -648,15 +648,15 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
     chr_interval <- c(ac$position[1], ac$position[nrow(ac)])
     non_LOH <- data.frame() ####################################### get all non_LOH regions####
     for (j in 1:(nrow(LOHall) + 1)) {
-      if (j == 1 & chr_interval[1] == LOHall$start.pos[j]) {
+      if (j == 1 && chr_interval[1] == LOHall$start.pos[j]) {
         print("LOH from start of chromosome")
-      } else if (j == 1 & chr_interval[1] < LOHall$start.pos[j]) {
+      } else if (j == 1 && chr_interval[1] < LOHall$start.pos[j]) {
         non_loh <- data.frame(start = chr_interval[1], end = LOHall$start.pos[j] - 1)
         print("ONE")
-      } else if (j > 1 & j <= nrow(LOHall) & LOHall$arm[j] == LOHall$arm[j - 1]) {
+      } else if (j > 1 && j <= nrow(LOHall) && LOHall$arm[j] == LOHall$arm[j - 1]) {
         non_loh <- data.frame(start = LOHall$end.pos[j - 1] + 1, end = LOHall$start.pos[j] - 1)
         print("TWO")
-      } else if (j > 1 & j <= nrow(LOHall) & LOHall$arm[j] != LOHall$arm[j - 1]) {
+      } else if (j > 1 && j <= nrow(LOHall) && LOHall$arm[j] != LOHall$arm[j - 1]) {
         non_loh <- data.frame(start = c(min(LOHall$end.pos[j - 1] + 1, chr_loc[i, ]$cen.left.base), chr_loc[i, ]$cen.right.base), end = c(chr_loc[i, ]$cen.left.base, LOHall$start.pos[j] - 1))
         print("THREE")
       } else {
@@ -691,7 +691,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
     # reconstruct allele counts for the LOH region based on actual depth for all to be perfect heterozygotes - allele counts remain as integers
     #
     lohs <- data.frame() # get all non_LOH regions#
-    for (j in 1:nrow(LOHall)) {
+    for (j in seq_len(nrow(LOHall))) {
       loh <- ac[which(ac$position >= LOHall$start.pos[j] & ac$position <= LOHall$end.pos[j]), ]
       m <- merge(loh, al, "position")
       if (nrow(m) == nrow(loh)) {
@@ -703,7 +703,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
       hetSNP_number <- LOHall$diff[j] / SNP_interval
       if (nrow(m) > hetSNP_number) {
         print("more rows in LOH region than Het SNP number")
-        for (k in 1:nrow(m)) {
+        for (k in seq_len(nrow(m))) {
           if (k %% floor(nrow(m) / hetSNP_number) == 0) {
             m[cbind(k, 2 + m$a0[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, ceiling(m$depth[k] / 2))
             m[cbind(k, 2 + m$a1[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, floor(m$depth[k] / 2))
@@ -712,7 +712,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
         }
       } else {
         print("less rows in LOH region than Het SNP number - turning all into Heterozygotes")
-        for (k in 1:nrow(m)) {
+        for (k in seq_len(nrow(m))) {
           m[cbind(k, 2 + m$a0[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, ceiling(m$depth[k] / 2))
           m[cbind(k, 2 + m$a1[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, floor(m$depth[k] / 2))
           # print(k)
@@ -726,7 +726,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
     ####
     # combine alleleCounts for LOHS and non_LOH regions####
     non_lohs <- data.frame()
-    for (j in 1:nrow(non_LOH)) {
+    for (j in seq_len(nrow(non_LOH))) {
       non_loh <- ac[which(ac$position >= non_LOH$start[j] & ac$position <= non_LOH$end[j]), ]
       non_lohs <- rbind(non_lohs, non_loh)
       print(paste("non_LOH segment", j, "added"))
@@ -735,7 +735,7 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
     if (nrow(non_lohs) + nrow(lohs) == nrow(ac)) {
       ac_out <- rbind(non_lohs, lohs)
       ac_out <- ac_out[order(ac_out$position), ]
-      write.table(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = F, row.names = F, quote = F, sep = "\t")
+      write.table(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
       print(paste("reconstruction OK - new alleleCounts file generated for chr", i))
     } else {
       centro_ac <- ac[which(ac$position > chr_loc$cen.left.base[i] & ac$position < chr_loc$cen.right.base[i]), ]
@@ -744,14 +744,14 @@ cell_line_reconstruct_normal <- function(TUMOURNAME, NORMALNAME, chrom_coord, ch
       ac_out <- ac_out[!duplicated(ac_out$position), ]
       if (nrow(ac_out) == nrow(ac)) {
         print("reconstruction OK but SNPs found in the centromeric region - adding them back for consistency with original ac files")
-        write.table(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = F, row.names = F, quote = F, sep = "\t")
+        write.table(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
       } else {
         print("ERROR - missing SNPs - LOH and non-LOH regions not generated correctly; no AC file generated")
       }
     }
   } else {
     ac_out <- ac
-    write.table(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = F, row.names = F, quote = F, sep = "\t")
+    write.table(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
     print(paste("No changes made to the alleleCounter file - no LOH in chr", i))
   }
   print(paste("STEP 2&3 - chr", i, "completed"))

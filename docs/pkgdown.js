@@ -1,108 +1,92 @@
 /* http://gregfranko.com/blog/jquery-best-practices/ */
-(function($) {
-  $(function() {
+(($) => {
+  $(() => {
+    $(".navbar-fixed-top").headroom();
 
-    $('.navbar-fixed-top').headroom();
+    const updateBodyPadding = () => {
+      $("body").css("padding-top", $(".navbar").height() + 10);
+    };
 
-    $('body').css('padding-top', $('.navbar').height() + 10);
-    $(window).resize(function(){
-      $('body').css('padding-top', $('.navbar').height() + 10);
-    });
+    updateBodyPadding();
+    $(window).resize(updateBodyPadding);
 
     $('[data-toggle="tooltip"]').tooltip();
 
-    var cur_path = paths(location.pathname);
-    var links = $("#navbar ul li a");
-    var max_length = -1;
-    var pos = -1;
-    for (var i = 0; i < links.length; i++) {
-      if (links[i].getAttribute("href") === "#")
-        continue;
-      // Ignore external links
-      if (links[i].host !== location.host)
-        continue;
+    const cur_path = paths(location.pathname);
+    const links = $("#navbar ul li a");
+    let max_length = -1;
+    let pos = -1;
 
-      var nav_path = paths(links[i].pathname);
+    links.each((i, link) => {
+      if (link.getAttribute("href") === "#") return;
+      if (link.host !== location.host) return;
 
-      var length = prefix_length(nav_path, cur_path);
+      const nav_path = paths(link.pathname);
+      const length = prefix_length(nav_path, cur_path);
+
       if (length > max_length) {
         max_length = length;
         pos = i;
       }
-    }
+    });
 
-    // Add class to parent <li>, and enclosing <li> if in dropdown
     if (pos >= 0) {
-      var menu_anchor = $(links[pos]);
+      const menu_anchor = $(links[pos]);
       menu_anchor.parent().addClass("active");
       menu_anchor.closest("li.dropdown").addClass("active");
     }
   });
 
-  function paths(pathname) {
-    var pieces = pathname.split("/");
+  const paths = (pathname) => {
+    const pieces = pathname.split("/");
     pieces.shift(); // always starts with /
 
-    var end = pieces[pieces.length - 1];
-    if (end === "index.html" || end === "")
-      pieces.pop();
-    return(pieces);
-  }
+    const end = pieces[pieces.length - 1];
+    if (end === "index.html" || end === "") pieces.pop();
+    return pieces;
+  };
 
-  // Returns -1 if not found
-  function prefix_length(needle, haystack) {
-    if (needle.length > haystack.length)
-      return(-1);
+  const prefix_length = (needle, haystack) => {
+    if (needle.length > haystack.length) return -1;
+    if (haystack.length === 0) return needle.length === 0 ? 0 : -1;
 
-    // Special case for length-0 haystack, since for loop won't run
-    if (haystack.length === 0) {
-      return(needle.length === 0 ? 0 : -1);
+    for (let i = 0; i < haystack.length; i++) {
+      if (needle[i] !== haystack[i]) return i;
     }
-
-    for (var i = 0; i < haystack.length; i++) {
-      if (needle[i] != haystack[i])
-        return(i);
-    }
-
-    return(haystack.length);
-  }
+    return haystack.length;
+  };
 
   /* Clipboard --------------------------*/
 
-  function changeTooltipMessage(element, msg) {
-    var tooltipOriginalTitle=element.getAttribute('data-original-title');
-    element.setAttribute('data-original-title', msg);
-    $(element).tooltip('show');
-    element.setAttribute('data-original-title', tooltipOriginalTitle);
-  }
+  const changeTooltipMessage = (element, msg) => {
+    const tooltipOriginalTitle = element.getAttribute("data-original-title");
+    element.setAttribute("data-original-title", msg);
+    $(element).tooltip("show");
+    element.setAttribute("data-original-title", tooltipOriginalTitle);
+  };
 
-  if(ClipboardJS.isSupported()) {
-    $(document).ready(function() {
-      var copyButton = "<button type='button' class='btn btn-primary btn-copy-ex' type = 'submit' title='Copy to clipboard' aria-label='Copy to clipboard' data-toggle='tooltip' data-placement='left auto' data-trigger='hover' data-clipboard-copy><i class='fa fa-copy'></i></button>";
+  if (window.ClipboardJS && ClipboardJS.isSupported()) {
+    $(document).ready(() => {
+      const copyButton =
+        "<button type='button' class='btn btn-primary btn-copy-ex' title='Copy to clipboard' aria-label='Copy to clipboard' data-toggle='tooltip' data-placement='left auto' data-trigger='hover' data-clipboard-copy><i class='fa fa-copy'></i></button>";
 
-      $("div.sourceCode").addClass("hasCopyButton");
+      $("div.sourceCode").addClass("hasCopyButton").prepend(copyButton);
 
-      // Insert copy buttons:
-      $(copyButton).prependTo(".hasCopyButton");
+      $(".btn-copy-ex").tooltip({ container: "body" });
 
-      // Initialize tooltips:
-      $('.btn-copy-ex').tooltip({container: 'body'});
-
-      // Initialize clipboard:
-      var clipboardBtnCopies = new ClipboardJS('[data-clipboard-copy]', {
-        text: function(trigger) {
-          return trigger.parentNode.textContent.replace(/\n#>[^\n]*/g, "");
-        }
+      const clipboardBtnCopies = new ClipboardJS("[data-clipboard-copy]", {
+        text: (trigger) =>
+          trigger.parentNode.textContent.replace(/\n#>[^\n]*/g, ""),
       });
 
-      clipboardBtnCopies.on('success', function(e) {
-        changeTooltipMessage(e.trigger, 'Copied!');
+      clipboardBtnCopies.on("success", (e) => {
+        changeTooltipMessage(e.trigger, "Copied!");
         e.clearSelection();
       });
 
-      clipboardBtnCopies.on('error', function() {
-        changeTooltipMessage(e.trigger,'Press Ctrl+C or Command+C to copy');
+      clipboardBtnCopies.on("error", (e) => {
+        changeTooltipMessage(e.trigger, "Press Ctrl+C or Command+C to copy");
       });
     });
   }
-})(window.jQuery || window.$)
+})(window.jQuery || window.$);

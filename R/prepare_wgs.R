@@ -20,12 +20,12 @@ getAlleleCounts <- function(bam.file, output.file, g1000.loci, min.base.qual = 2
 
 
   # alleleCount >= v4.0.0 is sped up considerably on 1000G loci when run in dense-snp mode
-  counter_version <- system(paste(allelecounter.exe, "--version"), intern = T)
+  counter_version <- system(paste(allelecounter.exe, "--version"), intern = TRUE)
   if (as.integer(substr(x = counter_version, start = 1, stop = 1)) >= 4) {
     cmd <- paste(cmd, "--dense-snps")
   }
 
-  EXIT_CODE <- system(cmd, wait = T)
+  EXIT_CODE <- system(cmd, wait = TRUE)
   stopifnot(EXIT_CODE == 0)
 }
 
@@ -89,7 +89,7 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
   rm(normal_data, mutant_data, allele_data, normal_input_data)
 
   # Clear SNPs where there is not enough coverage
-  indices <- 1:nrow(input_data)
+  indices <- seq_len(nrow(input_data))
   if (!is.na(minCounts)) {
     print(paste("minCount=", minCounts, sep = ""))
     # Only normal has to have min coverage, mutant must have at least 1 read to prevent division by zero
@@ -124,15 +124,15 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
   germline.BAF <- data.frame(Chromosome = input_data$CHR[indices], Position = input_data$POS[indices], baf = normalBAF)
   germline.LogR <- data.frame(Chromosome = input_data$CHR[indices], Position = input_data$POS[indices], samplename = normalLogR)
   tumor.BAF <- data.frame(Chromosome = input_data$CHR[indices], Position = input_data$POS[indices], baf = mutantBAF)
-  tumor.LogR <- data.frame(Chromosome = input_data$CHR[indices], Position = input_data$POS[indices], samplename = log2(mutantLogR / mean(mutantLogR, na.rm = T)))
+  tumor.LogR <- data.frame(Chromosome = input_data$CHR[indices], Position = input_data$POS[indices], samplename = log2(mutantLogR / mean(mutantLogR, na.rm = TRUE)))
   alleleCounts <- data.frame(Chromosome = input_data$CHR[indices], Position = input_data$POS[indices], mutCountT1 = mutCount1, mutCountT2 = mutCount2, mutCountN1 = normCount1, mutCountN2 = normCount2)
 
   # Save data.frames to disk
-  write.table(germline.BAF, file = BAFnormalFile, row.names = F, quote = F, sep = "\t", col.names = c("Chromosome", "Position", samplename))
-  write.table(tumor.BAF, file = BAFmutantFile, row.names = F, quote = F, sep = "\t", col.names = c("Chromosome", "Position", samplename))
-  write.table(germline.LogR, file = logRnormalFile, row.names = F, quote = F, sep = "\t", col.names = c("Chromosome", "Position", samplename))
-  write.table(tumor.LogR, file = logRmutantFile, row.names = F, quote = F, sep = "\t", col.names = c("Chromosome", "Position", samplename))
-  write.table(alleleCounts, file = combinedAlleleCountsFile, row.names = F, quote = F, sep = "\t")
+  write.table(germline.BAF, file = BAFnormalFile, row.names = FALSE, quote = FALSE, sep = "\t", col.names = c("Chromosome", "Position", samplename))
+  write.table(tumor.BAF, file = BAFmutantFile, row.names = FALSE, quote = FALSE, sep = "\t", col.names = c("Chromosome", "Position", samplename))
+  write.table(germline.LogR, file = logRnormalFile, row.names = FALSE, quote = FALSE, sep = "\t", col.names = c("Chromosome", "Position", samplename))
+  write.table(tumor.LogR, file = logRmutantFile, row.names = FALSE, quote = FALSE, sep = "\t", col.names = c("Chromosome", "Position", samplename))
+  write.table(alleleCounts, file = combinedAlleleCountsFile, row.names = FALSE, quote = FALSE, sep = "\t")
 
   # Plot the raw data using ASCAT
   # Manually create an ASCAT object, which saves reading in the above files again
@@ -173,7 +173,7 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
 #' @export
 generate.impute.input.wgs <- function(chrom, tumour.allele.counts.file, normal.allele.counts.file, output.file, imputeinfofile, is.male, problemLociFile = NA, useLociFile = NA, heterozygousFilter = 0.1) {
   # Read in the 1000 genomes reference file paths for the specified chrom
-  impute.info <- parse.imputeinfofile(imputeinfofile, is.male, chrom = chrom)
+  impute.info <- parse_imputeinfofile(imputeinfofile, is.male, chrom = chrom)
   chr_names <- unique(impute.info$chrom)
   chrom_name <- chrom
 
@@ -181,16 +181,16 @@ generate.impute.input.wgs <- function(chrom, tumour.allele.counts.file, normal.a
   # print(paste("GenerateImputeInput #impute files? ", nrow(impute.info),sep=""))
 
   # Read in the known SNP locations from the 1000 genomes reference files
-  known_SNPs <- read.table(impute.info$impute_legend[1], sep = " ", header = T, stringsAsFactors = F)
+  known_SNPs <- read.table(impute.info$impute_legend[1], sep = " ", header = TRUE, stringsAsFactors = FALSE)
   if (nrow(impute.info) > 1) {
     for (r in 2:nrow(impute.info)) {
-      known_SNPs <- rbind(known_SNPs, read.table(impute.info$impute_legend[r], sep = " ", header = T, stringsAsFactors = F))
+      known_SNPs <- rbind(known_SNPs, read.table(impute.info$impute_legend[r], sep = " ", header = TRUE, stringsAsFactors = FALSE))
     }
   }
 
   # filter out bad SNPs (streaks in BAF)
-  if ((problemLociFile != "NA") & (!is.na(problemLociFile))) {
-    problemSNPs <- read.table(problemLociFile, header = T, sep = "\t", stringsAsFactors = F)
+  if ((problemLociFile != "NA") && (!is.na(problemLociFile))) {
+    problemSNPs <- read.table(problemLociFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
     problemSNPs <- problemSNPs$Pos[problemSNPs$Chr == chrom_name]
     badIndices <- match(known_SNPs$position, problemSNPs)
     known_SNPs <- known_SNPs[is.na(badIndices), ]
@@ -198,8 +198,8 @@ generate.impute.input.wgs <- function(chrom, tumour.allele.counts.file, normal.a
   }
 
   # filter 'good' SNPs (e.g. SNP6 positions)
-  if ((useLociFile != "NA") & (!is.na(useLociFile))) {
-    goodSNPs <- read.table(useLociFile, header = T, sep = "\t", stringsAsFactors = F)
+  if ((useLociFile != "NA") && (!is.na(useLociFile))) {
+    goodSNPs <- read.table(useLociFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
     goodSNPs <- goodSNPs$pos[goodSNPs$chr == chrom_name]
     len <- length(goodSNPs)
     goodIndices <- match(known_SNPs$position, goodSNPs)
@@ -208,8 +208,8 @@ generate.impute.input.wgs <- function(chrom, tumour.allele.counts.file, normal.a
   }
 
   # Read in the allele counts and see which known SNPs are covered
-  snp_data <- read.table(tumour.allele.counts.file, comment.char = "#", sep = "\t", header = F, stringsAsFactors = F)
-  normal_snp_data <- read.table(normal.allele.counts.file, comment.char = "#", sep = "\t", header = F, stringsAsFactors = F)
+  snp_data <- read.table(tumour.allele.counts.file, comment.char = "#", sep = "\t", header = FALSE, stringsAsFactors = FALSE)
+  normal_snp_data <- read.table(normal.allele.counts.file, comment.char = "#", sep = "\t", header = FALSE, stringsAsFactors = FALSE)
   snp_data <- cbind(snp_data, normal_snp_data)
   indices <- match(known_SNPs$position, snp_data[, 2])
   found_snp_data <- snp_data[indices[!is.na(indices)], ]
@@ -219,7 +219,7 @@ generate.impute.input.wgs <- function(chrom, tumour.allele.counts.file, normal.a
   nucleotides <- c("A", "C", "G", "T")
   ref_indices <- match(known_SNPs[!is.na(indices), 3], nucleotides) + ncol(normal_snp_data) + 2
   alt_indices <- match(known_SNPs[!is.na(indices), 4], nucleotides) + ncol(normal_snp_data) + 2
-  BAFs <- as.numeric(found_snp_data[cbind(1:nrow(found_snp_data), alt_indices)]) / (as.numeric(found_snp_data[cbind(1:nrow(found_snp_data), alt_indices)]) + as.numeric(found_snp_data[cbind(1:nrow(found_snp_data), ref_indices)]))
+  BAFs <- as.numeric(found_snp_data[cbind(seq_len(nrow(found_snp_data)), alt_indices)]) / (as.numeric(found_snp_data[cbind(seq_len(nrow(found_snp_data)), alt_indices)]) + as.numeric(found_snp_data[cbind(seq_len(nrow(found_snp_data)), ref_indices)]))
   BAFs[is.nan(BAFs)] <- 0
   rm(nucleotides, ref_indices, alt_indices, found_snp_data, normal_snp_data)
 
@@ -237,7 +237,7 @@ generate.impute.input.wgs <- function(chrom, tumour.allele.counts.file, normal.a
   snp.names <- paste("snp", 1:sum(!is.na(indices)), sep = "")
   out.data <- cbind(snp.names, known_SNPs[!is.na(indices), 1:4], genotypes)
 
-  write.table(out.data, file = output.file, row.names = F, col.names = F, quote = F)
+  write.table(out.data, file = output.file, row.names = FALSE, col.names = FALSE, quote = FALSE)
   if (is.na(chrom_name)) {
     sample.g.file <- paste(dirname(output.file), "/sample_g.txt", sep = "")
     # not sure this is necessary, because only the PAR regions are used for males
@@ -246,7 +246,7 @@ generate.impute.input.wgs <- function(chrom, tumour.allele.counts.file, normal.a
     # }else{
     sample_g_data <- data.frame(ID_1 = c(0, "INDIVI1"), ID_2 = c(0, "INDIVI1"), missing = c(0, 0), sex = c("D", 2))
     # }
-    write.table(sample_g_data, file = sample.g.file, row.names = F, col.names = T, quote = F)
+    write.table(sample_g_data, file = sample.g.file, row.names = FALSE, col.names = TRUE, quote = FALSE)
   }
 }
 
@@ -262,7 +262,7 @@ generate.impute.input.wgs <- function(chrom, tumour.allele.counts.file, normal.a
 #' @param recalc_corr_afterwards Set to TRUE to recalculate correlations after correction
 #' @author jdemeul, sd11
 #' @export
-gc.correct.wgs <- function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards = F) {
+gc.correct.wgs <- function(Tumour_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards = FALSE) {
   if (is.null(gc_content_file_prefix)) {
     stop("GC content reference files must be supplied to WGS GC content correction")
   }
@@ -321,36 +321,36 @@ gc.correct.wgs <- function(Tumour_LogR_file, outfile, correlations_outfile, gc_c
   if (!is.null(replic_timing_file_prefix)) {
     # Multiple regression - with replication timing
     corrdata <- data.frame(
-      logr = Tumor_LogR[, 3, drop = T],
-      GC_insert = GC_data[, maxGCcol_insert, drop = T],
-      GC_amplic = GC_data[, maxGCcol_amplic, drop = T],
-      replic = replic_data[, maxreplic, drop = T]
+      logr = Tumor_LogR[, 3, drop = TRUE],
+      GC_insert = GC_data[, maxGCcol_insert, drop = TRUE],
+      GC_amplic = GC_data[, maxGCcol_amplic, drop = TRUE],
+      replic = replic_data[, maxreplic, drop = TRUE]
     )
     colnames(corrdata) <- c("logr", "GC_insert", "GC_amplic", "replic")
     if (!recalc_corr_afterwards) {
       rm(GC_data, replic_data)
     }
 
-    model <- lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = T) + splines::ns(x = GC_amplic, df = 5, intercept = T) + splines::ns(x = replic, df = 5, intercept = T), y = F, model = F, data = corrdata, na.action = "na.exclude")
+    model <- lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = TRUE) + splines::ns(x = GC_amplic, df = 5, intercept = TRUE) + splines::ns(x = replic, df = 5, intercept = TRUE), y = FALSE, model = FALSE, data = corrdata, na.action = "na.exclude")
 
     corr <- data.frame(windowsize = c(names(corr), names(corr_rep)), correlation = c(corr, corr_rep))
-    write.table(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = F, row.names = F)
+    write.table(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
   } else {
     # Multiple regression  - without replication timing
     corrdata <- data.frame(
-      logr = Tumor_LogR[, 3, drop = T],
-      GC_insert = GC_data[, maxGCcol_insert, drop = T],
-      GC_amplic = GC_data[, maxGCcol_amplic, drop = T]
+      logr = Tumor_LogR[, 3, drop = TRUE],
+      GC_insert = GC_data[, maxGCcol_insert, drop = TRUE],
+      GC_amplic = GC_data[, maxGCcol_amplic, drop = TRUE]
     )
     colnames(corrdata) <- c("logr", "GC_insert", "GC_amplic")
     if (!recalc_corr_afterwards) {
       rm(GC_data)
     }
 
-    model <- lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = T) + splines::ns(x = GC_amplic, df = 5, intercept = T), y = F, model = F, data = corrdata, na.action = "na.exclude")
+    model <- lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = TRUE) + splines::ns(x = GC_amplic, df = 5, intercept = TRUE), y = FALSE, model = FALSE, data = corrdata, na.action = "na.exclude")
 
     corr <- data.frame(windowsize = names(corr), correlation = corr)
-    write.table(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = F, row.names = F)
+    write.table(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
   }
 
   Tumor_LogR[, 3] <- residuals(model)
@@ -369,14 +369,14 @@ gc.correct.wgs <- function(Tumour_LogR_file, outfile, correlations_outfile, gc_c
 
     if (!is.null(replic_timing_file_prefix)) {
       corr <- data.frame(windowsize = c(names(corr), names(corr_rep)), correlation = c(corr, corr_rep))
-      write.table(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = F, row.names = F)
+      write.table(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
     } else {
       corr <- data.frame(windowsize = c(names(corr)), correlation = corr)
-      write.table(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = F, row.names = F)
+      write.table(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
     }
   } else {
     corr$correlation <- NA
-    write.table(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = F, row.names = F)
+    write.table(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
   }
 }
 
@@ -405,7 +405,7 @@ gc.correct.wgs <- function(Tumour_LogR_file, outfile, correlations_outfile, gc_c
 #' @author sd11
 #' @export
 prepare_wgs <- function(chrom_names, tumourbam, normalbam, tumourname, normalname, g1000allelesprefix, g1000prefix, gccorrectprefix,
-                        repliccorrectprefix, min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting, skip_allele_counting_normal = F) {
+                        repliccorrectprefix, min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth, nthreads, skip_allele_counting, skip_allele_counting_normal = FALSE) {
   requireNamespace("foreach")
   requireNamespace("doParallel")
   requireNamespace("parallel")

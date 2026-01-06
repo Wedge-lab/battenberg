@@ -397,7 +397,7 @@ mark {
 /* fontawesome ------------------------ */
 
 .fab {
-    font-family: "Font Awesome 5 Brands" !important;
+    font-family: "Font Awesome 5 Brands", sans-serif !important;
 }
 
 /* don't display links in code chunks when printing */

@@ -4,7 +4,7 @@
 \alias{read_baf}
 \title{Parser for BAF data}
 \usage{
-read_baf(filename, header = T)
+read_baf(filename, header = TRUE)
 }
 \arguments{
 \item{filename}{Filename of the file to read in}

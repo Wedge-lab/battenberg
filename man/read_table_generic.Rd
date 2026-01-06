@@ -6,9 +6,9 @@
 \usage{
 read_table_generic(
   file,
-  header = T,
-  row.names = F,
-  stringsAsFactor = F,
+  header = TRUE,
+  row.names = FALSE,
+  stringsAsFactor = FALSE,
   sep = "\\t",
   chrom_col = 1,
   skip = 0

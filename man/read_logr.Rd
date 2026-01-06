@@ -4,7 +4,7 @@
 \alias{read_logr}
 \title{Parser for logR data}
 \usage{
-read_logr(filename, header = T)
+read_logr(filename, header = TRUE)
 }
 \arguments{
 \item{filename}{Filename of the file to read in}

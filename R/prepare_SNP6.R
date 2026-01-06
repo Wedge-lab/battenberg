@@ -92,7 +92,7 @@
 #' @param snp6_reference_info_file A SNP6 reference info master file
 #' @noRd
 parseSNP6refFile <- function(snp6_reference_info_file) {
-  return(read.table(snp6_reference_info_file, header = T, stringsAsFactors = F))
+  return(read.table(snp6_reference_info_file, header = TRUE, stringsAsFactors = FALSE))
 }
 
 #' Transform cel files into BAF and LogR
@@ -123,17 +123,17 @@ cel2baf.logr <- function(normal_cel_file, tumour_cel_file, output_file, snp6_ref
   # Unpack the normal cel file
   cmd <- paste(apt.probeset.genotype.exe, "-c", GW_SNP6, "-a birdseed", "--read-models-birdseed", SNP6_BIRDSEED_MODELS, "--special-snps", SNP6_SPECIALSNPS, "--cels", normal_cel_file)
   print(cmd)
-  EXIT_CODE <- system(cmd, wait = T)
+  EXIT_CODE <- system(cmd, wait = TRUE)
   stopifnot(EXIT_CODE == 0)
   # Unpack the tumour cel file
   cmd <- paste(apt.probeset.summarize.exe, "--cdf-file", GW_SNP6, "--analysis quant-norm.sketch=50000,pm-only,med-polish,expr.genotype=true", "--target-sketch", QUANT_NORM_TARGET, normal_cel_file, tumour_cel_file)
   print(cmd)
-  EXIT_CODE <- system(cmd, wait = T)
+  EXIT_CODE <- system(cmd, wait = TRUE)
   stopifnot(EXIT_CODE == 0)
   # Construct the LogR and BAF and push that to
   cmd <- paste(norm.geno.clust.exe, UNM_NORMALS, "quant-norm.pm-only.med-polish.expr.summary.txt", "-locfile", LOCFILE, "-out", output_file)
   print(cmd)
-  EXIT_CODE <- system(cmd, wait = T)
+  EXIT_CODE <- system(cmd, wait = TRUE)
   stopifnot(EXIT_CODE == 0)
 }
 
@@ -161,19 +161,19 @@ gc.correct <- function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.
   SNP_POS_REF <- ref.files[ref.files$variable == "SNP_POS", ]$reference_file
   GC_SNP6 <- ref.files[ref.files$variable == "GC_SNP6", ]$reference_file
 
-  lrrbaf <- read.table(infile.logr.baf, header = T, sep = "\t", row.names = 1, stringsAsFactors = F)
-  SNPpos <- read.table(SNP_POS_REF, header = T, sep = "\t", row.names = 1, stringsAsFactors = F)
+  lrrbaf <- read.table(infile.logr.baf, header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
+  SNPpos <- read.table(SNP_POS_REF, header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
 
-  Tumor_LogR <- lrrbaf[rownames(SNPpos), 5, drop = F]
+  Tumor_LogR <- lrrbaf[rownames(SNPpos), 5, drop = FALSE]
   colnames(Tumor_LogR) <- samplename
 
-  Tumor_BAF <- lrrbaf[rownames(SNPpos), 6, drop = F]
+  Tumor_BAF <- lrrbaf[rownames(SNPpos), 6, drop = FALSE]
   colnames(Tumor_BAF) <- samplename
 
-  Normal_LogR <- lrrbaf[rownames(SNPpos), 3, drop = F]
+  Normal_LogR <- lrrbaf[rownames(SNPpos), 3, drop = FALSE]
   colnames(Normal_LogR) <- samplename
 
-  Normal_BAF <- lrrbaf[rownames(SNPpos), 4, drop = F]
+  Normal_BAF <- lrrbaf[rownames(SNPpos), 4, drop = FALSE]
   colnames(Normal_BAF) <- samplename
 
   # replace 2's by NA
@@ -183,27 +183,27 @@ gc.correct <- function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.
   # Tumor_LogR: correct difference between copy number only probes and other probes
   CNprobes <- substring(rownames(SNPpos), 1, 2) == "CN"
 
-  Tumor_LogR[CNprobes, 1] <- Tumor_LogR[CNprobes, 1] - mean(Tumor_LogR[CNprobes, 1], na.rm = T)
-  Tumor_LogR[!CNprobes, 1] <- Tumor_LogR[!CNprobes, 1] - mean(Tumor_LogR[!CNprobes, 1], na.rm = T)
+  Tumor_LogR[CNprobes, 1] <- Tumor_LogR[CNprobes, 1] - mean(Tumor_LogR[CNprobes, 1], na.rm = TRUE)
+  Tumor_LogR[!CNprobes, 1] <- Tumor_LogR[!CNprobes, 1] - mean(Tumor_LogR[!CNprobes, 1], na.rm = TRUE)
 
-  Normal_LogR[CNprobes, 1] <- Normal_LogR[CNprobes, 1] - mean(Normal_LogR[CNprobes, 1], na.rm = T)
-  Normal_LogR[!CNprobes, 1] <- Normal_LogR[!CNprobes, 1] - mean(Normal_LogR[!CNprobes, 1], na.rm = T)
+  Normal_LogR[CNprobes, 1] <- Normal_LogR[CNprobes, 1] - mean(Normal_LogR[CNprobes, 1], na.rm = TRUE)
+  Normal_LogR[!CNprobes, 1] <- Normal_LogR[!CNprobes, 1] - mean(Normal_LogR[!CNprobes, 1], na.rm = TRUE)
 
   # limit the number of digits:
   Tumor_LogR <- round(Tumor_LogR, 4)
   Normal_LogR <- round(Normal_LogR, 4)
 
-  write.table(cbind(SNPpos, Tumor_BAF), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep = ""), sep = "\t", row.names = T, quote = F)
-  write.table(cbind(SNPpos, Normal_BAF), paste(outfile.normal.BAF, "_noGCcorr.txt", sep = ""), sep = "\t", row.names = T, quote = F)
+  write.table(cbind(SNPpos, Tumor_BAF), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep = ""), sep = "\t", row.names = TRUE, quote = FALSE)
+  write.table(cbind(SNPpos, Normal_BAF), paste(outfile.normal.BAF, "_noGCcorr.txt", sep = ""), sep = "\t", row.names = TRUE, quote = FALSE)
 
   # read into ASCAT and make GC corrected input:
-  write.table(cbind(SNPpos, Tumor_LogR), paste(outfile.tumor.LogR, "_noGCcorr.txt", sep = ""), sep = "\t", row.names = T, quote = F)
-  write.table(cbind(SNPpos, Normal_LogR), paste(outfile.normal.LogR, "_noGCcorr.txt", sep = ""), sep = "\t", row.names = T, quote = F)
+  write.table(cbind(SNPpos, Tumor_LogR), paste(outfile.tumor.LogR, "_noGCcorr.txt", sep = ""), sep = "\t", row.names = TRUE, quote = FALSE)
+  write.table(cbind(SNPpos, Normal_LogR), paste(outfile.normal.LogR, "_noGCcorr.txt", sep = ""), sep = "\t", row.names = TRUE, quote = FALSE)
 
   # ======================================= above previous prepareGCcorrect, below runGCcorrect ==============================================
 
   # TODO: This must be a dapted to not hardcode the chromosome names
-  gender <- read.table(birdseed_report_file, sep = "\t", skip = 66, header = T)
+  gender <- read.table(birdseed_report_file, sep = "\t", skip = 66, header = TRUE)
   sex <- as.vector(gender[, "computed_gender"])
   sex[sex == "female"] <- "XX"
   sex[sex == "male"] <- "XY"
@@ -221,30 +221,30 @@ gc.correct <- function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.
   dat <- cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_LogR, 4))
   dat <- dat[which(is.het), ]
   colnames(dat) <- c("Chromosome", "Position", samplename)
-  write.table(dat, file = outfile.normal.LogR, row.names = F, quote = F, sep = "\t")
+  write.table(dat, file = outfile.normal.LogR, row.names = FALSE, quote = FALSE, sep = "\t")
 
   select <- !is.na(ascat.bc$Germline_BAF)
   dat <- cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_BAF, 4))
   colnames(dat) <- c("Chromosome", "Position", samplename)
-  write.table(dat[which(select), ], file = outfile.normal.BAF, row.names = F, quote = F, sep = "\t")
+  write.table(dat[which(select), ], file = outfile.normal.BAF, row.names = FALSE, quote = FALSE, sep = "\t")
 
   # Save the probe ids plus their BAF for only the germline heterozygous mutations
   select <- !is.na(ascat.bc$Tumor_BAF)
   dat <- cbind(row.names(ascat.bc$SNPpos), ascat.bc$Tumor_BAF)
   dat <- dat[which(select & is.het), ]
-  write.table(dat, file = outfile.probeBAF, row.names = F, quote = F, col.names = F, sep = "\t")
+  write.table(dat, file = outfile.probeBAF, row.names = FALSE, quote = FALSE, col.names = FALSE, sep = "\t")
 
   # Save tumour BAF and LogR directly. Include homozygous SNPs here.
   dat <- cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_BAF, 4))
   dat <- dat[which(select), ]
   colnames(dat) <- c("Chromosome", "Position", samplename)
-  write.table(dat, file = outfile.tumor.BAF, row.names = F, quote = F, sep = "\t")
+  write.table(dat, file = outfile.tumor.BAF, row.names = FALSE, quote = FALSE, sep = "\t")
 
   select <- !is.na(ascat.bc$Tumor_LogR)
   dat <- cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_LogR, 4))
   dat <- dat[which(select), ]
   colnames(dat) <- c("Chromosome", "Position", samplename)
-  write.table(dat, file = outfile.tumor.LogR, row.names = F, quote = F, sep = "\t")
+  write.table(dat, file = outfile.tumor.LogR, row.names = FALSE, quote = FALSE, sep = "\t")
 }
 
 
@@ -272,13 +272,13 @@ generate.impute.input.snp6 <- function(infile.germlineBAF, infile.tumourBAF, out
   ANNO_FILE <- ref.files[ref.files$variable == "ANNO_FILE", ]$reference_file
 
   # Read in the 1000 genomes reference file paths for the specified chrom
-  impute.info <- parse.imputeinfofile(imputeinfofile, is.male, chrom = chrom)
+  impute.info <- parse_imputeinfofile(imputeinfofile, is.male, chrom = chrom)
 
   # Read in the known SNP locations from the 1000 genomes reference files
-  known_SNPs <- read.table(impute.info$impute_legend[1], sep = " ", header = T)
+  known_SNPs <- read.table(impute.info$impute_legend[1], sep = " ", header = TRUE)
   if (nrow(impute.info) > 1) {
     for (r in 2:nrow(impute.info)) {
-      known_SNPs <- rbind(known_SNPs, read.table(impute.info$impute_legend[r], sep = " ", header = T))
+      known_SNPs <- rbind(known_SNPs, read.table(impute.info$impute_legend[r], sep = " ", header = TRUE))
     }
   }
 
@@ -292,15 +292,15 @@ generate.impute.input.snp6 <- function(infile.germlineBAF, infile.tumourBAF, out
   chr_name <- chrom
 
   # filter out bad SNPs (streaks in BAF)
-  if ((problemLociFile != "NA") & (!is.na(problemLociFile))) {
-    problemSNPs <- read.table(problemLociFile, header = T, sep = "\t")
+  if ((problemLociFile != "NA") && (!is.na(problemLociFile))) {
+    problemSNPs <- read.table(problemLociFile, header = TRUE, sep = "\t")
     problemSNPs <- problemSNPs$Pos[problemSNPs$Chr == chr_name]
     badIndices <- match(known_SNPs[, 2], problemSNPs)
     known_SNPs <- known_SNPs[is.na(badIndices), ]
     print(paste("badIndices lengths=", length(badIndices), ",", sum(is.na(badIndices)), sep = ""))
   }
 
-  knownSNP6data <- read.csv(ANNO_FILE, comment.char = "#", header = T, row.names = NULL, stringsAsFactors = F)
+  knownSNP6data <- read.csv(ANNO_FILE, comment.char = "#", header = TRUE, row.names = NULL, stringsAsFactors = FALSE)
   knownSNP6data <- knownSNP6data[knownSNP6data$Chromosome == chr_name, ]
   print(paste("first column=", names(knownSNP6data)[1], sep = ""))
   print(paste("first known datum=", knownSNP6data[1, 1], sep = ""))
@@ -329,9 +329,9 @@ generate.impute.input.snp6 <- function(infile.germlineBAF, infile.tumourBAF, out
   knownSNP6data$Allele.B <- factor(knownSNP6data$Allele.B, levels = c("A", "C", "G", "T"))
 
   # Read in the BAFs and see which 1000 genomes SNPs are covered
-  germline_snp_data <- read.table(infile.germlineBAF, sep = "\t", header = T, stringsAsFactors = F) # [,3,drop=F]
+  germline_snp_data <- read.table(infile.germlineBAF, sep = "\t", header = TRUE, stringsAsFactors = FALSE) # [,3,drop=F]
   germline_snp_data <- germline_snp_data[germline_snp_data[, 1] == chr_name, ]
-  tumour_snp_data <- read.table(infile.tumourBAF, sep = "\t", header = T, stringsAsFactors = F) # [,3,drop=F]
+  tumour_snp_data <- read.table(infile.tumourBAF, sep = "\t", header = TRUE, stringsAsFactors = FALSE) # [,3,drop=F]
   tumour_snp_data <- tumour_snp_data[tumour_snp_data[, 1] == chr_name, ]
   # snp_matches = match(rownames(germline_snp_data), rownames(tumour_snp_data))
   snp_matches <- match(germline_snp_data[, 2], tumour_snp_data[, 2])
@@ -383,7 +383,7 @@ generate.impute.input.snp6 <- function(infile.germlineBAF, infile.tumourBAF, out
 
   is.het <- (all.info[, 4] >= 0.3 & all.info[, 4] <= 0.7)
   names(all.info)[5] <- "allele.frequency"
-  write.csv(all.info[is.het, -4], file = paste(outFileStart, chrom, "_withAlleleFreq.csv", sep = ""), quote = F, row.names = F)
+  write.csv(all.info[is.het, -4], file = paste(outFileStart, chrom, "_withAlleleFreq.csv", sep = ""), quote = FALSE, row.names = FALSE)
 
   out.data <- data.frame()
   if (heterozygousFilter != "none") {
@@ -405,14 +405,14 @@ generate.impute.input.snp6 <- function(infile.germlineBAF, infile.tumourBAF, out
     out.data <- cbind(snp.names, all.info[is.genotyped, 6:9], genotypes[is.genotyped, ])
   } else {
     snp.names <- paste("snp", 1:sum(is.het), sep = "")
-    out.data <- cbind(snp.names, all.info[is.het, 6:9], matrix(data = c(0, 1, 0), nrow = sum(is.het), ncol = 3, byrow = T))
+    out.data <- cbind(snp.names, all.info[is.het, 6:9], matrix(data = c(0, 1, 0), nrow = sum(is.het), ncol = 3, byrow = TRUE))
   }
-  write.table(out.data, file = outfile, row.names = F, col.names = F, quote = F)
+  write.table(out.data, file = outfile, row.names = FALSE, col.names = FALSE, quote = FALSE)
 
   if (chrom == "chrX") {
     sample.g.file <- paste(outFileStart, "sample_g.txt", sep = "")
     sample_g_data <- data.frame(ID_1 = c(0, "INDIVI1"), ID_2 = c(0, "INDIVI1"), missing = c(0, 0), sex = c("D", 2))
-    write.table(sample_g_data, file = sample.g.file, row.names = F, col.names = T, quote = F)
+    write.table(sample_g_data, file = sample.g.file, row.names = FALSE, col.names = TRUE, quote = FALSE)
   }
 }
 
@@ -420,7 +420,7 @@ generate.impute.input.snp6 <- function(infile.germlineBAF, infile.tumourBAF, out
 #' @param birdseed_report_file The birdseed report file
 #' @export
 infer_gender_birdseed <- function(birdseed_report_file) {
-  z <- read.table(birdseed_report_file, header = T)
+  z <- read.table(birdseed_report_file, header = TRUE)
   return(as.character(z$em.cluster.chrX.het.contrast_gender))
 }
 

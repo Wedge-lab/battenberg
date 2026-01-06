@@ -11,7 +11,7 @@ gc.correct.wgs(
   gc_content_file_prefix,
   replic_timing_file_prefix,
   chrom_names,
-  recalc_corr_afterwards = F
+  recalc_corr_afterwards = FALSE
 )
 }
 \arguments{

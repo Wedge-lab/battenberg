@@ -684,7 +684,7 @@ R -q -e 'devtools::install_github("VanLoo-lab/ascat/ASCAT")'</code></pre>
                             </p>
                             <pre><code><span><span class="fu">S3method</span><span class="op">(</span><span class="va">plot</span>,<span class="va">haplotype.data</span><span class="op">)</span></span></code></pre>
                             <p>to:</p>
-                            <pre><code><span><span class="fu">export</span><span class="op">(</span><span class="va">plot.haplotype.data</span><span class="op">)</span></span></code></pre>
+                            <pre><code><span><span class="fu">export</span><span class="op">(</span><span class="va">plot_haplotype_data</span><span class="op">)</span></span></code></pre>
                         </div>
                         <div class="section level2">
                             <h2 id="hg38-for-beagle5">
@@ -1062,7 +1062,7 @@ mclapply(CHRS,function(chr)
                                     >
                                 </p>
                                 <pre><code><span><span class="va">BEAGLEJAR</span> <span class="op">&lt;-</span> <span class="st">"$PATHTOBEAGLEFILES/beagle.24Aug19.3e8.jar"</span></span>
-<span><span class="va">BEAGLEREF.template</span> <span class="op">&lt;-</span> <span class="st">"$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"</span></span>
+<span><span class="va">BEAGLEREF_template</span> <span class="op">&lt;-</span> <span class="st">"$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"</span></span>
 <span><span class="va">BEAGLEPLINK.template</span> <span class="op">&lt;-</span> <span class="st">"$PATHTOBEAGLEFILES/plink.chrCHROMNAME.GRCh37.map"</span></span>
 <span></span>
 <span><span class="va">timed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="fu"><a href="reference/battenberg.html">battenberg</a></span><span class="op">(</span>tumourname<span class="op">=</span><span class="va">TUMOURNAME</span>,</span>
@@ -1100,7 +1100,7 @@ mclapply(CHRS,function(chr)
 <span>                                skip_phasing<span class="op">=</span><span class="cn">F</span>,</span>
 <span>                                usebeagle<span class="op">=</span><span class="va">USEBEAGLE</span>, <span class="co">##set to TRUE to use beagle</span></span>
 <span>                                beaglejar<span class="op">=</span><span class="va">BEAGLEJAR</span>, <span class="co">##path</span></span>
-<span>                                beagleref<span class="op">=</span><span class="va">BEAGLEREF.template</span>, <span class="co">##pathtemplate</span></span>
+<span>                                beagleref<span class="op">=</span><span class="va">BEAGLEREF_template</span>, <span class="co">##pathtemplate</span></span>
 <span>                                beagleplink<span class="op">=</span><span class="va">BEAGLEPLINK.template</span>, <span class="co">##pathtemplate</span></span>
 <span>                                beaglemaxmem<span class="op">=</span><span class="fl">15</span>,</span>
 <span>                                beaglenthreads<span class="op">=</span><span class="fl">1</span>,</span>

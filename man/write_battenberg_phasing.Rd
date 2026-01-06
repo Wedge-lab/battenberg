@@ -11,7 +11,7 @@ write_battenberg_phasing(
   bafsegmented_file,
   outprefix,
   chrom_names,
-  include_homozygous = F
+  include_homozygous = FALSE
 )
 }
 \arguments{

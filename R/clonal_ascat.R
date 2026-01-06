@@ -147,7 +147,7 @@ calc_ln_likelihood_ratio <- function(LogR, BAFreq, BAF.length, BAF.size, BAF.mea
   # 	nMinor = 0.01
   # }
   # DCW - increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
-  if (nMinor < 0 | is.na(nMinor)) {
+  if (nMinor < 0 || is.na(nMinor)) {
     if (BAFreq == 1) {
       # avoid calling infinite copy number
       nMajor <- 1000
@@ -349,8 +349,8 @@ is.segment.clonal <- function(LogR, BAFreq, BAF.length, BAF.size, BAF.mean, BAF.
   # }
 
 
-  nMajor <- max(nA, nB, na.rm = T)
-  nMinor <- min(nA, nB, na.rm = T)
+  nMajor <- max(nA, nB, na.rm = TRUE)
+  nMinor <- min(nA, nB, na.rm = TRUE)
 
   # check for big shifts in nMajor - if there's a big shift, we shouldn't trust a clonal call
   nMajor.saved <- nMajor
@@ -439,11 +439,11 @@ calc_standardised_error <- function(LogR, BAFreq, BAF.length, BAF.size, BAF.mean
   nMinor <- (rho - 1 + (1 - BAFreq) * psi * 2^(LogR / gamma_param)) / rho
 
   # to make sure we're always in a positive square:
-  if (nMajor < 0 | is.na(nMajor)) {
+  if (nMajor < 0 || is.na(nMajor)) {
     nMajor <- 0.01
   }
 
-  if (nMinor < 0 | is.na(nMinor)) {
+  if (nMinor < 0 || is.na(nMinor)) {
     nMinor <- 0.01
   }
 
@@ -473,7 +473,7 @@ calc_standardised_error <- function(LogR, BAFreq, BAF.length, BAF.size, BAF.mean
   included_segment <- 0 # kjd 31-1-2014
   if (BAF.size > 0) { # kjd 13-1-2014
 
-    if (BAF.sd == 0 | length(mu) == 0) {
+    if (BAF.sd == 0 || length(mu) == 0) {
       # pval=0 # kjd 31-1-2014
       tvar <- 0 # kjd 31-1-2014
     } else {
@@ -512,7 +512,7 @@ calc_distance <- function(segs, dist_choice, rho, psi, gamma_param, uninformativ
       nB <- (rho - 1 + s[, "b"] * 2^(s[, "r"] / gamma_param) * ((1 - rho) * 2 + rho * psi)) / rho
       # choose the minor allele
       nMinor <- NULL
-      if (sum(nA, na.rm = T) < sum(nB, na.rm = T)) {
+      if (sum(nA, na.rm = TRUE) < sum(nB, na.rm = TRUE)) {
         nMinor <- nA
       } else {
         nMinor <- nB
@@ -521,7 +521,7 @@ calc_distance <- function(segs, dist_choice, rho, psi, gamma_param, uninformativ
       # DCW 180711 - try weighting BAF=0.5 equally with other points
       # dist_value = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"], na.rm=T)
       # DCW 310314 - retry weighting
-      dist_value <- sum(abs(nMinor - pmax(round(nMinor), 0))^2 * s[, "length"] * ifelse(s[, "b"] <= uninformative_BAF_threshold, 0.05, 1), na.rm = T)
+      dist_value <- sum(abs(nMinor - pmax(round(nMinor), 0))^2 * s[, "length"] * ifelse(s[, "b"] <= uninformative_BAF_threshold, 0.05, 1), na.rm = TRUE)
 
       minimise <- TRUE
     } else if (dist_choice == 1) { # new similarity measure suggested by DW 7-3-2014
@@ -529,7 +529,7 @@ calc_distance <- function(segs, dist_choice, rho, psi, gamma_param, uninformativ
     nB <- (rho - 1 + s[, "b"] * 2^(s[, "r"] / gamma_param) * ((1 - rho) * 2 + rho * psi)) / rho
     # choose the minor allele
     nMinor <- NULL
-    if (sum(nA, na.rm = T) < sum(nB, na.rm = T)) {
+    if (sum(nA, na.rm = TRUE) < sum(nB, na.rm = TRUE)) {
       nMinor <- nA
     } else {
       nMinor <- nB
@@ -538,7 +538,7 @@ calc_distance <- function(segs, dist_choice, rho, psi, gamma_param, uninformativ
     # DCW 180711 - try weighting BAF=0.5 equally with other points
     # dist_value = sum(abs(nMinor - pmax(round(nMinor),0))^2 * s[,"length"], na.rm=T)
 
-    dist_value <- sum((0.5 - abs(nMinor - pmax(round(nMinor), 0)))^2 * s[, "length"], na.rm = T)
+    dist_value <- sum((0.5 - abs(nMinor - pmax(round(nMinor), 0)))^2 * s[, "length"], na.rm = TRUE)
 
     minimise <- FALSE
   } else if (dist_choice == 2) { # adapted DW's 7-3-2014 measure by SD 8-8-2014 that takes into account both major and minor alleles
@@ -547,7 +547,7 @@ calc_distance <- function(segs, dist_choice, rho, psi, gamma_param, uninformativ
     # choose the minor allele
     nMinor <- NULL
     nMajor <- NULL
-    if (sum(nA, na.rm = T) < sum(nB, na.rm = T)) {
+    if (sum(nA, na.rm = TRUE) < sum(nB, na.rm = TRUE)) {
       nMinor <- nA
       nMajor <- nB
     } else {
@@ -555,7 +555,7 @@ calc_distance <- function(segs, dist_choice, rho, psi, gamma_param, uninformativ
       nMajor <- nA
     }
 
-    dist_value <- 0.5 * sum(((0.5 - abs(nMinor - pmax(round(nMinor), 0)))^2 + (0.5 - abs(nMajor - pmax(round(nMajor), 0)))^2) * s[, "length"], na.rm = T)
+    dist_value <- 0.5 * sum(((0.5 - abs(nMinor - pmax(round(nMinor), 0)))^2 + (0.5 - abs(nMajor - pmax(round(nMajor), 0)))^2) * s[, "length"], na.rm = TRUE)
 
     minimise <- FALSE
   } else if (dist_choice == 3) { # adapted DW's 7-3-2014 measure by SD 8-8-2014 that takes into account both major and minor alleles and takes the mean, while it also penalises for the number of homozygous deletions
@@ -564,7 +564,7 @@ calc_distance <- function(segs, dist_choice, rho, psi, gamma_param, uninformativ
     # choose the minor allele
     nMinor <- NULL
     nMajor <- NULL
-    if (sum(nA, na.rm = T) < sum(nB, na.rm = T)) {
+    if (sum(nA, na.rm = TRUE) < sum(nB, na.rm = TRUE)) {
       nMinor <- nA
       nMajor <- nB
     } else {
@@ -579,7 +579,7 @@ calc_distance <- function(segs, dist_choice, rho, psi, gamma_param, uninformativ
     hom_del <- nMinor < 0.5 & nMajor < 0.5 & nMinor >= 0 & nMajor >= 0
     segs_penalty[which(hom_del)] <- segs_penalty[which(hom_del)] * 4
 
-    dist_value <- 0.5 * sum(segs_penalty * (s[, "length"] * ifelse(hom_del, 2, 1)), na.rm = T)
+    dist_value <- 0.5 * sum(segs_penalty * (s[, "length"] * ifelse(hom_del, 2, 1)), na.rm = TRUE)
 
     minimise <- FALSE
   }
@@ -621,7 +621,7 @@ calc_distance_clonal <- function(segs, dist_choice, rho, psi, gamma_param, read_
   ref_maj <- NA
   ref_min <- NA
 
-  for (i in 1:nrow(s)) {
+  for (i in seq_len(s)) {
     BAFreq <- s[i, "b"] # l = BAFlevels[i]
 
     if (BAFreq > uninformative_BAF_threshold) {
@@ -652,7 +652,7 @@ calc_distance_clonal <- function(segs, dist_choice, rho, psi, gamma_param, read_
         clonal_genome_size <- clonal_genome_size + segment_size
         clonal_seg_count <- clonal_seg_count + 1 # kjd 24-1-2014
 
-        if (max_clonal_segment_size < segment_size & !is.balanced) # balanced check added by DCW 160314
+        if (max_clonal_segment_size < segment_size && !is.balanced) # balanced check added by DCW 160314
           {
             max_clonal_segment <- i
             max_clonal_segment_size <- segment_size
@@ -798,7 +798,7 @@ get_segment_info <- function(segLogR, segBAF.table) {
   colnames(segs) <- c("r", "b", "length", "size", "mean", "sd")
   segs[, c("r", "b", "length")] <- pcf_segments
 
-  for (i in 1:nrow(segs)) {
+  for (i in seq_len(segs)) {
     BAFreq <- segs[i, "b"] # l = BAFlevels[i]
     index_vect <- which(segBAF.table[, 5] == BAFreq)
     BAFke <- segBAF.table[index_vect, 4] # column 4 contains "phased BAF" values; # kjd 6-1-2014
@@ -1221,7 +1221,7 @@ runASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_cho
 
   # TheoretMaxdist = sum(rep(0.25,dim(s)[1]) * s[,"length"] * ifelse(s[,"b"]==0.5,0.05,1),na.rm=T)
   # DCW 180711 - try weighting BAF=0.5 equally with other points
-  TheoretMaxdist <- sum(rep(0.25, dim(s)[1]) * s[, "length"], na.rm = T)
+  TheoretMaxdist <- sum(rep(0.25, dim(s)[1]) * s[, "length"], na.rm = TRUE)
 
   if (!(minimise)) # kjd 10-3-2014
     {
@@ -1262,7 +1262,7 @@ runASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_cho
         }
 
         print(paste("ploidy=", ploidy, ",rho=", rho, ",goodness=", goodnessOfFit, ",percentzero=", percentzero, ", perczerAbb=", perczeroAbb, sep = ""))
-        if (ploidy >= min.ploidy & ploidy <= max.ploidy & rho >= min.rho & goodnessOfFit >= min.goodness & (percentzero > 0.01 | perczeroAbb > 0.1)) {
+        if (ploidy >= min.ploidy && ploidy <= max.ploidy && rho >= min.rho && goodnessOfFit >= min.goodness && (percentzero > 0.01 || perczeroAbb > 0.1)) {
           nropt <- nropt + 1
           optima[[nropt]] <- c(m, i, j, ploidy, goodnessOfFit)
           localmin[nropt] <- m
@@ -1274,7 +1274,7 @@ runASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_cho
   # if solutions with 100 % aberrant cell fraction should be allowed:
   # if there are no solutions, drop the conditions on regions with copy number zero, and include the borders (rho = 1) as well
   # this way, if there is another solution, this is still preferred, but these solutions aren't standardly eliminated
-  if (allow100percent & nropt == 0) {
+  if (allow100percent && nropt == 0) {
     # first, include borders
     cold <- which(as.numeric(colnames(d)) > 1)
     d[, cold] <- 1E20
@@ -1307,7 +1307,7 @@ runASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_cho
             goodnessOfFit <- -m / TheoretMaxdist * 100 # we have to use minus to reverse d=-d above
           }
 
-          if (ploidy > min.ploidy & ploidy < max.ploidy & rho >= min.rho & goodnessOfFit >= min.goodness) {
+          if (ploidy > min.ploidy && ploidy < max.ploidy && rho >= min.rho && goodnessOfFit >= min.goodness) {
             nropt <- nropt + 1
             optima[[nropt]] <- c(m, i, j, ploidy, goodnessOfFit)
             localmin[nropt] <- m
@@ -1322,7 +1322,7 @@ runASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_cho
   rho_opt1_plot <- vector(mode = "numeric")
 
   if (nropt > 0) {
-    write.table(paste(nropt, " copy number solutions found", sep = ""), file = cnaStatusFile, quote = F, col.names = F, row.names = F)
+    write.table(paste(nropt, " copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col.names = FALSE, row.names = FALSE)
     optlim <- sort(localmin)[1]
     for (i in seq_along(optima)) {
       if (optima[[i]][1] == optlim) {
@@ -1339,7 +1339,7 @@ runASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_cho
       }
     }
   } else {
-    write.table(paste("no copy number solutions found", sep = ""), file = cnaStatusFile, quote = F, col.names = F, row.names = F)
+    write.table(paste("no copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col.names = FALSE, row.names = FALSE)
     print("No suitable copy number solution found")
     psi <- NA
     ploidy <- NA
@@ -1376,7 +1376,7 @@ runASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_cho
     bConf <- ifelse(bBacktransform != 0.5, pmin(100, pmax(0, ifelse(b == 0.5, 100, 100 * (1 - abs(bBacktransform - b) / abs(b - 0.5))))), NA)
     # DCW 150711 - get deviations from expected values
     if (!is.na(reliabilityFile)) {
-      write.table(data.frame(segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf, segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = F)
+      write.table(data.frame(segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf, segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = FALSE)
     }
     confidence <- ifelse(is.na(rConf), bConf, ifelse(is.na(bConf), rConf, (rConf + bConf) / 2))
 
@@ -1499,10 +1499,10 @@ run_clonal_ASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, 
 
   distance.from.ref.seg <- goodnessOfFit_opt1
 
-  is.ref.better <- F
+  is.ref.better <- FALSE
   if (is.na(rho_opt1)) {
     print("reference segment did not provide a possible solution")
-  } else if (psi_opt1 >= psi_min_initial & psi_opt1 <= psi_max_initial & rho_opt1 >= rho_min_initial & rho_opt1 <= rho_max_initial & ((minimise & distance.from.ref.seg < best.distance) | (!minimise & distance.from.ref.seg > best.distance))) {
+  } else if (psi_opt1 >= psi_min_initial && psi_opt1 <= psi_max_initial && rho_opt1 >= rho_min_initial && rho_opt1 <= rho_max_initial && ((minimise && distance.from.ref.seg < best.distance) || (!minimise && distance.from.ref.seg > best.distance))) {
     is.ref.better <- T
     print("reference segment gives better results than grid search")
   } else {
@@ -1543,7 +1543,7 @@ run_clonal_ASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, 
     bConf <- ifelse(bBacktransform != 0.5, pmin(100, pmax(0, ifelse(b == 0.5, 100, 100 * (1 - abs(bBacktransform - b) / abs(b - 0.5))))), NA)
     # DCW 150711 - get deviations from expected values
     if (!is.na(reliabilityFile)) {
-      write.table(data.frame(segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf, segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = F)
+      write.table(data.frame(segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf, segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = FALSE)
     }
     confidence <- ifelse(is.na(rConf), bConf, ifelse(is.na(bConf), rConf, (rConf + bConf) / 2))
 
@@ -1568,7 +1568,7 @@ run_clonal_ASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, 
   }
 
   # Recalculate the psi_t for this rho using only clonal segments
-  psi_t <- recalc_psi_t(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments = F)
+  psi_t <- recalc_psi_t(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments = FALSE)
 
   # If there aren't any clonally fit segments, the above yields NA. In this case, revert to the original grid search psi_t
   if (is.na(psi_t)) {
@@ -1594,7 +1594,7 @@ run_clonal_ASCAT <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, 
 #' @param maxdist_BAF Max distance BAF is allowed to be away from the copy number solution before we don't trust the value and overrule a p-value, parameter required when determining the clonal status of a segment in \code{is.segment.clonal}
 #' @param include_subcl_segments Boolean flag, supply TRUE if subclonal segments should be included when calculating psi_t, supply FALSE if only clonal segments should be included (default: TRUE)
 #' @noRd
-recalc_psi_t <- function(psi, rho, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments = T) {
+recalc_psi_t <- function(psi, rho, gamma_param, lrrsegmented, segBAF.table, siglevel_BAF, maxdist_BAF, include_subcl_segments = TRUE) {
   # Create segments of constant BAF/LogR
   s <- get_segment_info(lrrsegmented[rownames(segBAF.table)], segBAF.table)
   # Make sure no segment of length 1 remains - TODO: this should not occur and needs to be prevented upstream
@@ -1602,7 +1602,7 @@ recalc_psi_t <- function(psi, rho, gamma_param, lrrsegmented, segBAF.table, sigl
 
   # Fetch all segments, if required check which ones are clonal with this rho/psi configuration
   segs <- list()
-  for (i in 1:nrow(s)) {
+  for (i in seq_len(nrow(s))) {
     read_depth <- NA # Unused parameter
     maxdist_LogR <- NA # Unused parameter
     siglevel_LogR <- NA # Unused parameter
@@ -1623,7 +1623,7 @@ recalc_psi_t <- function(psi, rho, gamma_param, lrrsegmented, segBAF.table, sigl
       maxdist_LogR = maxdist_LogR
     )
     # Include this segment if we want to include all segments, or if we don't want subclonal segments include it only if its clonal
-    if (include_subcl_segments | segment_info$is.clonal) {
+    if (include_subcl_segments || segment_info$is.clonal) {
       nMaj <- segment_info$nMaj.test
       nMin <- segment_info$nMin.test
       psi_t <- calc_psi_t(nMaj + nMin, s[i, "r"], rho, gamma_param)
@@ -1633,7 +1633,7 @@ recalc_psi_t <- function(psi, rho, gamma_param, lrrsegmented, segBAF.table, sigl
   segs <- do.call(rbind, segs)
 
   # Calculate psi_t as the weighted average copy number across all segments
-  psi_t <- sum(segs$psi_t * segs$length, na.rm = T) / sum(segs$length, na.rm = T)
+  psi_t <- sum(segs$psi_t * segs$length, na.rm = TRUE) / sum(segs$length, na.rm = TRUE)
   return(psi_t)
 }
 

@@ -13,7 +13,7 @@ segment.baf.phased(
   phasegamma = 3,
   kmin = 3,
   phasekmin = 3,
-  no_segmentation = F,
+  no_segmentation = FALSE,
   calc_seg_baf_option = 3
 )
 }

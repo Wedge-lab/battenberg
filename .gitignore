@@ -1,2 +1,5 @@
 /doc/
 /Meta/
+.RData
+.Rhistory
+.Rprofile

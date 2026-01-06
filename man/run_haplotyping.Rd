@@ -15,7 +15,7 @@ run_haplotyping(
   min_normal_depth,
   chrom_names,
   externalhaplotypeprefix = NA,
-  use_previous_imputation = F,
+  use_previous_imputation = FALSE,
   snp6_reference_info_file = NA,
   heterozygousFilter = NA,
   usebeagle = FALSE,

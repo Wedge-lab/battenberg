@@ -115,7 +115,7 @@ segment.baf.phased.legacy <- function(samplename, inputfile, outputfile, gamma =
     }
 
     png(filename = paste(samplename, "_segment_chr", chr, ".png", sep = ""), width = 2000, height = 1000, res = 200, type = "cairo")
-    create.baf.plot(
+    create_baf_plot(
       chrom.position = pos / 1000000,
       points.red.blue = BAF,
       plot.red = BAFsegm > 0.5,
@@ -134,7 +134,7 @@ segment.baf.phased.legacy <- function(samplename, inputfile, outputfile, gamma =
     BAFoutput <- rbind(BAFoutput, BAFoutputchr)
   }
   colnames(BAFoutput) <- c("Chromosome", "Position", "BAF", "BAFphased", "BAFseg")
-  write.table(BAFoutput, outputfile, sep = "\t", row.names = F, col.names = T, quote = F)
+  write.table(BAFoutput, outputfile, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
 }
 
 #' Segment BAF with the inclusion of structural variant breakpoints - This function is now deprecated, call segment.baf.phased instead
@@ -154,7 +154,7 @@ segment.baf.phased.legacy <- function(samplename, inputfile, outputfile, gamma =
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean. (Default: 1)
 #' @author sd11
 #' @export
-segment.baf.phased.sv <- function(samplename, inputfile, outputfile, svs = NULL, gamma = 10, phasegamma = 3, kmin = 3, phasekmin = 3, no_segmentation = F, calc_seg_baf_option = 1) {
+segment.baf.phased.sv <- function(samplename, inputfile, outputfile, svs = NULL, gamma = 10, phasegamma = 3, kmin = 3, phasekmin = 3, no_segmentation = FALSE, calc_seg_baf_option = 1) {
   .Deprecated("segment.baf.phased")
   print("Stopping now")
 }
@@ -175,7 +175,7 @@ segment.baf.phased.sv <- function(samplename, inputfile, outputfile, svs = NULL,
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0 or 1, median, mean. (Default: 3)
 #' @author sd11
 #' @export
-segment.baf.phased <- function(samplename, inputfile, outputfile, prior_breakpoints_file = NULL, gamma = 10, phasegamma = 3, kmin = 3, phasekmin = 3, no_segmentation = F, calc_seg_baf_option = 3) {
+segment.baf.phased <- function(samplename, inputfile, outputfile, prior_breakpoints_file = NULL, gamma = 10, phasegamma = 3, kmin = 3, phasekmin = 3, no_segmentation = FALSE, calc_seg_baf_option = 3) {
   # Function that takes SNPs that belong to a single segment and looks for big holes between
   # each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
   addin_bigholes <- function(breakpoints, positions, chrom, startpos, maxsnpdist) {
@@ -221,7 +221,7 @@ segment.baf.phased <- function(samplename, inputfile, outputfile, prior_breakpoi
 
       for (svposition in bkps_breakpoints[startfromsv:length(bkps_breakpoints)]) {
         selectedsnps <- BAFrawchr$Position >= startpos & BAFrawchr$Position <= svposition
-        if (sum(selectedsnps, na.rm = T) > 0) {
+        if (sum(selectedsnps, na.rm = TRUE) > 0) {
           if (addin_bigholes) {
             # If there is a big hole (i.e. centromere), add it in as a separate set of breakpoints
             res <- addin_bigholes(breakpoints, BAFrawchr$Position[selectedsnps], chrom, startpos, maxsnpdist)
@@ -269,7 +269,7 @@ segment.baf.phased <- function(samplename, inputfile, outputfile, prior_breakpoi
   # @param gamma
   # @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
   # @return A data.frame with columns Chromosome,Position,BAF,BAFphased,BAFseg
-  run_pcf <- function(BAFrawchr, presegment_chrom_start, presegment_chrom_end, phasekmin, phasegamma, kmin, gamma, no_segmentation = F) {
+  run_pcf <- function(BAFrawchr, presegment_chrom_start, presegment_chrom_end, phasekmin, phasegamma, kmin, gamma, no_segmentation = FALSE) {
     row.indices <- which(BAFrawchr$Position >= presegment_chrom_start &
       BAFrawchr$Position <= presegment_chrom_end)
 
@@ -346,7 +346,7 @@ segment.baf.phased <- function(samplename, inputfile, outputfile, prior_breakpoi
 
   BAFraw <- as.data.frame(read_baf(inputfile))
   if (!is.null(prior_breakpoints_file)) {
-    bkps <- read.table(prior_breakpoints_file, header = T, stringsAsFactors = F)
+    bkps <- read.table(prior_breakpoints_file, header = TRUE, stringsAsFactors = FALSE)
   } else {
     bkps <- NULL
   }
@@ -363,7 +363,7 @@ segment.baf.phased <- function(samplename, inputfile, outputfile, prior_breakpoi
       bkps_chrom <- data.frame(chromosome = character(), position = numeric())
     }
 
-    breakpoints_chrom <- bkps_to_presegment_breakpoints(chr, bkps_chrom, BAFrawchr, addin_bigholes = T)
+    breakpoints_chrom <- bkps_to_presegment_breakpoints(chr, bkps_chrom, BAFrawchr, addin_bigholes = TRUE)
     BAFoutputchr <- NULL
 
     for (r in 1:nrow(breakpoints_chrom)) {
@@ -386,7 +386,7 @@ segment.baf.phased <- function(samplename, inputfile, outputfile, prior_breakpoi
     dev.off()
 
     png(filename = paste(samplename, "_segment_chr", chr, ".png", sep = ""), width = 2000, height = 1000, res = 200, type = "cairo")
-    create.baf.plot(
+    create_baf_plot(
       chrom.position = BAFoutputchr$Position / 1000000,
       points.red.blue = BAFoutputchr$BAF,
       plot.red = BAFoutputchr$tempBAFsegm > 0.5,
@@ -406,7 +406,7 @@ segment.baf.phased <- function(samplename, inputfile, outputfile, prior_breakpoi
     BAFoutput <- rbind(BAFoutput, BAFoutputchr[, c(1:5)])
   }
   colnames(BAFoutput) <- c("Chromosome", "Position", "BAF", "BAFphased", "BAFseg")
-  write.table(BAFoutput, outputfile, sep = "\t", row.names = F, col.names = T, quote = F)
+  write.table(BAFoutput, outputfile, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
 }
 
 
@@ -471,7 +471,7 @@ segment.baf.phased.multisample <- function(samplename, inputfile, outputfile, pr
 
       for (svposition in bkps_breakpoints[startfromsv:length(bkps_breakpoints)]) {
         selectedsnps <- BAFrawchr$Position >= startpos & BAFrawchr$Position <= svposition
-        if (sum(selectedsnps, na.rm = T) > 0) {
+        if (sum(selectedsnps, na.rm = TRUE) > 0) {
           if (addin_bigholes) {
             # If there is a big hole (i.e. centromere), add it in as a separate set of breakpoints
             res <- addin_bigholes(breakpoints, BAFrawchr$Position[selectedsnps], chrom, startpos, maxsnpdist)
@@ -538,19 +538,19 @@ segment.baf.phased.multisample <- function(samplename, inputfile, outputfile, pr
 
     print(paste0("BAFlen=", nrow(BAFrawchrseg)))
     if (nrow(BAFrawchrseg) < 50) {
-      BAFsegm <- matrix(data = colMeans(BAFrawchrseg[, -c(1:2)]), nrow = nrow(BAFrawchrseg), ncol = ncol(BAFrawchrseg) - 2, byrow = T)
+      BAFsegm <- matrix(data = colMeans(BAFrawchrseg[, -c(1:2)]), nrow = nrow(BAFrawchrseg), ncol = ncol(BAFrawchrseg) - 2, byrow = TRUE)
     } else {
       res <- copynumber::multipcf(
         data = copynumber::winsorize(data = BAFrawchrseg, assembly = GENOMEBUILD),
-        Y = BAFrawchrseg, fast = T, gamma = gamma * sdev, return.est = T, normalize = F, assembly = GENOMEBUILD
+        Y = BAFrawchrseg, fast = TRUE, gamma = gamma * sdev, return.est = TRUE, normalize = FALSE, assembly = GENOMEBUILD
       )
       BAFsegm <- res$estimates[, -c(1:2)]
     }
 
-    BAFphased <- do.call(cbind, sapply(X = 1:ncol(BAFsegm), FUN = function(x, bafsegm, baf) ifelse(bafsegm[, x] > 0.5, baf[, x], 1 - baf[, x]), bafsegm = BAFsegm, baf = BAFrawchrseg[, -c(1:2)], simplify = F))
+    BAFphased <- do.call(cbind, sapply(X = 1:ncol(BAFsegm), FUN = function(x, bafsegm, baf) ifelse(bafsegm[, x] > 0.5, baf[, x], 1 - baf[, x]), bafsegm = BAFsegm, baf = BAFrawchrseg[, -c(1:2)], simplify = FALSE))
 
     if (nrow(BAFphased) < 50) {
-      BAFphseg <- matrix(data = colMeans(BAFphased), nrow = nrow(BAFphased), ncol = ncol(BAFphased), byrow = T)
+      BAFphseg <- matrix(data = colMeans(BAFphased), nrow = nrow(BAFphased), ncol = ncol(BAFphased), byrow = TRUE)
     } else {
       BAFphseg <- sapply(X = 1:ncol(BAFsegm), FUN = function(x, bafsegm) ifelse(bafsegm[, x] > 0.5, bafsegm[, x], 1 - bafsegm[, x]), bafsegm = BAFsegm)
     }
@@ -607,10 +607,10 @@ segment.baf.phased.multisample <- function(samplename, inputfile, outputfile, pr
   ######## End internal function definitions
 
 
-  BAFraw <- Reduce(f = function(...) merge(..., sort = F, all = F), x = lapply(X = inputfile, FUN = Battenberg:::read_baf))
+  BAFraw <- Reduce(f = function(...) merge(..., sort = FALSE, all = FALSE), x = lapply(X = inputfile, FUN = read_baf))
   # BAFraw = as.data.frame(read_tsv(inputfile, col_types = paste0("ci", paste0(rep("n", length(samplename)), collapse = ""), collapse = "")))
   if (!is.null(prior_breakpoints_file)) {
-    bkps <- read.table(prior_breakpoints_file, header = T, stringsAsFactors = F)
+    bkps <- read.table(prior_breakpoints_file, header = TRUE, stringsAsFactors = FALSE)
   } else {
     bkps <- NULL
   }
@@ -627,7 +627,7 @@ segment.baf.phased.multisample <- function(samplename, inputfile, outputfile, pr
       bkps_chrom <- data.frame(chromosome = character(), position = numeric())
     }
 
-    breakpoints_chrom <- bkps_to_presegment_breakpoints(chr, bkps_chrom, BAFrawchr, addin_bigholes = T)
+    breakpoints_chrom <- bkps_to_presegment_breakpoints(chr, bkps_chrom, BAFrawchr, addin_bigholes = TRUE)
     BAFoutputchr <- list()
 
     for (r in 1:nrow(breakpoints_chrom)) {
@@ -654,7 +654,7 @@ segment.baf.phased.multisample <- function(samplename, inputfile, outputfile, pr
       dev.off()
 
       png(filename = paste(id, "_segment_chr", chr, ".png", sep = ""), width = 2000, height = 1000, res = 200, type = "cairo")
-      create.baf.plot(
+      create_baf_plot(
         chrom.position = BAFoutputchr[[id]]$Position / 1000000,
         points.red.blue = BAFoutputchr[[id]]$BAF,
         plot.red = BAFoutputchr[[id]]$tempBAFsegm > 0.5,
@@ -678,7 +678,7 @@ segment.baf.phased.multisample <- function(samplename, inputfile, outputfile, pr
   lapply(
     X = seq_along(samplename), FUN = function(sidx, outfile, output) {
       write.table(
-        x = output[[sidx]], file = outfile[sidx], sep = "\t", row.names = F,
+        x = output[[sidx]], file = outfile[sidx], sep = "\t", row.names = FALSE,
         col.names = c("Chromosome", "Position", "BAF", "BAFphased", "BAFseg"), quote = F
       )
     },

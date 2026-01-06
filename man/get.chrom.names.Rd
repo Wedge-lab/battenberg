@@ -4,7 +4,7 @@
 \alias{get.chrom.names}
 \title{Returns the chromosome names that are supported}
 \usage{
-get.chrom.names(imputeinfofile, is.male, chrom = NA, analysis = "paired")
+get_chrom_names(imputeinfofile, is.male, chrom = NA, analysis = "paired")
 }
 \arguments{
 \item{imputeinfofile}{Path to the imputeinfofile on disk.}
