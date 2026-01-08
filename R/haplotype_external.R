@@ -39,7 +39,7 @@ input_known_haplotypes <- function(chrom_names, chrom, imputedHaplotypeFile, ext
   }
 
   # read BB phasing input
-  bbphasin <- read_imputed_output(file = imputedHaplotypeFile)
+  bbphasin <- read_imputed_output(filename = imputedHaplotypeFile)
 
   # turn into GRanges and subset for het SNPs
   bbphasingr <- GenomicRanges::GRanges(seqnames = rep(chrom, nrow(bbphasin)), ranges = IRanges::IRanges(start = bbphasin$pos, width = 1))
@@ -64,9 +64,6 @@ input_known_haplotypes <- function(chrom_names, chrom, imputedHaplotypeFile, ext
 
   # match Battenberg het SNPs with those in external file, take only ranges to avoid chrom names mismatch
   snvoverlaps <- IRanges::findOverlaps(query = IRanges::ranges(bbphasingr), subject = IRanges::ranges(hetsnps), type = "equal")
-  # and make sure we're phasing the same REF/ALT alleles (ref will always be the same)
-  snvoverlaps_sub <- snvoverlaps[which(bbphasingr[S4Vectors::queryHits(snvoverlaps)]$alt ==
-    as.character(unlist(VariantAnnotation::alt(hetsnps[S4Vectors::subjectHits(snvoverlaps)]))))]
 
   # add the corresponding phaseblocks (PS) and genotypes (GT)
   bbphasingr$PS <- vector(mode = "integer", length = length(bbphasingr))
@@ -81,7 +78,7 @@ input_known_haplotypes <- function(chrom_names, chrom, imputedHaplotypeFile, ext
   # complete and extend the known haplotype blocks
   # by transfering imputed haplotypes to nearest non-phased het SNPs
   # bbphasingr <- GenomicRanges::GRangesList(split(x = bbphasingr, f = bbphasingr$hap1_10X != ""), compress = FALSE)
-  bbphasingr <- as(object = split(x = bbphasingr, f = bbphasingr$hap1_10X != ""), Class = "GRangesList")
+  bbphasingr <- methods::as(object = split(x = bbphasingr, f = bbphasingr$hap1_10X != ""), Class = "GRangesList")
   if (length(bbphasingr$"FALSE") > 0) {
     nearestidxs <- GenomicRanges::nearest(x = bbphasingr$"FALSE", subject = bbphasingr$"TRUE", select = "arbitrary")
     bbphasingr$"FALSE"$isH1 <- bbphasingr$"TRUE"$isH1[nearestidxs]
@@ -108,7 +105,7 @@ input_known_haplotypes <- function(chrom_names, chrom, imputedHaplotypeFile, ext
   }
 
   # and write new version
-  write.table(x = bbphasin, file = imputedHaplotypeFile, row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
+  data.table::fwrite(x = bbphasin, file = imputedHaplotypeFile, row.names = FALSE, col_names = FALSE, quote = FALSE, sep = "\t")
   return(NULL)
 }
 
@@ -124,67 +121,104 @@ input_known_haplotypes <- function(chrom_names, chrom, imputedHaplotypeFile, ext
 #' @author jdemeul
 #' @export
 write_battenberg_phasing <- function(tumourname, SNPfiles, imputedHaplotypeFiles, bafsegmented_file, outprefix, chrom_names, include_homozygous = FALSE) {
-  bafsegmented <- read_bafsegmented(bafsegmented_file)[, c("Chromosome", "Position", "BAFphased", "BAFseg")]
-  bafsegmented <- split(x = bafsegmented[, c("Position", "BAFphased", "BAFseg")], f = bafsegmented$Chromosome)
+  # Load bafsegmented and set keys for optimized searching
+  baf_dt <- read_bafsegmented(bafsegmented_file)
+  data.table::setkey(baf_dt, Chromosome, Position)
+
   for (i in seq_along(chrom_names)) {
     chrom <- chrom_names[i]
-    # read allele counts and imputed haplotypes (for the actually used alleles & loci)
-    snp_data <- read_alleleFrequencies(SNPfiles[i])
-    allele_data <- read_imputed_output(imputedHaplotypeFiles[i])[, c("pos", "ref", "alt", "hap1", "hap2")]
-    merge_data <- merge(x = allele_data, y = snp_data, by.x = "pos", by.y = "POS", sort = FALSE)
 
-    # map counts to ref/alt
-    merge_data$ref_count <- ifelse(merge_data$ref == "A", merge_data$Count_A,
-      ifelse(merge_data$ref == "C", merge_data$Count_C,
-        ifelse(merge_data$ref == "G", merge_data$Count_G, merge_data$Count_T)
+    # Fast I/O for SNP and Haplotype data
+    snp_data <- data.table::fread(SNPfiles[i])
+    allele_data <- data.table::fread(imputedHaplotypeFiles[i])[, c("pos", "ref", "alt", "hap1", "hap2")]
+
+    # data.table join is much faster than base::merge
+    merge_data <- snp_data[allele_data, on = .(POS = pos), nomatch = NULL]
+
+    # Vectorized mapping of counts using fcase instead of nested ifelse
+    # We use `:=` with backticks to ensure data.table assignment works without the library attached
+    merge_data[, `:=`(
+      ref_count = data.table::fcase(
+        ref == "A", Count_A,
+        ref == "C", Count_C,
+        ref == "G", Count_G,
+        rep(TRUE, .N), Count_T
+      ),
+      alt_count = data.table::fcase(
+        alt == "A", Count_A,
+        alt == "C", Count_C,
+        alt == "G", Count_G,
+        rep(TRUE, .N), Count_T
       )
-    )
-    merge_data$alt_count <- ifelse(merge_data$alt == "A", merge_data$Count_A,
-      ifelse(merge_data$alt == "C", merge_data$Count_C,
-        ifelse(merge_data$alt == "G", merge_data$Count_G, merge_data$Count_T)
-      )
-    )
-    merge_data <- cbind(merge_data[, c("CHR", "pos", "ref", "alt", "ref_count", "alt_count", "hap1", "hap2")], BAF = merge_data$alt_count / (merge_data$ref_count + merge_data$alt_count))
+    )]
 
-    # add in the segmented BAF values and start creating output vcf
-    merge_data <- merge(
-      x = merge_data, y = bafsegmented[[chrom]], by.x = "pos", by.y = "Position",
-      all.x = include_homozygous, sort = TRUE
-    )
+    merge_data[, BAF := alt_count / (ref_count + alt_count)]
 
-    bbphasing_vr <- VariantAnnotation::VRanges(
-      seqnames = merge_data$CHR, ranges = IRanges::IRanges(start = merge_data$pos, width = 1),
-      ref = merge_data$ref, alt = merge_data$alt,
-      totalDepth = merge_data$ref_count + merge_data$alt_count,
-      refDepth = merge_data$ref_count, altDepth = merge_data$alt_count
-    )
+    # Filter BAF segments for current chromosome
+    chrom_baf <- baf_dt[Chromosome == chrom, .(Position, BAFphased, BAFseg)]
 
-    # assign the genotypes based on flipping of individual BAF values in regions of allelic imbalance according to BAFseg
-    S4Vectors::mcols(bbphasing_vr)$GT <- ifelse(is.na(merge_data$BAFphased), paste0(merge_data$hap1, "|", merge_data$hap2),
-      ifelse(merge_data$BAFseg > 0.525 | is.na(merge_data$BAFseg),
-        ifelse(abs(merge_data$BAFphased - merge_data$BAF) < 1e-5, "1|0", "0|1"),
-        ifelse(abs(merge_data$BAFphased - merge_data$BAF) < 1e-5, "1/0", "0/1")
-      )
-    )
-
-    # add phase set annotation based on segmented BAF: every segment = phase set
-    S4Vectors::mcols(bbphasing_vr)$PS <- as.integer(NA)
-    phasedidx <- which(merge_data$BAFseg > 0.525)
-    if (length(phasedidx) > 0) {
-      hetsegrle <- S4Vectors::Rle(merge_data$BAFseg[phasedidx])
-      S4Vectors::mcols(bbphasing_vr)$PS[phasedidx] <- rep(GenomicRanges::start(bbphasing_vr)[phasedidx][S4Vectors::start(hetsegrle)], S4Vectors::runLength(hetsegrle))
-
-      if (length(phasedidx) < nrow(merge_data)) {
-        S4Vectors::mcols(bbphasing_vr)$PS[-phasedidx] <- S4Vectors::mcols(bbphasing_vr)$PS[phasedidx][GenomicRanges::nearest(x = bbphasing_vr[-phasedidx], subject = bbphasing_vr[phasedidx], select = "arbitrary")]
-      }
+    # Join with BAF segments
+    if (include_homozygous) {
+      merge_data <- chrom_baf[merge_data, on = .(Position = POS)]
     } else {
-      S4Vectors::mcols(bbphasing_vr)$PS <- rep(GenomicRanges::start(bbphasing_vr)[1], nrow(merge_data))
+      merge_data <- merge_data[chrom_baf, on = .(POS = Position), nomatch = NULL]
     }
 
-    # write out vcf
+    # Construct VRanges object
+    bbphasing_vr <- VariantAnnotation::VRanges(
+      seqnames = merge_data$CHR,
+      ranges = IRanges::IRanges(start = merge_data$Position, width = 1),
+      ref = merge_data$ref,
+      alt = merge_data$alt,
+      totalDepth = merge_data$ref_count + merge_data$alt_count,
+      refDepth = merge_data$ref_count,
+      altDepth = merge_data$alt_count
+    )
+
+    # Assignment logic moved to vectorized fcase for speed
+    gt_vec <- data.table::fcase(
+      is.na(merge_data$BAFphased), paste0(merge_data$hap1, "|", merge_data$hap2),
+      merge_data$BAFseg > 0.525 | is.na(merge_data$BAFseg),
+      ifelse(abs(merge_data$BAFphased - merge_data$BAF) < 1e-5, "1|0", "0|1"),
+      rep(TRUE, nrow(merge_data)),
+      ifelse(abs(merge_data$BAFphased - merge_data$BAF) < 1e-5, "1/0", "0/1")
+    )
+
+    # Phase set (PS) logic using vectorized operations where possible
+    ps_vec <- as.integer(rep(NA, nrow(merge_data)))
+    phasedidx <- which(merge_data$BAFseg > 0.525)
+
+    if (length(phasedidx) > 0) {
+      hetsegrle <- S4Vectors::Rle(merge_data$BAFseg[phasedidx])
+      ps_vec[phasedidx] <- rep(
+        merge_data$Position[phasedidx][S4Vectors::start(hetsegrle)],
+        S4Vectors::runLength(hetsegrle)
+      )
+
+      if (length(phasedidx) < nrow(merge_data)) {
+        # Nearest neighbor lookup for unphased sites
+        unphased_idx <- which(!(seq_len(nrow(merge_data)) %in% phasedidx))
+        nearest_idx <- GenomicRanges::nearest(
+          x = bbphasing_vr[unphased_idx],
+          subject = bbphasing_vr[phasedidx],
+          select = "arbitrary"
+        )
+        ps_vec[unphased_idx] <- ps_vec[phasedidx][nearest_idx]
+      }
+    } else {
+      ps_vec <- rep(merge_data$Position[1], nrow(merge_data))
+    }
+
+    # Final metadata assignment and VCF export
+    S4Vectors::mcols(bbphasing_vr)$GT <- gt_vec
+    S4Vectors::mcols(bbphasing_vr)$PS <- ps_vec
     VariantAnnotation::sampleNames(bbphasing_vr) <- tumourname
 
-    VariantAnnotation::writeVcf(obj = bbphasing_vr, filename = paste0(outprefix, chrom, ".vcf"), index = FALSE)
+    VariantAnnotation::writeVcf(
+      obj = bbphasing_vr,
+      filename = paste(outprefix, chrom, ".vcf", sep = ""),
+      index = FALSE
+    )
   }
   return(NULL)
 }
@@ -344,7 +378,7 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
   S4Vectors::mcols(imbalancedregions_disj)$sampleids <- split(x = imbalancedregions$sampleid[S4Vectors::subjectHits(samplehits)], f = S4Vectors::queryHits(samplehits))
 
   # split per chromosome, keeping only the imbalanced ones
-  imbalancedregions_disj <- as(object = split(x = imbalancedregions_disj, f = GenomicRanges::seqnames(imbalancedregions_disj)), Class = "GRangesList")
+  imbalancedregions_disj <- methods::as(object = split(x = imbalancedregions_disj, f = GenomicRanges::seqnames(imbalancedregions_disj)), Class = "GRangesList")
 
   # for every chromosome with imbalance
   for (i in seq_along(chrom_names)) {
@@ -410,6 +444,6 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
   for (col in names(msaiout)[list_cols]) {
     msaiout[[col]] <- sapply(msaiout[[col]], function(x) paste(x, collapse = ","))
   }
-  write.table(x = msaiout[, -c(4:6)], file = paste0("multisample_MSAI.txt"), row.names = FALSE, sep = "\t", quote = FALSE)
+  data.table::fwrite(x = msaiout[, -c(4:6)], file = paste0("multisample_MSAI.txt"), row.names = FALSE, sep = "\t", quote = FALSE)
   return(NULL)
 }

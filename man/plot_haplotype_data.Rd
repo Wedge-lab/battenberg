@@ -2,30 +2,27 @@
 % Please edit documentation in R/haplotype.R
 \name{plot_haplotype_data}
 \alias{plot_haplotype_data}
-\title{Plot haplotyped SNPs}
+\title{Plot haplotyped BAF values for a single chromosome}
 \usage{
-plot_haplotype_data(
-  haplotyped.baf.file,
-  imageFileName,
-  samplename,
-  chrom,
-  chr_names
-)
+plot_haplotype_data(haplotyped_baf_file, image_file_name, samplename, chrom)
 }
 \arguments{
-\item{haplotyped.baf.file}{File containing the haplotyped SNP info.}
+\item{haplotyped_baf_file}{Path to the input TSV file with haplotyped BAF data.}
 
-\item{imageFileName}{Filename as which the png will be saved.}
+\item{image_file_name}{Path to the output PNG file.}
 
-\item{samplename}{Name of the sample to be used in image title.}
+\item{samplename}{Name of the sample (used in plot title).}
 
-\item{chrom}{The chromosome that is plotted.}
-
-\item{chr_names}{A list of allowed chromosome names.}
+\item{chrom}{Chromosome identifier (used only for validation and title if data is empty).}
+}
+\value{
+Invisibly returns NULL; side effect is writing the PNG file.
 }
 \description{
-This function takes haplotyped SNPs and plots them to a png file.
+Reads a tab-separated file produced by GetChromosomeBAFs() (columns: Chromosome, Position, <samplename>)
+and creates a high-resolution PNG showing the B Allele Frequency (BAF) mirrored around 0.5
+(standard haplotype/ASCAT-style plot).
 }
 \author{
-dw9
+Original: dw9; Modernized version
 }

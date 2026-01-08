@@ -32,17 +32,17 @@ The segmentation behavior can be controlled by several parameters:
 # More sensitive segmentation (more segments)
 battenberg(
   # ... other parameters ...
-  segmentation_gamma = 25,  # Higher = more segments
-  segmentation_kmin = 1,    # Minimum segment size
-  phasing_kmin = 1         # Minimum size for phasing
+  segmentation_gamma = 25, # Higher = more segments
+  segmentation_kmin = 1, # Minimum segment size
+  phasing_kmin = 1 # Minimum size for phasing
 )
 
 # Less sensitive segmentation (fewer segments)
 battenberg(
   # ... other parameters ...
-  segmentation_gamma = 5,   # Lower = fewer segments
-  segmentation_kmin = 5,    # Larger minimum segment size
-  phasing_kmin = 3         # Larger minimum size for phasing
+  segmentation_gamma = 5, # Lower = fewer segments
+  segmentation_kmin = 5, # Larger minimum segment size
+  phasing_kmin = 3 # Larger minimum size for phasing
 )
 ```
 
@@ -54,17 +54,17 @@ Adjust expected ranges based on sample characteristics:
 # High purity sample
 battenberg(
   # ... other parameters ...
-  min_rho = 0.8,           # Minimum 80% purity
-  max_ploidy = 6.0,        # Allow higher ploidy
-  min_goodness = 0.65      # Stricter goodness of fit
+  min_rho = 0.8, # Minimum 80% purity
+  max_ploidy = 6.0, # Allow higher ploidy
+  min_goodness = 0.65 # Stricter goodness of fit
 )
 
 # Low purity sample
 battenberg(
   # ... other parameters ...
-  min_rho = 0.3,           # Allow 30% purity
-  max_ploidy = 3.5,        # Lower ploidy range
-  min_goodness = 0.55      # More lenient goodness
+  min_rho = 0.3, # Allow 30% purity
+  max_ploidy = 3.5, # Lower ploidy range
+  min_goodness = 0.55 # More lenient goodness
 )
 ```
 
@@ -74,10 +74,10 @@ battenberg(
 # Strict quality control
 battenberg(
   # ... other parameters ...
-  min_normal_depth = 15,   # Higher coverage requirement
-  min_base_qual = 25,      # Higher base quality
-  min_map_qual = 40,       # Higher mapping quality
-  uninformative_BAF_threshold = 0.49  # Stricter BAF threshold
+  min_normal_depth = 15, # Higher coverage requirement
+  min_base_qual = 25, # Higher base quality
+  min_map_qual = 40, # Higher mapping quality
+  uninformative_baf_threshold = 0.49 # Stricter BAF threshold
 )
 ```
 
@@ -92,9 +92,10 @@ prior_breakpoints <- data.frame(
   pos = c(1500000, 2500000, 5000000, 1000000)
 )
 
-write.table(prior_breakpoints, "prior_breakpoints.txt", 
-            row.names = FALSE, col.names = FALSE, 
-            quote = FALSE, sep = "\t")
+data.table::fwrite(prior_breakpoints, "prior_breakpoints.txt",
+  row.names = FALSE, col_names = FALSE,
+  quote = FALSE, sep = "\t"
+)
 
 # Use in Battenberg
 battenberg(
@@ -119,10 +120,10 @@ battenberg(
   beaglejar = BEAGLEJAR,
   beagleref = BEAGLEREF_TEMPLATE,
   beagleplink = BEAGLEPLINK_TEMPLATE,
-  beaglemaxmem = 16,       # Memory in GB
-  beaglenthreads = 4,      # Threads for Beagle
-  beaglewindow = 40,       # Window size
-  beagleoverlap = 4        # Overlap size
+  beaglemaxmem = 16, # Memory in GB
+  beaglenthreads = 4, # Threads for Beagle
+  beaglewindow = 40, # Window size
+  beagleoverlap = 4 # Overlap size
 )
 ```
 
@@ -134,10 +135,14 @@ For analyzing multiple samples together:
 # Define multiple samples
 tumournames <- c("sample1_tumor", "sample2_tumor", "sample3_tumor")
 normalnames <- c("sample1_normal", "sample2_normal", "sample3_normal")
-tumourbams <- c("path/to/sample1_tumor.bam", "path/to/sample2_tumor.bam", 
-                "path/to/sample3_tumor.bam")
-normalbams <- c("path/to/sample1_normal.bam", "path/to/sample2_normal.bam", 
-                "path/to/sample3_normal.bam")
+tumourbams <- c(
+  "path/to/sample1_tumor.bam", "path/to/sample2_tumor.bam",
+  "path/to/sample3_tumor.bam"
+)
+normalbams <- c(
+  "path/to/sample1_normal.bam", "path/to/sample2_normal.bam",
+  "path/to/sample3_normal.bam"
+)
 
 # Run multisample analysis
 battenberg(
@@ -146,9 +151,9 @@ battenberg(
   tumour_data_file = tumourbams,
   normal_data_file = normalbams,
   # ... other parameters ...
-  multisample_maxlag = 150,  # Max upstream SNPs for multisample phasing
-  multisample_relative_weight_balanced = 0.5,  # Weight for balanced samples
-  write_battenberg_phasing = TRUE  # Write phasing results
+  multisample_maxlag = 150, # Max upstream SNPs for multisample phasing
+  multisample_relative_weight_balanced = 0.5, # Weight for balanced samples
+  write_battenberg_phasing = TRUE # Write phasing results
 )
 ```
 
@@ -158,14 +163,14 @@ For cell line data (tumor-only analysis):
 
 ```{r eval = FALSE}
 battenberg(
-  analysis = "cell_line",  # Changed from default "paired"
+  analysis = "cell_line", # Changed from default "paired"
   tumourname = "cell_line_sample",
-  normalname = NA,         # No normal sample
+  normalname = NA, # No normal sample
   tumour_data_file = "path/to/cell_line.bam",
-  normal_data_file = NA,   # No normal BAM
+  normal_data_file = NA, # No normal BAM
   # ... other parameters adjusted for cell line analysis ...
-  min_rho = 0.95,         # Expect high purity
-  min_goodness = 0.7      # Stricter goodness for cell lines
+  min_rho = 0.95, # Expect high purity
+  min_goodness = 0.7 # Stricter goodness for cell lines
 )
 ```
 
@@ -179,9 +184,9 @@ battenberg(
   data_type = "snp6",
   platform_gamma = 1,
   snp6_reference_info_file = "path/to/snp6_reference_info.txt",
-  apt.probeset.genotype.exe = "apt-probeset-genotype",
-  apt.probeset.summarize.exe = "apt-probeset-summarize",
-  norm.geno.clust.exe = "normalize_affy_geno_cluster.pl",
+  apt_probeset_genotype_exe = "apt-probeset-genotype",
+  apt_probeset_summarize_exe = "apt-probeset-summarize",
+  norm_geno_clust_exe = "normalize_affy_geno_cluster.pl",
   birdseed_report_file = "birdseed.report.txt"
 )
 ```
@@ -194,8 +199,8 @@ battenberg(
 # Use more threads for faster processing
 battenberg(
   # ... other parameters ...
-  nthreads = 16,           # Use 16 CPU cores
-  beaglenthreads = 8       # Use 8 cores for Beagle (if using)
+  nthreads = 16, # Use 16 CPU cores
+  beaglenthreads = 8 # Use 8 cores for Beagle (if using)
 )
 ```
 
@@ -205,7 +210,7 @@ battenberg(
 # For large datasets, adjust memory settings
 battenberg(
   # ... other parameters ...
-  beaglemaxmem = 32,       # 32GB for Beagle
+  beaglemaxmem = 32, # 32GB for Beagle
   # Consider running chromosomes separately for very large files
 )
 ```
@@ -240,7 +245,7 @@ For different reference genomes:
 # Specify genome build
 battenberg(
   # ... other parameters ...
-  GENOMEBUILD = "hg38",  # or "hg19"
+  GENOMEBUILD = "hg38", # or "hg19"
   # Ensure reference files match the specified build
 )
 ```
@@ -292,14 +297,14 @@ cn_data <- read.delim("sample_tumor_copynumber.txt")
 
 # Check for very short segments (potential artifacts)
 short_segments <- cn_data[cn_data$endpos - cn_data$startpos < 1000000, ]
-if(nrow(short_segments) > 0) {
+if (nrow(short_segments) > 0) {
   cat("Warning: Found", nrow(short_segments), "segments < 1Mb\n")
 }
 
 # Check purity estimate
 rho_psi <- read.delim("sample_tumor_rho_and_psi.txt")
 purity <- rho_psi$rho[2]
-if(purity < 0.3) {
+if (purity < 0.3) {
   cat("Warning: Low estimated purity:", purity, "\n")
 }
 ```

@@ -13,7 +13,7 @@ generate_plots_battenberg(
   psi_opt1,
   rho_opt1,
   ploidy_opt1,
-  goodnessOfFit_opt1,
+  goodness_of_fit_opt1,
   minimise,
   b,
   r,
@@ -22,7 +22,7 @@ generate_plots_battenberg(
   ch,
   lrr,
   bafsegmented,
-  chr.names,
+  chr_names,
   reliabilityFile
 )
 }

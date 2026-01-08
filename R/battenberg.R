@@ -28,7 +28,7 @@
 #' @param min_rho Minimum purity to be considered (Default: 0.1)
 #' @param max_rho Maximum purity to be considered (Default: 1.0)
 #' @param min_goodness Minimum goodness of fit required for a purity/ploidy combination to be accepted as a solution (Default: 0.63)
-#' @param uninformative_BAF_threshold The threshold beyond which BAF becomes uninformative (Default: 0.51)
+#' @param uninformative_baf_threshold The threshold beyond which BAF becomes uninformative (Default: 0.51)
 #' @param min_normal_depth Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)
 #' @param min_base_qual Minimum base quality required for a read to be counted when allele counting (Default: 20)
 #' @param min_map_qual Minimum mapping quality required for a read to be counted when allele counting (Default: 35)
@@ -41,18 +41,18 @@
 #' @param usebeagle Should use beagle5 instead of impute2 Default: FALSE
 #' @param beaglejar Full path to Beagle java jar file Default: NA
 #' @param beagleref_template Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA
-#' @param beagleplink.template Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA
+#' @param beagleplink_template Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA
 #' @param beaglemaxmem Integer Beagle max heap size in Gb  Default: 10
 #' @param beaglenthreads Integer number of threads used by beagle5 Default:1
 #' @param beaglewindow Integer size of the genomic window for beagle5 (cM) Default:40
 #' @param beagleoverlap Integer size of the overlap between windows beagle5 Default:4
 #' @param javajre Path to the Java JRE executable, only required for haplotype reconstruction with Beagle (default java, i.e. in $PATH)
 #' @param snp6_reference_info_file Reference files for the SNP6 pipeline only (Default: NA)
-#' @param apt.probeset.genotype.exe Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)
-#' @param apt.probeset.summarize.exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-summarize)
-#' @param norm.geno.clust.exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)
+#' @param apt_probeset_genotype_exe Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)
+#' @param apt_probeset_summarize_exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-summarize)
+#' @param norm_geno_clust_exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)
 #' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
-#' @param heterozygousFilter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
+#' @param heterozygous_filter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
 #' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
 #' @param genomebuild Genome build upon which the 1000G SNP coordinates were obtained (Default: hg19; options: "hg19" or "hg38")
 #' @param externalhaplotypefile Vcf containing externally obtained haplotype blocks (Default: NA)
@@ -90,7 +90,7 @@ battenberg <- function(analysis = "paired",
                        min_rho = 0.1,
                        max_rho = 1.0,
                        min_goodness = 0.63,
-                       uninformative_BAF_threshold = 0.51,
+                       uninformative_baf_threshold = 0.51,
                        min_normal_depth = 10,
                        min_base_qual = 20,
                        min_map_qual = 35,
@@ -104,7 +104,7 @@ battenberg <- function(analysis = "paired",
                        usebeagle = FALSE,
                        beaglejar = NA,
                        beagleref_template = NA,
-                       beagleplink.template = NA,
+                       beagleplink_template = NA,
                        beaglemaxmem = 10,
                        beaglenthreads = 1,
                        beaglewindow = 40,
@@ -115,26 +115,25 @@ battenberg <- function(analysis = "paired",
                        multisample_maxlag = 90,
                        segmentation_gamma_multisample = 5,
                        snp6_reference_info_file = NA,
-                       apt.probeset.genotype.exe = "apt-probeset-genotype",
-                       apt.probeset.summarize.exe = "apt-probeset-summarize",
-                       norm.geno.clust.exe = "normalize_affy_geno_cluster.pl",
+                       apt_probeset_genotype_exe = "apt-probeset-genotype",
+                       apt_probeset_summarize_exe = "apt-probeset-summarize",
+                       norm_geno_clust_exe = "normalize_affy_geno_cluster.pl",
                        birdseed_report_file = "birdseed.report.txt",
-                       heterozygousFilter = "none",
+                       heterozygous_filter = "none",
                        prior_breakpoints_file = NULL,
                        genomebuild = "hg19",
                        chrom_coord_file = NULL,
                        enhanced_grid_search = FALSE,
-                       verbose_logging = FALSE) {
+                       verbose_logging = FALSE,
+                       logging_path = ".") {
   requireNamespace("foreach")
   requireNamespace("doParallel")
   requireNamespace("parallel")
   libs <- .libPaths()
 
 
-  level <- if (verbose_logging) logger::DEBUG else logger::INFO
-  logger::log_threshold(level, namespace = "battenberg")
-
-  logger::log_info("Starting analysis for {samplename}")
+  log_setup(logging_path, verbose_logging)
+  log_info("Starting analysis for {samplename}")
 
 
   if (analysis == "cell_line") {
@@ -166,27 +165,27 @@ battenberg <- function(analysis = "paired",
   }
 
   if (data_type == "wgs" && is.na(ismale)) {
-    stop("Please provide a boolean denominator whether this sample represents a male donor")
+    log_failure("Please provide a boolean denominator whether this sample represents a male donor")
   }
 
   if (data_type == "wgs" && is.na(g1000allelesprefix)) {
-    stop("Please provide a path to 1000 Genomes allele reference files")
+    log_failure("Please provide a path to 1000 Genomes allele reference files")
   }
 
   if (data_type == "wgs" && is.null(gccorrectprefix)) {
-    stop("Please provide a path to GC content reference files")
+    log_failure("Please provide a path to GC content reference files")
   }
 
   if (data_type == "wgs" && !file.exists(problemloci)) {
-    stop("Please provide a path to a problematic loci file")
+    log_failure("Please provide a path to a problematic loci file")
   }
 
   if (!file.exists(imputeinfofile)) {
-    stop("Please provide a path to an impute info file")
+    log_failure("Please provide a path to an impute info file")
   }
 
   # check whether the impute_info.txt file contains correct paths
-  check_imputeinfofile(imputeinfofile = imputeinfofile, is.male = ismale, usebeagle = usebeagle)
+  check_imputeinfofile(imputeinfofile = imputeinfofile, is_male = ismale, usebeagle = usebeagle)
 
   # check whether multisample case
   nsamples <- length(samplename)
@@ -204,19 +203,19 @@ battenberg <- function(analysis = "paired",
 
   if (data_type == "wgs" || data_type == "WGS") {
     if (nsamples > 1) {
-      logger::log_info("Running Battenberg in multisample mode on {nsamples}\
+      log_info("Running Battenberg in multisample mode on {nsamples}\
 samples: {paste(samplename, collapse = ', ')}")
     }
     chrom_names <- get_chrom_names(imputeinfofile, ismale, analysis = analysis)
   } else if (data_type == "snp6" || data_type == "SNP6") {
     if (nsamples > 1) {
-      stop(paste0("Battenberg multisample mode has not been tested with SNP6 data"))
+      log_failure("Battenberg multisample mode has not been tested with SNP6 data")
     }
     chrom_names <- get_chrom_names(imputeinfofile, TRUE)
     logr_file <- paste(samplename, "_mutantLogR.tab", sep = "")
     allelecounts_file <- NULL
   }
-  print(chrom_names)
+  log_info(chrom_names)
   for (sampleidx in 1:nsamples) {
     if (!skip_preprocessing[sampleidx]) {
       if (data_type == "wgs" || data_type == "WGS") {
@@ -226,7 +225,7 @@ samples: {paste(samplename, collapse = ', ')}")
 
         if (analysis == "paired") {
           if (is.null(normalname) || is.na(normalname)) {
-            stop("No normal sample is specified for 'paired analysis' - a normal paired BAM is required")
+            log_failure("No normal sample is specified for 'paired analysis' - a normal paired BAM is required")
           }
           prepare_wgs(
             chrom_names = chrom_names,
@@ -294,7 +293,6 @@ samples: {paste(samplename, collapse = ', ')}")
           )
         }
 
-
         # Kill the threads
         parallel::stopCluster(clp)
       } else if (data_type == "snp6" || data_type == "SNP6") {
@@ -304,9 +302,9 @@ samples: {paste(samplename, collapse = ', ')}")
           tumourname = samplename[sampleidx],
           chrom_names = chrom_names,
           snp6_reference_info_file = snp6_reference_info_file,
-          apt.probeset.genotype.exe = apt.probeset.genotype.exe,
-          apt.probeset.summarize.exe = apt.probeset.summarize.exe,
-          norm.geno.clust.exe = norm.geno.clust.exe,
+          apt_probeset_genotype_exe = apt_probeset_genotype_exe,
+          apt_probeset_summarize_exe = apt_probeset_summarize_exe,
+          norm_geno_clust_exe = norm_geno_clust_exe,
           birdseed_report_file = birdseed_report_file,
           genomebuild = genomebuild
         )
@@ -330,14 +328,14 @@ samples: {paste(samplename, collapse = ', ')}")
 
         # if these files exist already, no need to split again
         if (any(!file.exists(paste0(externalhaplotypeprefix, seq_along(chrom_names), ".vcf")))) {
-          print(paste0("Splitting external phasing data from ", externalhaplotypefile))
+          log_info("Splitting external phasing data from '{externalhaplotypefile}'")
           split_input_haplotypes(
             chrom_names = chrom_names,
             externalhaplotypefile = externalhaplotypefile,
             outprefix = externalhaplotypeprefix
           )
         } else {
-          print("No need to split, external haplotype files per chromosome found")
+          log_info("No need to split, external haplotype files per chromosome found")
         }
       } else {
         externalhaplotypeprefix <- NA
@@ -353,7 +351,7 @@ samples: {paste(samplename, collapse = ', ')}")
         foreach::foreach(i = seq_along(chrom_names)) %dopar% {
           .libPaths(libs)
           chrom <- chrom_names[i]
-          print(chrom)
+          log_info("chrom {chrom}")
 
           run_haplotyping_germline(
             chrom = chrom,
@@ -368,11 +366,11 @@ samples: {paste(samplename, collapse = ', ')}")
             externalhaplotypeprefix = NA,
             use_previous_imputation = FALSE,
             snp6_reference_info_file = NA,
-            heterozygousFilter = NA,
+            heterozygous_filter = NA,
             usebeagle = usebeagle,
             beaglejar = beaglejar,
             beagleref = gsub("CHROMNAME", chrom, beagleref_template),
-            beagleplink = gsub("CHROMNAME", chrom, beagleplink.template),
+            beagleplink = gsub("CHROMNAME", chrom, beagleplink_template),
             beaglemaxmem = beaglemaxmem,
             beaglenthreads = beaglenthreads,
             beaglewindow = beaglewindow,
@@ -383,7 +381,7 @@ samples: {paste(samplename, collapse = ', ')}")
         foreach::foreach(i = seq_along(chrom_names)) %dopar% {
           .libPaths(libs)
           chrom <- chrom_names[i]
-          print(chrom)
+          log_info("chrom {chrom}")
           run_haplotyping(
             chrom = chrom,
             tumourname = samplename[sampleidx],
@@ -395,11 +393,11 @@ samples: {paste(samplename, collapse = ', ')}")
             min_normal_depth = min_normal_depth,
             chrom_names = chrom_names,
             snp6_reference_info_file = snp6_reference_info_file,
-            heterozygousFilter = heterozygousFilter,
+            heterozygous_filter = heterozygous_filter,
             usebeagle = usebeagle,
             beaglejar = beaglejar,
             beagleref = gsub("CHROMNAME", chrom, beagleref_template),
-            beagleplink = gsub("CHROMNAME", chrom, beagleplink.template),
+            beagleplink = gsub("CHROMNAME", chrom, beagleplink_template),
             beaglemaxmem = beaglemaxmem,
             beaglenthreads = beaglenthreads,
             beaglewindow = beaglewindow,
@@ -414,16 +412,16 @@ samples: {paste(samplename, collapse = ', ')}")
       parallel::stopCluster(clp)
 
       # Combine all the BAF output into a single file
-      combine.baf.files(
-        inputfile.prefix = paste(samplename[sampleidx], "_chr", sep = ""),
-        inputfile.postfix = "_heterozygousMutBAFs_haplotyped.txt",
-        outputfile = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
+      concatenate_baf_files(
+        input_start = paste(samplename[sampleidx], "_chr", sep = ""),
+        input_end = "_heterozygousMutBAFs_haplotyped.txt",
+        output_file = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
         chr_names = chrom_names
       )
     }
 
     # Segment the phased and haplotyped BAF data
-    segment.baf.phased(
+    segment_baf_phased(
       samplename = samplename[sampleidx],
       inputfile = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
       outputfile = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
@@ -451,7 +449,7 @@ samples: {paste(samplename, collapse = ', ')}")
 
   # if this is a multisample run, combine the battenberg phasing outputs, incorporate it and resegment
   if (nsamples > 1) {
-    print("Constructing multisample phasing")
+    log_info("Constructing multisample phasing")
     multisamplehaplotypeprefix <- paste0(normalname, "_multisample_haplotypes_chr")
 
 
@@ -465,7 +463,7 @@ samples: {paste(samplename, collapse = ', ')}")
       .libPaths(libs)
       .libPaths()
       chrom <- chrom_names[i]
-      print(chrom)
+      log_info("chrom {chrom}")
 
       get_multisample_phasing(
         chrom = chrom,
@@ -496,7 +494,7 @@ samples: {paste(samplename, collapse = ', ')}")
       foreach::foreach(i = seq_along(chrom_names)) %dopar% {
         .libPaths(libs)
         chrom <- chrom_names[i]
-        print(chrom)
+        log_info("chrom {chrom}")
 
         input_known_haplotypes(
           chrom = chrom,
@@ -518,11 +516,10 @@ samples: {paste(samplename, collapse = ', ')}")
 
         # Plot what we have until this point
         plot_haplotype_data(
-          haplotyped.baf.file = paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),
-          imageFileName = paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousData.png"),
+          haplotyped_baf_file = paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),
+          image_file_name = paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousData.png"),
           samplename = samplename[sampleidx],
-          chrom = chrom,
-          chr_names = chrom_names
+          chrom = chrom
         )
       }
     }
@@ -532,15 +529,15 @@ samples: {paste(samplename, collapse = ', ')}")
 
     for (sampleidx in 1:nsamples) {
       # Combine all the BAF output into a single file
-      combine.baf.files(
-        inputfile.prefix = paste0(samplename[sampleidx], "_chr"),
-        inputfile.postfix = "_heterozygousMutBAFs_haplotyped.txt",
-        outputfile = paste0(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt"),
+      concatenate_baf_files(
+        input_start = paste0(samplename[sampleidx], "_chr"),
+        input_end = "_heterozygousMutBAFs_haplotyped.txt",
+        output_file = paste0(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt"),
         chr_names = chrom_names
       )
     }
     # Segment the phased and haplotyped BAF data
-    segment.baf.phased.multisample(
+    segment_baf_phased_multisample(
       samplename = samplename,
       inputfile = paste(samplename, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
       outputfile = paste(samplename, ".BAFsegmented.txt", sep = ""),
@@ -557,7 +554,7 @@ samples: {paste(samplename, collapse = ', ')}")
   # for (sampleidx in 1:nsamples) {
   foreach::foreach(sampleidx = 1:nsamples) %dopar% {
     .libPaths(libs)
-    print(paste0("Fitting final copy number and calling subclones for sample ", samplename[sampleidx]))
+    log_info("Fitting final copy number and calling subclones for sample '{samplename[sampleidx]}'")
 
     if (data_type == "wgs" || data_type == "WGS") {
       logr_file <- paste(samplename[sampleidx], "_mutantLogR_gcCorrected.tab", sep = "")
@@ -570,20 +567,20 @@ samples: {paste(samplename, collapse = ', ')}")
     }
 
     # Fit a clonal copy number profile
-    fit.copy.number(
+    fit_copy_number(
       samplename = samplename[sampleidx],
-      outputfile.prefix = paste(samplename[sampleidx], "_", sep = ""),
-      inputfile.baf.segmented = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
-      inputfile.baf = paste(samplename[sampleidx], "_mutantBAF.tab", sep = ""),
-      inputfile.logr = logr_file,
+      outputfile_prefix = paste(samplename[sampleidx], "_", sep = ""),
+      inputfile_baf_segmented = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
+      inputfile_baf = paste(samplename[sampleidx], "_mutantBAF.tab", sep = ""),
+      inputfile_logr = logr_file,
       dist_choice = clonality_dist_metric,
       ascat_dist_choice = ascat_dist_metric,
-      min.ploidy = min_ploidy,
-      max.ploidy = max_ploidy,
-      min.rho = min_rho,
-      max.rho = max_rho,
-      min.goodness = min_goodness,
-      uninformative_BAF_threshold = uninformative_BAF_threshold,
+      min_ploidy = min_ploidy,
+      max_ploidy = max_ploidy,
+      min_rho = min_rho,
+      max_rho = max_rho,
+      min_goodness = min_goodness,
+      uninformative_baf_threshold = uninformative_baf_threshold,
       gamma_param = platform_gamma,
       use_preset_rho_psi = FALSE,
       preset_rho = NA,
@@ -595,33 +592,33 @@ samples: {paste(samplename, collapse = ', ')}")
     )
 
     # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
-    print("call_subclones")
+    log_info("call_subclones")
     call_subclones(
-      sample.name = samplename[sampleidx],
-      baf.segmented.file = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
-      logr.file = logr_file,
-      rho.psi.file = paste(samplename[sampleidx], "_rho_and_psi.txt", sep = ""),
-      output.file = paste(samplename[sampleidx], "_copynumber.txt", sep = ""),
-      output.figures.prefix = paste(samplename[sampleidx], "_subclones_chr", sep = ""),
-      output.gw.figures.prefix = paste(samplename[sampleidx], "_BattenbergProfile", sep = ""),
+      sample_name = samplename[sampleidx],
+      baf_segmented_file = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
+      logr_file = logr_file,
+      rho_psi_file = paste(samplename[sampleidx], "_rho_and_psi.txt", sep = ""),
+      output_file = paste(samplename[sampleidx], "_copynumber.txt", sep = ""),
+      output_figures_prefix = paste(samplename[sampleidx], "_subclones_chr", sep = ""),
+      output_gw_figures_prefix = paste(samplename[sampleidx], "_BattenbergProfile", sep = ""),
       masking_output_file = paste(samplename[sampleidx], "_segment_masking_details.txt", sep = ""),
       prior_breakpoints_file = prior_breakpoints_file,
       chr_names = chrom_names,
       gamma = platform_gamma,
-      segmentation.gamma = NA,
+      segmentation_gamma = NA,
       siglevel = 0.05,
       maxdist = 0.01,
       max_allowed_state = max_allowed_state,
       cn_upper_limit = cn_upper_limit,
       noperms = 1000,
       calc_seg_baf_option = calc_seg_baf_option,
-      verbose_logging = verbose_logging,
+      verbose_logging = verbose_logging
     )
 
     # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
     # Only do this when X chromosome is included
     if (ismale && "X" %in% chrom_names) {
-      print("callChrXsubclones")
+      log_info("callChrXsubclones")
       callChrXsubclones(
         tumourname = samplename[sampleidx],
         X_gamma = 1000,
@@ -635,7 +632,7 @@ samples: {paste(samplename, collapse = ', ')}")
     }
 
     # Make some post-hoc plots
-    print("make_posthoc_plots")
+    log_info("make_posthoc_plots")
     make_posthoc_plots(
       samplename = samplename[sampleidx],
       logr_file = logr_file,
@@ -645,7 +642,7 @@ samples: {paste(samplename, collapse = ', ')}")
     )
 
     # Save refit suggestions for a future rerun
-    print("cnfit_to_refit_suggestions")
+    log_info("cnfit_to_refit_suggestions")
     cnfit_to_refit_suggestions(
       samplename = samplename[sampleidx],
       subclones_file = paste(samplename[sampleidx], "_copynumber_extended.txt", sep = ""),
@@ -658,7 +655,7 @@ samples: {paste(samplename, collapse = ', ')}")
   parallel::stopCluster(clp)
 
   if (nsamples > 1) {
-    print("Assessing mirrored subclonal allelic imbalance (MSAI)")
+    log_info("Assessing mirrored subclonal allelic imbalance (MSAI)")
     call_multisample_MSAI(
       rdsprefix = multisamplehaplotypeprefix,
       subclonesfiles = paste0(samplename, "_copynumber_extended.txt"),

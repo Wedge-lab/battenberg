@@ -10,7 +10,7 @@ run_clonal_ASCAT(
   lrrsegmented,
   bafsegmented,
   chromosomes,
-  segBAF.table,
+  segBAF_table,
   input_optimum_pair,
   dist_choice,
   distancepng = NA,
@@ -18,14 +18,14 @@ run_clonal_ASCAT(
   nonroundedprofilepng = NA,
   gamma_param,
   read_depth,
-  uninformative_BAF_threshold,
+  uninformative_baf_threshold,
   allow100percent,
   reliabilityFile = NA,
   psi_min_initial = 1,
   psi_max_initial = 5.4,
   rho_min_initial = 0.1,
   rho_max_initial = 1.05,
-  chr.names
+  chr_names
 )
 }
 \arguments{
@@ -39,7 +39,7 @@ run_clonal_ASCAT(
 
 \item{chromosomes}{a list containing c vectors, where c is the number of chromosomes and every vector contains all probe numbers per chromosome}
 
-\item{segBAF.table}{Segmented BAF data.frame from \code{get_segment_info}}
+\item{segBAF_table}{Segmented BAF data.frame from \code{get_segment_info}}
 
 \item{input_optimum_pair}{A list containing fields for rho, psi and ploidy, as is output from \code{runASCAT}}
 
@@ -55,7 +55,7 @@ run_clonal_ASCAT(
 
 \item{read_depth}{TODO: unused parameter that should be removed}
 
-\item{uninformative_BAF_threshold}{The threshold beyond which BAF becomes uninformative}
+\item{uninformative_baf_threshold}{The threshold beyond which BAF becomes uninformative}
 
 \item{allow100percent}{A boolean whether to allow a 100"\%" cellularity solution}
 
@@ -69,10 +69,10 @@ run_clonal_ASCAT(
 
 \item{rho_max_initial}{Maximum rho value to be considered (Default: 1.05)}
 
-\item{chr.names}{A vector with chromosome names used for plotting}
+\item{chr_names}{A vector with chromosome names used for plotting}
 }
 \value{
-A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is.ref.better
+A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is_ref_better
 }
 \description{
 This function takes an initial optimum rho/psi pair and uses

@@ -41,8 +41,8 @@ if (startsWith(opt$tb, "c(")) {
 NORMALBAM <- opt$nb
 BEAGLEJAR <- opt$beagle_jar
 BEAGLEREF_template <- opt$beagle_ref_template
-BEAGLEPLINK.template <- opt$beagle_plink_template
-IS.MALE <- opt$sex == "male" | opt$sex == "Male"
+beagleplink_template <- opt$beagle_plink_template
+is_male <- opt$sex == "male" | opt$sex == "Male"
 RUN_DIR <- opt$output
 SKIP_ALLELECOUNTING <- opt$skip_allelecount
 SKIP_PREPROCESSING <- opt$skip_preprocessing
@@ -89,7 +89,7 @@ if (GENOMEBUILD == "hg19") {
   BEAGLE_BASEDIR <- file.path(BASE_DIR, "beagle")
   BEAGLEJAR <- file.path(BEAGLE_BASEDIR, "beagle.22Jul22.46e.jar")
   BEAGLEREF_template <- file.path(BEAGLE_BASEDIR, GENOME_VERSION, "chrCHROMNAME.1kg.phase3.v5a.b37.bref3")
-  BEAGLEPLINK.template <- file.path(BEAGLE_BASEDIR, GENOME_VERSION, "plink.chrCHROMNAME.GRCh37.map")
+  beagleplink_template <- file.path(BEAGLE_BASEDIR, GENOME_VERSION, "plink.chrCHROMNAME.GRCh37.map")
   CHROM_COORD_FILE <- file.path(BASE_DIR, "gcCorrect_chromosome_coordinates_hg19.txt")
 } else if (GENOMEBUILD == "hg38") {
   BASE_DIR <- "/mnt/bmh01-rds/UoOxford_David_W/shared/projects/battenberg/reference/hg38"
@@ -152,7 +152,7 @@ battenberg(
   normalname = NORMALNAME,
   sample_data_file = SAMPLEBAM,
   normal_data_file = NORMALBAM,
-  ismale = IS.MALE,
+  ismale = is_male,
   imputeinfofile = IMPUTEINFOFILE,
   g1000prefix = G1000PREFIX,
   g1000allelesprefix = G1000PREFIX_AC,
@@ -165,7 +165,7 @@ battenberg(
   usebeagle = USEBEAGLE, ## set to TRUE to use beagle
   beaglejar = BEAGLEJAR, ## path
   beagleref = BEAGLEREF_template, ## pathtemplate
-  beagleplink = BEAGLEPLINK.template, ## pathtemplate
+  beagleplink = beagleplink_template, ## pathtemplate
   beaglemaxmem = BEAGLE_MAX_MEM,
   beaglenthreads = BEAGLENTHREADS,
   beaglewindow = BEAGLEWINDOW,
@@ -184,7 +184,7 @@ battenberg(
   min_rho = MIN_RHO,
   max_rho = MAX_RHO,
   min_goodness = MIN_GOODNESS_OF_FIT,
-  uninformative_BAF_threshold = BALANCED_THRESHOLD,
+  uninformative_baf_threshold = BALANCED_THRESHOLD,
   min_normal_depth = MIN_NORMAL_DEPTH,
   min_base_qual = MIN_BASE_QUAL,
   min_map_qual = MIN_MAP_QUAL,

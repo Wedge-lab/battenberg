@@ -4,23 +4,23 @@ NULL
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.haplotype.plot <- function(chrom.position, points.blue, points.red, x.min, x.max, title, xlab, ylab) {
+create_haplotype_plot <- function(chrom_position, points.blue, points.red, x_min, x_max, title, xlab, ylab) {
   par(pch = ".", cex = 1, cex.main = 0.8, cex.axis = 0.6, cex.lab = 0.7, yaxp = c(-0.05, 1.05, 6))
-  plot(c(x.min, x.max), c(0, 1), type = "n", main = title, xlab = xlab, ylab = ylab)
-  if (length(chrom.position) > 0) {
-    points(chrom.position, points.blue, col = "blue")
-    points(chrom.position, points.red, col = "red")
+  plot(c(x_min, x_max), c(0, 1), type = "n", main = title, xlab = xlab, ylab = ylab)
+  if (length(chrom_position) > 0) {
+    points(chrom_position, points.blue, col = "blue")
+    points(chrom_position, points.red, col = "red")
   }
 }
 
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.segmented.plot <- function(chrom.position, points.red, points.green, x.min, x.max, title, xlab, ylab, prior_bkps_pos = NULL) {
+create_segmented_plot <- function(chrom_position, points.red, points.green, x_min, x_max, title, xlab, ylab, prior_bkps_pos = NULL) {
   par(mar = c(5, 5, 5, 0.5), cex = 0.4, cex.main = 3, cex.axis = 2, cex.lab = 2)
-  plot(c(x.min, x.max), c(0, 1), pch = ".", type = "n", main = title, xlab = xlab, ylab = ylab)
-  points(chrom.position, points.red, pch = ".", col = "red", cex = 2)
-  points(chrom.position, points.green, pch = 19, cex = 0.5, col = "green")
+  plot(c(x_min, x_max), c(0, 1), pch = ".", type = "n", main = title, xlab = xlab, ylab = ylab)
+  points(chrom_position, points.red, pch = ".", col = "red", cex = 2)
+  points(chrom_position, points.green, pch = 19, cex = 0.5, col = "green")
   if (!is.null(prior_bkps_pos)) {
     for (i in seq_along(prior_bkps_pos)) {
       abline(v = prior_bkps_pos[i])
@@ -31,12 +31,12 @@ create.segmented.plot <- function(chrom.position, points.red, points.green, x.mi
 #' Function that plots two types of data points against it's chromosomal location.
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create_baf_plot <- function(chrom.position, points.red.blue, plot.red, points.darkred, points.darkblue, x.min, x.max, title, xlab, ylab, prior_bkps_pos = NULL) {
+create_baf_plot <- function(chrom_position, points.red.blue, plot.red, points.darkred, points.darkblue, x_min, x_max, title, xlab, ylab, prior_bkps_pos = NULL) {
   par(mar = c(5, 5, 5, 0.5), cex = 0.4, cex.main = 3, cex.axis = 2, cex.lab = 2)
-  plot(c(x.min, x.max), c(0, 1), pch = ".", type = "n", main = title, xlab = xlab, ylab = ylab)
-  points(chrom.position, points.red.blue, pch = ".", col = ifelse(plot.red, "red", "blue"), cex = 2)
-  points(chrom.position, points.darkred, pch = 19, cex = 0.5, col = "darkred")
-  points(chrom.position, points.darkblue, pch = 19, cex = 0.5, col = "darkblue")
+  plot(c(x_min, x_max), c(0, 1), pch = ".", type = "n", main = title, xlab = xlab, ylab = ylab)
+  points(chrom_position, points.red.blue, pch = ".", col = ifelse(plot.red, "red", "blue"), cex = 2)
+  points(chrom_position, points.darkred, pch = 19, cex = 0.5, col = "darkred")
+  points(chrom_position, points.darkblue, pch = 19, cex = 0.5, col = "darkblue")
   if (!is.null(prior_bkps_pos)) {
     for (i in seq_along(prior_bkps_pos)) {
       abline(v = prior_bkps_pos[i])
@@ -47,7 +47,16 @@ create_baf_plot <- function(chrom.position, points.red.blue, plot.red, points.da
 #' Function that creates the plots for subclonal copy number
 #' Note: This is a plot PER chromosome.
 #' @noRd
-create.subclonal.cn.plot <- function(chrom, chrom.position, LogRposke, LogRchr, BAFchr, BAFsegchr, BAFpvalschr, subcloneres, siglevel, x.min, x.max, title, xlab, ylab.logr, ylab.baf, breakpoints_pos = NULL, svs_pos = NULL) {
+create_subclonal_cn_plot <- function(
+  chrom, chrom_position,
+  LogRposke, LogRchr,
+  BAFchr, BAFsegchr,
+  BAFpvalschr, subcloneres,
+  siglevel, x_min, x_max,
+  title, xlab, ylab_logr,
+  ylab_baf, breakpoints_pos = NULL,
+  svs_pos = NULL
+) {
   plot_breakpoints <- function(breakpoints, svs_pos) {
     # Plot the breakpoints
     if (!is.null(breakpoints)) {
@@ -66,18 +75,18 @@ create.subclonal.cn.plot <- function(chrom, chrom.position, LogRposke, LogRchr, 
 
   # Plot the logR
   par(mar = c(2.5, 2.5, 2.5, 0.25), cex = 0.4, cex.main = 1.5, cex.axis = 1, cex.lab = 1, mfrow = c(2, 1))
-  plot(c(x.min, x.max), c(-3, 3), pch = ".", type = "n", main = title, xlab = xlab, ylab = ylab.logr)
+  plot(c(x_min, x_max), c(-3, 3), pch = ".", type = "n", main = title, xlab = xlab, ylab = ylab_logr)
   points(LogRposke / 1000000, LogRchr, pch = ".", col = "grey")
   plot_breakpoints(breakpoints_pos, svs_pos)
 
   # Plot BAF
-  plot(c(x.min, x.max), c(0, 1), pch = ".", type = "n", main = title, xlab = xlab, ylab = ylab.baf)
-  points(chrom.position, BAFchr, pch = ".", col = "grey")
+  plot(c(x_min, x_max), c(0, 1), pch = ".", type = "n", main = title, xlab = xlab, ylab = ylab_baf)
+  points(chrom_position, BAFchr, pch = ".", col = "grey")
   plot_breakpoints(breakpoints_pos, svs_pos)
 
   # Plot segments in top of BAF
-  points(chrom.position, BAFsegchr, pch = 19, cex = 0.5, col = ifelse(BAFpvalschr > siglevel, "darkgreen", "red"))
-  points(chrom.position, 1 - BAFsegchr, pch = 19, cex = 0.5, col = ifelse(BAFpvalschr > siglevel, "darkgreen", "red"))
+  points(chrom_position, BAFsegchr, pch = 19, cex = 0.5, col = ifelse(BAFpvalschr > siglevel, "darkgreen", "red"))
+  points(chrom_position, 1 - BAFsegchr, pch = 19, cex = 0.5, col = ifelse(BAFpvalschr > siglevel, "darkgreen", "red"))
   for (i in seq_len(dim(subcloneres)[1])) {
     if (subcloneres[i, 1] == chrom) {
       text((as.numeric(subcloneres[i, "startpos"]) + as.numeric(subcloneres[i, "endpos"])) / 2 / 1000000, as.numeric(subcloneres[i, "BAF"]) - 0.04,
@@ -99,11 +108,16 @@ create.subclonal.cn.plot <- function(chrom, chrom.position, LogRposke, LogRchr, 
 #' NAP - July 2020 - updated main title now replacing 'cellularity' with 'purity' and 'goodness-of-fit' with 'PGAclonal' + adding TUMOURNAME
 #' NAP - November 2023 - Replacing 'PGAclonal' with 'PGA.is.clonal' for more clarity
 #' @noRd
-create.bb.plot.average <- function(bafsegmented, ploidy, rho, goodnessOfFit, pos_min, pos_max, segment_states_min, segment_states_tot, chr.segs, chr.names, tumourname, ylim = 5) {
+create_bb_plot_average <- function(
+  bafsegmented, ploidy, rho,
+  goodness_of_fit, pos_min, pos_max,
+  segment_states_min, segment_states_tot,
+  chr_segs, chr_names, tumourname, ylim = 5
+) {
   # Plot main frame and title
   par(mar = c(0.5, 5, 5, 0.5), cex = 0.4, cex.main = 3, cex.axis = 2.5)
-  maintitle <- paste0(substring(tumourname, 36, first = TRUE), ", Ploidy: ", sprintf("%1.2f", ploidy), ", Purity: ", sprintf("%2.0f", rho * 100), "%, PGA.is.clonal: ", sprintf("%2.1f", goodnessOfFit * 100), "%")
-  # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
+  maintitle <- paste0(substring(tumourname, 36, first = TRUE), ", Ploidy: ", sprintf("%1.2f", ploidy), ", Purity: ", sprintf("%2.0f", rho * 100), "%, PGA.is.clonal: ", sprintf("%2.1f", goodness_of_fit * 100), "%")
+  # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodness_of_fit*100),"%",sep="")
   plot(c(1, nrow(bafsegmented)), c(0, ylim), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
   abline(v = 0, lty = 1, col = "lightgrey")
   # Horizontal lines for y=0 to y=5
@@ -114,14 +128,14 @@ create.bb.plot.average <- function(bafsegmented, ploidy, rho, goodnessOfFit, pos
 
   # Plot the vertical lines that show start/end of a chromosome
   chrk_tot_len <- 0
-  for (i in seq_along(chr.segs)) {
-    chrk <- chr.segs[[i]]
+  for (i in seq_along(chr_segs)) {
+    chrk <- chr_segs[[i]]
     chrk_hetero <- names(bafsegmented)[chrk]
     chrk_tot_len_prev <- chrk_tot_len
     chrk_tot_len <- chrk_tot_len + length(chrk_hetero)
     vpos <- chrk_tot_len
     tpos <- (chrk_tot_len + chrk_tot_len_prev) / 2
-    text(tpos, ylim, chr.names[i], pos = 1, cex = 2)
+    text(tpos, ylim, chr_names[i], pos = 1, cex = 2)
     abline(v = vpos, lty = 1, col = "lightgrey")
   }
 }
@@ -130,10 +144,17 @@ create.bb.plot.average <- function(bafsegmented, ploidy, rho, goodnessOfFit, pos
 #' NAP - July 2020 - updated main title now replacing 'cellularity' with 'purity' and 'goodness-of-fit' with 'PGAclonal' + adding TUMOURNAME
 #' NAP - November 2023 - Replacing 'PGAclonal' with 'PGA.is.clonal' for more clarity
 #' @noRd
-create.bb.plot.subclones <- function(bafsegmented, subclones, ploidy, rho, goodnessOfFit, pos_min, pos_max, subcl_min, subcl_max, is_subclonal, is_subclonal_maj, is_subclonal_min, chr.segs, chr.names, tumourname, ylim = 5) {
+create_bb_plot_subclones <- function(
+  bafsegmented, subclones, ploidy,
+  rho, goodness_of_fit, pos_min,
+  pos_max, subcl_min, subcl_max,
+  is_subclonal, is_subclonal_maj,
+  is_subclonal_min, chr_segs,
+  chr_names, tumourname, ylim = 5
+) {
   par(mar = c(0.5, 5, 5, 0.5), cex = 0.4, cex.main = 3, cex.axis = 2.5)
-  maintitle <- paste0(substring(tumourname, 36, first = TRUE), ", Ploidy: ", sprintf("%1.2f", ploidy), ", Purity: ", sprintf("%2.0f", rho * 100), "%, PGA.is.clonal: ", sprintf("%2.1f", goodnessOfFit * 100), "%")
-  # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodnessOfFit*100),"%",sep="")
+  maintitle <- paste0(substring(tumourname, 36, first = TRUE), ", Ploidy: ", sprintf("%1.2f", ploidy), ", Purity: ", sprintf("%2.0f", rho * 100), "%, PGA.is.clonal: ", sprintf("%2.1f", goodness_of_fit * 100), "%")
+  # maintitle = paste("Ploidy: ",sprintf("%1.2f",ploidy),", aberrant cell fraction: ",sprintf("%2.0f",rho*100),"%, goodness of fit: ",sprintf("%2.1f",goodness_of_fit*100),"%",sep="")
   plot(c(1, nrow(bafsegmented)), c(0, ylim), type = "n", xaxt = "n", main = maintitle, xlab = "", ylab = "")
   abline(v = 0, lty = 1, col = "lightgrey")
   # Minor allele clonal and lowest of the two states when subclonal
@@ -188,14 +209,14 @@ create.bb.plot.subclones <- function(bafsegmented, subclones, ploidy, rho, goodn
   )
 
   chrk_tot_len <- 0
-  for (i in seq_along(chr.segs)) {
-    chrk <- chr.segs[[i]]
+  for (i in seq_along(chr_segs)) {
+    chrk <- chr_segs[[i]]
     chrk_hetero <- names(bafsegmented)[chrk]
     chrk_tot_len_prev <- chrk_tot_len
     chrk_tot_len <- chrk_tot_len + length(chrk_hetero)
     vpos <- chrk_tot_len
     tpos <- (chrk_tot_len + chrk_tot_len_prev) / 2
-    text(tpos, ylim, chr.names[i], pos = 1, cex = 2)
+    text(tpos, ylim, chr_names[i], pos = 1, cex = 2)
     abline(v = vpos, lty = 1, col = "lightgrey")
   }
 }
@@ -203,8 +224,7 @@ create.bb.plot.subclones <- function(bafsegmented, subclones, ploidy, rho, goodn
 #' Code extracted from the plot in clonal_ascat find_centroid_of_global_minima.
 #' Note: This is a temporary function and VERY similar to clonal_runascat.plot1()
 #' @noRd
-#'
-clonal_findcentroid.plot <- function(minimise, dist_choice, d, psis, rhos, new_bounds) {
+clonal_findcentroid_plot <- function(minimise, dist_choice, d, psis, rhos, new_bounds) {
   par(mar = c(5, 5, 0.5, 0.5), cex = 0.75, cex.lab = 2, cex.axis = 2)
   if (minimise) { # DCW 240314 reverse colour palette, so blue always corresponds to best region
     hmcol <- rev(colorRampPalette(RColorBrewer::brewer.pal(10, "RdBu"))(256))
@@ -275,7 +295,7 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos, platform_
   subclones <- read.table(paste(run_dir, tumourname, "_copynumber.txt", sep = ""), header = TRUE, stringsAsFactors = FALSE)
   subclone <- subclones[(subclones$chr == segment_chr) & (subclones$startpos <= segment_pos) & (subclones$endpos >= segment_pos), ]
   rhopsi <- read.table(paste(run_dir, tumourname, "_rho_and_psi.txt", sep = ""), header = TRUE, stringsAsFactors = FALSE)
-  rhopsi <- rhopsi[which(rhopsi$is.best == TRUE), c("rho", "psi")]
+  rhopsi <- rhopsi[which(rhopsi$is_best == TRUE), c("rho", "psi")]
 
   nMincalc <- (rhopsi$rho - 1 - (subclone$BAF - 1) * 2^(subclone$LogR / platform_gamma) * ((1 - rhopsi$rho) * 2 + rhopsi$rho * rhopsi$psi)) / rhopsi$rho
   nMajcalc <- (rhopsi$rho - 1 + subclone$BAF * 2^(subclone$LogR / platform_gamma) * ((1 - rhopsi$rho) * 2 + rhopsi$rho * rhopsi$psi)) / rhopsi$rho

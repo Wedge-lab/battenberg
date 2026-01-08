@@ -4,12 +4,14 @@
 #' 3. Optimized constraint checking
 #' 4. Smart search ordering (best regions first)
 #' 5. Reduced memory allocations
-runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice,
-                              distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA,
-                              cnaStatusFile = "copynumber_solution_status.txt", gamma = 0.55, allow100percent,
-                              reliabilityFile = NA, min.ploidy = 1.6, max.ploidy = 4.8, min.rho = 0.1, max.rho = 1.0,
-                              min.goodness = 63, uninformative_BAF_threshold = 0.51, chr.names, analysis = "paired",
-                              smart_ordering = TRUE, early_termination = TRUE, verbose = TRUE) {
+runASCAT_enhanced <- function(
+  lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice,
+  distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA,
+  cnaStatusFile = "copynumber_solution_status.txt", gamma = 0.55, allow100percent,
+  reliabilityFile = NA, min_ploidy = 1.6, max_ploidy = 4.8, min_rho = 0.1, max_rho = 1.0,
+  min_goodness = 63, uninformative_baf_threshold = 0.51, chr_names, analysis = "paired",
+  smart_ordering = TRUE, early_termination = TRUE, verbose = TRUE
+) {
   start_time <- Sys.time()
 
   # Setup data processing (IDENTICAL to original)
@@ -17,14 +19,14 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
   b <- bafsegmented
   r <- lrrsegmented[names(bafsegmented)]
 
-  dist_min_psi <- max(min.ploidy - 0.6, 0)
-  dist_max_psi <- max.ploidy + 0.6
-  dist_min_rho <- max(min.rho - 0.03, 0.05)
-  dist_max_rho <- max.rho + 0.03
+  dist_min_psi <- max(min_ploidy - 0.6, 0)
+  dist_max_psi <- max_ploidy + 0.6
+  dist_min_rho <- max(min_rho - 0.03, 0.05)
+  dist_max_rho <- max_rho + 0.03
 
   s <- ASCAT::make_segments(r, b)
   dist_matrix_info <- create_distance_matrix(s, dist_choice, gamma,
-    uninformative_BAF_threshold = uninformative_BAF_threshold,
+    uninformative_baf_threshold = uninformative_baf_threshold,
     min_psi = dist_min_psi, max_psi = dist_max_psi,
     min_rho = dist_min_rho, max_rho = dist_max_rho
   )
@@ -75,8 +77,8 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
       # Fast solution calculation
       solution <- calculate_solution_fast(
         psi, rho, s_b, s_r, s_length, total_length, gamma,
-        min.ploidy, max.ploidy, min.rho, max.rho,
-        min.goodness, m, TheoretMaxdist, minimise, allow100percent
+        min_ploidy, max_ploidy, min_rho, max_rho,
+        min_goodness, m, TheoretMaxdist, minimise, allow100percent
       )
 
       if (!is.null(solution)) {
@@ -93,7 +95,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
         }
 
         # Early termination if we found a good solution
-        if (early_termination && solution$goodness >= (min.goodness + 5)) {
+        if (early_termination && solution$goodness >= (min_goodness + 5)) {
           if (verbose) cat("Early termination - found high quality solution\n")
           break
         }
@@ -130,8 +132,8 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
         rho <- rho_values[j]
 
         solution <- calculate_solution_fast(psi, rho, s_b, s_r, s_length, total_length, gamma,
-          min.ploidy, max.ploidy, min.rho, max.rho,
-          min.goodness, m, TheoretMaxdist, minimise, allow100percent,
+          min_ploidy, max_ploidy, min_rho, max_rho,
+          min_goodness, m, TheoretMaxdist, minimise, allow100percent,
           skip_zero_check = TRUE
         )
 
@@ -152,7 +154,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
   rho_opt1_plot <- vector(mode = "numeric")
 
   if (nropt > 0) {
-    write.table(paste(nropt, " copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col.names = FALSE, row.names = FALSE)
+    data.table::fwrite(paste(nropt, " copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col_names = FALSE, row.names = FALSE)
     optlim <- sort(localmin)[1]
 
     for (i in seq_along(optima)) {
@@ -163,13 +165,13 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
           rho_opt1 <- 1
         }
         ploidy_opt1 <- optima[[i]][4]
-        goodnessOfFit_opt1 <- optima[[i]][5]
+        goodness_of_fit_opt1 <- optima[[i]][5]
         psi_opt1_plot <- c(psi_opt1_plot, psi_opt1)
         rho_opt1_plot <- c(rho_opt1_plot, rho_opt1)
       }
     }
   } else {
-    write.table(paste("no copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col.names = FALSE, row.names = FALSE)
+    data.table::fwrite(paste("no copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col_names = FALSE, row.names = FALSE)
     if (verbose) cat("No suitable copy number solution found\n")
     psi <- NA
     ploidy <- NA
@@ -197,7 +199,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
     )
     cat(
       "Best solution: rho =", round(rho_opt1, 3), ", psi =", round(psi_opt1, 3),
-      ", ploidy =", round(ploidy_opt1, 3), ", goodness =", round(goodnessOfFit_opt1, 2), "\n"
+      ", ploidy =", round(ploidy_opt1, 3), ", goodness =", round(goodness_of_fit_opt1, 2), "\n"
     )
   }
 
@@ -227,7 +229,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
   bConf <- ifelse(bBacktransform != 0.5, pmin(100, pmax(0, ifelse(b == 0.5, 100, 100 * (1 - abs(bBacktransform - b) / abs(b - 0.5))))), NA)
 
   if (!is.na(reliabilityFile)) {
-    write.table(data.frame(segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf, segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = FALSE)
+    data.table::fwrite(data.frame(segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf, segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = FALSE)
   }
   confidence <- ifelse(is.na(rConf), bConf, ifelse(is.na(bConf), rConf, (rConf + bConf) / 2))
   message("Confidence: ", paste(confidence, collapse = ", "))
@@ -236,7 +238,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
   if (!is.na(copynumberprofilespng)) {
     png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200, type = "cairo")
   }
-  ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented, chrs = chr.names)
+  ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented, chrs = chr_names)
   if (!is.na(copynumberprofilespng)) {
     dev.off()
   }
@@ -244,7 +246,7 @@ runASCAT_enhanced <- function(lrr, baf, lrrsegmented, bafsegmented, chromosomes,
   if (!is.na(nonroundedprofilepng)) {
     png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200, type = "cairo")
   }
-  ASCAT::ascat.plotNonRounded(ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs = chr.names)
+  ASCAT::ascat.plotNonRounded(ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs = chr_names)
   if (!is.na(nonroundedprofilepng)) {
     dev.off()
   }
@@ -321,8 +323,8 @@ is_local_minimum_fast <- function(d, i, j, center_value) {
 
 #' Fast solution calculation (vectorized and optimized)
 calculate_solution_fast <- function(psi, rho, s_b, s_r, s_length, total_length, gamma,
-                                    min.ploidy, max.ploidy, min.rho, max.rho,
-                                    min.goodness, distance_value, TheoretMaxdist, minimise,
+                                    min_ploidy, max_ploidy, min_rho, max_rho,
+                                    min_goodness, distance_value, TheoretMaxdist, minimise,
                                     allow100percent, skip_zero_check = FALSE) {
   # Quick input validation
   if (is.na(psi) || is.na(rho) || psi <= 0 || rho <= 0 || rho > 1.1) {
@@ -330,7 +332,7 @@ calculate_solution_fast <- function(psi, rho, s_b, s_r, s_length, total_length, 
   }
 
   # Quick constraint pre-check
-  if (psi < min.ploidy || psi > max.ploidy || rho < min.rho || rho > max.rho) {
+  if (psi < min_ploidy || psi > max_ploidy || rho < min_rho || rho > max_rho) {
     return(NULL)
   }
 
@@ -352,18 +354,18 @@ calculate_solution_fast <- function(psi, rho, s_b, s_r, s_length, total_length, 
   }
 
   # Final ploidy constraint check
-  if (ploidy < min.ploidy || ploidy > max.ploidy) {
+  if (ploidy < min_ploidy || ploidy > max_ploidy) {
     return(NULL)
   }
 
   # Fast goodness calculation
   if (minimise) {
-    goodnessOfFit <- (1 - distance_value / TheoretMaxdist) * 100
+    goodness_of_fit <- (1 - distance_value / TheoretMaxdist) * 100
   } else {
-    goodnessOfFit <- -distance_value / TheoretMaxdist * 100
+    goodness_of_fit <- -distance_value / TheoretMaxdist * 100
   }
 
-  if (is.na(goodnessOfFit) || !is.finite(goodnessOfFit) || goodnessOfFit < min.goodness) {
+  if (is.na(goodness_of_fit) || !is.finite(goodness_of_fit) || goodness_of_fit < min_goodness) {
     return(NULL)
   }
 
@@ -399,15 +401,15 @@ calculate_solution_fast <- function(psi, rho, s_b, s_r, s_length, total_length, 
     psi = psi,
     rho = min(rho, 1.0),
     ploidy = ploidy,
-    goodness = goodnessOfFit,
+    goodness = goodness_of_fit,
     distance = distance_value
   ))
 }
 
 #' Generate plots
 generate_plots_battenberg <- function(analysis, distancepng, copynumberprofilespng, nonroundedprofilepng,
-                                      d, psi_opt1, rho_opt1, ploidy_opt1, goodnessOfFit_opt1, minimise,
-                                      b, r, s, gamma, ch, lrr, bafsegmented, chr.names, reliabilityFile) {
+                                      d, psi_opt1, rho_opt1, ploidy_opt1, goodness_of_fit_opt1, minimise,
+                                      b, r, s, gamma, ch, lrr, bafsegmented, chr_names, reliabilityFile) {
   if (analysis == "paired") {
     psi_opt1_plot <- psi_opt1
     rho_opt1_plot <- rho_opt1
@@ -432,7 +434,7 @@ generate_plots_battenberg <- function(analysis, distancepng, copynumberprofilesp
     rConf <- ifelse(abs(rBacktransform) > 0.15, pmin(100, pmax(0, 100 * (1 - abs(rBacktransform - r) / abs(r)))), NA)
     bConf <- ifelse(bBacktransform != 0.5, pmin(100, pmax(0, ifelse(b == 0.5, 100, 100 * (1 - abs(bBacktransform - b) / abs(b - 0.5))))), NA)
 
-    write.table(
+    data.table::fwrite(
       data.frame(
         segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf,
         segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf,
@@ -448,9 +450,9 @@ generate_plots_battenberg <- function(analysis, distancepng, copynumberprofilesp
   }
   ASCAT::ascat.plotAscatProfile(
     n1all = nA, n2all = nB, heteroprobes = TRUE,
-    ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1,
+    ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1,
     nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented,
-    chrs = chr.names
+    chrs = chr_names
   )
   if (!is.na(copynumberprofilespng)) {
     dev.off()
@@ -460,9 +462,9 @@ generate_plots_battenberg <- function(analysis, distancepng, copynumberprofilesp
     png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200, type = "cairo")
   }
   ASCAT::ascat.plotNonRounded(
-    ploidy = ploidy_opt1, rho = rho_opt1, goodnessOfFit = goodnessOfFit_opt1,
+    ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1,
     nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull,
-    bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs = chr.names
+    bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs = chr_names
   )
   if (!is.na(nonroundedprofilepng)) {
     dev.off()

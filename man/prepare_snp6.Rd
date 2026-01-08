@@ -10,9 +10,9 @@ prepare_snp6(
   tumourname,
   chrom_names,
   snp6_reference_info_file,
-  apt.probeset.genotype.exe = "apt-probeset-genotype",
-  apt.probeset.summarize.exe = "apt-probeset-summarize",
-  norm.geno.clust.exe = "normalize_affy_geno_cluster.pl",
+  apt_probeset_genotype_exe = "apt-probeset-genotype",
+  apt_probeset_summarize_exe = "apt-probeset-summarize",
+  norm_geno_clust_exe = "normalize_affy_geno_cluster.pl",
   birdseed_report_file = "birdseed.report.txt",
   genomebuild = "hg19"
 )
@@ -28,11 +28,11 @@ prepare_snp6(
 
 \item{snp6_reference_info_file}{Full path to the SNP6 reference info file}
 
-\item{apt.probeset.genotype.exe}{Full path to the apt.probeset.genotype executable (Default: expected in $PATH)}
+\item{apt_probeset_genotype_exe}{Full path to the apt.probeset.genotype executable (Default: expected in $PATH)}
 
-\item{apt.probeset.summarize.exe}{Full path to the apt.probeset.summarize executable (Default: expected in $PATH)}
+\item{apt_probeset_summarize_exe}{Full path to the apt.probeset.summarize executable (Default: expected in $PATH)}
 
-\item{norm.geno.clust.exe}{Full path to the norm.geno.clust.exe executable (Default: expected in $PATH)}
+\item{norm_geno_clust_exe}{Full path to the norm_geno_clust_exe executable (Default: expected in $PATH)}
 
 \item{birdseed_report_file}{Name of the birdseed output file. This is a temp output file of one of the internally called functions of which the name cannot be defined. Don't change this parameter. (Default: birdseed.report.txt)}
 }

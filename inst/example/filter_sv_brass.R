@@ -52,4 +52,4 @@ for (chrom in mixedsort(unique(brass_breakpoints$chromosome))) {
   b_chrom <- b_chrom[order(b_chrom$position), ]
   brass_breakpoints_ordered <- rbind(brass_breakpoints_ordered, b_chrom)
 }
-write.table(brass_breakpoints_ordered, file = outfile, quote = FALSE, row.names = FALSE, sep = "\t")
+data.table::fwrite(brass_breakpoints_ordered, file = outfile, quote = FALSE, row.names = FALSE, sep = "\t")

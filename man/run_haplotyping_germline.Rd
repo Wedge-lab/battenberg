@@ -17,7 +17,7 @@ run_haplotyping_germline(
   externalhaplotypeprefix = NA,
   use_previous_imputation = FALSE,
   snp6_reference_info_file = NA,
-  heterozygousFilter = NA,
+  heterozygous_filter = NA,
   usebeagle = FALSE,
   beaglejar = NA,
   beagleref = NA,
@@ -50,7 +50,7 @@ run_haplotyping_germline(
 
 \item{snp6_reference_info_file}{SNP6 only parameter Default: NA}
 
-\item{heterozygousFilter}{SNP6 only parameter Default: NA}
+\item{heterozygous_filter}{SNP6 only parameter Default: NA}
 
 \item{usebeagle}{Should use beagle5 instead of impute2 Default: FALSE}
 

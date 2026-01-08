@@ -50,7 +50,7 @@ doParallel::registerDoParallel(clp)
 foreach::foreach(i = seq_along(chrom_names)) %dopar% {
   getAlleleCounts(
     bam.file = tumourbam,
-    output.file = paste(tumourname, "_alleleFrequencies_chr", i, ".txt", sep = ""),
+    output_file = paste(tumourname, "_alleleFrequencies_chr", i, ".txt", sep = ""),
     g1000.loci = paste(g1000allelesprefix, i, ".txt", sep = ""),
     min.base.qual = min_base_qual,
     min.map.qual = min_map_qual,
@@ -59,7 +59,7 @@ foreach::foreach(i = seq_along(chrom_names)) %dopar% {
 
   getAlleleCounts(
     bam.file = normalbam,
-    output.file = paste(normalname, "_alleleFrequencies_chr", i, ".txt", sep = ""),
+    output_file = paste(normalname, "_alleleFrequencies_chr", i, ".txt", sep = ""),
     g1000.loci = paste(g1000allelesprefix, i, ".txt", sep = ""),
     min.base.qual = min_base_qual,
     min.map.qual = min_map_qual,

@@ -7,18 +7,18 @@
 combine_impute_output(
   inputfile.prefix,
   outputfile,
-  is.male,
+  is_male,
   imputeinfofile,
   region.size = 5000000,
   chrom = NA
 )
 }
 \arguments{
-\item{inputfile.prefix}{Prefix of the input files (this is typically the outputfile.prefix option supplied when calling run_impute).}
+\item{inputfile.prefix}{Prefix of the input files (this is typically the outputfile_prefix option supplied when calling run_impute).}
 
 \item{outputfile}{Where to store the output.}
 
-\item{is.male}{Boolean describing whether the sample is male (TRUE) or female (FALSE).}
+\item{is_male}{Boolean describing whether the sample is male (TRUE) or female (FALSE).}
 
 \item{imputeinfofile}{Path to the imputeinfofile on disk.}
 

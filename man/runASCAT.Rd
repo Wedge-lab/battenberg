@@ -18,13 +18,13 @@ runASCAT(
   gamma = 0.55,
   allow100percent,
   reliabilityFile = NA,
-  min.ploidy = 1.6,
-  max.ploidy = 4.8,
-  min.rho = 0.1,
-  max.rho = 1,
-  min.goodness = 63,
-  uninformative_BAF_threshold = 0.51,
-  chr.names,
+  min_ploidy = 1.6,
+  max_ploidy = 4.8,
+  min_rho = 0.1,
+  max_rho = 1,
+  min_goodness = 63,
+  uninformative_baf_threshold = 0.51,
+  chr_names,
   analysis = "paired"
 )
 }
@@ -55,19 +55,19 @@ runASCAT(
 
 \item{reliabilityFile}{String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)}
 
-\item{min.ploidy}{The minimum ploidy to consider (Default 1.6)}
+\item{min_ploidy}{The minimum ploidy to consider (Default 1.6)}
 
-\item{max.ploidy}{The maximum ploidy to consider (Default 4.8)}
+\item{max_ploidy}{The maximum ploidy to consider (Default 4.8)}
 
-\item{min.rho}{The minimum cellularity to consider (Default 0.1)}
+\item{min_rho}{The minimum cellularity to consider (Default 0.1)}
 
-\item{max.rho}{The maximum cellularity to consider (Default 1.0)}
+\item{max_rho}{The maximum cellularity to consider (Default 1.0)}
 
-\item{min.goodness}{The minimum goodness of fit for a solution to have to be considered (Default 63)}
+\item{min_goodness}{The minimum goodness of fit for a solution to have to be considered (Default 63)}
 
-\item{uninformative_BAF_threshold}{The threshold beyond which BAF becomes uninformative (Default 0.51)}
+\item{uninformative_baf_threshold}{The threshold beyond which BAF becomes uninformative (Default 0.51)}
 
-\item{chr.names}{A vector with chromosome names used for plotting}
+\item{chr_names}{A vector with chromosome names used for plotting}
 
 \item{analysis}{A String representing the type of analysis to be run, this determines whether the distance figure is produced (Default paired)}
 }

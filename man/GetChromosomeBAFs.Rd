@@ -11,7 +11,7 @@ GetChromosomeBAFs(
   samplename,
   outfile,
   chr_names,
-  minCounts = 1
+  minCounts = 1L
 )
 }
 \arguments{

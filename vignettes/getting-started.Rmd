@@ -34,12 +34,15 @@ Battenberg requires several dependencies. Install them first:
 
 ```{r eval = FALSE}
 # Install Bioconductor packages
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+if (!require("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
 
-BiocManager::install(c("devtools", "splines", "readr", "doParallel", 
-                       "ggplot2", "RColorBrewer", "gridExtra", "gtools", 
-                       "parallel", "VariantAnnotation", "GenomicRanges"))
+BiocManager::install(c(
+  "devtools", "splines", "readr", "doParallel",
+  "ggplot2", "RColorBrewer", "gridExtra", "gtools",
+  "parallel", "VariantAnnotation", "GenomicRanges"
+))
 
 # Install modified copynumber package
 devtools::install_github("igordot/copynumber")
@@ -52,7 +55,7 @@ devtools::install_github("VanLoo-lab/ascat/ASCAT")
 
 ```{r eval = FALSE}
 # Install from GitHub (pre_3.0 branch)
-devtools::install_github("Wedge-lab/battenberg", ref="pre_3.0")
+devtools::install_github("Wedge-lab/battenberg", ref = "pre_3.0")
 ```
 
 ## Reference Data Requirements
@@ -118,7 +121,7 @@ result <- battenberg(
   max_ploidy = 4.8,
   min_rho = 0.1,
   min_goodness = 0.63,
-  uninformative_BAF_threshold = 0.51,
+  uninformative_baf_threshold = 0.51,
   min_normal_depth = 10,
   min_base_qual = 20,
   min_map_qual = 35

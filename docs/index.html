@@ -900,8 +900,8 @@ mclapply(ffs[length(ffs):1],function(x)
     ndf &lt;- data.frame(position=df[,1],
                       a0=ref,
                       a1=alt)
-    write.table(ndf,file=out,
-                row.names=F,col.names=T,sep="\t",quote=F)
+    data.table::fwrite(ndf,file=out,
+                row.names=F,col_names=T,sep="\t",quote=F)
 },mc.cores=5)
 ##########################################################################
 
@@ -1015,9 +1015,9 @@ names(windows) &lt;- sapply(names(windows),function(x) if(grepl("[0-9]$",x)) pas
 
 writeGC &lt;- function(gccontent,chr,outdir)
 {
-    write.table(gccontent,
+    data.table::fwrite(gccontent,
                 file=gzfile(paste0(outdir,"/1000_genomes_GC_corr_chr_",chr,".txt.gz")),
-                col.names=T,
+                col_names=T,
                 row.names=T,quote=F,sep="\t")
 }
 
@@ -1063,7 +1063,7 @@ mclapply(CHRS,function(chr)
                                 </p>
                                 <pre><code><span><span class="va">BEAGLEJAR</span> <span class="op">&lt;-</span> <span class="st">"$PATHTOBEAGLEFILES/beagle.24Aug19.3e8.jar"</span></span>
 <span><span class="va">BEAGLEREF_template</span> <span class="op">&lt;-</span> <span class="st">"$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"</span></span>
-<span><span class="va">BEAGLEPLINK.template</span> <span class="op">&lt;-</span> <span class="st">"$PATHTOBEAGLEFILES/plink.chrCHROMNAME.GRCh37.map"</span></span>
+<span><span class="va">beagleplink_template</span> <span class="op">&lt;-</span> <span class="st">"$PATHTOBEAGLEFILES/plink.chrCHROMNAME.GRCh37.map"</span></span>
 <span></span>
 <span><span class="va">timed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="fu"><a href="reference/battenberg.html">battenberg</a></span><span class="op">(</span>tumourname<span class="op">=</span><span class="va">TUMOURNAME</span>,</span>
 <span>                                normalname<span class="op">=</span><span class="va">NORMALNAME</span>,</span>
@@ -1090,7 +1090,7 @@ mclapply(CHRS,function(chr)
 <span>                                min_ploidy<span class="op">=</span><span class="fl">1.6</span>,</span>
 <span>                                max_ploidy<span class="op">=</span><span class="fl">4.8</span>, min_rho<span class="op">=</span><span class="fl">0.1</span>,</span>
 <span>                                min_goodness<span class="op">=</span><span class="fl">0.63</span>,</span>
-<span>                                uninformative_BAF_threshold<span class="op">=</span><span class="fl">0.51</span>,</span>
+<span>                                uninformative_baf_threshold<span class="op">=</span><span class="fl">0.51</span>,</span>
 <span>                                min_normal_depth<span class="op">=</span><span class="fl">10</span>,</span>
 <span>                                min_base_qual<span class="op">=</span><span class="fl">20</span>,</span>
 <span>                                min_map_qual<span class="op">=</span><span class="fl">35</span>,</span>
@@ -1101,17 +1101,17 @@ mclapply(CHRS,function(chr)
 <span>                                usebeagle<span class="op">=</span><span class="va">USEBEAGLE</span>, <span class="co">##set to TRUE to use beagle</span></span>
 <span>                                beaglejar<span class="op">=</span><span class="va">BEAGLEJAR</span>, <span class="co">##path</span></span>
 <span>                                beagleref<span class="op">=</span><span class="va">BEAGLEREF_template</span>, <span class="co">##pathtemplate</span></span>
-<span>                                beagleplink<span class="op">=</span><span class="va">BEAGLEPLINK.template</span>, <span class="co">##pathtemplate</span></span>
+<span>                                beagleplink<span class="op">=</span><span class="va">beagleplink_template</span>, <span class="co">##pathtemplate</span></span>
 <span>                                beaglemaxmem<span class="op">=</span><span class="fl">15</span>,</span>
 <span>                                beaglenthreads<span class="op">=</span><span class="fl">1</span>,</span>
 <span>                                beaglewindow<span class="op">=</span><span class="fl">40</span>,</span>
 <span>                                beagleoverlap<span class="op">=</span><span class="fl">4</span>,</span>
 <span>                                snp6_reference_info_file<span class="op">=</span><span class="cn">NA</span>,</span>
-<span>                                apt.probeset.genotype.exe<span class="op">=</span><span class="st">"apt-probeset-genotype"</span>,</span>
-<span>                                apt.probeset.summarize.exe<span class="op">=</span><span class="st">"apt-probeset-summarize"</span>,</span>
-<span>                                norm.geno.clust.exe<span class="op">=</span><span class="st">"normalize_affy_geno_cluster.pl"</span>,</span>
+<span>                                apt_probeset_genotype_exe<span class="op">=</span><span class="st">"apt-probeset-genotype"</span>,</span>
+<span>                                apt_probeset_summarize_exe<span class="op">=</span><span class="st">"apt-probeset-summarize"</span>,</span>
+<span>                                norm_geno_clust_exe<span class="op">=</span><span class="st">"normalize_affy_geno_cluster.pl"</span>,</span>
 <span>                                birdseed_report_file<span class="op">=</span><span class="st">"birdseed.report.txt"</span>,</span>
-<span>                                heterozygousFilter<span class="op">=</span><span class="st">"none"</span>,</span>
+<span>                                heterozygous_filter<span class="op">=</span><span class="st">"none"</span>,</span>
 <span>                                prior_breakpoints_file<span class="op">=</span><span class="cn">NULL</span><span class="op">)</span><span class="op">)</span></span></code></pre>
                             </div>
                         </div>

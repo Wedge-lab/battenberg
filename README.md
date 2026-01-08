@@ -361,8 +361,8 @@ mclapply(ffs[length(ffs):1],function(x)
     ndf <- data.frame(position=df[,1],
                       a0=ref,
                       a1=alt)
-    write.table(ndf,file=out,
-                row.names=F,col.names=T,sep="\t",quote=F)
+    data.table::fwrite(ndf,file=out,
+                row.names=F,col_names=T,sep="\t",quote=F)
 },mc.cores=5)
 ##########################################################################
 
@@ -476,9 +476,9 @@ names(windows) <- sapply(names(windows),function(x) if(grepl("[0-9]$",x)) paste0
 
 writeGC <- function(gccontent,chr,outdir)
 {
-    write.table(gccontent,
+    data.table::fwrite(gccontent,
                 file=gzfile(paste0(outdir,"/1000_genomes_GC_corr_chr_",chr,".txt.gz")),
-                col.names=T,
+                col_names=T,
                 row.names=T,quote=F,sep="\t")
 }
 
@@ -512,7 +512,7 @@ http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/
 ```
 BEAGLEJAR <- "$PATHTOBEAGLEFILES/beagle.24Aug19.3e8.jar"
 BEAGLEREF_template <- "$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"
-BEAGLEPLINK.template <- "$PATHTOBEAGLEFILES/plink.chrCHROMNAME.GRCh37.map"
+beagleplink_template <- "$PATHTOBEAGLEFILES/plink.chrCHROMNAME.GRCh37.map"
 
 timed <- system.time(battenberg(tumourname=TUMOURNAME,
                                 normalname=NORMALNAME,
@@ -539,7 +539,7 @@ timed <- system.time(battenberg(tumourname=TUMOURNAME,
                                 min_ploidy=1.6,
                                 max_ploidy=4.8, min_rho=0.1,
                                 min_goodness=0.63,
-                                uninformative_BAF_threshold=0.51,
+                                uninformative_baf_threshold=0.51,
                                 min_normal_depth=10,
                                 min_base_qual=20,
                                 min_map_qual=35,
@@ -550,16 +550,16 @@ timed <- system.time(battenberg(tumourname=TUMOURNAME,
                                 usebeagle=USEBEAGLE, ##set to TRUE to use beagle
                                 beaglejar=BEAGLEJAR, ##path
                                 beagleref=BEAGLEREF_template, ##pathtemplate
-                                beagleplink=BEAGLEPLINK.template, ##pathtemplate
+                                beagleplink=beagleplink_template, ##pathtemplate
                                 beaglemaxmem=15, 
                                 beaglenthreads=1,
                                 beaglewindow=40,
                                 beagleoverlap=4,
                                 snp6_reference_info_file=NA,
-                                apt.probeset.genotype.exe="apt-probeset-genotype",
-                                apt.probeset.summarize.exe="apt-probeset-summarize",
-                                norm.geno.clust.exe="normalize_affy_geno_cluster.pl",
+                                apt_probeset_genotype_exe="apt-probeset-genotype",
+                                apt_probeset_summarize_exe="apt-probeset-summarize",
+                                norm_geno_clust_exe="normalize_affy_geno_cluster.pl",
                                 birdseed_report_file="birdseed.report.txt",
-                                heterozygousFilter="none",
+                                heterozygous_filter="none",
                                 prior_breakpoints_file=NULL))
 ```

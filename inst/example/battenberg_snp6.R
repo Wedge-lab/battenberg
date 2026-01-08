@@ -1,112 +1,114 @@
 library(Battenberg)
 library(optparse)
 
-option_list = list(
-  make_option(c("-a", "--analysis_type"), type="character", default="paired", help="Type of analysis to run: paired, cell_line, germline", metavar="character"),
-  make_option(c("-s", "--samplename"), type="character", default=NULL, help="Name of the sample to be analysed", metavar="character"),
-#  make_option(c("-n", "--normalname"), type="character", default=NULL, help="Name of matched normal", metavar="character"),
-  make_option(c("--sb"), type="character", default=NULL, help="CEL file of sample to be analysed", metavar="character"),
-  make_option(c("--nb"), type="character", default=NULL, help="CEL file of matched normal", metavar="character"),
-  make_option(c("--sex"), type="character", default=NULL, help="Sex of the sample", metavar="character"),
-  make_option(c("-o", "--output"), type="character", default=NULL, help="Directory where output will be written", metavar="character"),
-  make_option(c("--skip_allelecount"), type="logical", default=FALSE, action="store_true", help="Provide when alleles don't have to be counted. This expects allelecount files on disk", metavar="character"),
-  make_option(c("--skip_preprocessing"), type="logical", default=FALSE, action="store_true", help="Provide when pre-processing has previously completed. This expects the files on disk", metavar="character"),
-  make_option(c("--skip_phasing"), type="logical", default=FALSE, action="store_true", help="Provide when phasing has previously completed. This expects the files on disk", metavar="character"),
-  make_option(c("--cpu"), type="numeric", default=8, help="The number of CPU cores to be used by the pipeline (Default: 8)", metavar="character")
+option_list <- list(
+  make_option(c("-a", "--analysis_type"), type = "character", default = "paired", help = "Type of analysis to run: paired, cell_line, germline", metavar = "character"),
+  make_option(c("-s", "--samplename"), type = "character", default = NULL, help = "Name of the sample to be analysed", metavar = "character"),
+  #  make_option(c("-n", "--normalname"), type="character", default=NULL, help="Name of matched normal", metavar="character"),
+  make_option(c("--sb"), type = "character", default = NULL, help = "CEL file of sample to be analysed", metavar = "character"),
+  make_option(c("--nb"), type = "character", default = NULL, help = "CEL file of matched normal", metavar = "character"),
+  make_option(c("--sex"), type = "character", default = NULL, help = "Sex of the sample", metavar = "character"),
+  make_option(c("-o", "--output"), type = "character", default = NULL, help = "Directory where output will be written", metavar = "character"),
+  make_option(c("--skip_allelecount"), type = "logical", default = FALSE, action = "store_true", help = "Provide when alleles don't have to be counted. This expects allelecount files on disk", metavar = "character"),
+  make_option(c("--skip_preprocessing"), type = "logical", default = FALSE, action = "store_true", help = "Provide when pre-processing has previously completed. This expects the files on disk", metavar = "character"),
+  make_option(c("--skip_phasing"), type = "logical", default = FALSE, action = "store_true", help = "Provide when phasing has previously completed. This expects the files on disk", metavar = "character"),
+  make_option(c("--cpu"), type = "numeric", default = 8, help = "The number of CPU cores to be used by the pipeline (Default: 8)", metavar = "character")
 )
 
-opt_parser = OptionParser(option_list=option_list)
-opt = parse_args(opt_parser)
+opt_parser <- OptionParser(option_list = option_list)
+opt <- parse_args(opt_parser)
 
-analysis = opt$analysis_type
-SAMPLENAME = opt$samplename
-#NORMALNAME = opt$normalname
-NORMALCEL = opt$nb
-SAMPLECEL = opt$sb
-IS.MALE = opt$sex=="male" | opt$sex=="Male"
-RUN_DIR = opt$output
-SKIP_ALLELECOUNTING = opt$skip_allelecount
-SKIP_PREPROCESSING = opt$skip_preprocessing
-SKIP_PHASING = opt$skip_phasing
-NTHREADS = opt$cpu
+analysis <- opt$analysis_type
+SAMPLENAME <- opt$samplename
+# NORMALNAME = opt$normalname
+NORMALCEL <- opt$nb
+SAMPLECEL <- opt$sb
+is_male <- opt$sex == "male" | opt$sex == "Male"
+RUN_DIR <- opt$output
+SKIP_ALLELECOUNTING <- opt$skip_allelecount
+SKIP_PREPROCESSING <- opt$skip_preprocessing
+SKIP_PHASING <- opt$skip_phasing
+NTHREADS <- opt$cpu
 
 # The normalname parameter is not used as the pipeline starts from a single file with both sample of interest and normal in one file, as is dumped from the CEL files
-NORMALNAME = NA
+NORMALNAME <- NA
 ###############################################################################
 # 2022-08-29
 # A pure R Battenberg v3.0.0 SNP6 pipeline implementation.
 ###############################################################################
 
 # General static
-basedir = "/nfs/users/nfs_s/sd11/scratch17_t219/reference/human/battenberg/"
-IMPUTEINFOFILE = file.path(basedir, "battenberg_impute_v3/impute_info.txt")
-G1000PREFIX = file.path(basedir, "battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr")
-IMPUTE_EXE = "impute2" # Assumed to be in $PATH
+basedir <- "/nfs/users/nfs_s/sd11/scratch17_t219/reference/human/battenberg/"
+IMPUTEINFOFILE <- file.path(basedir, "battenberg_impute_v3/impute_info.txt")
+G1000PREFIX <- file.path(basedir, "battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr")
+IMPUTE_EXE <- "impute2" # Assumed to be in $PATH
 
 # General SNP6 specific
-PROBLEMLOCI = NA
-SNP6_REF_INFO_FILE = file.path(basedir, "battenberg_snp6/snp6_ref_info_file.txt")
-BIRDSEED_REPORT_FILE = "birdseed.report.txt" # No control over the name of this file, as it is automatically generated by APT within cel2baf.logr
+PROBLEMLOCI <- NA
+SNP6_REF_INFO_FILE <- file.path(basedir, "battenberg_snp6/snp6_ref_info_file.txt")
+BIRDSEED_REPORT_FILE <- "birdseed.report.txt" # No control over the name of this file, as it is automatically generated by APT within cel2baf_logr
 
 # Link to required dependencies - the below setup assumes these are in $PATH
 ## download here: https://www.thermofisher.com/de/de/home/life-science/microarray-analysis/microarray-analysis-partners-programs/affymetrix-developers-network/affymetrix-power-tools.html
-APT_PROBESET_GENOTYPE_EXE =  "apt-probeset-genotype"
-APT_PROBESET_SUMMARIZE_EXE = "apt-probeset-summarize"
+APT_PROBESET_GENOTYPE_EXE <- "apt-probeset-genotype"
+APT_PROBESET_SUMMARIZE_EXE <- "apt-probeset-summarize"
 ## download here: http://www.openbioinformatics.org/penncnv/download/gw6.tar.gz
-NORM_GENO_CLUST_EXE = "normalize_affy_geno_cluster.pl"
+NORM_GENO_CLUST_EXE <- "normalize_affy_geno_cluster.pl"
 
 # Parameters
-PLATFORM_GAMMA = 0.55
-PHASING_GAMMA = 1
-SEGMENTATION_GAMMA = 10
-SEGMENTATIIN_KMIN = 3
-PHASING_KMIN = 1
-CLONALITY_DIST_METRIC = 0
-ASCAT_DIST_METRIC = 1
-MIN_PLOIDY = 1.6 #1.6
-MAX_PLOIDY = 4.8 #4.8
-MIN_RHO = 0.13 #0.1
-MAX_RHO = 1.02 #1
-MIN_GOODNESS_OF_FIT = 0.63
-BALANCED_THRESHOLD = 0.51
-MIN_NORMAL_DEPTH = 10
-CALC_SEG_BAF_OPTION = 1
-HETEROZYGOUSFILTER = "none"
+PLATFORM_GAMMA <- 0.55
+PHASING_GAMMA <- 1
+SEGMENTATION_GAMMA <- 10
+SEGMENTATIIN_KMIN <- 3
+PHASING_KMIN <- 1
+CLONALITY_DIST_METRIC <- 0
+ASCAT_DIST_METRIC <- 1
+MIN_PLOIDY <- 1.6 # 1.6
+MAX_PLOIDY <- 4.8 # 4.8
+MIN_RHO <- 0.13 # 0.1
+MAX_RHO <- 1.02 # 1
+MIN_GOODNESS_OF_FIT <- 0.63
+BALANCED_THRESHOLD <- 0.51
+MIN_NORMAL_DEPTH <- 10
+CALC_SEG_BAF_OPTION <- 1
+heterozygous_filter <- "none"
 
 # Change to work directory and load the chromosome information
 setwd(RUN_DIR)
 
-battenberg(samplename=SAMPLENAME, 
-           normalname=NORMALNAME, 
-           sample_data_file=SAMPLECEL, 
-           normal_data_file=NORMALCEL, 
-	   ismale=IS.MALE,
-           imputeinfofile=IMPUTEINFOFILE, 
-           g1000prefix=G1000PREFIX, 
-           problemloci=PROBLEMLOCI, 
-           data_type="snp6",
-           impute_exe=IMPUTE_EXE,
-           nthreads=NTHREADS,
-           platform_gamma=PLATFORM_GAMMA,
-           phasing_gamma=PHASING_GAMMA,
-           segmentation_gamma=SEGMENTATION_GAMMA,
-           segmentation_kmin=SEGMENTATIIN_KMIN,
-           phasing_kmin=PHASING_KMIN,
-           clonality_dist_metric=CLONALITY_DIST_METRIC,
-           ascat_dist_metric=ASCAT_DIST_METRIC,
-           min_ploidy=MIN_PLOIDY,
-           max_ploidy=MAX_PLOIDY,
-           min_rho=MIN_RHO,
-           min_goodness=MIN_GOODNESS_OF_FIT,
-           uninformative_BAF_threshold=BALANCED_THRESHOLD,
-           calc_seg_baf_option=CALC_SEG_BAF_OPTION,
-           skip_allele_counting=SKIP_ALLELECOUNTING,
-           skip_preprocessing=SKIP_PREPROCESSING,
-           skip_phasing=SKIP_PHASING,
-           snp6_reference_info_file=SNP6_REF_INFO_FILE, 
-           apt.probeset.genotype.exe=APT_PROBESET_GENOTYPE_EXE, 
-           apt.probeset.summarize.exe=APT_PROBESET_SUMMARIZE_EXE,
-           norm.geno.clust.exe=NORM_GENO_CLUST_EXE, 
-           birdseed_report_file=BIRDSEED_REPORT_FILE,
-           heterozygousFilter=HETEROZYGOUSFILTER,
-	   write_battenberg_phasing=FALSE)
+battenberg(
+  samplename = SAMPLENAME,
+  normalname = NORMALNAME,
+  sample_data_file = SAMPLECEL,
+  normal_data_file = NORMALCEL,
+  ismale = is_male,
+  imputeinfofile = IMPUTEINFOFILE,
+  g1000prefix = G1000PREFIX,
+  problemloci = PROBLEMLOCI,
+  data_type = "snp6",
+  impute_exe = IMPUTE_EXE,
+  nthreads = NTHREADS,
+  platform_gamma = PLATFORM_GAMMA,
+  phasing_gamma = PHASING_GAMMA,
+  segmentation_gamma = SEGMENTATION_GAMMA,
+  segmentation_kmin = SEGMENTATIIN_KMIN,
+  phasing_kmin = PHASING_KMIN,
+  clonality_dist_metric = CLONALITY_DIST_METRIC,
+  ascat_dist_metric = ASCAT_DIST_METRIC,
+  min_ploidy = MIN_PLOIDY,
+  max_ploidy = MAX_PLOIDY,
+  min_rho = MIN_RHO,
+  min_goodness = MIN_GOODNESS_OF_FIT,
+  uninformative_baf_threshold = BALANCED_THRESHOLD,
+  calc_seg_baf_option = CALC_SEG_BAF_OPTION,
+  skip_allele_counting = SKIP_ALLELECOUNTING,
+  skip_preprocessing = SKIP_PREPROCESSING,
+  skip_phasing = SKIP_PHASING,
+  snp6_reference_info_file = SNP6_REF_INFO_FILE,
+  apt_probeset_genotype_exe = APT_PROBESET_GENOTYPE_EXE,
+  apt_probeset_summarize_exe = APT_PROBESET_SUMMARIZE_EXE,
+  norm_geno_clust_exe = NORM_GENO_CLUST_EXE,
+  birdseed_report_file = BIRDSEED_REPORT_FILE,
+  heterozygous_filter = heterozygous_filter,
+  write_battenberg_phasing = FALSE
+)

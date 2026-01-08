@@ -16,7 +16,7 @@ parse_icgc_consensus_svs <- function(vcffile, outfile, ref_genome = "hg19") {
 
 #' Helper function that writes the given SVs to file
 write_svs <- function(svs, filename) {
-  write.table(svs, file = filename, quote = FALSE, row.names = FALSE, sep = "\t")
+  data.table::fwrite(svs, file = filename, quote = FALSE, row.names = FALSE, sep = "\t")
 }
 
 #' Helper function that works on cases where SVs have been encoded as such:

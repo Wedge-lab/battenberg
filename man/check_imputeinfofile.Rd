@@ -4,7 +4,7 @@
 \alias{check_imputeinfofile}
 \title{Check impute info file consistency}
 \usage{
-check_imputeinfofile(imputeinfofile, is.male, usebeagle)
+check_imputeinfofile(imputeinfofile, is_male, usebeagle)
 }
 \arguments{
 \item{imputeinfofile}{Path to the imputeinfofile on disk.}

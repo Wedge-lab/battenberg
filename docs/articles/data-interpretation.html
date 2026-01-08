@@ -386,11 +386,11 @@
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">primary_total_cn</span> <span class="op">!=</span> <span class="fl">2</span><span class="op">)</span>  <span class="co"># Only altered segments</span></span>
 <span></span>
 <span><span class="co"># Write results</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.table</a></span><span class="op">(</span><span class="va">results_table</span>, <span class="st">"battenberg_analysis_results.txt"</span>, </span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.table::fwrite.html" class="external-link">data.table::fwrite</a></span><span class="op">(</span><span class="va">results_table</span>, <span class="st">"battenberg_analysis_results.txt"</span>, </span>
 <span>            sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span>, quote <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Write summary</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.table</a></span><span class="op">(</span><span class="va">analysis_summary</span>, <span class="st">"battenberg_analysis_summary.txt"</span>, </span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.table::fwrite.html" class="external-link">data.table::fwrite</a></span><span class="op">(</span><span class="va">analysis_summary</span>, <span class="st">"battenberg_analysis_summary.txt"</span>, </span>
 <span>            sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="cn">TRUE</span>, quote <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>

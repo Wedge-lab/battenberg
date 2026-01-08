@@ -24,8 +24,9 @@ Depends:
   graphics,
   grDevices
 Imports:
+  ASCAT,
+  copynumber,
   RColorBrewer,
-  ASCAT (>= 3.1.3),
   ggplot2,
   readr,
   gtools,
@@ -36,11 +37,13 @@ Imports:
   splines,
   GenomicRanges,
   VariantAnnotation,
-  copynumber,
   data.table,
   IRanges,
   S4Vectors,
   logger,
+  vroom,
+  cli,
+  fs,
   SummarizedExperiment
 Remotes:
   Crick-CancerGenomics/ascat/ASCAT,

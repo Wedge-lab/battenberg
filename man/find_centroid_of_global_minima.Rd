@@ -24,7 +24,7 @@ find_centroid_of_global_minima(
   siglevel_LogR,
   maxdist_LogR,
   allow100percent,
-  uninformative_BAF_threshold,
+  uninformative_baf_threshold,
   read_depth
 )
 }
@@ -59,7 +59,7 @@ find_centroid_of_global_minima(
 
 \item{allow100percent}{Boolean whether to allow for a 100"\%" cellularity solution}
 
-\item{uninformative_BAF_threshold}{The threshold above which BAF becomes uninformative}
+\item{uninformative_baf_threshold}{The threshold above which BAF becomes uninformative}
 
 \item{read_depth}{TODO: this option is no longer used}
 }

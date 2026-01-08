@@ -4,12 +4,12 @@
 \alias{parse_imputeinfofile}
 \title{Read in the imputeinfofile.}
 \usage{
-parse_imputeinfofile(imputeinfofile, is.male, chrom = NA)
+parse_imputeinfofile(imputeinfofile, is_male, chrom = NA)
 }
 \arguments{
 \item{imputeinfofile}{Path to the imputeinfofile on disk.}
 
-\item{is.male}{A boolean describing whether the sample under study is male.}
+\item{is_male}{A boolean describing whether the sample under study is male.}
 
 \item{chrom}{The name of a chromosome to subset the contents of the imputeinfofile with (optional)}
 }

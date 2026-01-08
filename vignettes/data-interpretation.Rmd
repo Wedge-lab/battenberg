@@ -82,8 +82,8 @@ cn_data$total_cn_clonal <- cn_data$nMaj1_A + cn_data$nMin1_A
 # For subclonal segments, calculate weighted average
 cn_data$total_cn_subclonal <- ifelse(
   !is.na(cn_data$nMaj2_A),
-  (cn_data$nMaj1_A + cn_data$nMin1_A) * cn_data$frac1_A + 
-  (cn_data$nMaj2_A + cn_data$nMin2_A) * cn_data$frac2_A,
+  (cn_data$nMaj1_A + cn_data$nMin1_A) * cn_data$frac1_A +
+    (cn_data$nMaj2_A + cn_data$nMin2_A) * cn_data$frac2_A,
   cn_data$nMaj1_A + cn_data$nMin1_A
 )
 
@@ -128,7 +128,7 @@ clonal_loh <- cn_data[cn_data$loh_state1 & cn_data$frac1_A == 1, ]
 # Subclonal LOH (some cells have LOH)
 subclonal_loh <- cn_data[
   (cn_data$loh_state1 & cn_data$frac1_A < 1) |
-  (cn_data$loh_state2 & !is.na(cn_data$frac2_A)), 
+    (cn_data$loh_state2 & !is.na(cn_data$frac2_A)),
 ]
 
 cat("Clonal LOH segments:", nrow(clonal_loh), "\n")
@@ -139,8 +139,8 @@ cat("Subclonal LOH segments:", nrow(subclonal_loh), "\n")
 
 ```{r eval = FALSE}
 # Calculate total LOH burden
-total_loh_length <- sum(clonal_loh$endpos - clonal_loh$startpos) + 
-                   sum(subclonal_loh$endpos - subclonal_loh$startpos)
+total_loh_length <- sum(clonal_loh$endpos - clonal_loh$startpos) +
+  sum(subclonal_loh$endpos - subclonal_loh$startpos)
 
 # Genome size (approximate)
 genome_size <- 3e9
@@ -165,7 +165,7 @@ altered_segments <- sum(cn_data$primary_total_cn != 2)
 
 cat("Total segments:", total_segments, "\n")
 cat("Altered segments:", altered_segments, "\n")
-cat("Fraction altered:", round(altered_segments/total_segments, 3), "\n")
+cat("Fraction altered:", round(altered_segments / total_segments, 3), "\n")
 ```
 
 ### Identify Chromothripsis
@@ -176,12 +176,12 @@ cat("Fraction altered:", round(altered_segments/total_segments, 3), "\n")
 
 identify_chromothripsis <- function(chr_data, min_segments = 10, max_size = 50e6) {
   chr_data <- chr_data[order(chr_data$startpos), ]
-  
-  for(i in 1:(nrow(chr_data) - min_segments + 1)) {
+
+  for (i in 1:(nrow(chr_data) - min_segments + 1)) {
     window_end <- i + min_segments - 1
     region_size <- chr_data$endpos[window_end] - chr_data$startpos[i]
-    
-    if(region_size <= max_size) {
+
+    if (region_size <= max_size) {
       return(TRUE)
     }
   }
@@ -190,9 +190,9 @@ identify_chromothripsis <- function(chr_data, min_segments = 10, max_size = 50e6
 
 # Check each chromosome
 chromothripsis_chrs <- c()
-for(chr in unique(cn_data$chr)) {
+for (chr in unique(cn_data$chr)) {
   chr_data <- cn_data[cn_data$chr == chr, ]
-  if(identify_chromothripsis(chr_data)) {
+  if (identify_chromothripsis(chr_data)) {
     chromothripsis_chrs <- c(chromothripsis_chrs, chr)
   }
 }
@@ -238,9 +238,9 @@ cat("Observed LogR for normal regions:", round(observed_logr, 3), "\n")
 ```{r eval = FALSE}
 # Subclonal events with significant fraction
 significant_subclonal <- cn_data[
-  !is.na(cn_data$frac2_A) & 
-  cn_data$frac2_A >= 0.1 &  # At least 10% of cells
-  cn_data$pval < 0.05,      # Significant subclonal call
+  !is.na(cn_data$frac2_A) &
+    cn_data$frac2_A >= 0.1 & # At least 10% of cells
+    cn_data$pval < 0.05, # Significant subclonal call
 ]
 
 cat("Significant subclonal events:", nrow(significant_subclonal), "\n")
@@ -252,11 +252,13 @@ cat("Significant subclonal events:", nrow(significant_subclonal), "\n")
 # Plot distribution of subclonal fractions
 subclonal_fractions <- cn_data$frac2_A[!is.na(cn_data$frac2_A)]
 
-if(length(subclonal_fractions) > 0) {
-  hist(subclonal_fractions, breaks = 20, 
-       main = "Distribution of Subclonal Fractions",
-       xlab = "Fraction of cells with subclonal state",
-       ylab = "Number of segments")
+if (length(subclonal_fractions) > 0) {
+  hist(subclonal_fractions,
+    breaks = 20,
+    main = "Distribution of Subclonal Fractions",
+    xlab = "Fraction of cells with subclonal state",
+    ylab = "Number of segments"
+  )
 }
 ```
 
@@ -273,7 +275,6 @@ analysis_summary <- list(
     total_segments = nrow(cn_data),
     altered_segments = sum(cn_data$primary_total_cn != 2)
   ),
-  
   copy_number_events = list(
     homozygous_deletions = sum(cn_data$primary_total_cn == 0),
     heterozygous_deletions = sum(cn_data$primary_total_cn == 1),
@@ -282,7 +283,6 @@ analysis_summary <- list(
     two_copy_gains = sum(cn_data$primary_total_cn == 4),
     high_level_amplifications = sum(cn_data$primary_total_cn >= 5)
   ),
-  
   subclonal_info = list(
     subclonal_segments = nrow(subclonal_segments),
     significant_subclonal = nrow(significant_subclonal),
@@ -300,17 +300,21 @@ print(analysis_summary)
 ```{r eval = FALSE}
 # Create detailed results table
 results_table <- cn_data %>%
-  select(chr, startpos, endpos, primary_total_cn, cn_event, 
-         nMaj1_A, nMin1_A, frac1_A, nMaj2_A, nMin2_A, frac2_A, pval) %>%
-  filter(primary_total_cn != 2)  # Only altered segments
+  select(
+    chr, startpos, endpos, primary_total_cn, cn_event,
+    nMaj1_A, nMin1_A, frac1_A, nMaj2_A, nMin2_A, frac2_A, pval
+  ) %>%
+  filter(primary_total_cn != 2) # Only altered segments
 
 # Write results
-write.table(results_table, "battenberg_analysis_results.txt", 
-            sep = "\t", row.names = FALSE, quote = FALSE)
+data.table::fwrite(results_table, "battenberg_analysis_results.txt",
+  sep = "\t", row.names = FALSE, quote = FALSE
+)
 
 # Write summary
-write.table(analysis_summary, "battenberg_analysis_summary.txt", 
-            sep = "\t", row.names = TRUE, quote = FALSE)
+data.table::fwrite(analysis_summary, "battenberg_analysis_summary.txt",
+  sep = "\t", row.names = TRUE, quote = FALSE
+)
 ```
 
 ## Visualization Examples
@@ -326,9 +330,11 @@ ggplot(cn_data, aes(x = midpoint, y = primary_total_cn)) +
   geom_point(size = 0.5) +
   geom_line() +
   facet_wrap(~chr, scales = "free_x") +
-  labs(title = "Copy Number Profile",
-       x = "Genomic Position",
-       y = "Total Copy Number") +
+  labs(
+    title = "Copy Number Profile",
+    x = "Genomic Position",
+    y = "Total Copy Number"
+  ) +
   theme_minimal()
 ```
 
@@ -338,13 +344,15 @@ ggplot(cn_data, aes(x = midpoint, y = primary_total_cn)) +
 # Plot subclonal fractions across genome
 subclonal_data <- cn_data[!is.na(cn_data$frac2_A), ]
 
-if(nrow(subclonal_data) > 0) {
+if (nrow(subclonal_data) > 0) {
   ggplot(subclonal_data, aes(x = midpoint, y = frac2_A)) +
     geom_point(aes(color = chr), size = 1) +
     facet_wrap(~chr, scales = "free_x") +
-    labs(title = "Subclonal Fractions Across Genome",
-         x = "Genomic Position",
-         y = "Fraction of Cells with Subclonal State") +
+    labs(
+      title = "Subclonal Fractions Across Genome",
+      x = "Genomic Position",
+      y = "Fraction of Cells with Subclonal State"
+    ) +
     theme_minimal() +
     theme(legend.position = "none")
 }
@@ -358,12 +366,12 @@ if(nrow(subclonal_data) > 0) {
 # Use utility functions for refit analysis
 # Calculate refit values for specific segments
 refit_result <- calc_rho_psi_refit(
-  refBAF = 0.65,      # BAF of segment
-  refLogR = 0.3,      # LogR of segment  
-  refMajor = 3,       # Major allele CN
-  refMinor = 1,       # Minor allele CN
+  refBAF = 0.65, # BAF of segment
+  refLogR = 0.3, # LogR of segment
+  refMajor = 3, # Major allele CN
+  refMinor = 1, # Minor allele CN
   rho = tumor_purity, # Current purity
-  gamma_param = 1     # Platform gamma
+  gamma_param = 1 # Platform gamma
 )
 
 print(refit_result)
@@ -391,13 +399,13 @@ cnfit_to_refit_suggestions(
 quality_checks <- list(
   # Very short segments might be artifacts
   short_segments = sum((cn_data$endpos - cn_data$startpos) < 1e6),
-  
+
   # Very low purity might indicate contamination
   low_purity = tumor_purity < 0.3,
-  
+
   # Excessive segmentation might indicate noise
   excessive_segments = nrow(cn_data) > 1000,
-  
+
   # Check for failed subclonal calls
   failed_subclonal = sum(is.na(cn_data$frac1_A))
 )

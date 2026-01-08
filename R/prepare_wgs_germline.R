@@ -35,7 +35,6 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles.prefix, chrom_names) {
     al <- read.table(paste0(g1000alleles.prefix, chr, ".txt"), header = TRUE, stringsAsFactors = FALSE)
     AL[[chr]] <- al
     print(length(AL))
-    # etc
     ref <- al$a0
     ref_df <- data.frame(pos = seq_len(nrow(al)), ref = ref + 2)
     REF <- ac[cbind(ref_df$pos, ref_df$ref)]
@@ -48,7 +47,6 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles.prefix, chrom_names) {
     o <- cbind(al, mac)
     names(o) <- c("Position", "a0", "a1", "ref", "alt", "depth", "baf")
     MaC[[chr]] <- o
-    # extract rows with 0.1=<baf=<0.9
     ohet <- o[which(o$baf >= 0.10 & o$baf <= 0.90 & o$depth > 10), ]
     ohet$Position2 <- c(ohet$Position[2:nrow(ohet)], 2 * ohet$Position[nrow(ohet)] - ohet$Position[nrow(ohet) - 1])
     ohet$Position_dist <- ohet$Position2 - ohet$Position
@@ -67,7 +65,6 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles.prefix, chrom_names) {
   names(MAC) <- c("chr", "position", "a0", "a1", "ref", "alt", "coverage", "baf")
   print(head(MAC))
   print(dim(MAC))
-  # MAC$logr=log2(MAC$coverage/mean(MAC$coverage))
   MAC$logr <- log2(MAC$coverage / mean(MAC$coverage, na.rm = TRUE)) # in case of coverage == NA due to non-matching alleles or presence of indels in loci file
   MACC <- MAC[which(!is.na(MAC$baf)), ]
   print(nrow(MAC) - nrow(MACC))
@@ -76,14 +73,14 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles.prefix, chrom_names) {
   names(BAF)[names(BAF) == "germline"] <- germline
   BAF <- BAF[order(BAF$Chromosome, BAF$Position), ]
   BAF$Chromosome[BAF$Chromosome == 23] <- "X" # revert back from 23 to X for Chromosome number
-  write.table(BAF, paste0(germline, "_mutantBAF.tab"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  data.table::fwrite(BAF, paste0(germline, "_mutantBAF.tab"), col_names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
   rm(BAF)
 
   LogR <- data.frame(Chromosome = MACC$chr, Position = MACC$pos, germline = MACC$logr)
   names(LogR)[names(LogR) == "germline"] <- germline
   LogR <- LogR[order(LogR$Chromosome, LogR$Position), ]
   LogR$Chromosome[LogR$Chromosome == 23] <- "X" # revert back from 23 to X for Chromosome number
-  write.table(LogR, paste0(germline, "_mutantLogR.tab"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  data.table::fwrite(LogR, paste0(germline, "_mutantLogR.tab"), col_names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 
   rm(MAC)
   rm(MaC)
@@ -118,10 +115,19 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles.prefix, chrom_names) {
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
 
-germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, chrom, GL_OHET, GL_AL, GL_AC, GL_LogR, GAMMA_IVD, KMIN_IVD, CENTROMERE_NOISE_SEG_SIZE, CENTROMERE_DIST, MIN_HET_DIST, GAMMA_LOGR, LENGTH_ADJACENT) {
+germline_reconstruct_normal <- function(
+  GERMLINENAME, NORMALNAME,
+  chrom_coord, chrom,
+  GL_OHET, GL_AL, GL_AC,
+  GL_LogR, GAMMA_IVD, KMIN_IVD,
+  CENTROMERE_NOISE_SEG_SIZE,
+  CENTROMERE_DIST, MIN_HET_DIST,
+  GAMMA_LOGR, LENGTH_ADJACENT
+) {
   # IDENTIFY REGIONS OF LOH #
   colClasses <- c(chr = "numeric", start = "numeric", cen.left.base = "numeric", cen.right.base = "numeric", end = "numeric")
-  chr_loc <- read.table(chrom_coord, colClasses = colClasses, header = TRUE, stringsAsFactors = FALSE) # chrom_coord = full path to chromosome coordinates
+  # chrom_coord = full path to chromosome coordinates
+  chr_loc <- read.table(chrom_coord, colClasses = colClasses, header = TRUE, stringsAsFactors = FALSE)
   chr_loc$length <- (chr_loc$cen.left.base - chr_loc$start) + (chr_loc$end - chr_loc$cen.right.base)
   # STEP 2.0: identify LOH by IVD-PCF
   LOH <- list()
@@ -133,7 +139,8 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
   print(paste("chrom=", i))
   pcf_input <- data.frame(chr = i, position = GL_OHET[[i]]$Position, IVD = (GL_OHET[[i]]$Position_dist_percent))
   pcf_input <- pcf_input[which(pcf_input$position < chr_loc[i, "cen.left.base"] - CENTROMERE_DIST | pcf_input$position > chr_loc[i, "cen.right.base"] + CENTROMERE_DIST), ]
-  pcf_input <- pcf_input[which(pcf_input$position >= chr_loc[i, "start"] & pcf_input$position <= chr_loc[i, "end"]), ] # use only regions covered with gcCorrect LogR range
+  # use only regions covered with gcCorrect LogR range
+  pcf_input <- pcf_input[which(pcf_input$position >= chr_loc[i, "start"] & pcf_input$position <= chr_loc[i, "end"]), ]
   PCF <- pcf(pcf_input, gamma = GAMMA_IVD, kmin = KMIN_IVD)
   pdf(paste0(PCF_folder, "/", GERMLINENAME, "_chr", i, "_PCF_plot.pdf"))
   plotChrom(pcf_input, PCF)
@@ -146,10 +153,12 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
   # minimum normal density for SNPs (in bps) is 3 x 10^-4 with median of 7 x 10^-4
   ####
   min_normal_snp_density <- 0.0001
-  loh_regions <- PCF[which(round(PCF$mean, 3) > 0.001), ] # LOH regions
-  loh_regions <- loh_regions[which(loh_regions$n.probes > 1), ] # only keep segments with minimum of 2 probes (SNPs) in PCF jump
+  loh_regions <- PCF[which(round(PCF$mean, 3) > 0.001), ]
+  # only keep segments with minimum of 2 probes (SNPs) in PCF jump
+  loh_regions <- loh_regions[which(loh_regions$n.probes > 1), ]
   if (nrow(loh_regions) > 0) {
-    if (mean(pcf_input$IVD) > 0.01 && chr_snp_density < min_normal_snp_density) { # can change chr_snp_density from 0.00005 to 0.0001 as conservative measure - done
+    # can change chr_snp_density from 0.00005 to 0.0001 as conservative measure - done
+    if (mean(pcf_input$IVD) > 0.01 && chr_snp_density < min_normal_snp_density) {
       # mean(pcf_input$IVD) or mean(PCF$mean) indicates presence of jumps in IVD
       loh_regions <- loh_regions # LOH regions
       print(paste("full-length chromosomal loss at chr", i))
@@ -165,37 +174,23 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
     loh_regions <- 0
   }
 
-  # loop to turn empty dataframe to 0 for loh_regions
-  # suppressWarnings(
-  #  if (loh_regions[1]!=0){
-  #   if (nrow(loh_regions)==0){
-  #      loh_regions=0
-  #    } else {print("dataframe non-empty")}
-  #  } else {print("no LOH at all")})
-
   # filter regions for those next to the centromere and 'short'
   noise <- NULL
   if (!is.null(nrow(loh_regions))) {
     for (j in seq_len(nrow(loh_regions))) {
       if (loh_regions$arm[j] == "p") {
-        # if (loh_regions$end.pos[j]-chr_loc$cen.left.base[i]<1e5 & loh_regions$diff[j]<1e6){ #FOR EXCLUSION: max distance to centromere = 100kb , max length of short LOH region = 1Mb
-        #  noise=append(noise,j)
-        # }
-        if (loh_regions$end.pos[j] > chr_loc$cen.left.base[i] && loh_regions$diff[j] < CENTROMERE_NOISE_SEG_SIZE) { # FOR EXCLUSION: segment is short IVD region (default<1Mb) and endpos is over the p-arm limit (ending point)
+        # FOR EXCLUSION: segment is short IVD region (default<1Mb) and endpos is over the p-arm limit (ending point)
+        if (loh_regions$end.pos[j] > chr_loc$cen.left.base[i] && loh_regions$diff[j] < CENTROMERE_NOISE_SEG_SIZE) {
           noise <- append(noise, j)
         }
-        # if (loh_regions$end.pos[j]>chr_loc$cen.left.base[i] & loh_regions$diff[j]>CENTROMERE_NOISE_SEG_SIZE & !is.na(match(chrom,c(1,9,16)))){ # Chr 1,9,16 have large heterochromatin region next to centromere
-        #  noise=append(noise,j)
-        # }
       }
       if (loh_regions$arm[j] == "q") {
-        # if (loh_regions$start.pos[j]-chr_loc$cen.right.base[i]<1e5 & loh_regions$diff[j]<1e6){ #FOR EXCLUSION: max distance to centromere = 100kb , max length of short LOH region = 1Mb
-        #  noise=append(noise,j)
-        # }
-        if (loh_regions$start.pos[j] < chr_loc$cen.right.base[i] && loh_regions$diff[j] < CENTROMERE_NOISE_SEG_SIZE) { # FOR EXCLUSION: segment is short IVD region (default<1Mb) and startpos is below the q-arm limit (starting point)
+        # FOR EXCLUSION: segment is short IVD region (default<1Mb) and startpos is below the q-arm limit (starting point)
+        if (loh_regions$start.pos[j] < chr_loc$cen.right.base[i] && loh_regions$diff[j] < CENTROMERE_NOISE_SEG_SIZE) {
           noise <- append(noise, j)
         }
-        if (loh_regions$start.pos[j] < (chr_loc$cen.right.base[i] + 1e5) && loh_regions$diff[j] > CENTROMERE_NOISE_SEG_SIZE && !is.na(match(chrom, c(1, 9, 16)))) { # qARM of Chr 1,9,16 have large heterochromatin region next to centromere + 100kb tolerance for start of heterochromatin region
+        # qARM of Chr 1,9,16 have large heterochromatin region next to centromere + 100kb tolerance for start of heterochromatin region
+        if (loh_regions$start.pos[j] < (chr_loc$cen.right.base[i] + 1e5) && loh_regions$diff[j] > CENTROMERE_NOISE_SEG_SIZE && !is.na(match(chrom, c(1, 9, 16)))) {
           noise <- append(noise, j)
         }
       }
@@ -237,9 +232,10 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
   ac <- GL_AC[[i]]
   al <- GL_AL[[i]]
   names(ac) <- c("chr", "position", 1:4, "depth")
-  chr_interval <- c(chr_loc[i, "start"], chr_loc[i, "end"]) # use gcCorrect LogR range for chromosome interval
+  # use gcCorrect LogR range for chromosome interval
+  chr_interval <- c(chr_loc[i, "start"], chr_loc[i, "end"])
   if (!is.null(nrow(LOH[[i]]))) {
-    non_LOH <- data.frame() ## get all non_LOH regions ##
+    non_LOH <- data.frame()
     for (j in 1:(nrow(LOH[[i]]) + 1)) {
       if (j == 1 && chr_interval[1] == LOH[[i]]$start.pos[j]) {
         print("LOH from start of chromosome")
@@ -250,7 +246,8 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
       } else if (j > 1 && j <= nrow(LOH[[i]]) && LOH[[i]]$arm[j] != LOH[[i]]$arm[j - 1]) {
         non_loh <- data.frame(start = c(LOH[[i]]$end.pos[j - 1] + 1, chr_loc[i, ]$cen.right.base), end = c(chr_loc[i, ]$cen.left.base, LOH[[i]]$start.pos[j] - 1))
       } else {
-        if ((LOH[[i]]$end.pos[j - 1] + 1) < chr_interval[2]) { # avoids going over the chromosome interval
+        # avoids going over the chromosome interval
+        if ((LOH[[i]]$end.pos[j - 1] + 1) < chr_interval[2]) {
           non_loh <- data.frame(start = LOH[[i]]$end.pos[j - 1] + 1, end = chr_interval[2])
         } else {
           print("reached end of chromosome")
@@ -280,19 +277,18 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
   non_LOH <- non_LOH[order(non_LOH$start), ] # the non_LOH should always be in order by position
 
   # STEP 2.1: identify LOH by inter-HET SNP regions # differentiating from HOM stretch in sample with logR < -0.8
-  winsize <- MIN_HET_DIST
   ohet <- GL_OHET[[i]]
   nSNPs <- as.numeric(nrow(GL_LogR))
   logr <- GL_LogR[which(GL_LogR$Chromosome == i), ]
   colnames(logr)[3] <- "LogR"
   logr$Position <- as.numeric(logr$Position)
-  if (!is.null(non_LOH)) { # if regions of non_LOH exist after IVD-PCF, run window-based search
+  # if regions of non_LOH exist after IVD-PCF, run window-based search
+  if (!is.null(non_LOH)) {
     pLOH_regions <- data.frame()
     if (is.na(match(i, c(13, 14, 15, 21, 22)))) {
       print(paste("START", i, "p ARM"))
       PARM <- non_LOH[which(non_LOH$end <= chr_loc[i, ]$cen.left.base), ]
       if (nrow(PARM) > 0) {
-        # if (nrow(PARM)==1 & non_LOH$start[1]==chr_interval[1] & non_LOH$end[1]==chr_interval[2]){
         parm <- PARM
       } else if (nrow(PARM) == 0 && sum(non_LOH$diff) != 0) {
         parm <- data.frame(start = chr_interval[1], end = chr_loc[i, ]$cen.left.base - CENTROMERE_DIST)
@@ -301,7 +297,8 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
       }
 
       if (parm[nrow(parm), 1] < (parm[nrow(parm), 2] - CENTROMERE_DIST)) {
-        parm[nrow(parm), 2] <- parm[nrow(parm), 2] - CENTROMERE_DIST # exclude the last CENTROMERE_DIST segment next to the centromere (left side) - too noisy
+        # exclude the last CENTROMERE_DIST segment next to the centromere (left side) - too noisy
+        parm[nrow(parm), 2] <- parm[nrow(parm), 2] - CENTROMERE_DIST
       } else {
         parm <- parm[-nrow(parm), ]
       }
@@ -312,32 +309,28 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
         LoH <- data.frame()
         # IVD-based breakpoints for small regions#
         seg_ivd <- ohet[which(ohet$Position_dist >= MIN_HET_DIST & ohet$Position >= parm$start[seg] & ohet$Position <= parm$end[seg]), ]
-        # if (!is.null(nrow(seg_ivd))){
         if (nrow(seg_ivd) > 0) {
           win <- nrow(seg_ivd)
           print(win)
-          # win=floor(parm$diff[seg]/winsize)
-          # print(win)
-          # if (win>0){
           for (j in 1:win) {
             loh <- NULL
             start <- seg_ivd$Position[j]
             end <- start + seg_ivd$Position_dist[j]
-            COV <- logr[which(logr$Position > start & logr$Position < end), ] # logR of homozygote SNPs within
-            medcov <- median(COV[, 3])
+            # logR of homozygote SNPs within
+            COV <- logr[which(logr$Position > start & logr$Position < end), ]
             cov <- mean(COV[, 3])
             denSNP <- nrow(COV) / (nSNPs / sum(chr_loc$length) * seg_ivd$Position_dist[j])
-            # if (!is.na(cov) & cov < -0.8 & medcov < -0.8 & !is.null(denSNP) & denSNP>0.5){ # to use a minimum SNP density of 0.5 to get logR estimate
-            if (!is.na(cov) && !is.null(denSNP) && denSNP > 0.5) { # to use a minimum SNP density of 0.5 to get logR estimate AND not put the cov cut-off before applying PCF
-              # loh=data.frame(start=start,end=end,LogR=cov,medianLogR=medcov,denSNP=denSNP)
+            # to use a minimum SNP density of 0.5 to get logR estimate AND not put the cov cut-off before applying PCF
+            if (!is.na(cov) && !is.null(denSNP) && denSNP > 0.5) {
               jpcf <- pcf(COV, gamma = GAMMA_LOGR, verbose = FALSE)
               jpcf <- jpcf[which(jpcf$mean < -0.8), ]
               if (nrow(jpcf) > 0) {
                 loh <- data.frame(start = jpcf$start.pos[1], end = jpcf$end.pos[nrow(jpcf)], LogR = mean(jpcf$mean), denSNP = denSNP)
                 loh$N <- nrow(logr[which(logr$Position >= loh$start & logr$Position <= loh$end), ])
+                # if LOH region is supported by less than 10 SNPs, then remove it
                 if (loh$N < 10) {
                   loh <- NULL
-                } # if LOH region is supported by less than 10 SNPs, then remove it
+                }
               }
             }
             if (!is.null(loh)) {
@@ -365,9 +358,11 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
             for (j in 2:nrow(LoH)) {
               print(j)
               if (LoH$start[j] == LoH$end[j - 1]) {
-                end <- LoH$end[j] # include the new row (i) in the merge
+                # include the new row (i) in the merge
+                end <- LoH$end[j]
               } else {
-                end <- LoH$end[j - 1] # stop merge at the previous row (i-1)
+                # stop merge at the previous row (i-1)
+                end <- LoH$end[j - 1]
                 LoH_regions <- rbind(LoH_regions, data.frame(chrom = i, arm = "p", start.pos = start, end.pos = end))
                 start <- LoH$start[j]
               }
@@ -401,7 +396,6 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
               xlim(pLOH_regions$start.pos[s] - LENGTH_ADJACENT, pLOH_regions$end.pos[s] + LENGTH_ADJACENT)
             grid.newpage()
             grid.draw(rbind(ggplotGrob(sBAF), ggplotGrob(sLogR), size = "last"))
-            # print(plot_grid(sBAF,sLogR, ncol = 1, align = "v"))
           }
         )
         dev.off()
@@ -416,14 +410,14 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
     qLOH_regions <- data.frame()
     QARM <- non_LOH[which(non_LOH$start >= chr_loc[i, ]$cen.right.base), ]
     if (nrow(QARM) > 0) {
-      # if (nrow(PARM)==1 & non_LOH$start[1]==chr_interval[1] & non_LOH$end[1]==chr_interval[2]){
       qarm <- QARM
     } else if (nrow(QARM) == 0 && sum(non_LOH$diff) != 0) {
       qarm <- data.frame(start = chr_loc[i, ]$cen.right.base, end = chr_interval[2])
     } else {
       print("unknown issue")
     }
-    qarm[1, 1] <- qarm[1, 1] + CENTROMERE_DIST # to exclude the first CENTROMERE_DIST next to the centromere (right side) - noisy
+    # to exclude the first CENTROMERE_DIST next to the centromere (right side) - noisy
+    qarm[1, 1] <- qarm[1, 1] + CENTROMERE_DIST
     qarm$diff <- qarm$end - qarm$start
     #
     # search per non_LOH segment
@@ -431,24 +425,18 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
       LoH <- data.frame()
       # IVD-based breakpoints for small regions#
       seg_ivd <- ohet[which(ohet$Position_dist >= MIN_HET_DIST & ohet$Position >= qarm$start[seg] & ohet$Position <= qarm$end[seg]), ]
-      # if (!is.null(nrow(seg_ivd))){
       if (nrow(seg_ivd) > 0) {
         win <- nrow(seg_ivd)
         print(win)
-        # win=floor(qarm$diff[seg]/winsize)
-        # print(win)
-        # if (win>0){
         for (j in 1:win) {
           loh <- NULL
           start <- seg_ivd$Position[j]
           end <- start + seg_ivd$Position_dist[j]
           COV <- logr[which(logr$Position > start & logr$Position < end), ] # logR of homozygote SNPs within
           cov <- mean(COV[, 3])
-          medcov <- median(COV[, 3])
           denSNP <- nrow(COV) / (nSNPs / sum(chr_loc$length) * seg_ivd$Position_dist[j])
-          # if (!is.na(cov) & cov < -0.8 & medcov < -0.8 & !is.null(denSNP) & denSNP>0.5){ # to use a minimum SNP density of 0.5 to get logR estimate
-          if (!is.na(cov) && !is.null(denSNP) && denSNP > 0.5) { # to use a minimum SNP density of 0.5 to get logR estimate AND not put the cov cut-off before applying PCF
-            # loh=data.frame(start=start,end=end,LogR=cov,medianLogR=medcov,denSNP=denSNP)
+          # to use a minimum SNP density of 0.5 to get logR estimate AND not put the cov cut-off before applying PCF
+          if (!is.na(cov) && !is.null(denSNP) && denSNP > 0.5) {
             jpcf <- pcf(COV, gamma = GAMMA_LOGR, verbose = FALSE)
             jpcf <- jpcf[which(jpcf$mean < -0.8), ]
             if (nrow(jpcf) > 0) {
@@ -564,7 +552,6 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
       }
     }
 
-
     # combine adjacent regions into larger regions of LOH
     if (!is.null(nrow(LOH[[i]]))) {
       LOH[[i]] <- LOH[[i]][!duplicated(LOH[[i]]), ]
@@ -577,10 +564,12 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
           for (j in 2:nrow(LOHarm)) {
             print(j)
             if (LOHarm$start.pos[j] == LOHarm$end.pos[j - 1]) {
-              end <- LOHarm$end.pos[j] # include the new row (i) in the merge
+              # include the new row (i) in the merge
+              end <- LOHarm$end.pos[j]
             } else {
               if (LOHarm$start.pos[j] > LOHarm$end.pos[j - 1]) {
-                end <- LOHarm$end.pos[j - 1] # stop merge at the previous row (i-1)
+                # stop merge at the previous row (i-1)
+                end <- LOHarm$end.pos[j - 1]
                 LOHall <- rbind(LOHall, data.frame(chrom = i, arm = arm, start.pos = start, end.pos = end))
                 start <- LOHarm$start.pos[j]
               } else if (LOHarm$start.pos[j] < LOHarm$end.pos[j - 1]) {
@@ -605,7 +594,8 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
     }
     print("LOHall")
     print(LOHall)
-  } else { # no non_LOH region was found - all chromosome is called as LOH (highly unlikely at germline level)
+  } else {
+    # no non_LOH region was found - all chromosome is called as LOH (highly unlikely at germline level)
     LOHall <- LOH[[i]][, c("chrom", "arm", "start.pos", "end.pos")]
     print("LOHall")
     print(LOHall)
@@ -630,7 +620,8 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
   if (!is.null(nrow(LOHall))) {
     names(ac) <- c("chr", "position", 1:4, "depth")
     chr_interval <- c(ac$position[1], ac$position[nrow(ac)])
-    non_LOH <- data.frame() ####################################### get all non_LOH regions#
+    non_LOH <- data.frame()
+    ####################################### get all non_LOH regions#
     for (j in 1:(nrow(LOHall) + 1)) {
       if (j == 1 && chr_interval[1] == LOHall$start.pos[j]) {
         print("LOH from start of chromosome")
@@ -644,7 +635,8 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
         non_loh <- data.frame(start = c(min(LOHall$end.pos[j - 1] + 1, chr_loc[i, ]$cen.left.base), chr_loc[i, ]$cen.right.base), end = c(chr_loc[i, ]$cen.left.base, LOHall$start.pos[j] - 1))
         print("THREE")
       } else {
-        if ((LOHall$end.pos[j - 1] + 1) < chr_interval[2]) { # avoids going over the chromosome interval
+        # avoids going over the chromosome interval
+        if ((LOHall$end.pos[j - 1] + 1) < chr_interval[2]) {
           non_loh <- data.frame(start = LOHall$end.pos[j - 1] + 1, end = chr_interval[2])
         } else {
           print("reached end of chromosome")
@@ -659,21 +651,27 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
     # the non-LOH region length from PCF is:
     if (!is.null(nrow(non_LOH))) {
       non_LOH$length <- non_LOH$end - non_LOH$start
-      non_LOH <- non_LOH[non_LOH$length >= 0, ] # picks all non_LOH segments even if 1bp in length
-      non_LOH_length <- sum(non_LOH$length) # total length of non-LOH regions in chr i
+      # picks all non_LOH segments even if 1bp in length
+      non_LOH <- non_LOH[non_LOH$length >= 0, ]
+      # total length of non-LOH regions in chr i
+      non_LOH_length <- sum(non_LOH$length)
       print(paste("Total length of non LOH regions =", non_LOH_length))
       # average Het SNP interval:
-      if (non_LOH_length > 1e6) { # run this only if combined non-LOH regions are at least 1Mb long
-        SNP_interval <- non_LOH_length / nrow(GL_OHET[[i]]) # estimate of genomic space between any two Het SNPs
+      # run this only if combined non-LOH regions are at least 1Mb long
+      if (non_LOH_length > 1e6) {
+        # estimate of genomic space between any two Het SNPs
+        SNP_interval <- non_LOH_length / nrow(GL_OHET[[i]])
       } else {
         SNP_interval <- 2000
-      } # replace with 5000 to increase run speed!?
+      }
+      # replace with 5000 to increase run speed!?
       # no. of SNPs to be Hets in the LOH region (COMBINED FOR THE WHOLE CHROMOSOME):
       LOH_hetSNP_number <- floor(sum(LOHall$diff) / SNP_interval)
       print(paste("No. of Het SNPs to be added to LOH regions:", LOH_hetSNP_number))
     }
     # reconstruct allele counts for the LOH region based on actual depth for all to be perfect heterozygotes - allele counts remain as integers
-    lohs <- data.frame() ####################################### get all non_LOH regions####
+    lohs <- data.frame()
+    ####################################### get all non_LOH regions####
     for (j in seq_len(nrow(LOHall))) {
       loh <- ac[which(ac$position >= LOHall$start.pos[j] & ac$position <= LOHall$end.pos[j]), ]
       m <- merge(loh, al, "position")
@@ -683,21 +681,21 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
         print("ERROR - merge not OK")
       }
       # RE-reconstruct allele counts for LOH region
-      hetSNP_number <- max(LOHall$diff[j] / SNP_interval, 10) # at least ten SNPs (if available in region) should be spiked in to be heterozygotes for PCF in Battenberg to pick it up
+      # # at least ten SNPs (if available in region) should be spiked in to be heterozygotes for PCF in Battenberg to pick it up
+      hetSNP_number <- max(LOHall$diff[j] / SNP_interval, 10)
       if (nrow(m) >= hetSNP_number) {
         print("more rows in LOH region than Het SNP number")
-        spike <- c(1, head(which(seq_len(nrow(m)) %% floor(nrow(m) / (hetSNP_number - 1)) == 0), -1), nrow(m)) # to make the exact breakpoints are seen by Battenberg - making 1st and last SNP in region heterozygote
+        # to make the exact breakpoints are seen by Battenberg - making 1st and last SNP in region heterozygote
+        spike <- c(1, head(which(seq_len(nrow(m)) %% floor(nrow(m) / (hetSNP_number - 1)) == 0), -1), nrow(m))
         for (k in spike) {
-          # for (k in 1:nrow(m)){
-          # if (k %% floor(nrow(m)/hetSNP_number)==0){
           m$depth[k] <- max(m$depth[k], 10)
           m[cbind(k, 2 + m$a0[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, ceiling(m$depth[k] / 2))
           m[cbind(k, 2 + m$a1[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, floor(m$depth[k] / 2))
           print(k)
-          # }
         }
       } else {
-        print("less rows in LOH region than Het SNP number - turning all into Heterozygotes") # technically shouldn't happen
+        # technically shouldn't happen
+        print("less rows in LOH region than Het SNP number - turning all into Heterozygotes")
         for (k in seq_len(nrow(m))) {
           m$depth[k] <- max(m$depth[k], 10)
           m[cbind(k, 2 + m$a0[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, ceiling(m$depth[k] / 2))
@@ -722,7 +720,7 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
     if (nrow(non_lohs) + nrow(lohs) == nrow(ac)) {
       ac_out <- rbind(non_lohs, lohs)
       ac_out <- ac_out[order(ac_out$position), ]
-      write.table(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+      data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col_names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
       print(paste("reconstruction OK - new alleleCounts file generated for chr", i))
     } else {
       centro_ac <- ac[which(ac$position > chr_loc$cen.left.base[i] & ac$position < chr_loc$cen.right.base[i]), ]
@@ -731,14 +729,14 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
       ac_out <- ac_out[!duplicated(ac_out$position), ]
       if (nrow(ac_out) == nrow(ac)) {
         print("reconstruction OK but SNPs found in the centromeric region - adding them back for consistency with original ac files")
-        write.table(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+        data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col_names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
       } else {
         print("ERROR - missing SNPs - LOH and non-LOH regions not generated correctly; no AC file generated")
       }
     }
   } else {
     ac_out <- ac
-    write.table(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+    data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col_names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
     print(paste("No changes made to the alleleCounter file - no LOH in chr", i))
   }
   print(paste("STEP 2&3 - chr", i, "completed"))
@@ -747,137 +745,136 @@ germline_reconstruct_normal <- function(GERMLINENAME, NORMALNAME, chrom_coord, c
 #' Prepare data for impute
 #'
 #' @param chrom The chromosome for which impute input should be generated.
-#' @param germline.allele.counts.file Output from the allele counter on the matched germline for this chromosome.
-#' @param normal.allele.counts.file Output from the allele counter on the matched normal for this chromosome.
-#' @param output.file File where the impute input for this chromosome will be written.
+#' @param germline_allele_counts_file Output from the allele counter on the matched germline for this chromosome.
+#' @param normal_allele_counts_file Output from the allele counter on the matched normal for this chromosome.
+#' @param output_file File where the impute input for this chromosome will be written.
 #' @param imputeinfofile Info file with impute reference information.
-#' @param is.male Boolean denoting whether this sample is male (TRUE), or female (FALSE).
-#' @param problemLociFile A file containing genomic locations that must be discarded (optional).
-#' @param useLociFile A file containing genomic locations that must be included (optional).
-#' @param heterozygousFilter The cutoff where a SNP will be considered as heterozygous (default 0.01).
+#' @param is_male Boolean denoting whether this sample is male (TRUE), or female (FALSE).
+#' @param problem_loci_file A file containing genomic locations that must be discarded (optional).
+#' @param use_loci_file A file containing genomic locations that must be included (optional).
+#' @param heterozygous_filter The cutoff where a SNP will be considered as heterozygous (default 0.01).
 #' @author dw9, sd11, Naser Ansari-Pour (BDI, Oxford)
 #' @export
-generate.impute.input.wgs.germline <- function(
+generate_impute_input_wgs_germline <- function(
   chrom,
-  germline.allele.counts.file,
-  normal.allele.counts.file,
-  output.file,
+  germline_allele_counts_file,
+  normal_allele_counts_file,
+  output_file,
   imputeinfofile,
-  is.male,
-  problemLociFile = NA,
-  useLociFile = NA,
-  heterozygousFilter = 0.1
+  is_male,
+  problem_loci_file = NA,
+  use_loci_file = NA,
+  heterozygous_filter = 0.1
 ) {
-  # Read in the 1000 genomes reference file paths for the specified chrom
-  impute.info <- parse_imputeinfofile(imputeinfofile, is.male, chrom = chrom)
-  logger::log_debug("Unique Chromosomes: {unique(impute.info$chrom)}")
-  chrom_name <- parse_imputeinfofile(imputeinfofile, is.male)$chrom[chrom]
+  # Load impute reference info
+  impute_info <- parse_imputeinfofile(imputeinfofile, is_male, chrom = chrom)
+  chrom_name <- unique(impute_info$chrom)
 
-  logger::log_debug("GenerateImputeInput is.male?: {is.male}")
-  logger::log_debug("GenerateImputeInput #impute files? , {nrow(impute.info)}")
-
+  # Load and combine known SNPs from legend files
   known_SNPs <- data.table::rbindlist(
-    lapply(impute.info$impute_legend, data.table::fread, sep = " "),
+    lapply(impute_info$impute_legend, data.table::fread, sep = " "),
     use.names = TRUE
   )
-
   data.table::setkey(known_SNPs, position)
 
-  # 2. Filter Problem Loci (Anti-Join)
-  if (!is.na(problemLociFile) && problemLociFile != "NA") {
+  # Filter problem loci (anti-join)
+  if (!is.na(problem_loci_file) && problem_loci_file != "NA") {
     problemSNPs <- data.table::fread(
-      problemLociFile,
+      problem_loci_file,
       sep = "\t",
-      select = c("Chr", "Pos"),
-      colClasses = c(Chr = "character", Pos = "integer") # Explicit types = speed
-    )
-    problemSNPs <- problemSNPs[Chr == chrom_name]
+      select = c("Chr", "Pos")
+    )[Chr == chrom_name]
+
     data.table::setkey(problemSNPs, Pos)
     known_SNPs <- known_SNPs[!problemSNPs, on = c(position = "Pos")]
   }
 
-  if (!is.na(useLociFile) && useLociFile != "NA") {
-    goodSNPs <- data.table::fread(useLociFile, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
-    goodSNPs <- goodSNPs[chr == chrom_name, pos]
-    known_SNPs <- known_SNPs[known_SNPs$position %in% goodSNPs]
+  # Filter to explicitly allowed loci
+  if (!is.na(use_loci_file) && use_loci_file != "NA") {
+    goodSNPs <- data.table::fread(use_loci_file, sep = "\t")[chr == chrom_name, pos]
+    known_SNPs <- known_SNPs[position %in% goodSNPs]
   }
 
-
+  # Load allele counts
   cnt_names <- c("chr", "position", "ref_base", "A", "C", "G", "T")
-  # Load Germline/Tumor counts
-  snp_data <- data.table::fread(germline.allele.counts.file, sep = "\t", header = FALSE, comment.char = "#")
-  data.table::setnames(snp_data, seq_along(cnt_names), cnt_names)
 
-  # Load Normal counts
-  normal_snp_data <- data.table::fread(normal.allele.counts.file, sep = "\t", header = FALSE, comment.char = "#")
-  data.table::setnames(normal_snp_data, seq_along(cnt_names), cnt_names)
+  snp_data <- data.table::fread(
+    germline_allele_counts_file,
+    sep = "\t",
+    header = FALSE,
+    comment.char = "#"
+  )
+  data.table::setnames(snp_data, cnt_names)
 
-  data.table::setkey(known_SNPs, position)
+  normal_snp_data <- data.table::fread(
+    normal_allele_counts_file,
+    sep = "\t",
+    header = FALSE,
+    comment.char = "#"
+  )
+  data.table::setnames(normal_snp_data, cnt_names)
+
   data.table::setkey(snp_data, position)
   data.table::setkey(normal_snp_data, position)
+
+  # Join reference SNPs to observed data
   found_data <- known_SNPs[snp_data, nomatch = NULL][normal_snp_data, nomatch = NULL]
-  rm(snp_data, normal_snp_data)
 
-  n_matched <- nrow(found_data)
+  n <- nrow(found_data)
+  if (n == 0L) {
+    stop("No SNPs matched between reference and allele counts")
+  }
 
-  ref_col_names <- paste0("i.", found_data$a0)
-  alt_col_names <- paste0("i.", found_data$a1)
-  rows <- seq_len(n_matched)
-  ref_counts <- as.numeric(found_data[cbind(rows, match(ref_col_names, names(found_data)))])
-  alt_counts <- as.numeric(found_data[cbind(rows, match(alt_col_names, names(found_data)))])
+  # Compute BAF
+  ref_cols <- paste0("i.", found_data$a0)
+  alt_cols <- paste0("i.", found_data$a1)
+  rows <- seq_len(n)
+
+  ref_counts <- found_data[cbind(rows, match(ref_cols, names(found_data)))]
+  alt_counts <- found_data[cbind(rows, match(alt_cols, names(found_data)))]
 
   BAFs <- alt_counts / (alt_counts + ref_counts)
   BAFs[is.nan(BAFs)] <- 0
-  rm(ref_counts, alt_counts)
 
+  # Generate genotypes
+  minBaf <- min(heterozygous_filter, 1 - heterozygous_filter)
+  maxBaf <- max(heterozygous_filter, 1 - heterozygous_filter)
 
-  minBaf <- min(heterozygousFilter, 1.0 - heterozygousFilter)
-  maxBaf <- max(heterozygousFilter, 1.0 - heterozygousFilter)
-
-  genotypes <- matrix(0, nrow = n_matched, ncol = 3)
+  genotypes <- matrix(0L, nrow = n, ncol = 3)
   genotypes[BAFs <= minBaf, 1] <- 1
   genotypes[BAFs > minBaf & BAFs < maxBaf, 2] <- 1
   genotypes[BAFs >= maxBaf, 3] <- 1
 
-
-  found_data[, ("snp.names") := paste0("snp", seq_len(.N))]
-  # 2. Convert the genotypes matrix into a data.table with specific names
   genotype_dt <- data.table::as.data.table(genotypes)
-  data.table::setnames(genotype_dt, c("V1", "V2", "V3"), c("G1", "G2", "G3"))
+  data.table::setnames(genotype_dt, c("G1", "G2", "G3"))
 
-  # 3. Combine them. Since they are both data.tables, this is an in-place bind
-  found_data <- data.table:::cbind.data.table(found_data, genotype_dt)
+  # Assemble output
+  found_data[, snp.names := paste0("snp", .I)]
+  found_data <- data.table::cbind(found_data, genotype_dt)
 
-  # 4. Select columns using a character vector (This is 100% linter-safe)
-  # This avoids unquoted names like a0, a1, id, etc.
-  output_cols <- c("snp.names", "id", "id", "position", "a0", "a1", "G1", "G2", "G3")
+  output_cols <- c("snp.names", "id", "position", "a0", "a1", "G1", "G2", "G3")
 
-  # We use the 'with = FALSE' argument to tell data.table to look for a character vector
-  final_output <- found_data[, output_cols, with = FALSE]
-
-  # 5. Write using fwrite
   data.table::fwrite(
-    final_output,
-    file = output.file,
+    found_data[, ..output_cols],
+    file = output_file,
     sep = " ",
-    col.names = FALSE,
-    row.names = FALSE,
-    quote = FALSE,
-    nThread = 4
+    col_names = FALSE,
+    quote = FALSE
   )
 
-
+  # Write sample_g.txt for sex chromosomes
   if (is.na(as.numeric(chrom_name))) {
-    sample.g.file <- file.path(dirname(output.file), "sample_g.txt")
-    sample_g_data <- data.table(
+    sample_g_file <- file.path(dirname(output_file), "sample_g.txt")
+    sample_g_data <- data.table::data.table(
       ID_1 = c(0, "INDIVI1"),
       ID_2 = c(0, "INDIVI1"),
       missing = c(0, 0),
       sex = c("D", 2)
     )
-    data.table::fwrite(sample_g_data, file = sample.g.file, sep = " ", col.names = TRUE)
+    data.table::fwrite(sample_g_data, sample_g_file, sep = " ")
   }
-  rm(found_data, genotypes, BAFs)
+
+  invisible(NULL)
 }
 
 #' Function to correct LogR for waivyness that correlates with GC content
@@ -892,7 +889,7 @@ generate.impute.input.wgs.germline <- function(
 #' @param recalc_corr_afterwards Set to TRUE to recalculate correlations after correction
 #' @author jonas demeulemeester, sd11, Naser Ansari-Pour (BDI, Oxford)
 #' @export
-gc.correct.wgs.germline <- function(germline_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards = FALSE) {
+gc_correct_wgs_germline <- function(germline_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards = FALSE) {
   if (is.null(gc_content_file_prefix)) {
     stop("GC content reference files must be supplied to WGS GC content correction")
   }
@@ -965,7 +962,7 @@ gc.correct.wgs.germline <- function(germline_LogR_file, outfile, correlations_ou
     model <- lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = TRUE) + splines::ns(x = GC_amplic, df = 5, intercept = TRUE) + splines::ns(x = replic, df = 5, intercept = TRUE), y = FALSE, model = FALSE, data = corrdata, na.action = "na.exclude")
 
     corr <- data.frame(windowsize = c(names(corr), names(corr_rep)), correlation = c(corr, corr_rep))
-    write.table(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
+    data.table::fwrite(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
   } else {
     # Multiple regression  - without replication timing
     corrdata <- data.frame(
@@ -981,7 +978,7 @@ gc.correct.wgs.germline <- function(germline_LogR_file, outfile, correlations_ou
     model <- lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = TRUE) + splines::ns(x = GC_amplic, df = 5, intercept = TRUE), y = FALSE, model = FALSE, data = corrdata, na.action = "na.exclude")
 
     corr <- data.frame(windowsize = names(corr), correlation = corr)
-    write.table(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
+    data.table::fwrite(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
   }
 
   Germline_LogR[, 3] <- residuals(model)
@@ -1000,14 +997,14 @@ gc.correct.wgs.germline <- function(germline_LogR_file, outfile, correlations_ou
 
     if (!is.null(replic_timing_file_prefix)) {
       corr <- data.frame(windowsize = c(names(corr), names(corr_rep)), correlation = c(corr, corr_rep))
-      write.table(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
+      data.table::fwrite(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
     } else {
       corr <- data.frame(windowsize = c(names(corr)), correlation = corr)
-      write.table(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
+      data.table::fwrite(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
     }
   } else {
     corr$correlation <- NA
-    write.table(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
+    data.table::fwrite(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
   }
 }
 
@@ -1050,7 +1047,7 @@ prepare_wgs_germline <- function(chrom_names, chrom_coord, germlinebam, germline
     foreach::foreach(i = seq_along(chrom_names)) %dopar% {
       getAlleleCounts(
         bam.file = germlinebam,
-        output.file = paste(germlinename, "_alleleFrequencies_chr", i, ".txt", sep = ""),
+        output_file = paste(germlinename, "_alleleFrequencies_chr", i, ".txt", sep = ""),
         g1000.loci = paste(g1000lociprefix, i, ".txt", sep = ""),
         min.base.qual = min_base_qual,
         min.map.qual = min_map_qual,
@@ -1099,7 +1096,7 @@ prepare_wgs_germline <- function(chrom_names, chrom_coord, germlinebam, germline
   }
 
   # Perform GC correction
-  gc.correct.wgs.germline(
+  gc_correct_wgs_germline(
     germline_LogR_file = paste(germlinename, "_mutantLogR.tab", sep = ""),
     outfile = paste(germlinename, "_mutantLogR_gcCorrected.tab", sep = ""),
     correlations_outfile = paste(germlinename, "_GCwindowCorrelations.txt", sep = ""),

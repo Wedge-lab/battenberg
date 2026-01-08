@@ -33,7 +33,7 @@ battenberg(
   min_rho = 0.1,
   max_rho = 1,
   min_goodness = 0.63,
-  uninformative_BAF_threshold = 0.51,
+  uninformative_baf_threshold = 0.51,
   min_normal_depth = 10,
   min_base_qual = 20,
   min_map_qual = 35,
@@ -47,7 +47,7 @@ battenberg(
   usebeagle = FALSE,
   beaglejar = NA,
   beagleref_template = NA,
-  beagleplink.template = NA,
+  beagleplink_template = NA,
   beaglemaxmem = 10,
   beaglenthreads = 1,
   beaglewindow = 40,
@@ -58,16 +58,17 @@ battenberg(
   multisample_maxlag = 90,
   segmentation_gamma_multisample = 5,
   snp6_reference_info_file = NA,
-  apt.probeset.genotype.exe = "apt-probeset-genotype",
-  apt.probeset.summarize.exe = "apt-probeset-summarize",
-  norm.geno.clust.exe = "normalize_affy_geno_cluster.pl",
+  apt_probeset_genotype_exe = "apt-probeset-genotype",
+  apt_probeset_summarize_exe = "apt-probeset-summarize",
+  norm_geno_clust_exe = "normalize_affy_geno_cluster.pl",
   birdseed_report_file = "birdseed.report.txt",
-  heterozygousFilter = "none",
+  heterozygous_filter = "none",
   prior_breakpoints_file = NULL,
   genomebuild = "hg19",
   chrom_coord_file = NULL,
   enhanced_grid_search = FALSE,
-  verbose_logging = FALSE
+  verbose_logging = FALSE,
+  logging_path = "."
 )
 }
 \arguments{
@@ -127,7 +128,7 @@ battenberg(
 
 \item{min_goodness}{Minimum goodness of fit required for a purity/ploidy combination to be accepted as a solution (Default: 0.63)}
 
-\item{uninformative_BAF_threshold}{The threshold beyond which BAF becomes uninformative (Default: 0.51)}
+\item{uninformative_baf_threshold}{The threshold beyond which BAF becomes uninformative (Default: 0.51)}
 
 \item{min_normal_depth}{Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)}
 
@@ -155,7 +156,7 @@ battenberg(
 
 \item{beagleref_template}{Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA}
 
-\item{beagleplink.template}{Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA}
+\item{beagleplink_template}{Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA}
 
 \item{beaglemaxmem}{Integer Beagle max heap size in Gb  Default: 10}
 
@@ -177,15 +178,15 @@ battenberg(
 
 \item{snp6_reference_info_file}{Reference files for the SNP6 pipeline only (Default: NA)}
 
-\item{apt.probeset.genotype.exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)}
+\item{apt_probeset_genotype_exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)}
 
-\item{apt.probeset.summarize.exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-summarize)}
+\item{apt_probeset_summarize_exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-summarize)}
 
-\item{norm.geno.clust.exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)}
+\item{norm_geno_clust_exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)}
 
 \item{birdseed_report_file}{Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)}
 
-\item{heterozygousFilter}{Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")}
+\item{heterozygous_filter}{Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")}
 
 \item{prior_breakpoints_file}{A two column file with prior breakpoints to be used during segmentation (Default: NULL)}
 

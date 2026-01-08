@@ -11,17 +11,13 @@ style:
 lint:
 	Rscript -e "lintr::lint_package()"
 
-# Run the full test suite
-test:
-	Rscript -e "devtools::test()"
-
 pak:
 	@echo "Installing pak and core dependencies..."
-	Rscript -e "install.packages('pak', repos='https://cloud.r-project.org')"
+	RUN Rscript -e "install.packages('pak', repos = 'https://cran.rstudio.com/')"
 
 deps:
 	@echo "Installing all dependencies listed in DESCRIPTION..."
-	export GITHUB_PAT=""; \
+	Rscript -e "pak::pkg_install(c('Crick-CancerGenomics/ascat/ASCAT', 'igordot/copynumber'))"
 	Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); \
                 pak::repo_add(Bioc = '3.18'); \
 		        pak::local_install_deps(upgrade = TRUE, dependencies = TRUE)"
@@ -31,4 +27,4 @@ check:
 
 install:
 	@echo "Installing Battenberg..."
-	Rscript -e "remotes::install_local('.', upgrade='never', force=TRUE)"
+	Rscript -e "pak::local_install('.', upgrade=TRUE, dependencies=TRUE)"

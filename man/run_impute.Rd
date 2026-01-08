@@ -6,8 +6,8 @@
 \usage{
 run_impute(
   inputfile,
-  outputfile.prefix,
-  is.male,
+  outputfile_prefix,
+  is_male,
   imputeinfofile,
   impute.exe = "impute2",
   region.size = 5000000,
@@ -18,9 +18,9 @@ run_impute(
 \arguments{
 \item{inputfile}{Full path to a csv file with columns: Physical.Position, Allele.A, Allele.B, allele.frequency, id ,position, a0, a1}
 
-\item{outputfile.prefix}{Prefix to the output file. Region boundaries are added as suffix.}
+\item{outputfile_prefix}{Prefix to the output file. Region boundaries are added as suffix.}
 
-\item{is.male}{Boolean describing whether the sample is male (TRUE) or female (FALSE)}
+\item{is_male}{Boolean describing whether the sample is male (TRUE) or female (FALSE)}
 
 \item{imputeinfofile}{Path to the imputeinfofile on disk.}
 

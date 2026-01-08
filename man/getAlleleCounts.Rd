@@ -6,7 +6,7 @@
 \usage{
 getAlleleCounts(
   bam.file,
-  output.file,
+  output_file,
   g1000.loci,
   min.base.qual = 20,
   min.map.qual = 35,
@@ -16,7 +16,7 @@ getAlleleCounts(
 \arguments{
 \item{bam.file}{A BAM alignment file on which the counter should be run.}
 
-\item{output.file}{The file where output should go.}
+\item{output_file}{The file where output should go.}
 
 \item{g1000.loci}{A file with 1000 Genomes SNP loci.}
 

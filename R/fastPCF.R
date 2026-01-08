@@ -112,8 +112,6 @@ runFastPcf <- function(x, kmin, gamma, frac1, frac2, yest) {
   mark <- filterMarkS4(x, kmin, 8, 1, frac1, frac2, 0.02, 0.9)
   mark[antGen] <- TRUE
   dense <- compact(x, mark)
-  # print(dense$Nr)
-  # print(frac2)
   result <- PottsCompact(kmin, gamma, dense$Nr, dense$Sum, dense$Sq, yest)
   return(result)
 }
@@ -195,7 +193,6 @@ PottsCompact <- function(kmin, gamma, nr, res, sq, yest) {
     bestSplit[n] <- Pos - 1
   }
   if (yest) {
-    yhat <- rep(0, N)
     res <- findEst(bestSplit, N, nr, res, TRUE)
   } else {
     res <- findEst(bestSplit, N, nr, res, FALSE)
@@ -329,28 +326,6 @@ findMarks <- function(markSub, Nr, subsize) {
   }
 }
 
-
-compact <- function(y, mark) {
-  ## accumulates numbers of observations, sums and
-  ## sums of squares between potential breakpoints
-  ## y:  array to be compacted
-  ## mark:  logical array of potential breakpoints
-  tell <- seq(seq_along(y))
-  cCTell <- tell[mark]
-  Ncomp <- length(cCTell)
-  lowTell <- c(0, cCTell[1:(Ncomp - 1)])
-  ant <- cCTell - lowTell
-  cy <- cumsum(y)
-  cCcy <- cy[mark]
-  lowcy <- c(0, cCcy[1:(Ncomp - 1)])
-  sum <- cCcy - lowcy
-  cy2 <- cumsum(y^2)
-  cCcy2 <- cy2[mark]
-  lowcy2 <- c(0, cCcy2[1:(Ncomp - 1)])
-  sq <- cCcy2 - lowcy2
-  return(list(Nr = ant, Sum = sum, Sq = sq))
-}
-
 filterMarkS4 <- function(x, kmin, L, L2, frac1, frac2, frac3, thres) {
   ## marks potential breakpoints, partially by a two 6*L and 6*L2 highpass
   ## filters (L>L2), then by a filter seaching for potential kmin long segments
@@ -458,8 +433,6 @@ filterMarkS4 <- function(x, kmin, L, L2, frac1, frac2, frac3, thres) {
 
 ## Requires:
 ### medianFilter
-
-
 getMad <- function(x, k = 25) {
   # Remove observations that are equal to zero; are likely to be imputed, should not contribute to sd:
   x <- x[x != 0]
@@ -510,6 +483,5 @@ medianFilter <- function(x, k) {
   }
 
   runMedian <- runmed(x, k = filtWidth, endrule = "median")
-
   return(runMedian)
 }

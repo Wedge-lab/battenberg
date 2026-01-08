@@ -2,8 +2,8 @@
 #'
 #' This function runs impute across the input using the specified region.size.
 #' @param inputfile Full path to a csv file with columns: Physical.Position, Allele.A, Allele.B, allele.frequency, id ,position, a0, a1
-#' @param outputfile.prefix Prefix to the output file. Region boundaries are added as suffix.
-#' @param is.male Boolean describing whether the sample is male (TRUE) or female (FALSE)
+#' @param outputfile_prefix Prefix to the output file. Region boundaries are added as suffix.
+#' @param is_male Boolean describing whether the sample is male (TRUE) or female (FALSE)
 #' @param imputeinfofile Path to the imputeinfofile on disk.
 #' @param impute.exe Pointer to where the impute2 executable can be found (optional).
 #' @param region.size An integer describing the region size to be used by impute (optional).
@@ -11,15 +11,15 @@
 #' @param seed The seed to be set
 #' @author dw9
 #' @export
-run_impute <- function(inputfile, outputfile.prefix, is.male, imputeinfofile, impute.exe = "impute2", region.size = 5000000, chrom = NA, seed = as.integer(Sys.time())) {
+run_impute <- function(inputfile, outputfile_prefix, is_male, imputeinfofile, impute.exe = "impute2", region.size = 5000000, chrom = NA, seed = as.integer(Sys.time())) {
   # Read in the impute file information
-  impute.info <- parse_imputeinfofile(imputeinfofile, is.male, chrom = chrom)
+  impute_info <- parse_imputeinfofile(imputeinfofile, is_male, chrom = chrom)
 
   # Run impute for each region of the size specified above
-  for (r in seq_len(nrow(impute.info))) {
-    boundaries <- seq(as.numeric(impute.info[r, ]$start), as.numeric(impute.info[r, ]$end), region.size)
-    if (boundaries[length(boundaries)] != impute.info[r, ]$end) {
-      boundaries <- c(boundaries, impute.info[r, ]$end)
+  for (r in seq_len(nrow(impute_info))) {
+    boundaries <- seq(as.numeric(impute_info[r, ]$start), as.numeric(impute_info[r, ]$end), region.size)
+    if (boundaries[length(boundaries)] != impute_info[r, ]$end) {
+      boundaries <- c(boundaries, impute_info[r, ]$end)
     }
 
     # Take the start of the region+1 here to make sure there are no overlapping regions, wich causes a
@@ -27,20 +27,20 @@ run_impute <- function(inputfile, outputfile.prefix, is.male, imputeinfofile, im
     # cannot be phased
     for (b in 1:(length(boundaries) - 1)) {
       cmd <- paste(impute.exe,
-        " -m ", impute.info[r, ]$genetic_map,
-        " -h ", impute.info[r, ]$impute_hap,
-        " -l ", impute.info[r, ]$impute_legend,
+        " -m ", impute_info[r, ]$genetic_map,
+        " -h ", impute_info[r, ]$impute_hap,
+        " -l ", impute_info[r, ]$impute_legend,
         " -g ", inputfile,
         " -int ", boundaries[b] + 1, " ", boundaries[b + 1],
         " -Ne 20000", # Authors of impute2 mention that this parameter works best on all population types, thus hardcoded.
-        " -o ", outputfile.prefix, "_", boundaries[b] / 1000, "K_", boundaries[b + 1] / 1000, "K.txt",
+        " -o ", outputfile_prefix, "_", boundaries[b] / 1000, "K_", boundaries[b + 1] / 1000, "K.txt",
         " -phase",
         " -seed ",
         " -os 2",
         sep = ""
       ) # lowers computational cost by not imputing reference only SNPs
-      EXIT_CODE <- system(cmd, wait = TRUE)
-      stopifnot(EXIT_CODE == 0)
+      exit_code <- system(cmd, wait = TRUE)
+      stopifnot(exit_code == 0)
     }
   }
 }
@@ -57,58 +57,59 @@ run_impute <- function(inputfile, outputfile.prefix, is.male, imputeinfofile, im
 #'   is_par : 1 when pseudo autosomal region, 0 when not
 #'
 #' @param imputeinfofile Path to the imputeinfofile on disk.
-#' @param is.male A boolean describing whether the sample under study is male.
+#' @param is_male A boolean describing whether the sample under study is male.
 #' @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
 #' @return A data.frame with 7 columns: Chromosome, impute_legend, genetic_map, impute_hap, start, end, is_par
 #' @author sd11
 #' @export
-parse_imputeinfofile <- function(imputeinfofile, is.male, chrom = NA) {
+parse_imputeinfofile <- function(imputeinfofile, is_male, chrom = NA) {
   # Use fread for high-speed reading.
-  impute.info <- data.table::fread(
+  impute_info <- data.table::fread(
     imputeinfofile,
-    col.names = c("chrom", "impute_legend", "genetic_map", "impute_hap", "start", "end", "is_par"),
+    col_names = c(
+      "chrom", "impute_legend", "genetic_map",
+      "impute_hap", "start", "end", "is_par"
+    ),
     stringsAsFactors = FALSE
   )
   # Efficient filtering using data.table's internal optimization
-  if (is.male) {
+  if (is_male) {
     # .() or list() syntax is not needed for simple logical filtering
-    impute.info <- impute.info[is_par == 1]
+    impute_info <- impute_info[is_par == 1]
   }
   # Subset for a particular chromosome
   if (!is.na(chrom)) {
-    impute.info <- impute.info[chrom == ..chrom]
+    impute_info <- impute_info[chrom == ..chrom]
   }
-  return(impute.info)
+  return(impute_info)
 }
 
 #' Check impute info file consistency
 #' @param imputeinfofile Path to the imputeinfofile on disk.
 #' @author sd11
-check_imputeinfofile <- function(imputeinfofile, is.male, usebeagle) {
-  impute.info <- parse_imputeinfofile(imputeinfofile, is.male)
+check_imputeinfofile <- function(imputeinfofile, is_male, usebeagle) {
+  impute_info <- parse_imputeinfofile(imputeinfofile, is_male)
   if (usebeagle) {
-    if (any(!file.exists(impute.info$impute_legend))) {
-      print("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
-      stop("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
+    if (any(!file.exists(impute_info$impute_legend))) {
+      log_failure("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
     }
   } else {
-    if (any(!file.exists(impute.info$impute_legend) | !file.exists(impute.info$genetic_map) | !file.exists(impute.info$impute_hap))) {
-      print("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
-      stop("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
+    if (any(!file.exists(impute_info$impute_legend) | !file.exists(impute_info$genetic_map) | !file.exists(impute_info$impute_hap))) {
+      log_failure()("Could not find reference files, make sure paths in impute_info.txt point to the correct location")
     }
   }
 }
 
 #' Returns the chromosome names that are supported
 #' @param imputeinfofile Path to the imputeinfofile on disk.
-#' @param is.male A boolean describing whether the sample under study is male.
+#' @param is_male A boolean describing whether the sample under study is male.
 #' @param chrom The name of a chromosome to subset the contents of the imputeinfofile with (optional)
 #' @param analaysis Depending on the type of analysis different sets of chromosomes are returned (Default:  paired)
 #' @return A vector containing the supported chromosome names
 #' @author sd11
 #' @export
-get_chrom_names <- function(imputeinfofile, is.male, chrom = NA, analysis = "paired") {
-  chrom_names <- unique(parse_imputeinfofile(imputeinfofile, is.male, chrom = chrom)$chrom)
+get_chrom_names <- function(imputeinfofile, is_male, chrom = NA, analysis = "paired") {
+  chrom_names <- unique(parse_imputeinfofile(imputeinfofile, is_male, chrom = chrom)$chrom)
   if (analysis == "cell_line" || analysis == "germline") {
     # Both cell line and germline analysis do not yield usable data on X and Y, so remove
     chrom_names <- chrom_names[!chrom_names %in% c("X", "Y")]
@@ -119,30 +120,37 @@ get_chrom_names <- function(imputeinfofile, is.male, chrom = NA, analysis = "pai
 #' Concatenate the impute output generated for each of the regions.
 #'
 #' This function assembles the impute output generated.
-#' @param inputfile.prefix Prefix of the input files (this is typically the outputfile.prefix option supplied when calling run_impute).
+#' @param inputfile.prefix Prefix of the input files (this is typically the outputfile_prefix option supplied when calling run_impute).
 #' @param outputfile Where to store the output.
-#' @param is.male Boolean describing whether the sample is male (TRUE) or female (FALSE).
+#' @param is_male Boolean describing whether the sample is male (TRUE) or female (FALSE).
 #' @param imputeinfofile Path to the imputeinfofile on disk.
 #' @param region.size An integer describing the region size to be used by impute (optional).
 #' @param chrom The name of a chromosome on which this function should run (names are used, supply X as 'X').
 #' @author dw9
 #' @export
-combine_impute_output <- function(inputfile.prefix, outputfile, is.male, imputeinfofile, region.size = 5000000, chrom = NA) {
+combine_impute_output <- function(inputfile.prefix, outputfile, is_male, imputeinfofile, region.size = 5000000, chrom = NA) {
   # Read in the impute file information
-  impute.info <- parse_imputeinfofile(imputeinfofile, is.male, chrom = chrom)
+  impute_info <- parse_imputeinfofile(imputeinfofile, is_male, chrom = chrom)
 
   # Assemble the start and end points of all regions
   all.boundaries <- array(0, c(0, 2))
-  for (r in seq_len(nrow(impute.info))) {
-    boundaries <- seq(as.numeric(impute.info[r, ]$start), as.numeric(impute.info[r, ]$end), region.size)
-    if (boundaries[length(boundaries)] != impute.info[r, ]$end) {
-      boundaries <- c(boundaries, impute.info[r, ]$end)
+  for (r in seq_len(nrow(impute_info))) {
+    boundaries <- seq(as.numeric(impute_info[r, ]$start), as.numeric(impute_info[r, ]$end), region.size)
+    if (boundaries[length(boundaries)] != impute_info[r, ]$end) {
+      boundaries <- c(boundaries, impute_info[r, ]$end)
     }
     all.boundaries <- rbind(all.boundaries, cbind(boundaries[-(length(boundaries))], boundaries[-1]))
   }
   # Concatenate all the regions
   impute.output <- concatenateImputeFiles(inputfile.prefix, all.boundaries)
-  write.table(impute.output, file = outputfile, row.names = FALSE, col.names = FALSE, quote = FALSE, sep = " ")
+  data.table::fwrite(
+    impute.output,
+    file = outputfile,
+    row.names = FALSE,
+    col_names = FALSE,
+    quote = FALSE,
+    sep = " "
+  )
 }
 
 
@@ -154,7 +162,7 @@ combine_impute_output <- function(inputfile.prefix, outputfile, is.male, imputei
 #' @param chrom chromosome
 #' @author maxime.tarabichi
 #' @export
-convert.impute.input.to.beagle.input <- function(imputeinput,
+convert_impute_input_to_beagle_input <- function(imputeinput,
                                                  chrom) {
   chrom <- if (chrom == "23") "X" else chrom
   inp <- read_impute_input(imputeinput)
@@ -192,33 +200,38 @@ convert.impute.input.to.beagle.input <- function(imputeinput,
 
 #' Writes input file for beagle5
 #'
-#' This function writes a table formatted as a vcf to the drive for beagle5 to run on
-#'
 #' @param vcf data frame vcf-like for beagle
-#' @param filepath character string for path to the file to write on disk
-#' @param vcfversion character string for version for the vcf (default 4.2)
-#' @param genomereference character string for genome build (default GRCh37)
-#' @author maxime.tarabichi
+#' @param filepath character string for path (e.g., "data.vcf")
+#' @param vcfversion character string (default 4.2)
+#' @param genomereference character string (default GRCh37)
+#' @importFrom data.table fwrite
 #' @export
-writevcf.beagle <- function(vcf,
+writevcf_beagle <- function(vcf,
                             filepath,
                             vcfversion = "4.2",
                             genomereference = "GRCh37") {
-  cat(
-    paste0(
-      "##fileformat=VCFv", vcfversion,
-      '\n##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n##reference=',
-      genomereference,
-      "\n"
-    ),
-    file = filepath
+  header <- paste0(
+    "##fileformat=VCFv", vcfversion, "\n",
+    "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n",
+    "##reference=", genomereference, "\n"
   )
-  suppressWarnings(write.table(vcf,
-    file = filepath,
-    sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE, append = TRUE
-  ))
-}
 
+  # Write header first
+  cat(header, file = filepath)
+
+  # Handle the #CHROM column name requirement
+  # We rename the first column temporarily for the write-out if it doesn't have the #
+  colnames(vcf)[1] <- paste0("#", gsub("^#", "", colnames(vcf)[1]))
+  data.table::fwrite(
+    x = vcf,
+    file = filepath,
+    sep = "\t",
+    append = TRUE,
+    col_names = TRUE,
+    quote = FALSE,
+    nThread = 2
+  )
+}
 
 #' Writes output of beagle as output from impute (interface bealge/impute for Battenberg)
 #'
@@ -228,7 +241,7 @@ writevcf.beagle <- function(vcf,
 #' @param outfile character string path for impute-like outputfile
 #' @author maxime.tarabichi
 #' @export
-writebeagle.as.impute <- function(vcf,
+writebeagle_as_impute <- function(vcf,
                                   outfile) {
   beagleout <- read_beagle_output(vcf)
   haplotypes <- strsplit(beagleout$SAMP001, split = "\\|")
@@ -241,10 +254,10 @@ writebeagle.as.impute <- function(vcf,
     sapply(haplotypes, "[", 1),
     sapply(haplotypes, "[", 2)
   )
-  write.table(dt,
+  data.table::fwrite(dt,
     file = outfile,
     quote = FALSE,
-    col.names = FALSE,
+    col_names = FALSE,
     row.names = FALSE,
     sep = "\t"
   )
@@ -265,10 +278,10 @@ writebeagle.as.impute <- function(vcf,
 #' @param window integer max size of genomic window to be phased (cM; default 40; decrease for less memory usage; should be >1.1*overlap)
 #' @param overlap integer overlap of windows (cM; default 4)
 #' @param javajre Path to the Java JRE executable (default java, i.e. in $PATH)
-#' @param maxheap.gb integer maximum heap size for the java process in gigabytes (default 10)
+#' @param maxheap_gb integer maximum heap size for the java process in gigabytes (default 10)
 #' @author maxime.tarabichi
 #' @export
-run.beagle5 <- function(beaglejar,
+run_beagle5 <- function(beaglejar,
                         vcfpath,
                         reffile,
                         outpath,
@@ -276,12 +289,12 @@ run.beagle5 <- function(beaglejar,
                         nthreads = 1,
                         window = 40,
                         overlap = 4,
-                        maxheap.gb = 10,
+                        maxheap_gb = 10,
                         javajre = "java") {
   cmd <- paste0(
     javajre,
-    " -Xmx", maxheap.gb, "g",
-    " -Xms", maxheap.gb, "g",
+    " -Xmx", maxheap_gb, "g",
+    " -Xms", maxheap_gb, "g",
     " -XX:+UseParallelOldGC",
     " -jar ", beaglejar,
     " gt=", vcfpath,
@@ -293,8 +306,8 @@ run.beagle5 <- function(beaglejar,
     " overlap=", overlap,
     " impute=false"
   )
-  EXIT_CODE <- system(cmd, wait = TRUE)
-  stopifnot(EXIT_CODE == 0)
+  exit_code <- system(cmd, wait = TRUE)
+  stopifnot(exit_code == 0)
 }
 
 
@@ -312,7 +325,7 @@ run.beagle5 <- function(beaglejar,
 #' @param min_normal_depth Minimal depth in the matched normal required for a SNP to be used
 #' @param chrom_names A vector containing the names of chromosomes to be included
 #' @param snp6_reference_info_file SNP6 only parameter Default: NA
-#' @param heterozygousFilter SNP6 only parameter Default: NA
+#' @param heterozygous_filter SNP6 only parameter Default: NA
 #' @param usebeagle Should use beagle5 instead of impute2 Default: FALSE
 #' @param beaglejar Full path to Beagle java jar file Default: NA
 #' @param beagleref Full path to Beagle reference file Default: NA
@@ -327,7 +340,8 @@ run.beagle5 <- function(beaglejar,
 run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names,
                             externalhaplotypeprefix = NA,
                             use_previous_imputation = FALSE,
-                            snp6_reference_info_file = NA, heterozygousFilter = NA,
+                            snp6_reference_info_file = NA,
+                            heterozygous_filter = NA,
                             usebeagle = FALSE,
                             beaglejar = NA,
                             beagleref = NA,
@@ -346,28 +360,28 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
     }
   } else {
     if (file.exists(paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep = ""))) {
-      generate.impute.input.wgs(
+      generate_impute_input_wgs(
         chrom = chrom,
-        tumour.allele.counts.file = paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
-        normal.allele.counts.file = paste(normalname, "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
-        output.file = paste(tumourname, "_impute_input_chr", chrom, ".txt", sep = ""),
+        tumour_allele_counts_file = paste(tumourname, "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
+        normal_allele_counts_file = paste(normalname, "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
+        output_file = paste(tumourname, "_impute_input_chr", chrom, ".txt", sep = ""),
         imputeinfofile = imputeinfofile,
-        is.male = ismale,
-        problemLociFile = problemloci,
-        useLociFile = NA
+        is_male = ismale,
+        problem_loci_file = problemloci,
+        use_loci_file = NA
       )
     } else {
-      generate.impute.input.snp6(
-        infile.germlineBAF = paste(tumourname, "_germlineBAF.tab", sep = ""),
-        infile.tumourBAF = paste(tumourname, "_mutantBAF.tab", sep = ""),
+      generate_impute_input_snp6(
+        infile_germlineBAF = paste(tumourname, "_germlineBAF.tab", sep = ""),
+        infile_tumourBAF = paste(tumourname, "_mutantBAF.tab", sep = ""),
         outFileStart = paste(tumourname, "_impute_input_chr", sep = ""),
         chrom = chrom,
         chr_names = chrom_names,
-        problemLociFile = problemloci,
+        problem_loci_file = problemloci,
         snp6_reference_info_file = snp6_reference_info_file,
         imputeinfofile = imputeinfofile,
-        is.male = ismale,
-        heterozygousFilter = heterozygousFilter
+        is_male = ismale,
+        heterozygous_filter = heterozygous_filter
       )
     }
 
@@ -378,21 +392,21 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
         chrom, ".txt",
         sep = ""
       )
-      vcfbeagle <- convert.impute.input.to.beagle.input(
+      vcfbeagle <- convert_impute_input_to_beagle_input(
         imputeinput = imputeinputfile,
         chrom = chrom
       )
       vcfbeagle_path <- paste(tumourname, "_beagle5_input_chr", chrom, ".txt", sep = "")
       outbeagle_path <- paste(tumourname, "_beagle5_output_chr", chrom, ".txt", sep = "")
-      writevcf.beagle(vcfbeagle, filepath = vcfbeagle_path)
+      writevcf_beagle(vcfbeagle, filepath = vcfbeagle_path)
       ## Run beagle5 on the files
-      run.beagle5(
+      run_beagle5(
         beaglejar = beaglejar,
         vcfpath = vcfbeagle_path,
         reffile = beagleref,
         outpath = outbeagle_path,
         plinkfile = beagleplink,
-        maxheap.gb = beaglemaxmem,
+        maxheap_gb = beaglemaxmem,
         nthreads = beaglenthreads,
         window = beaglewindow,
         overlap = beagleoverlap,
@@ -405,7 +419,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
       )
       vcfout <- paste(outbeagle_path, ".vcf.gz", sep = "")
       ## Convert beagle output file to impute2-like file
-      writebeagle.as.impute(
+      writebeagle_as_impute(
         vcf = vcfout,
         outfile = outfile
       )
@@ -413,8 +427,8 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
       # Run impute on the files
       run_impute(
         inputfile = paste(tumourname, "_impute_input_chr", chrom, ".txt", sep = ""),
-        outputfile.prefix = paste(tumourname, "_impute_output_chr", chrom, ".txt", sep = ""),
-        is.male = ismale,
+        outputfile_prefix = paste(tumourname, "_impute_output_chr", chrom, ".txt", sep = ""),
+        is_male = ismale,
         imputeinfofile = imputeinfofile,
         impute.exe = impute_exe,
         region.size = 5000000,
@@ -425,7 +439,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
       combine_impute_output(
         inputfile.prefix = paste(tumourname, "_impute_output_chr", chrom, ".txt", sep = ""),
         outputfile = paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = ""),
-        is.male = ismale,
+        is_male = ismale,
         imputeinfofile = imputeinfofile,
         region.size = 5000000,
         chrom = chrom
@@ -461,11 +475,10 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
 
       # Plot what we have before external haplotyping is incorporated
       plot_haplotype_data(
-        haplotyped.baf.file = paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped_noExt.txt", sep = ""),
-        imageFileName = paste(tumourname, "_chr", chrom, "_heterozygousData_noExt.png", sep = ""),
+        haplotyped_baf_file = paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped_noExt.txt", sep = ""),
+        image_file_name = paste(tumourname, "_chr", chrom, "_heterozygousData_noExt.png", sep = ""),
         samplename = tumourname,
-        chrom = chrom,
-        chr_names = chrom_names
+        chrom = chrom
       )
 
       input_known_haplotypes(
@@ -500,11 +513,10 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
 
   # Plot what we have until this point
   plot_haplotype_data(
-    haplotyped.baf.file = paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
-    imageFileName = paste(tumourname, "_chr", chrom, "_heterozygousData.png", sep = ""),
+    haplotyped_baf_file = paste(tumourname, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
+    image_file_name = paste(tumourname, "_chr", chrom, "_heterozygousData.png", sep = ""),
     samplename = tumourname,
-    chrom = chrom,
-    chr_names = chrom_names
+    chrom = chrom
   )
 }
 
@@ -522,7 +534,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
 #' @param min_normal_depth Minimal depth in the matched normal required for a SNP to be used
 #' @param chrom_names A vector containing the names of chromosomes to be included
 #' @param snp6_reference_info_file SNP6 only parameter Default: NA
-#' @param heterozygousFilter SNP6 only parameter Default: NA
+#' @param heterozygous_filter SNP6 only parameter Default: NA
 #' @param usebeagle Should use beagle5 instead of impute2 Default: FALSE
 #' @param beaglejar Full path to Beagle java jar file Default: NA
 #' @param beagleref Full path to Beagle reference file Default: NA
@@ -538,7 +550,7 @@ run_haplotyping <- function(chrom, tumourname, normalname, ismale, imputeinfofil
 run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, imputeinfofile, problemloci, impute_exe, min_normal_depth, chrom_names,
                                      externalhaplotypeprefix = NA,
                                      use_previous_imputation = FALSE,
-                                     snp6_reference_info_file = NA, heterozygousFilter = NA,
+                                     snp6_reference_info_file = NA, heterozygous_filter = NA,
                                      usebeagle = FALSE,
                                      beaglejar = NA,
                                      beagleref = NA,
@@ -557,15 +569,15 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
     }
   } else {
     if (file.exists(paste(germlinename, "_alleleFrequencies_chr", chrom, ".txt", sep = ""))) {
-      generate.impute.input.wgs.germline(
+      generate_impute_input_wgs_germline(
         chrom = chrom,
-        germline.allele.counts.file = paste(germlinename, "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
-        normal.allele.counts.file = paste(normalname, "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
-        output.file = paste(germlinename, "_impute_input_chr", chrom, ".txt", sep = ""),
+        germline_allele_counts_file = paste(germlinename, "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
+        normal_allele_counts_file = paste(normalname, "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
+        output_file = paste(germlinename, "_impute_input_chr", chrom, ".txt", sep = ""),
         imputeinfofile = imputeinfofile,
-        is.male = ismale,
-        problemLociFile = problemloci,
-        useLociFile = NA
+        is_male = ismale,
+        problem_loci_file = problemloci,
+        use_loci_file = NA
       )
     } else {
       stop("Germline calling is currently on WGS data only - SNP array data is not sufficiently dense to detect all germline CNVs")
@@ -578,21 +590,21 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
         chrom, ".txt",
         sep = ""
       )
-      vcfbeagle <- convert.impute.input.to.beagle.input(
+      vcfbeagle <- convert_impute_input_to_beagle_input(
         imputeinput = imputeinputfile,
         chrom = chrom
       )
       vcfbeagle_path <- paste(germlinename, "_beagle5_input_chr", chrom, ".txt", sep = "")
       outbeagle_path <- paste(germlinename, "_beagle5_output_chr", chrom, ".txt", sep = "")
-      writevcf.beagle(vcfbeagle, filepath = vcfbeagle_path)
+      writevcf_beagle(vcfbeagle, filepath = vcfbeagle_path)
       ## Run beagle5 on the files
-      run.beagle5(
+      run_beagle5(
         beaglejar = beaglejar,
         vcfpath = vcfbeagle_path,
         reffile = beagleref,
         outpath = outbeagle_path,
         plinkfile = beagleplink,
-        maxheap.gb = beaglemaxmem,
+        maxheap_gb = beaglemaxmem,
         nthreads = beaglenthreads,
         window = beaglewindow,
         overlap = beagleoverlap,
@@ -605,7 +617,7 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
       )
       vcfout <- paste(outbeagle_path, ".vcf.gz", sep = "")
       ## Convert beagle output file to impute2-like file
-      writebeagle.as.impute(
+      writebeagle_as_impute(
         vcf = vcfout,
         outfile = outfile
       )
@@ -613,8 +625,8 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
       # Run impute on the files
       run_impute(
         inputfile = paste(germlinename, "_impute_input_chr", chrom, ".txt", sep = ""),
-        outputfile.prefix = paste(germlinename, "_impute_output_chr", chrom, ".txt", sep = ""),
-        is.male = ismale,
+        outputfile_prefix = paste(germlinename, "_impute_output_chr", chrom, ".txt", sep = ""),
+        is_male = ismale,
         imputeinfofile = imputeinfofile,
         impute.exe = impute_exe,
         region.size = 5000000,
@@ -625,7 +637,7 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
       combine_impute_output(
         inputfile.prefix = paste(germlinename, "_impute_output_chr", chrom, ".txt", sep = ""),
         outputfile = paste(germlinename, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = ""),
-        is.male = ismale,
+        is_male = ismale,
         imputeinfofile = imputeinfofile,
         region.size = 5000000,
         chrom = chrom
@@ -661,11 +673,10 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
 
       # Plot what we have before external haplotyping is incorporated
       plot_haplotype_data(
-        haplotyped.baf.file = paste(germlinename, "_chr", chrom, "_heterozygousMutBAFs_haplotyped_noExt.txt", sep = ""),
-        imageFileName = paste(germlinename, "_chr", chrom, "_heterozygousData_noExt.png", sep = ""),
+        haplotyped_baf_file = paste(germlinename, "_chr", chrom, "_heterozygousMutBAFs_haplotyped_noExt.txt", sep = ""),
+        image_file_name = paste(germlinename, "_chr", chrom, "_heterozygousData_noExt.png", sep = ""),
         samplename = germlinename,
-        chrom = chrom,
-        chr_names = chrom_names
+        chrom = chrom
       )
 
       input_known_haplotypes(
@@ -686,15 +697,14 @@ run_haplotyping_germline <- function(chrom, germlinename, normalname, ismale, im
       minCounts = min_normal_depth
     )
   } else {
-    stop("Germline calling is only on WGS data - SNParray data not sufficiently dense")
+    log_failure("Germline calling is only on WGS data - SNParray data not sufficiently dense")
   }
 
   # Plot what we have until this point
   plot_haplotype_data(
-    haplotyped.baf.file = paste(germlinename, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
-    imageFileName = paste(germlinename, "_chr", chrom, "_heterozygousData.png", sep = ""),
+    haplotyped_baf_file = paste(germlinename, "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
+    image_file_name = paste(germlinename, "_chr", chrom, "_heterozygousData.png", sep = ""),
     samplename = germlinename,
-    chrom = chrom,
-    chr_names = chrom_names
+    chrom = chrom
   )
 }
