@@ -113,7 +113,7 @@
 <p>The main output file <code>[samplename]_copynumber.txt</code> contains detailed copy number information:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Read the copy number data</span></span>
-<span><span class="va">cn_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="st">"sample_tumor_copynumber.txt"</span><span class="op">)</span></span>
+<span><span class="va">cn_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/utils::read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="st">"sample_tumor_copynumber.txt"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Examine the structure</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cn_data</span><span class="op">)</span></span>
@@ -283,7 +283,7 @@
 </h3>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Read purity/ploidy file</span></span>
-<span><span class="va">rho_psi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="st">"sample_tumor_rho_and_psi.txt"</span><span class="op">)</span></span>
+<span><span class="va">rho_psi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/utils::read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="st">"sample_tumor_rho_and_psi.txt"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Extract values (use second row for FRAC_genome)</span></span>
 <span><span class="va">tumor_purity</span> <span class="op">&lt;-</span> <span class="va">rho_psi</span><span class="op">$</span><span class="va">rho</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>

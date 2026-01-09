@@ -658,7 +658,7 @@
                         <div class="sourceCode" id="cb15">
                             <pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Example quality check</span></span>
-<span><span class="va">cn_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="st">"sample_tumor_copynumber.txt"</span><span class="op">)</span></span>
+<span><span class="va">cn_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/utils::read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="st">"sample_tumor_copynumber.txt"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Check for very short segments (potential artifacts)</span></span>
 <span><span class="va">short_segments</span> <span class="op">&lt;-</span> <span class="va">cn_data</span><span class="op">[</span><span class="va">cn_data</span><span class="op">$</span><span class="va">endpos</span> <span class="op">-</span> <span class="va">cn_data</span><span class="op">$</span><span class="va">startpos</span> <span class="op">&lt;</span> <span class="fl">1000000</span>, <span class="op">]</span></span>
@@ -667,7 +667,7 @@
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="co"># Check purity estimate</span></span>
-<span><span class="va">rho_psi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="st">"sample_tumor_rho_and_psi.txt"</span><span class="op">)</span></span>
+<span><span class="va">rho_psi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/utils::read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="st">"sample_tumor_rho_and_psi.txt"</span><span class="op">)</span></span>
 <span><span class="va">purity</span> <span class="op">&lt;-</span> <span class="va">rho_psi</span><span class="op">$</span><span class="va">rho</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>
 <span><span class="kw">if</span><span class="op">(</span><span class="va">purity</span> <span class="op">&lt;</span> <span class="fl">0.3</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Warning: Low estimated purity:"</span>, <span class="va">purity</span>, <span class="st">"\n"</span><span class="op">)</span></span>

@@ -74,12 +74,12 @@ parse_imputeinfofile <- function(imputeinfofile, is_male, chrom = NA) {
   )
   # Efficient filtering using data.table's internal optimization
   if (is_male) {
-    # .() or list() syntax is not needed for simple logical filtering
-    impute_info <- impute_info[is_par == 1]
+    impute_info <- impute_info[rlang::.data$is_par == 1]
   }
   # Subset for a particular chromosome
   if (!is.na(chrom)) {
-    impute_info <- impute_info[chrom == ..chrom]
+    target_chrom <- chrom
+    impute_info <- impute_info[rlang::.data$chrom == target_chrom]
   }
   return(impute_info)
 }

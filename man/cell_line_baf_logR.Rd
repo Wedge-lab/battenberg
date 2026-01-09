@@ -4,12 +4,12 @@
 \alias{cell_line_baf_logR}
 \title{Obtain BAF and LogR from the Cell line (tumour only) allele counts}
 \usage{
-cell_line_baf_logR(TUMOURNAME, g1000alleles.prefix, chrom_names)
+cell_line_baf_logR(TUMOURNAME, g1000alleles_prefix, chrom_names)
 }
 \arguments{
 \item{TUMOURNAME}{The tumour name used for Battenberg (i.e. the cell line BAM file name without the '.bam' extension).}
 
-\item{g1000alleles.prefix}{Prefix to where 1000 Genomes allele files can be found.}
+\item{g1000alleles_prefix}{Prefix to where 1000 Genomes allele files can be found.}
 
 \item{chrom_names}{A vector with allowed chromosome names.}
 }

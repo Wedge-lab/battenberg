@@ -7,18 +7,12 @@
 #' @author sd11
 #' @noRd
 adjustSegmValues <- function(baf_chrom) {
-  segs <- rle(baf_chrom$BAFseg)
-  for (i in seq_along(segs$lengths)) {
-    end <- cumsum(segs$lengths[1:i])
-    end <- end[length(end)]
-    start <- (end - segs$lengths[i]) + 1 # segs$lengths contains end points
-    # baf_chrom$bafmean[start:end] = mean(baf_chrom$BAFphased[start:end])
-    baf_chrom$BAFseg[start:end] <- median(baf_chrom$BAFphased[start:end])
-    # This needs the ASCAT version of PCF
-    # datwins = madWins(baf_chrom$BAFphased[start:end], 2.5, 25)$ywin
-    # baf_chrom$madwins_mean[start:end] = mean(datwins)
-    # baf_chrom$madwins_median[start:end] = median(datwins)
-  }
+  runs <- collapse::cumsumv(collapse::fdiff(baf_chrom$BAFseg) != 0)
+  baf_chrom$BAFseg <- collapse::fmedian(
+    baf_chrom$BAFphased,
+    g = runs,
+    TRA = "replace"
+  )
   return(baf_chrom)
 }
 
@@ -48,22 +42,42 @@ segment_baf_phased <- function(
   # Function that takes SNPs that belong to a single segment and looks for big holes between
   # each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
   addin_bigholes <- function(breakpoints, positions, chrom, startpos, maxsnpdist) {
-    # If there is a big hole (i.e. centromere), add it in as a separate set of breakpoints
+    # Find where the gaps are
+    gap_mask <- diff(positions) >= maxsnpdist
+    gap_indices <- which(gap_mask)
 
-    # Get the chromosome coordinate right before a big hole
-    bigholes <- which(diff(positions) >= maxsnpdist)
-    if (length(bigholes) > 0) {
-      for (endindex in bigholes) {
-        breakpoints <- rbind(
-          breakpoints,
-          data.frame(chrom = chrom, start = startpos, end = positions[endindex])
-        )
-        startpos <- positions[endindex + 1]
-      }
+    # If no holes, just return the original state
+    if (length(gap_indices) == 0) {
+      return(list(breakpoints = breakpoints, startpos = startpos))
     }
-    return(list(breakpoints = breakpoints, startpos = startpos))
-  }
 
+    # All 'ends' are the SNPs before a gap PLUS the very last SNP
+    ends <- c(positions[gap_indices], positions[length(positions)])
+
+    # All 'starts' are the initial startpos PLUS the SNPs after each gap
+    starts <- c(startpos, positions[gap_indices + 1])
+
+    # Create the table in one single memory allocation
+    new_segments <- data.table::data.table(
+      chrom = chrom,
+      start = starts,
+      end = ends
+    )
+
+    # Combine with previous data
+    # use use.names=TRUE to ensure columns align correctly even if order varies
+    updated_breakpoints <- data.table::rbindlist(
+      list(breakpoints, new_segments),
+      use.names = TRUE
+    )
+
+    # The new startpos for the NEXT call is the very last SNP position
+    # (or however your logic defines the carry-over)
+    return(list(
+      breakpoints = updated_breakpoints,
+      startpos = positions[length(positions)]
+    ))
+  }
   # Helper function that creates segment breakpoints from SV calls
   # @param bkps_chrom Breakpoints for a single chromosome
   # @param BAFrawchr Raw BAF values of germline heterozygous SNPs on a single chromosome
@@ -144,7 +158,6 @@ segment_baf_phased <- function(
       BAFrawchr$Position <= presegment_chrom_end)
 
     BAF <- BAFrawchr[row.indices, 2]
-    pos <- BAFrawchr[row.indices, 1]
 
     sdev <- getMad(ifelse(BAF < 0.5, BAF, 1 - BAF), k = 25)
     # Standard deviation is not defined for a single value
@@ -167,7 +180,7 @@ segment_baf_phased <- function(
 
     BAFphased <- ifelse(BAFsegm > 0.5, BAF, 1 - BAF)
 
-    if (length(BAFphased) < 50 | no_segmentation) {
+    if (length(BAFphased) < 50 || no_segmentation) {
       BAFphseg <- rep(mean(BAFphased), length(BAFphased))
     } else {
       res <- selectFastPcf(BAFphased, kmin, gamma * sdev, T)
@@ -175,10 +188,6 @@ segment_baf_phased <- function(
     }
 
     if (length(BAF) > 0) {
-      #
-      # Note: When adding options, also add to merge_segments
-      #
-
       # Recalculate the BAF of each segment, if required
       if (calc_seg_baf_option == 1) {
         # Adjust the segment BAF to not take the mean as that is sensitive to improperly phased segments
@@ -208,9 +217,9 @@ segment_baf_phased <- function(
     )) # Keep track of BAFsegm for the plot below
   }
 
-  BAFraw <- as.data.frame(read_baf(inputfile))
+  BAFraw <- read_baf_as_data_frame(inputfile)
   if (!is.null(prior_breakpoints_file)) {
-    bkps <- read.table(prior_breakpoints_file, header = TRUE, stringsAsFactors = FALSE)
+    bkps <- utils::read.table(prior_breakpoints_file, header = TRUE, stringsAsFactors = FALSE)
   } else {
     bkps <- NULL
   }
@@ -234,7 +243,10 @@ segment_baf_phased <- function(
       BAFoutputchr <- rbind(BAFoutputchr, BAFoutput_preseg)
     }
 
-    png(filename = paste(samplename, "_RAFseg_chr", chr, ".png", sep = ""), width = 2000, height = 1000, res = 200, type = "cairo")
+    grDevices::png(
+      filename = paste(samplename, "_RAFseg_chr", chr, ".png", sep = ""),
+      width = 2000, height = 1000, res = 200, type = "cairo"
+    )
     create_segmented_plot(
       chrom_position = BAFoutputchr$Position / 1000000,
       points.red = BAFoutputchr$BAF,
@@ -246,15 +258,18 @@ segment_baf_phased <- function(
       ylab = "BAF (phased)",
       prior_bkps_pos = bkps_chrom$position / 1000000
     )
-    dev.off()
+    grDevices::dev.off()
 
-    png(filename = paste(samplename, "_segment_chr", chr, ".png", sep = ""), width = 2000, height = 1000, res = 200, type = "cairo")
+    grDevices::png(
+      filename = paste(samplename, "_segment_chr", chr, ".png", sep = ""),
+      width = 2000, height = 1000, res = 200, type = "cairo"
+    )
     create_baf_plot(
       chrom_position = BAFoutputchr$Position / 1000000,
-      points.red.blue = BAFoutputchr$BAF,
-      plot.red = BAFoutputchr$tempBAFsegm > 0.5,
-      points.darkred = BAFoutputchr$BAFseg,
-      points.darkblue = 1 - BAFoutputchr$BAFseg,
+      points_red_blue = BAFoutputchr$BAF,
+      plot_red = BAFoutputchr$tempBAFsegm > 0.5,
+      points_darkred = BAFoutputchr$BAFseg,
+      points_darkblue = 1 - BAFoutputchr$BAFseg,
       x_min = min(BAFoutputchr$Position) / 1000000,
       x_max = max(BAFoutputchr$Position) / 1000000,
       title = paste(samplename, ", chromosome ", chr, sep = ""),
@@ -262,7 +277,7 @@ segment_baf_phased <- function(
       ylab = "BAF (phased)",
       prior_bkps_pos = bkps_chrom$position / 1000000
     )
-    dev.off()
+    grDevices::dev.off()
 
     BAFoutputchr$BAFphased <- ifelse(BAFoutputchr$tempBAFsegm > 0.5, BAFoutputchr$BAF, 1 - BAFoutputchr$BAF)
     # Remove the temp BAFsegm values as they are only needed for plotting
@@ -286,8 +301,12 @@ segment_baf_phased <- function(
 #' @param GENOMEBUILD Genome build upon which the 1000G SNP coordinates were obtained
 #' @author jdemeul, sd11
 #' @export
-segment_baf_phased_multisample <- function(samplename, inputfile, outputfile, prior_breakpoints_file = NULL, gamma = 10, calc_seg_baf_option = 3, GENOMEBUILD) {
-  # --- 1. Internal Helper: Segment Generator ---
+segment_baf_phased_multisample <- function(
+  samplename, inputfile,
+  outputfile, prior_breakpoints_file = NULL,
+  gamma = 10, calc_seg_baf_option = 3,
+  GENOMEBUILD
+) {
   get_segments <- function(chrom, bkps_chrom, BAFrawchr, maxsnpdist = 3000000) {
     snps <- BAFrawchr$Position
 
@@ -305,21 +324,24 @@ segment_baf_phased_multisample <- function(samplename, inputfile, outputfile, pr
     seg_ends <- c(snps[cut_indices], snps[length(snps)])
 
     # Explicitly use data.table namespace for construction
-    segments <- data.table::data.table(chrom = chrom, start = seg_starts, end = seg_ends)
+    segments <- data.table::data.table(
+      chrom = chrom, start = seg_starts, end = seg_ends
+    )
     return(segments[start <= end])
   }
 
-  # --- 2. Internal Helper: PCF Runner ---
-  run_pcf_modern <- function(BAFrawchr, start, end, gamma) {
-    # Subset using standard data.table syntax (methods are registered if package is installed)
-    BAF_subset <- BAFrawchr[Position >= start & Position <= end]
+  run_pcf_helper <- function(BAFrawchr, start, end, gamma) {
+    # Subset using rlang::.data to prevent binding warnings
+    BAF_subset <- BAFrawchr[rlang::.data$Position >= start & rlang::.data$Position <= end]
+
     if (nrow(BAF_subset) == 0) {
       return(NULL)
     }
 
     vals <- as.matrix(BAF_subset[, -c(1:2)])
 
-    # Fully qualified copynumber calls
+    # Calculate sdev using Mean Absolute Deviation
+    # Assuming getMad is available in your environment or a specific package
     sdevs <- apply(vals, 2, function(x) {
       getMad(ifelse(x < 0.5, x, 1 - x), k = 25)
     })
@@ -329,7 +351,6 @@ segment_baf_phased_multisample <- function(samplename, inputfile, outputfile, pr
     if (nrow(BAF_subset) < 50) {
       BAFsegm <- matrix(colMeans(vals), nrow = nrow(BAF_subset), ncol = ncol(vals), byrow = TRUE)
     } else {
-      # Fully qualified copynumber calls
       winsor_data <- copynumber::winsorize(BAF_subset, assembly = GENOMEBUILD)
       res <- copynumber::multipcf(
         data = winsor_data,
@@ -366,30 +387,30 @@ segment_baf_phased_multisample <- function(samplename, inputfile, outputfile, pr
         tempBAFsegm = BAFsegm[, i]
       )
     })
-    names(out) <- samplename
-    return(out)
+    stats::setNames(out, samplename)
   }
 
-  # --- 3. Main Execution ---
-  # Initial data loading using data.table namespace
   BAFraw <- data.table::as.data.table(
-    Reduce(function(...) merge(..., sort = FALSE), lapply(inputfile, read_baf))
+    Reduce(function(...) merge(..., sort = FALSE), lapply(inputfile, read_baf_as_data_frame))
   )
 
   bkps <- if (!is.null(prior_breakpoints_file)) {
-    data.table::as.data.table(read.table(prior_breakpoints_file, header = TRUE))
+    data.table::fread(prior_breakpoints_file, header = TRUE)
   } else {
     NULL
   }
 
   all_results <- list()
 
-  for (chr in unique(BAFraw$Chromosome)) {
-    message("Processing ", chr, "...")
-    chr_data <- BAFraw[Chromosome == chr][complete.cases(BAFraw[Chromosome == chr, -c(1:2)])]
+  # Using string indexing to avoid warnings in the loop header
+  for (chr in unique(BAFraw[["Chromosome"]])) {
+    cli::cli_inform("Processing {chr}...")
+
+    chr_data <- BAFraw[rlang::.data$Chromosome == chr]
+    chr_data <- chr_data[stats::complete.cases(chr_data[, -c(1:2)])]
 
     chr_bkps <- if (!is.null(bkps)) {
-      bkps[chromosome == chr]
+      bkps[rlang::.data$chromosome == chr]
     } else {
       data.table::data.table(position = numeric())
     }
@@ -397,26 +418,67 @@ segment_baf_phased_multisample <- function(samplename, inputfile, outputfile, pr
     segments <- get_segments(chr, chr_bkps, chr_data)
 
     seg_results <- lapply(seq_len(nrow(segments)), function(i) {
-      run_pcf_modern(chr_data, segments$start[i], segments$end[i], gamma)
+      run_pcf_helper(chr_data, segments$start[i], segments$end[i], gamma)
     })
 
+    # We combine the segments for this specific chromosome once
+    # This creates a named list of DataTables, one per sample
+    chr_sample_results <- lapply(samplename, function(id) {
+      data.table::rbindlist(lapply(seg_results, `[[`, id))
+    })
+    names(chr_sample_results) <- samplename
+
     for (id in samplename) {
-      # Explicitly use rbindlist from data.table
-      chr_sample_dt <- data.table::rbindlist(lapply(seg_results, `[[`, id))
+      # Reference the combined data for this sample/chromosome
+      sample_dt <- chr_sample_results[[id]]
 
-      # [Plotting logic - requires BAFoutputchr to be populated or used here]
-      # ... (PNG/Plotting code as per original script) ...
+      # Plot 1: RAFseg
+      grDevices::png(
+        filename = paste0(id, "_RAFseg_chr", chr, ".png"),
+        width = 2000, height = 1000, res = 200, type = "cairo"
+      )
+      create_segmented_plot(
+        chrom_position = sample_dt$Position / 1e6,
+        points.red = sample_dt$BAF,
+        points.green = sample_dt$tempBAFsegm,
+        x_min = min(sample_dt$Position) / 1e6,
+        x_max = max(sample_dt$Position) / 1e6,
+        title = paste0(id, ", chromosome ", chr),
+        xlab = "Position (Mb)",
+        ylab = "BAF (phased)",
+        prior_bkps_pos = chr_bkps$position / 1e6
+      )
+      grDevices::dev.off()
 
+      # Plot 2: BAF segments
+      grDevices::png(
+        filename = paste0(id, "_segment_chr", chr, ".png"),
+        width = 2000, height = 1000, res = 200, type = "cairo"
+      )
+      create_baf_plot(
+        chrom_position = sample_dt$Position / 1e6,
+        points_red_blue = sample_dt$BAF,
+        plot_red = sample_dt$tempBAFsegm > 0.5,
+        points_darkred = sample_dt$BAFseg,
+        points_darkblue = 1 - sample_dt$BAFseg,
+        x_min = min(sample_dt$Position) / 1e6,
+        x_max = max(sample_dt$Position) / 1e6,
+        title = paste0(id, ", chromosome ", chr),
+        xlab = "Position (Mb)",
+        ylab = "BAF (phased)",
+        prior_bkps_pos = chr_bkps$position / 1e6
+      )
+      grDevices::dev.off()
+
+      # Store for final export, removing the temp column used for plotting
       if (is.null(all_results[[id]])) all_results[[id]] <- list()
-      all_results[[id]][[chr]] <- chr_sample_dt[, !"tempBAFsegm"]
+      all_results[[id]][[chr]] <- sample_dt[, !"tempBAFsegm"]
     }
   }
 
-  # Final Export using data.table::fwrite
+  # Final Export
   for (i in seq_along(samplename)) {
     final_dt <- data.table::rbindlist(all_results[[samplename[i]]])
     data.table::fwrite(final_dt, file = outputfile[i], sep = "\t")
   }
-
-  return(NULL)
 }

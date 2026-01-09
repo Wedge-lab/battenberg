@@ -1,7 +1,17 @@
+#' Initialize and Configure Logging
+#'
+#' Sets up a file-based logger using the `logger` package. It creates the
+#' destination directory if it does not already exist and adjusts the
+#' logging threshold based on the desired verbosity.
+#'
+#' @param log_path Character string. The full path to the log file.
+#' @param verbose Logical. If `TRUE`, the log level is set to `DEBUG`.
+#'   If `FALSE`, it defaults to `INFO`.
+#'
 #' @export
 log_setup <- function(log_path, verbose = FALSE) {
   # Create directory if it doesn't exist
-  dir.create(dirname(log_path), recursive = TRUE, showWarnings = FALSE)
+  base::dir.create(base::dirname(log_path), recursive = TRUE, showWarnings = FALSE)
 
   # Set where the log goes
   logger::log_appender(logger::appender_file(log_path))
@@ -14,36 +24,63 @@ log_setup <- function(log_path, verbose = FALSE) {
   }
 }
 
+#' Log Informational Messages
+#'
+#' Displays a formatted message to the console using `cli` and
+#' simultaneously records a clean, non-ANSI version of the message to
+#' the log file at the `INFO` level.
+#'
+#' @param msg Character string. The message to be logged and displayed.
+#' @param ... Additional arguments passed to `cli` formatting functions.
+#'
 #' @export
 log_info <- function(msg, ...) {
   cli::cli_inform(msg, ...) # High-level UI for the human
   formatted_msg <- cli::cli_format_method(
     cli::cli_text(msg),
-    .envir = parent.frame()
+    .envir = base::parent.frame()
   )
   clean <- cli::ansi_strip(formatted_msg)
 
   logger::log_info(clean) # Record to file
 }
 
+#' Log Debugging Messages
+#'
+#' Displays a message to the console and records it to the log file
+#' specifically at the `DEBUG` level. Note that the message will only
+#' appear in the log file if the logger threshold is set to `DEBUG`.
+#'
+#' @param msg Character string. The message to be logged and displayed.
+#' @param ... Additional arguments passed to `cli` formatting functions.
+#'
 #' @export
 log_debug <- function(msg, ...) {
   cli::cli_inform(msg, ...)
   formatted_msg <- cli::cli_format_method(
     cli::cli_text(msg),
-    .envir = parent.frame()
+    .envir = base::parent.frame()
   )
   clean <- cli::ansi_strip(formatted_msg)
   logger::log_debug(clean) # Record to file ONLY if threshold is DEBUG
 }
 
+#' Log Failure Messages and Abort
+#'
+#' Signals a critical failure by calling `cli::cli_abort()`, which stops
+#' execution. The error message is stripped of ANSI formatting and
+#' recorded to the log file at the `FAILURE` level.
+#'
+#' @param msg Character string. The error message.
+#' @param ... Additional arguments passed to `cli::cli_abort()`.
+#'
 #' @export
 log_failure <- function(msg, ...) {
   cli::cli_abort(msg, ...)
   formatted_msg <- cli::cli_format_method(
     cli::cli_text(msg),
-    .envir = parent.frame()
+    .envir = base::parent.frame()
   )
   clean <- cli::ansi_strip(formatted_msg)
-  logger::log_failure(clean) # Record to file ONLY if threshold is DEBUG
+  logger::log_failure(clean)
 }

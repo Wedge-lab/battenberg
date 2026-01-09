@@ -39,7 +39,8 @@ concatenateAlleleCountFiles <- function(inputStart, inputEnd, chr_names) {
   combined <- data.table::rbindlist(
     lapply(infiles, read_table_generic())
   )
-  return(as.data.frame(combined))
+  data.table::setDF(combined)
+  return(combined)
 }
 
 #' Function to concatenate 1000 Genomes SNP reference files
@@ -62,5 +63,6 @@ concatenateG1000SnpFiles <- function(inputStart, inputEnd, chr_names) {
   # based on the names of our list (which are the chr_names)
   combined <- data.table::rbindlist(data_list, idcol = "chromosome")
 
-  return(as.data.frame(combined))
+  data.table::setDF(combined)
+  return(combined)
 }

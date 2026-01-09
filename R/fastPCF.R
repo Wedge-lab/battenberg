@@ -415,73 +415,35 @@ filterMarkS4 <- function(x, kmin, L, L2, frac1, frac2, frac3, thres) {
   return(mark)
 }
 
-# Get mad SD-estimate
-
-## Input:
-### x: vector of observations for which mad Sd is to be calculated
-### k: window size to be used in median filtering
-
-## Output:
-### SD: mad sd estimate
-
-## Required by:
-### multiPcf
-### fastPcf
-### pcf
-### aspcf
-
-
-## Requires:
-### medianFilter
+# Optimized function to calculate the Median Absolute Deviation of a signal
+# after removing a running median trend.
 getMad <- function(x, k = 25) {
-  # Remove observations that are equal to zero; are likely to be imputed, should not contribute to sd:
-  x <- x[x != 0]
+  # Use collapse for fast, memory-efficient subsetting
+  # Removes zeros which often represent missing/imputed data in genomics
+  x_filtered <- collapse::fsubset(x, x != 0)
 
-  # Calculate runMedian
-  runMedian <- medianFilter(x, k)
-
-  dif <- x - runMedian
-  SD <- mad(dif)
-
-  return(SD)
-}
-
-
-#########################################################################
-# Function to calculate running median for a given a window size
-#########################################################################
-
-## Input:
-### x: vector of numeric values
-### k: window size to be used for the sliding window (actually half-window size)
-
-## Output:
-### runMedian : the running median corresponding to each observation
-
-## Required by:
-### getMad
-### medianFilter
-
-
-## Requires:
-### none
-
-medianFilter <- function(x, k) {
-  n <- length(x)
-  filtWidth <- 2 * k + 1
-
-  # Make sure filtWidth does not exceed n
-  if (filtWidth > n) {
-    if (n == 0) {
-      filtWidth <- 1
-    } else if (n %% 2 == 0) {
-      # runmed requires filtWidth to be odd, ensure this:
-      filtWidth <- n - 1
-    } else {
-      filtWidth <- n
-    }
+  # Use rlang to safely check for empty input after filtering
+  if (rlang::is_empty(x_filtered)) {
+    return(NA)
   }
 
-  runMedian <- runmed(x, k = filtWidth, endrule = "median")
-  return(runMedian)
+  # Calculate running median parameters
+  n <- length(x_filtered)
+  filt_width <- 2 * k + 1
+
+  # Ensure filt_width is odd and does not exceed n to satisfy runmed requirements
+  if (filt_width > n) {
+    filt_width <- if (n %% 2 == 0) max(1, n - 1) else max(1, n)
+  }
+
+  # Calculate the running median using the C-based engine
+  # endrule = "median" ensures we don't get NAs at the start/end of the vector
+  run_median <- runmed(x_filtered, k = filt_width, endrule = "median")
+
+  # Calculate the difference and the MAD
+  # collapse::fmad is significantly faster than stats::mad
+  residual_signal <- x_filtered - run_median
+  SD <- collapse::fmad(residual_signal)
+
+  return(SD)
 }

@@ -32,10 +32,10 @@ The main output file `[samplename]_copynumber.txt` contains detailed copy number
 
 ```{r eval = FALSE}
 # Read the copy number data
-cn_data <- read.delim("sample_tumor_copynumber.txt")
+cn_data <- utils::read.delim("sample_tumor_copynumber.txt")
 
 # Examine the structure
-head(cn_data)
+utils::head(cn_data)
 colnames(cn_data)
 ```
 
@@ -206,7 +206,7 @@ cat("Potential chromothripsis chromosomes:", paste(chromothripsis_chrs, collapse
 
 ```{r eval = FALSE}
 # Read purity/ploidy file
-rho_psi <- read.delim("sample_tumor_rho_and_psi.txt")
+rho_psi <- utils::read.delim("sample_tumor_rho_and_psi.txt")
 
 # Extract values (use second row for FRAC_genome)
 tumor_purity <- rho_psi$rho[2]

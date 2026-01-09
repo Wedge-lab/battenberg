@@ -164,7 +164,7 @@ plot_haplotype_data <- function(haplotyped_baf_file,
 
   # Determine x-axis limits
   if (nrow(baf_dt) == 0) {
-    warning("No data in ", haplotyped_baf_file, " — creating empty plot")
+    log_info("No data in '{haplotyped_baf_file}' - creating empty plot")
     x_min <- 1
     x_max <- 2
     positions <- numeric()
@@ -180,7 +180,7 @@ plot_haplotype_data <- function(haplotyped_baf_file,
   }
 
   # Open PNG device with reasonable size and resolution
-  png(
+  grDevices::png(
     filename = image_file_name,
     width = 1200, height = 600, res = 150, type = "cairo"
   )
@@ -197,7 +197,7 @@ plot_haplotype_data <- function(haplotyped_baf_file,
     ylab           = "BAF"
   )
 
-  dev.off()
+  grDevices::dev.off()
   invisible(NULL)
 }
 #' Combine per-chromosome BAF files into a single table
@@ -209,23 +209,30 @@ plot_haplotype_data <- function(haplotyped_baf_file,
 #'
 #' @return Invisibly returns the combined data.frame
 #' @export
-concatenate_baf_files <- function(input_start, input_end, output_file, chr_names) {
+concatenate_baf_files <- function(
+  input_start,
+  input_end,
+  output_file,
+  chr_names
+) {
   files <- fs::path(input_start, chr_names, input_end)
 
+  # Filter for existing and non-empty files
   valid_files <- files[
     fs::file_exists(files) &
       fs::file_size(files) > 0
   ]
 
   if (length(valid_files) == 0) {
-    stop("No valid BAF files found matching the pattern.")
+    cli::cli_abort("No valid BAF files found matching the pattern.")
   }
 
-  # Force first column (chromosome) to character for safety
-  # Adjust column index/name if your files use a different chrom column
+  # Force first column to character
+  # Use column index 1 to avoid needing names(vroom(...)) twice
+  first_file_cols <- names(vroom::vroom(valid_files[1], n_max = 0))
   col_spec <- vroom::cols(
     .default = vroom::col_guess(),
-    !!!setNames(list(vroom::col_character()), names(vroom::vroom(valid_files[1], n_max = 0))[1])
+    !!!stats::setNames(list(vroom::col_character()), first_file_cols[1])
   )
 
   combined <- vroom::vroom(
@@ -235,15 +242,17 @@ concatenate_baf_files <- function(input_start, input_end, output_file, chr_names
     col_types = col_spec,
     progress = TRUE,
     .name_repair = "universal"
-  ) |> dplyr::select(-.data$file_path)
-
+  ) |>
+    dplyr::select(-dplyr::any_of("file_path"))
 
   if (nrow(combined) == 0) {
-    stop("All files were read but contained no rows.")
+    cli::cli_abort("All files were read but contained no rows.")
   }
 
+  # Ensure output directory exists
   fs::dir_create(fs::path_dir(output_file), recurse = TRUE)
 
+  # Write output
   vroom::vroom_write(
     combined,
     path = output_file,
@@ -255,6 +264,4 @@ concatenate_baf_files <- function(input_start, input_end, output_file, chr_names
   cli::cli_inform(
     "Combined BAF table ({format(nrow(combined), big.mark = ',')} rows) written to {.path {output_file}}"
   )
-
-  invisible(combined)
 }

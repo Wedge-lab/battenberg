@@ -72,8 +72,8 @@ gc_correct <- function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.
   SNP_POS_REF <- ref_files[ref_files$variable == "SNP_POS", ]$reference_file
   GC_SNP6 <- ref_files[ref_files$variable == "GC_SNP6", ]$reference_file
 
-  lrrbaf <- read.table(infile.logr.baf, header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
-  SNPpos <- read.table(SNP_POS_REF, header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
+  lrrbaf <- utils::read.table(infile.logr.baf, header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
+  SNPpos <- utils::read.table(SNP_POS_REF, header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
 
   Tumor_LogR <- lrrbaf[rownames(SNPpos), 5, drop = FALSE]
   colnames(Tumor_LogR) <- samplename
@@ -114,7 +114,7 @@ gc_correct <- function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.
   # ======================================= above previous prepareGCcorrect, below runGCcorrect ==============================================
 
   # TODO: This must be a dapted to not hardcode the chromosome names
-  gender <- read.table(birdseed_report_file, sep = "\t", skip = 66, header = TRUE)
+  gender <- utils::read.table(birdseed_report_file, sep = "\t", skip = 66, header = TRUE)
   sex <- as.vector(gender[, "computed_gender"])
   sex[sex == "female"] <- "XX"
   sex[sex == "male"] <- "XY"

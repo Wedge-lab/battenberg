@@ -47,6 +47,7 @@ clp <- parallel::makeCluster(nthreads)
 doParallel::registerDoParallel(clp)
 
 # run allele counter
+`%dopar%` <- foreach::`%dopar%`
 foreach::foreach(i = seq_along(chrom_names)) %dopar% {
   getAlleleCounts(
     bam.file = tumourbam,

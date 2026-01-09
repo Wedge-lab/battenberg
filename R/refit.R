@@ -54,19 +54,15 @@ suggest_refit <- function(subclones_file, segment_chrom, segment_pos, new_nMaj, 
 #' @author sd11
 #' @export
 cnfit_to_refit_suggestions <- function(samplename, subclones_file, rho_psi_file, gamma_param, min_segment_size_mb = 2) {
-  # samplename = "NASCR-0016"
-  # subclones_file = "NASCR-0016_subclones.txt"
-  subclones <- Battenberg::read_table_generic(subclones_file)
+  subclones <- read_table_generic(subclones_file)
   subclones$len <- subclones$endpos / 1000000 - subclones$startpos / 1000000
   subclones$is_cna <- subclones$nMaj1_A != subclones$nMin1_A
 
-  # df[c("is_cna")][is.na(df[c("is_cna")])] <- FALSE
-  # print(subclones$len)
   print(min_segment_size_mb)
   print(subclones$is_cna)
   if (any(subclones$len > min_segment_size_mb & subclones$is_cna)) {
     # There are large scale alterations, save the top couple as suggestions
-    rho_psi <- read.table(rho_psi_file, header = TRUE, stringsAsFactors = FALSE)
+    rho_psi <- utils::read.table(rho_psi_file, header = TRUE, stringsAsFactors = FALSE)
     rho <- rho_psi["FRAC_GENOME", "rho"]
     psi_t <- rho_psi["FRAC_GENOME", "psi"]
 
@@ -76,7 +72,15 @@ cnfit_to_refit_suggestions <- function(samplename, subclones_file, rho_psi_file,
     subclones_clonal_cna <- subclones_clonal_cna[with(subclones_clonal_cna, order(len, decreasing = TRUE)), ]
 
     if (nrow(subclones_clonal_cna) == 0) {
-      output <- data.frame(project = NA, samplename = samplename, qc = NA, cellularity_refit = TRUE, chrom = NA, pos = NA, maj = NA, min = NA, baf = NA, logr = NA, rho_estimate = NA, psi_t_estimate = NA, rho_diff = NA, psi_t_diff = NA)
+      output <- data.table::data.table(
+        project = NA, samplename = samplename,
+        qc = NA, cellularity_refit = TRUE,
+        chrom = NA, pos = NA, maj = NA,
+        min = NA, baf = NA, logr = NA,
+        rho_estimate = NA, psi_t_estimate = NA,
+        rho_diff = NA, psi_t_diff = NA
+      )
+      data.table::setDF(output)
     } else {
       # Generate a couple of solutions, but not more than are possibly available
       max_solutions <- ifelse(nrow(subclones_clonal_cna) >= 5, 5, nrow(subclones_clonal_cna))
@@ -93,7 +97,7 @@ cnfit_to_refit_suggestions <- function(samplename, subclones_file, rho_psi_file,
         project = rep(NA, max_solutions),
         samplename = rep(samplename, max_solutions),
         qc = rep(NA, max_solutions),
-        cellularity_refit = rep(F, max_solutions),
+        cellularity_refit = rep(FALSE, max_solutions),
         chrom = subclones_clonal_cna$chr[1:max_solutions],
         pos = paste(position, "M", sep = ""),
         maj = subclones_clonal_cna$nMaj1_A[1:max_solutions],

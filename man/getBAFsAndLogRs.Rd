@@ -2,7 +2,7 @@
 % Please edit documentation in R/prepare_wgs.R
 \name{getBAFsAndLogRs}
 \alias{getBAFsAndLogRs}
-\title{Obtain BAF and LogR from the allele counts}
+\title{Obtain BAF and LogR from the allele counts (Optimized)}
 \usage{
 getBAFsAndLogRs(
   tumourAlleleCountsFile.prefix,
@@ -20,36 +20,6 @@ getBAFsAndLogRs(
   seed = as.integer(Sys.time())
 )
 }
-\arguments{
-\item{tumourAlleleCountsFile.prefix}{Prefix of the allele counts files for the tumour.}
-
-\item{normalAlleleCountsFile.prefix}{Prefix of the allele counts files for the normal.}
-
-\item{figuresFile.prefix}{Prefix for output figures file names.}
-
-\item{BAFnormalFile}{File where BAF from the normal will be written.}
-
-\item{BAFmutantFile}{File where BAF from the tumour will be written.}
-
-\item{logRnormalFile}{File where LogR from the normal will be written.}
-
-\item{logRmutantFile}{File where LogR from the tumour will be written.}
-
-\item{combinedAlleleCountsFile}{File where combined allele counts for tumour and normal will be written.}
-
-\item{chr_names}{A vector with allowed chromosome names.}
-
-\item{g1000file.prefix}{Prefix to where 1000 Genomes reference files can be found.}
-
-\item{minCounts}{Integer, minimum depth required for a SNP to be included (optional, default=NA).}
-
-\item{samplename}{String, name of the sample (optional, default=sample1).}
-
-\item{seed}{A seed to be set for when randomising the alleles.}
-}
 \description{
-Obtain BAF and LogR from the allele counts
-}
-\author{
-dw9, sd11
+Obtain BAF and LogR from the allele counts (Optimized)
 }

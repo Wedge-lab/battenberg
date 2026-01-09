@@ -4,12 +4,12 @@
 \alias{germline_baf_logR}
 \title{Obtain BAF and LogR from the Germline allele counts}
 \usage{
-germline_baf_logR(GERMLINENAME, g1000alleles.prefix, chrom_names)
+germline_baf_logR(GERMLINENAME, g1000alleles_prefix, chrom_names)
 }
 \arguments{
 \item{GERMLINENAME}{The germline name used for Battenberg (i.e. the Germline BAM file name without the '.bam' extension).}
 
-\item{g1000alleles.prefix}{Prefix to where 1000 Genomes allele files can be found.}
+\item{g1000alleles_prefix}{Prefix to where 1000 Genomes allele files can be found.}
 
 \item{chrom_names}{A vector with allowed chromosome names.}
 }

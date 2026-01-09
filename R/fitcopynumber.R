@@ -60,9 +60,11 @@ fit_copy_number <- function(
   }
 
   # Read in the required data
-  segmented.BAF.data <- as.data.frame(read_bafsegmented(inputfile_baf_segmented))
-  raw.BAF.data <- as.data.frame(read_baf(inputfile_baf))
-  raw.logR.data <- as.data.frame(read_logr(inputfile_logr))
+  segmented.BAF.data <- read_bafsegmented(inputfile_baf_segmented)
+  data.table::setDF(segmented.BAF.data)
+
+  raw.BAF.data <- read_baf_as_data_frame(inputfile_baf)
+  raw.logR.data <- read_baf_as_data_frame(inputfile_logr)
 
   # Assign rownames as those are required by various clonal_ascat.R functions
   # If there are duplicates (possible with old versions of BB) then remove those
@@ -145,6 +147,7 @@ fit_copy_number <- function(
 
   # Combine the split data frames into a single for the subsequent steps
   matched.segmented.BAF.data <- do.call(rbind, matched.segmented.BAF.data)
+  matched.segmented.BAF.data <- data.table::rbindlist(matched.segmented.BAF.data)
   segmented.logR.data <- do.call(rbind, segmented.logR.data)
   BAF.data <- do.call(rbind, BAF.data)
   logR.data <- do.call(rbind, logR.data)
@@ -286,8 +289,8 @@ call_subclones <- function(
 
   # Load BAF data and handle possible row-name artifacts ("X")
   BAFvals <- read_bafsegmented(baf_segmented_file) |> as.data.frame()
-  if (identical(colnames(BAFvals)[1], "X")) {
-    BAFvals <- BAFvals[, -1, drop = FALSE]
+  if ("X" %in% colnames(BAFvals)) {
+    BAFvals <- BAFvals[, -1, with = FALSE]
   }
 
   # Positional indexing for generalizability: Col 3 = BAF, Col 5 = BAFseg
@@ -312,13 +315,17 @@ call_subclones <- function(
   )
 
   # Refine via merging
-  merge_res <- merge_segments(res_cn$subcloneres, BAFvals, LogRvals, rho, psi, gamma, calc_seg_baf_option, TRUE)
+  merge_res <- merge_segments(
+    res_cn$subcloneres, BAFvals, LogRvals,
+    rho, psi, gamma, calc_seg_baf_option, TRUE
+  )
   BAFvals <- merge_res$bafsegmented
 
   # Second Pass: Final Copy Number Determination
   res_final <- determine_copynumber(
     BAFvals, LogRvals, rho, psi, gamma,
-    ctrans, ctrans.logR, maxdist, siglevel, noperms, cn_upper_limit
+    ctrans, ctrans.logR, maxdist, siglevel,
+    noperms, cn_upper_limit
   )
   subcloneres <- res_final$subcloneres
   BAFpvals <- res_final$BAFpvals
@@ -334,14 +341,24 @@ call_subclones <- function(
     masked_size = mask_res$masked_size,
     max_allowed_state = max_allowed_state
   )
-  data.table::fwrite(masking_details, file = masking_output_file, quote = FALSE, sep = "\t", row.names = FALSE)
+  data.table::fwrite(
+    masking_details,
+    file = masking_output_file,
+    quote = FALSE, sep = "\t", row.names = FALSE
+  )
 
   # Generate output paths
   base_out <- tools::file_path_sans_ext(output_file)
   ext_out <- tools::file_ext(output_file)
 
-  data.table::fwrite(subcloneres[, c(1:3, 8:13)], output_file, quote = FALSE, sep = "\t", row.names = FALSE)
-  data.table::fwrite(subcloneres, paste0(base_out, "_extended.", ext_out), quote = FALSE, sep = "\t", row.names = FALSE)
+  data.table::fwrite(
+    subcloneres[, c(1:3, 8:13)], output_file,
+    quote = FALSE, sep = "\t", row.names = FALSE
+  )
+  data.table::fwrite(
+    subcloneres, paste0(base_out, "_extended.", ext_out),
+    quote = FALSE, sep = "\t", row.names = FALSE
+  )
 
   # Calculate Clonal PGA (Percent Genome Altered)
   subcloneres$length <- subcloneres$endpos - subcloneres$startpos
@@ -382,7 +399,10 @@ call_subclones <- function(
     bp_chr <- segment_breakpoints[segment_breakpoints[, 1] == chr, ]
     breakpoints_pos <- sort(unique(c(bp_chr[, 2], bp_chr[, 3]) / 1e6))
 
-    png(filename = paste0(output_figures_prefix, chr, ".png"), width = 2000, height = 2000, res = 200, type = "cairo")
+    grDevices::png(
+      filename = paste0(output_figures_prefix, chr, ".png"),
+      width = 2000, height = 2000, res = 200, type = "cairo"
+    )
     create_subclonal_cn_plot(
       chrom = chr,
       chrom_position = pos / 1e6,
@@ -392,15 +412,15 @@ call_subclones <- function(
       BAFsegchr = BAFseg[chr_idx],
       BAFpvalschr = BAFpvals[chr_idx],
       subcloneres = subcloneres,
-      breakpoints_pos = breakpoints_pos,
-      svs_pos = svs_pos,
       siglevel = siglevel,
       x_min = min(pos) / 1e6,
       x_max = max(pos) / 1e6,
       title = paste(sample_name, ", chromosome ", chr),
-      xlab = "Position (Mb)", ylab_logr = "LogR", ylab_baf = "BAF (phased)"
+      xlab = "Position (Mb)", ylab_logr = "LogR", ylab_baf = "BAF (phased)",
+      breakpoints_pos = breakpoints_pos,
+      svs_pos = svs_pos
     )
-    dev.off()
+    grDevices::dev.off()
   }
 
   # Clean up and calculate Ploidy
@@ -535,7 +555,13 @@ determine_copynumber <- function(
     best_idx <- which.min(abs(test_levels - l))
 
     # Significance testing
-    p_val <- if (is.na(sd(BAFke)) || sd(BAFke) == 0) 0 else t.test(BAFke, mu = test_levels[best_idx])$p_value
+    p_val <- if (is.na(
+      collapse::fsd(BAFke)
+    ) || collapse::fsd(BAFke) == 0) {
+      0
+    } else {
+      t.test(BAFke, mu = test_levels[best_idx])$p_value
+    }
     if (abs(l - test_levels[best_idx]) < maxdist) p_val <- 1
 
     BAFpvals[start_idx:end_idx] <- p_val
@@ -561,7 +587,7 @@ determine_copynumber <- function(
         (l * rho * (nMin1 + nMaj1) - l * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2)
 
       # Standard error estimation
-      sdl <- sd(BAFke, na.rm = TRUE) / sqrt(sum(!is.na(BAFke)))
+      sdl <- collapse::fsd(BAFke, na.rm = TRUE) / sqrt(sum(!is.na(BAFke)))
       calc_tau <- function(curr_l) {
         (1 - rho + rho * nMaj2 - 2 * curr_l * (1 - rho) - curr_l * rho * (nMin2 + nMaj2)) /
           (curr_l * rho * (nMin1 + nMaj1) - curr_l * rho * (nMin2 + nMaj2) - rho * nMaj1 + rho * nMaj2)
@@ -577,7 +603,7 @@ determine_copynumber <- function(
             (pMean * rho * (nMaj1[opt] + nMin1[opt]) - pMean * rho * (nMaj2[opt] + nMin2[opt]) - rho * nMaj1[opt] + rho * nMaj2[opt])
         })
         ordered <- sort(permFraction)
-        sdtaubootstrap[opt] <- sd(permFraction)
+        sdtaubootstrap[opt] <- collapse::fsd(permFraction)
         tau25[opt] <- ordered[25]
         tau975[opt] <- ordered[975]
       }
@@ -688,7 +714,7 @@ merge_segments <- function(
     return(subclones)
   }
   # Function called to test whether two segments must be checked
-  checkStatus <- function(subclones, INDEX, INDEX_N) {
+  check_status <- function(subclones, INDEX, INDEX_N) {
     if (INDEX_N > INDEX) {
       # Largest segment (INDEX_N) is after smallest one (INDEX)
       stopifnot(subclones$Next_checked[INDEX] == subclones$Prev_checked[INDEX_N])
@@ -709,56 +735,77 @@ merge_segments <- function(
   }
 
   # Function to merge two segments
-  merge_seg <- function(subclones, bafsegmented, logR, INDEX, INDEX_N, calc_seg_baf_option) {
-    # Update start/end information
+  merge_seg <- function(
+    subclones, bafsegmented,
+    logR, INDEX, INDEX_N,
+    calc_seg_baf_option
+  ) {
+    # Standard GenomicRanges coordinate updates
     if (INDEX_N < INDEX) {
-      GenomicRanges::end(subclones[INDEX_N]) <- GenomicRanges::end(subclones[INDEX])
+      GenomicRanges::end(
+        subclones[INDEX_N]
+      ) <- GenomicRanges::end(subclones[INDEX])
     } else {
-      GenomicRanges::start(subclones[INDEX_N]) <- GenomicRanges::start(subclones[INDEX])
+      GenomicRanges::start(
+        subclones[INDEX_N]
+      ) <- GenomicRanges::start(subclones[INDEX])
     }
-    # Remove segment
+
+    # Remove the merged-from segment
     subclones <- subclones[-INDEX]
     if (INDEX_N < INDEX) INDEX <- INDEX - 1
-    # Reset neighbour checking
+
+    # Trigger local neighbor update logic
     subclones <- updateAround(subclones, INDEX)
+
+    # Efficient overlap extraction
+    # subjectHits is the linter-safe version of @to
+    baf_idx <- S4Vectors::subjectHits(
+      GenomicRanges::findOverlaps(subclones[INDEX], bafsegmented)
+    )
+    baf_vals <- bafsegmented$BAFphased[baf_idx]
+
+    # Modernized BAF calculation with safety for NA values
     if (calc_seg_baf_option == 1) {
-      # This uses median
-      NEW_BAF <- median(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX], bafsegmented)@to], na.rm = TRUE)
+      NEW_BAF <- collapse::fmedian(baf_vals, na.rm = TRUE)
     } else if (calc_seg_baf_option == 2) {
-      # This uses mean
-      NEW_BAF <- mean(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX], bafsegmented)@to], na.rm = TRUE)
+      NEW_BAF <- collapse::fmean(baf_vals, na.rm = TRUE)
     } else if (calc_seg_baf_option == 3) {
-      # We'll prefer the median BAF as a segment summary
-      # but change to the mean when the median is extreme
-      # as at 0 or 1 the BAF is uninformative for the fitting
-      median_BAF <- median(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX], bafsegmented)@to], na.rm = TRUE)
-      mean_BAF <- mean(bafsegmented$BAFphased[GenomicRanges::findOverlaps(subclones[INDEX], bafsegmented)@to], na.rm = TRUE)
-      if (median_BAF != 0 && median_BAF != 1) {
-        NEW_BAF <- median_BAF
+      # Calculate both using high-performance C++ bindings
+      m_baf <- collapse::fmedian(baf_vals, na.rm = TRUE)
+
+      # Robust Logic: Only use the median if it's not NA
+      # This avoids the "missing value where TRUE/FALSE needed" error
+      if (!base::is.na(m_baf) && m_baf != 0 && m_baf != 1) {
+        NEW_BAF <- m_baf
       } else {
-        NEW_BAF <- mean_BAF
+        NEW_BAF <- collapse::fmean(baf_vals, na.rm = TRUE)
       }
-      rm(median_BAF, mean_BAF)
     }
-    # Update both BAF and logR information
-    subclones[INDEX]$BAF <- NEW_BAF
-    INDEX_logR <- GenomicRanges::findOverlaps(subclones[INDEX], logR)@to
-    if (length(INDEX_logR) == 0) {
+
+    # LogR update with safety for empty segments
+    logr_idx <- S4Vectors::subjectHits(
+      GenomicRanges::findOverlaps(subclones[INDEX], logR)
+    )
+
+    if (base::length(logr_idx) == 0) {
       subclones[INDEX]$LogR <- 0
     } else {
-      subclones[INDEX]$LogR <- mean(logR$logR[INDEX_logR], na.rm = TRUE)
+      subclones[INDEX]$LogR <- collapse::fmean(
+        logR$logR[logr_idx],
+        na.rm = TRUE
+      )
     }
-    rm(INDEX_logR)
-    # Update segmented baf
-    bafsegmented$BAFseg[GenomicRanges::findOverlaps(subclones[INDEX], bafsegmented)@to] <- NEW_BAF
-    # TODO Update the logRseg as well
-    # Reset IDs
-    subclones$ID <- seq_along(subclones)
-    return(list(subclones = subclones, bafsegmented = bafsegmented))
-  }
 
-  # Main processing
-  requireNamespace("GenomicRanges", quietly = TRUE)
+    # Update metadata on the S4 objects
+    subclones[INDEX]$BAF <- NEW_BAF
+    bafsegmented$BAFseg[baf_idx] <- NEW_BAF
+
+    # Standard Evaluation sequence generation
+    subclones$ID <- base::seq_along(subclones)
+
+    list(subclones = subclones, bafsegmented = bafsegmented)
+  }
 
   log_debug("Converting DFs into GRanges objects")
 
@@ -987,7 +1034,10 @@ plot_gw_subclonal_cn <- function(subclones, BAFvals, rho, ploidy, goodness, outp
   })
 
   # Plot subclonal copy number as mixtures of two states
-  png(filename = paste(output_gw_figures_prefix, "_average.png", sep = ""), width = 2000, height = 500, res = 200, type = "cairo")
+  grDevices::png(
+    filename = paste(output_gw_figures_prefix, "_average.png", sep = ""),
+    width = 2000, height = 500, res = 200, type = "cairo"
+  )
   create_bb_plot_average(
     bafsegmented = BAFvals,
     ploidy = ploidy,
@@ -1001,10 +1051,13 @@ plot_gw_subclonal_cn <- function(subclones, BAFvals, rho, ploidy, goodness, outp
     chr_names = chr_names,
     tumourname = tumourname
   )
-  dev.off()
+  grDevices::dev.off()
 
   # Plot subclonal copy number as two separate states
-  png(filename = paste(output_gw_figures_prefix, "_subclones.png", sep = ""), width = 2000, height = 500, res = 200, type = "cairo")
+  grDevices::png(
+    filename = paste(output_gw_figures_prefix, "_subclones.png", sep = ""),
+    width = 2000, height = 500, res = 200, type = "cairo"
+  )
   create_bb_plot_subclones(
     bafsegmented = BAFvals,
     subclones = subclones,
@@ -1022,7 +1075,7 @@ plot_gw_subclonal_cn <- function(subclones, BAFvals, rho, ploidy, goodness, outp
     chr_names = chr_names,
     tumourname = tumourname
   )
-  dev.off()
+  grDevices::dev.off()
 }
 
 #' Collapse a BAFsegmented file into segment start and end points
@@ -1073,15 +1126,15 @@ collapse_bafsegmented_to_segments <- function(bafsegmented) {
 #' @export
 make_posthoc_plots <- function(samplename, logr_file, bafsegmented_file, logrsegmented_file, allelecounts_file = NULL) {
   # Make some post-hoc plots
-  logr <- Battenberg::read_table_generic(logr_file)
-  bafsegmented <- as.data.frame(Battenberg::read_table_generic(bafsegmented_file))
-  logrsegmented <- as.data.frame(Battenberg::read_table_generic(logrsegmented_file, header = FALSE))
+  logr <- read_table_generic(logr_file)
+  bafsegmented <- as.data.frame(read_table_generic(bafsegmented_file))
+  logrsegmented <- as.data.frame(read_table_generic(logrsegmented_file, header = FALSE))
   colnames(logrsegmented) <- c("Chromosome", "Position", "logRseg")
   outputfile <- paste0(samplename, "_alleleratio.png")
   allele_ratio_plot(samplename = samplename, logr = logr, bafsegmented = bafsegmented, logrsegmented = logrsegmented, outputfile = outputfile, max.plot.cn = 8)
 
   if (!is.null(allelecounts_file)) {
-    allelecounts <- as.data.frame(Battenberg::read_table_generic(allelecounts_file))
+    allelecounts <- as.data.frame(read_table_generic(allelecounts_file))
     outputfile <- paste0(samplename, "_coverage.png")
     coverage_plot(samplename, allelecounts, outputfile)
   }
@@ -1188,7 +1241,13 @@ callChrXsubclones <- function(
   bb_g1 <- bb_data[bb_data$nMaj1_A == 2 & bb_data$nMin1_A == 1 & bb_data$frac1_A == 1, ]
   bb_g2 <- bb_data[bb_data$nMaj1_A == 3 & bb_data$nMin1_A == 1 & bb_data$frac1_A == 1, ]
   bb_g3 <- bb_data[bb_data$nMaj1_A == 4 & bb_data$nMin1_A == 1 & bb_data$frac1_A == 1, ]
-  bb_sd_max <- max(c(sd(bb_dip$LogR), sd(bb_g1$LogR), sd(bb_g2$LogR), sd(bb_g3$LogR), 0.05), na.rm = TRUE)
+  bb_sd_max <- max(c(
+    collapse::fsd(bb_dip$LogR),
+    collapse::fsd(bb_g1$LogR),
+    collapse::fsd(bb_g2$LogR),
+    collapse::fsd(bb_g3$LogR),
+    0.05
+  ), na.rm = TRUE)
 
   # Expected LogR values for Male ChrX
   exp_logr_gain <- sapply(2:10000, function(x) log2((rho * x + (1 - rho)) / 1))
@@ -1196,7 +1255,11 @@ callChrXsubclones <- function(
 
   # Process each segment for Copy Number and CCF
   bb_loh_ref <- bb_data[bb_data$nMin1_A == 0 & bb_data$frac1_A == 1, ]
-  loh_sd <- if (nrow(bb_loh_ref) > 1) sd(bb_loh_ref$LogR) else bb_sd_max
+  loh_sd <- if (nrow(bb_loh_ref) > 1) {
+    collapse::fsd(bb_loh_ref$LogR)
+  } else {
+    bb_sd_max
+  }
 
   process_seg <- function(seg_row) {
     seg <- as.list(seg_row)
@@ -1338,11 +1401,11 @@ callChrXsubclones <- function(
   merged_list <- list()
   for (grp in groups) {
     sub_grp <- out_df[out_df$orig_rank %in% grp, ]
-    if (nrow(sub_grp) > 1 && length(unique(sub_grp$arm)) == 1 && sd(sub_grp$subclonalCN) <= 0.01) {
+    if (nrow(sub_grp) > 1 && length(unique(sub_grp$arm)) == 1 && collapse::fsd(sub_grp$subclonalCN) <= 0.01) {
       m_seg <- sub_grp[1, ]
       m_seg$endpos <- sub_grp$endpos[nrow(sub_grp)]
       m_seg$nSNPs <- sum(sub_grp$nSNPs)
-      m_seg$LogR <- weighted.mean(sub_grp$LogR, sub_grp$nSNPs)
+      m_seg$LogR <- collapse::fmean(sub_grp$LogR, w = sub_grp$nSNPs, na.rm = TRUE)
       merged_list[[length(merged_list) + 1]] <- m_seg
     } else {
       # Handle specific arm-based sub-merging as per original messy logic
@@ -1376,28 +1439,54 @@ callChrXsubclones <- function(
     if (pga_val == "NA") "NA" else paste0(round(as.numeric(pga_val) * 100, 1), "%")
   )
 
-  avg_plot <- ggplot(merged_df) +
-    geom_hline(yintercept = 0:ceiling(max(merged_df$subclonalCN)), linetype = "longdash", col = "grey", linewidth = 0.2) +
-    geom_rect(aes(xmin = startpos, xmax = endpos, ymin = subclonalCN - 0.02, ymax = subclonalCN + 0.02)) +
-    geom_vline(xintercept = x_centromere, linetype = "longdash", col = "green") +
-    labs(x = "ChrX coordinate (bp)", y = "Average Ploidy", title = plot_title) +
-    theme_minimal() +
-    theme(plot.title = element_text(hjust = 0.5))
+  avg_plot <- ggplot2::ggplot(merged_df) +
+    ggplot2::geom_hline(
+      yintercept = 0:ceiling(max(merged_df$subclonalCN)),
+      linetype = "longdash", col = "grey", linewidth = 0.2
+    ) +
+    ggplot2::geom_rect(
+      ggplot2::aes(
+        xmin = startpos, xmax = endpos,
+        ymin = subclonalCN - 0.02, ymax = subclonalCN + 0.02
+      )
+    ) +
+    ggplot2::geom_vline(
+      xintercept = x_centromere, linetype = "longdash", col = "green"
+    ) +
+    ggplot2::labs(
+      x = "ChrX coordinate (bp)",
+      y = "Average Ploidy",
+      title = plot_title
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5))
 
   if (AR) {
     # Highlight AR locus
     seg_ar <- merged_df[merged_df$startpos < ar_locus$endpos & merged_df$endpos > ar_locus$startpos, ]
-    if (nrow(seg_ar) > 0) avg_plot <- avg_plot + geom_rect(data = seg_ar, aes(xmin = startpos, xmax = endpos, ymin = subclonalCN - 0.02, ymax = subclonalCN + 0.02), fill = "red")
+    if (nrow(seg_ar) > 0) {
+      avg_plot <- avg_plot + ggplot2::geom_rect(
+        data = seg_ar,
+        ggplot2::aes(
+          xmin = startpos, xmax = endpos,
+          ymin = subclonalCN - 0.02,
+          ymax = subclonalCN + 0.02
+        ),
+        fill = "red"
+      )
+    }
   }
 
-  pdf(paste0(tumourname, "_chrX_average_ploidy.pdf"))
+  grDevices::pdf(paste0(tumourname, "_chrX_average_ploidy.pdf"))
   print(avg_plot)
-  dev.off()
+  grDevices::dev.off()
 
   # Final Genome-wide Plot Update
   temp_dt <- data.table::fread(paste0(tumourname, "_rho_and_psi.txt"))
   goodness_val <- temp_dt[temp_dt[["is_best"]] == TRUE, temp_dt[["distance"]]]
-  baf_raw <- read_bafsegmented(paste0(tumourname, ".BAFsegmented.txt")) |> as.data.frame()
+  baf_raw <- read_bafsegmented(
+    paste0(tumourname, ".BAFsegmented.txt")
+  ) |> as.data.frame()
 
   # Simulate ChrX BAF for plot (Male sample)
   sim_len <- round(nrow(baf_raw) * 0.05)

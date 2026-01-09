@@ -13,7 +13,7 @@ infile <- opt$input
 outfile <- opt$output
 genome <- opt$genome
 
-brass <- read.table(infile, header = FALSE, comment.char = "#", stringsAsFactor = F)
+brass <- utils::read.table(infile, header = FALSE, comment.char = "#", stringsAsFactor = F)
 
 # fetch  TRDS entry
 trds_data <- lapply(brass$V8, function(x) {

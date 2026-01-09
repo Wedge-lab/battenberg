@@ -193,6 +193,12 @@ battenberg(
 \item{genomebuild}{Genome build upon which the 1000G SNP coordinates were obtained (Default: hg19; options: "hg19" or "hg38")}
 
 \item{enhanced_grid_search}{Should use multi-start, parallelized and multi-approach grid search (Default: FALSE)}
+
+\item{verbose_logging}{Print out more information during the run (Default: FALSE)}
+
+\item{logging_path}{Path to write log files to (Default: ".")}
+
+\item{chrom_chrod_file}{TODO: no idea what this does}
 }
 \description{
 Run the Battenberg pipeline

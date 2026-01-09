@@ -11,16 +11,13 @@
 #' @param skip The number of rows to skip before reading (Default: 0)
 #' @return A data frame with contents of the file
 #' @export
-read_table_generic <- function(file, header = TRUE, row.names = FALSE, stringsAsFactor = FALSE, sep = "\t", chrom_col = 1, skip = 0) {
-  # We use a named vector for colClasses to ensure the chromosome column is character
-  # fread can take a list or vector where names are col indices or names
-  col_classes <- rep(NA, length(chrom_col))
+read_table_generic <- function(file, header = TRUE, stringsAsFactor = FALSE, sep = "\t", chrom_col = 1, skip = 0) {
+  # We use a named character vector to force the chromosome column(s) to character
+  # This prevents loss of leading zeros or scientific notation issues
+  col_classes <- "character"
   names(col_classes) <- as.character(chrom_col)
-  col_classes[names(col_classes)] <- "character"
 
-  # - check.names = TRUE replaces spaces with dots automatically
-  # - data.table = FALSE returns a standard data.frame for compatibility
-  # - colClasses handles the 'character' casting in the first pass
+  # fread is the fastest modern parser for large genomic tables
   d <- data.table::fread(
     file = file,
     sep = sep,
@@ -29,15 +26,10 @@ read_table_generic <- function(file, header = TRUE, row.names = FALSE, stringsAs
     colClasses = col_classes,
     check.names = TRUE,
     data.table = FALSE,
-    nThread = 4 # You can adjust threads based on your environment
+    nThread = 4
   )
 
-  # Note: data.table usually discourages row names, but we keep them for legacy compatibility
-  if (row.names && nrow(d) > 0) {
-    # Using 'attr' is faster than row.names(d) <- ... for very large tables
-    rownames(d) <- d[[1]]
-    d <- d[, -1, drop = FALSE]
-  }
+  return(d)
 }
 
 
@@ -57,12 +49,14 @@ read_logr <- function(filename, header = TRUE) {
 #' @param filename Filename of the file to read in
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with BAF content
-read_baf <- function(filename, header = TRUE) {
-  data.table::fread(
+read_baf_as_data_frame <- function(filename, header = TRUE) {
+  output <- data.table::fread(
     file = filename,
     header = header,
     colClasses = c("character", "integer", "numeric")
   )
+  data.table::setDF(output)
+  return(output)
 }
 
 #' Parser for GC content reference data
@@ -94,7 +88,6 @@ read_replication <- function(filename) {
 #' @param header Whether the file contains a header (Default: TRUE)
 #' @return A data frame with BAFsegmented content
 read_bafsegmented <- function(filename, header = TRUE) {
-  # fread is significantly faster than read_delim for large genomic datasets
   data.table::fread(
     file = filename,
     header = header,
@@ -107,7 +100,6 @@ read_bafsegmented <- function(filename, header = TRUE) {
 #' @param filename Filename of the file to read in
 #' @return A data frame with the imputed genotype output
 read_imputed_output <- function(filename) {
-  # Fast read with explicit column classes for genomic coordinates and alleles
   data.table::fread(
     file = filename,
     col_names = c("snpidx", "rsidx", "pos", "ref", "alt", "hap1", "hap2"),

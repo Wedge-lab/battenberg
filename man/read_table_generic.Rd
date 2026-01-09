@@ -7,7 +7,6 @@
 read_table_generic(
   file,
   header = TRUE,
-  row.names = FALSE,
   stringsAsFactor = FALSE,
   sep = "\\t",
   chrom_col = 1,
@@ -19,8 +18,6 @@ read_table_generic(
 
 \item{header}{Whether the file contains a header (Default: TRUE)}
 
-\item{row.names}{Whether the file contains row names (Default: FALSE)}
-
 \item{stringsAsFactor}{Legacy parameter that is no longer used (Default: FALSE)}
 
 \item{sep}{Column separator (Default: \\t)}
@@ -28,6 +25,8 @@ read_table_generic(
 \item{chrom_col}{The column number that contains chromosome denominations. This column will automatically be cast as a character. Should be counted including the row.names (Default: 1)}
 
 \item{skip}{The number of rows to skip before reading (Default: 0)}
+
+\item{row.names}{Whether the file contains row names (Default: FALSE)}
 }
 \value{
 A data frame with contents of the file

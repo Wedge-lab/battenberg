@@ -206,11 +206,11 @@ runASCAT_enhanced <- function(
   # Generate plots (IDENTICAL to original)
   if (analysis == "paired") {
     if (!is.na(distancepng)) {
-      png(filename = distancepng, width = 1000, height = 1000, res = 1000 / 7, type = "cairo")
+      grDevices::png(filename = distancepng, width = 1000, height = 1000, res = 1000 / 7, type = "cairo")
     }
     ASCAT::ascat.plotSunrise(-d, psi_opt1_plot, rho_opt1_plot, minimise)
     if (!is.na(distancepng)) {
-      dev.off()
+      grDevices::dev.off()
     }
   }
 
@@ -236,19 +236,43 @@ runASCAT_enhanced <- function(
 
   # Create plots
   if (!is.na(copynumberprofilespng)) {
-    png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200, type = "cairo")
+    grDevices::png(
+      filename = copynumberprofilespng,
+      width = 2000, height = 500,
+      res = 200, type = "cairo"
+    )
   }
-  ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented, chrs = chr_names)
+  ASCAT::ascat.plotAscatProfile(
+    n1all = nA, n2all = nB,
+    heteroprobes = TRUE,
+    ploidy = ploidy_opt1,
+    rho = rho_opt1,
+    goodness_of_fit = goodness_of_fit_opt1,
+    nonaberrant = FALSE,
+    ch = ch, lrr = lrr,
+    bafsegmented = bafsegmented,
+    chrs = chr_names
+  )
   if (!is.na(copynumberprofilespng)) {
-    dev.off()
+    grDevices::dev.off()
   }
 
   if (!is.na(nonroundedprofilepng)) {
-    png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200, type = "cairo")
+    grDevices::png(
+      filename = nonroundedprofilepng,
+      width = 2000, height = 500,
+      res = 200, type = "cairo"
+    )
   }
-  ASCAT::ascat.plotNonRounded(ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs = chr_names)
+  ASCAT::ascat.plotNonRounded(
+    ploidy = ploidy_opt1, rho = rho_opt1,
+    goodness_of_fit = goodness_of_fit_opt1,
+    nonaberrant = FALSE, nAfull = nAfull,
+    nBfull = nBfull, bafsegmented = bafsegmented,
+    ch = ch, lrr = lrr, chrs = chr_names
+  )
   if (!is.na(nonroundedprofilepng)) {
-    dev.off()
+    grDevices::dev.off()
   }
 
   return(list(
@@ -415,11 +439,11 @@ generate_plots_battenberg <- function(analysis, distancepng, copynumberprofilesp
     rho_opt1_plot <- rho_opt1
 
     if (!is.na(distancepng)) {
-      png(filename = distancepng, width = 1000, height = 1000, res = 1000 / 7, type = "cairo")
+      grDevices::png(filename = distancepng, width = 1000, height = 1000, res = 1000 / 7, type = "cairo")
     }
     ASCAT::ascat.plotSunrise(-d, psi_opt1_plot, rho_opt1_plot, minimise)
     if (!is.na(distancepng)) {
-      dev.off()
+      grDevices::dev.off()
     }
   }
 
@@ -446,27 +470,38 @@ generate_plots_battenberg <- function(analysis, distancepng, copynumberprofilesp
   }
 
   if (!is.na(copynumberprofilespng)) {
-    png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200, type = "cairo")
+    grDevices::png(
+      filename = copynumberprofilespng,
+      width = 2000, height = 500,
+      res = 200, type = "cairo"
+    )
   }
   ASCAT::ascat.plotAscatProfile(
     n1all = nA, n2all = nB, heteroprobes = TRUE,
-    ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1,
+    ploidy = ploidy_opt1, rho = rho_opt1,
+    goodness_of_fit = goodness_of_fit_opt1,
     nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented,
     chrs = chr_names
   )
   if (!is.na(copynumberprofilespng)) {
-    dev.off()
+    grDevices::dev.off()
   }
 
   if (!is.na(nonroundedprofilepng)) {
-    png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200, type = "cairo")
+    grDevices::png(
+      filename = nonroundedprofilepng,
+      width = 2000, height = 500,
+      res = 200, type = "cairo"
+    )
   }
   ASCAT::ascat.plotNonRounded(
-    ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1,
-    nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull,
+    ploidy = ploidy_opt1, rho = rho_opt1,
+    goodness_of_fit = goodness_of_fit_opt1,
+    nonaberrant = FALSE, nAfull = nAfull,
+    nBfull = nBfull,
     bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs = chr_names
   )
   if (!is.na(nonroundedprofilepng)) {
-    dev.off()
+    grDevices::dev.off()
   }
 }

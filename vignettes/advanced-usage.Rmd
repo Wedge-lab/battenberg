@@ -293,7 +293,7 @@ After running Battenberg, assess quality using:
 
 ```{r eval = FALSE}
 # Example quality check
-cn_data <- read.delim("sample_tumor_copynumber.txt")
+cn_data <- utils::read.delim("sample_tumor_copynumber.txt")
 
 # Check for very short segments (potential artifacts)
 short_segments <- cn_data[cn_data$endpos - cn_data$startpos < 1000000, ]
@@ -302,7 +302,7 @@ if (nrow(short_segments) > 0) {
 }
 
 # Check purity estimate
-rho_psi <- read.delim("sample_tumor_rho_and_psi.txt")
+rho_psi <- utils::read.delim("sample_tumor_rho_and_psi.txt")
 purity <- rho_psi$rho[2]
 if (purity < 0.3) {
   cat("Warning: Low estimated purity:", purity, "\n")

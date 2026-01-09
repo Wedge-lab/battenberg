@@ -18,12 +18,12 @@ Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
     person("Julio Cesar","Cortes Rios", role="ctb"))
 Description: Estimate subclonal copy number from whole genome sequencing or SNP6 data.
 Depends:
-  R (>= 4.3.0),
+  R (>= 4.3.0)
+Imports:
   stats,
   utils,
   graphics,
-  grDevices
-Imports:
+  grDevices,
   ASCAT,
   copynumber,
   RColorBrewer,
@@ -44,7 +44,11 @@ Imports:
   vroom,
   cli,
   fs,
-  SummarizedExperiment
+  methods,
+  rlang,
+  SummarizedExperiment,
+  collapse,
+  dplyr
 Remotes:
   Crick-CancerGenomics/ascat/ASCAT,
   igordot/copynumber
@@ -53,12 +57,8 @@ LazyLoad: yes
 Suggests:
   lintr,
   styler,
-  testthat,
   knitr,
-  rmarkdown,
-  dplyr,
-  sinew,
-  attachment,
+  rmarkdown
 VignetteBuilder:
   knitr
 RoxygenNote: 7.3.3

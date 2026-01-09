@@ -3,8 +3,8 @@
 #' @param GERMLINENAME The germline identifier, this is used as a prefix for the allele count files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
-standardiseChrNotation_germline <- function(GERMLINENAME) {
-  gAF <- capture.output(cat("bash -c 'sed -i 's/chr//g' ", GERMLINENAME, "_alleleFrequencies_chr*.txt'", sep = ""))
+standardise_chr_notation_germline <- function(GERMLINENAME) {
+  gAF <- utils::capture.output(cat("bash -c 'sed -i 's/chr//g' ", GERMLINENAME, "_alleleFrequencies_chr*.txt'", sep = ""))
   system(gAF)
 }
 
@@ -13,12 +13,12 @@ standardiseChrNotation_germline <- function(GERMLINENAME) {
 #' Function to generate BAF and LogR files based on allele counts of the Germline.
 #' It also generates the input data required by the following 'germline_reconstruct_normal' function.
 #' @param GERMLINENAME The germline name used for Battenberg (i.e. the Germline BAM file name without the '.bam' extension).
-#' @param g1000alleles.prefix Prefix to where 1000 Genomes allele files can be found.
+#' @param g1000alleles_prefix Prefix to where 1000 Genomes allele files can be found.
 #' @param chrom_names A vector with allowed chromosome names.
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
 
-germline_baf_logR <- function(GERMLINENAME, g1000alleles.prefix, chrom_names) {
+germline_baf_logR <- function(GERMLINENAME, g1000alleles_prefix, chrom_names) {
   # read heterozygous SNPs per chromosome for alleleCounter files & 1000G allele files####
   AC <- list() # alleleCounts
   AL <- list() # 1000G alleles
@@ -26,13 +26,13 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles.prefix, chrom_names) {
   OHET <- list() # HET SNP data
   for (chr in chrom_names) {
     # read in alleleCounter output for each chromosome
-    ac <- read.table(paste0(GERMLINENAME, "_alleleFrequencies_chr", chr, ".txt"), stringsAsFactors = FALSE)
+    ac <- utils::read.table(paste0(GERMLINENAME, "_alleleFrequencies_chr", chr, ".txt"), stringsAsFactors = FALSE)
     ac <- ac[order(ac$V2), ]
     AC[[chr]] <- ac
     print(length(AC))
     # match allele counts with respective SNP alleles
 
-    al <- read.table(paste0(g1000alleles.prefix, chr, ".txt"), header = TRUE, stringsAsFactors = FALSE)
+    al <- utils::read.table(paste0(g1000alleles_prefix, chr, ".txt"), header = TRUE, stringsAsFactors = FALSE)
     AL[[chr]] <- al
     print(length(AL))
     ref <- al$a0
@@ -63,32 +63,37 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles.prefix, chrom_names) {
     print(chr)
   }
   names(MAC) <- c("chr", "position", "a0", "a1", "ref", "alt", "coverage", "baf")
-  print(head(MAC))
+  print(utils::head(MAC))
   print(dim(MAC))
-  MAC$logr <- log2(MAC$coverage / mean(MAC$coverage, na.rm = TRUE)) # in case of coverage == NA due to non-matching alleles or presence of indels in loci file
+  # in case of coverage == NA due to non-matching alleles or presence of indels in loci file
+  MAC$logr <- log2(MAC$coverage / mean(MAC$coverage, na.rm = TRUE))
   MACC <- MAC[which(!is.na(MAC$baf)), ]
   print(nrow(MAC) - nrow(MACC))
 
   BAF <- data.frame(Chromosome = MACC$chr, Position = MACC$pos, germline = MACC$baf)
   names(BAF)[names(BAF) == "germline"] <- germline
   BAF <- BAF[order(BAF$Chromosome, BAF$Position), ]
-  BAF$Chromosome[BAF$Chromosome == 23] <- "X" # revert back from 23 to X for Chromosome number
+  # revert back from 23 to X for Chromosome number
+  BAF$Chromosome[BAF$Chromosome == 23] <- "X"
   data.table::fwrite(BAF, paste0(germline, "_mutantBAF.tab"), col_names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
   rm(BAF)
 
   LogR <- data.frame(Chromosome = MACC$chr, Position = MACC$pos, germline = MACC$logr)
   names(LogR)[names(LogR) == "germline"] <- germline
   LogR <- LogR[order(LogR$Chromosome, LogR$Position), ]
-  LogR$Chromosome[LogR$Chromosome == 23] <- "X" # revert back from 23 to X for Chromosome number
+  # revert back from 23 to X for Chromosome number
+  LogR$Chromosome[LogR$Chromosome == 23] <- "X"
   data.table::fwrite(LogR, paste0(germline, "_mutantLogR.tab"), col_names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 
   rm(MAC)
   rm(MaC)
   rm(MACC)
-  GL_OHET <<- OHET
-  GL_AL <<- AL
-  GL_AC <<- AC
-  GL_LogR <<- LogR
+  return(list(
+    OHET = OHET,
+    AL   = AL,
+    AC   = AC,
+    LogR = LogR
+  ))
   print("STEP 1 - BAF and LogR - completed")
 }
 
@@ -127,7 +132,7 @@ germline_reconstruct_normal <- function(
   # IDENTIFY REGIONS OF LOH #
   colClasses <- c(chr = "numeric", start = "numeric", cen.left.base = "numeric", cen.right.base = "numeric", end = "numeric")
   # chrom_coord = full path to chromosome coordinates
-  chr_loc <- read.table(chrom_coord, colClasses = colClasses, header = TRUE, stringsAsFactors = FALSE)
+  chr_loc <- utils::read.table(chrom_coord, colClasses = colClasses, header = TRUE, stringsAsFactors = FALSE)
   chr_loc$length <- (chr_loc$cen.left.base - chr_loc$start) + (chr_loc$end - chr_loc$cen.right.base)
   # STEP 2.0: identify LOH by IVD-PCF
   LOH <- list()
@@ -142,9 +147,9 @@ germline_reconstruct_normal <- function(
   # use only regions covered with gcCorrect LogR range
   pcf_input <- pcf_input[which(pcf_input$position >= chr_loc[i, "start"] & pcf_input$position <= chr_loc[i, "end"]), ]
   PCF <- pcf(pcf_input, gamma = GAMMA_IVD, kmin = KMIN_IVD)
-  pdf(paste0(PCF_folder, "/", GERMLINENAME, "_chr", i, "_PCF_plot.pdf"))
+  grDevices::pdf(paste0(PCF_folder, "/", GERMLINENAME, "_chr", i, "_PCF_plot.pdf"))
   plotChrom(pcf_input, PCF)
-  dev.off()
+  grDevices::dev.off()
   PCF$diff <- PCF$end.pos - PCF$start.pos
 
   # Decide if there is any LOH based on PCF and chr_snp_density
@@ -239,7 +244,7 @@ germline_reconstruct_normal <- function(
     for (j in 1:(nrow(LOH[[i]]) + 1)) {
       if (j == 1 && chr_interval[1] == LOH[[i]]$start.pos[j]) {
         print("LOH from start of chromosome")
-      } else if (j == 1 & chr_interval[1] < LOH[[i]]$start.pos[j]) {
+      } else if (j == 1 && chr_interval[1] < LOH[[i]]$start.pos[j]) {
         non_loh <- data.frame(start = chr_interval[1], end = LOH[[i]]$start.pos[j] - 1)
       } else if (j > 1 && j <= nrow(LOH[[i]]) && LOH[[i]]$arm[j] == LOH[[i]]$arm[j - 1]) {
         non_loh <- data.frame(start = LOH[[i]]$end.pos[j - 1] + 1, end = LOH[[i]]$start.pos[j] - 1)
@@ -379,26 +384,43 @@ germline_reconstruct_normal <- function(
       }
       if (nrow(pLOH_regions) > 0) {
         # pARM BAF/LogR plot(s)
-        pdf(paste0(GERMLINENAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_pLOH_events.pdf"))
+        grDevices::pdf(paste0(GERMLINENAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_pLOH_events.pdf"))
         suppressWarnings(
           for (s in seq_len(nrow(pLOH_regions))) {
-            sBAF <- ggplot(ohet, aes(Position, baf)) +
-              geom_jitter() +
-              ylim(0, 1) +
-              geom_vline(xintercept = c(pLOH_regions$start.pos[s], pLOH_regions$end.pos[s]), col = "red", linetype = "longdash") +
-              xlim(pLOH_regions$start.pos[s] - LENGTH_ADJACENT, pLOH_regions$end.pos[s] + LENGTH_ADJACENT) +
-              ggtitle(paste("pARM LOH region", s)) +
-              labs(y = "BAF")
-            sLogR <- ggplot(logr, aes(Position, LogR)) +
-              geom_jitter() +
-              ylim(-5.2, 1.2) +
-              geom_vline(xintercept = c(pLOH_regions$start.pos[s], pLOH_regions$end.pos[s]), col = "red", linetype = "longdash") +
-              xlim(pLOH_regions$start.pos[s] - LENGTH_ADJACENT, pLOH_regions$end.pos[s] + LENGTH_ADJACENT)
-            grid.newpage()
-            grid.draw(rbind(ggplotGrob(sBAF), ggplotGrob(sLogR), size = "last"))
+            sBAF <- ggplot2::ggplot(ohet, ggplot2::aes(Position, baf)) +
+              ggplot2::geom_jitter() +
+              ggplot2::ylim(0, 1) +
+              ggplot2::geom_vline(
+                xintercept = c(pLOH_regions$start.pos[s], pLOH_regions$end.pos[s]),
+                col = "red", linetype = "longdash"
+              ) +
+              ggplot2::xlim(
+                pLOH_regions$start.pos[s] - LENGTH_ADJACENT,
+                pLOH_regions$end.pos[s] + LENGTH_ADJACENT
+              ) +
+              ggplot2::ggtitle(paste("pARM LOH region", s)) +
+              ggplot2::labs(y = "BAF")
+            sLogR <- ggplot2::ggplot(logr, ggplot2::aes(Position, LogR)) +
+              ggplot2::geom_jitter() +
+              ggplot2::ylim(-5.2, 1.2) +
+              ggplot2::geom_vline(
+                xintercept = c(pLOH_regions$start.pos[s], pLOH_regions$end.pos[s]),
+                col = "red", linetype = "longdash"
+              ) +
+              ggplot2::xlim(
+                pLOH_regions$start.pos[s] - LENGTH_ADJACENT,
+                pLOH_regions$end.pos[s] + LENGTH_ADJACENT
+              )
+            grid::grid.newpage()
+            grid::grid.draw(
+              rbind(ggplot2::ggplotGrob(sBAF),
+                ggplot2::ggplotGrob(sLogR),
+                size = "last"
+              )
+            )
           }
         )
-        dev.off()
+        grDevices::dev.off()
         #
         print("Candidate LOH regions plotted for pARM")
       }
@@ -437,7 +459,7 @@ germline_reconstruct_normal <- function(
           denSNP <- nrow(COV) / (nSNPs / sum(chr_loc$length) * seg_ivd$Position_dist[j])
           # to use a minimum SNP density of 0.5 to get logR estimate AND not put the cov cut-off before applying PCF
           if (!is.na(cov) && !is.null(denSNP) && denSNP > 0.5) {
-            jpcf <- pcf(COV, gamma = GAMMA_LOGR, verbose = FALSE)
+            jpcf <- copynumber::pcf(COV, gamma = GAMMA_LOGR, verbose = FALSE)
             jpcf <- jpcf[which(jpcf$mean < -0.8), ]
             if (nrow(jpcf) > 0) {
               loh <- data.frame(start = jpcf$start.pos[1], end = jpcf$end.pos[nrow(jpcf)], LogR = mean(jpcf$mean), denSNP = denSNP)
@@ -492,26 +514,49 @@ germline_reconstruct_normal <- function(
     }
     if (nrow(qLOH_regions) > 0) {
       # qARM BAF/LogR plot(s)
-      pdf(paste0(GERMLINENAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_qLOH_events.pdf"))
+      grDevices::pdf(paste0(GERMLINENAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_qLOH_events.pdf"))
       suppressWarnings(
         for (s in seq_len(nrow(qLOH_regions))) {
-          sBAF <- ggplot(ohet, aes(Position, baf)) +
-            geom_jitter() +
-            ylim(0, 1) +
-            geom_vline(xintercept = c(qLOH_regions$start.pos[s], qLOH_regions$end.pos[s]), col = "red", linetype = "longdash") +
-            xlim(qLOH_regions$start.pos[s] - LENGTH_ADJACENT, qLOH_regions$end.pos[s] + LENGTH_ADJACENT) +
-            ggtitle(paste("qARM LOH region", s))
-          sLogR <- ggplot(logr, aes(Position, LogR)) +
-            geom_jitter() +
-            ylim(-5.2, 1.2) +
-            geom_vline(xintercept = c(qLOH_regions$start.pos[s], qLOH_regions$end.pos[s]), col = "red", linetype = "longdash") +
-            xlim(qLOH_regions$start.pos[s] - LENGTH_ADJACENT, qLOH_regions$end.pos[s] + LENGTH_ADJACENT)
-          grid.newpage()
-          grid.draw(rbind(ggplotGrob(sBAF), ggplotGrob(sLogR), size = "last"))
-          # print(plot_grid(sBAF,sLogR, ncol = 1, align = "v"))
+          sBAF <- ggplot2::ggplot(ohet, ggplot2::aes(Position, baf)) +
+            ggplot2::geom_jitter() +
+            ggplot2::ylim(0, 1) +
+            ggplot2::geom_vline(
+              xintercept = c(
+                qLOH_regions$start.pos[s],
+                qLOH_regions$end.pos[s]
+              ),
+              col = "red", linetype = "longdash"
+            ) +
+            ggplot2::xlim(
+              qLOH_regions$start.pos[s] - LENGTH_ADJACENT,
+              qLOH_regions$end.pos[s] + LENGTH_ADJACENT
+            ) +
+            ggplot2::ggtitle(paste("qARM LOH region", s))
+          sLogR <- ggplot2::ggplot(
+            logr, ggplot2::aes(Position, LogR)
+          ) +
+            ggplot2::geom_jitter() +
+            ggplot2::ylim(-5.2, 1.2) +
+            ggplot2::geom_vline(
+              xintercept = c(
+                qLOH_regions$start.pos[s],
+                qLOH_regions$end.pos[s]
+              ),
+              col = "red", linetype = "longdash"
+            ) +
+            ggplot2::xlim(
+              qLOH_regions$start.pos[s] - LENGTH_ADJACENT,
+              qLOH_regions$end.pos[s] + LENGTH_ADJACENT
+            )
+          grid::grid.newpage()
+          grid::grid.draw(rbind(
+            ggplot2::ggplotGrob(sBAF),
+            ggplot2::ggplotGrob(sLogR),
+            size = "last"
+          ))
         }
       )
-      dev.off()
+      grDevices::dev.off()
       #
       print("Candidate LOH regions plotted for qARM")
     }
@@ -519,11 +564,11 @@ germline_reconstruct_normal <- function(
 
     noLOH <- NULL
     if (!is.null(nrow(LOH[[i]]))) {
-      for (j in 1:nrow(LOH[[i]])) {
+      for (j in seq_len(nrow(LOH[[i]]))) {
         LOH[[i]]$logR[j] <- mean(logr[which(logr$Position >= LOH[[i]]$start.pos[j] & logr$Position <= LOH[[i]]$end.pos[j]), ][, 3])
         LOH[[i]]$nSNP[j] <- nrow(logr[which(logr$Position >= LOH[[i]]$start.pos[j] & logr$Position <= LOH[[i]]$end.pos[j]), ])
         LOH[[i]]$denSNP[j] <- LOH[[i]]$nSNP[j] / ((LOH[[i]]$end.pos[j] - LOH[[i]]$start.pos[j]) * nSNPs / sum(chr_loc$length))
-        if (LOH[[i]]$logR[j] > -0.8 | LOH[[i]]$denSNP[j] < 0.5) {
+        if (LOH[[i]]$logR[j] > -0.8 || LOH[[i]]$denSNP[j] < 0.5) {
           noLOH <- append(noLOH, j)
           print(j)
         }
@@ -536,12 +581,12 @@ germline_reconstruct_normal <- function(
     if (nrow(pLOH_regions) > 0) {
       LOH_regions <- rbind(LOH_regions, pLOH_regions)
     } else {
-      print("no window-based LOH regions identified in p arm of non_LOH of IVD-PCF")
+      log_info("no window-based LOH regions identified in p arm of non_LOH of IVD-PCF")
     }
     if (nrow(qLOH_regions) > 0) {
       LOH_regions <- rbind(LOH_regions, qLOH_regions)
     } else {
-      print("no window-based LOH regions identified in q arm of non_LOH of IVD-PCF")
+      log_info("no window-based LOH regions identified in q arm of non_LOH of IVD-PCF")
     }
     if (nrow(LOH_regions) > 0) {
       if (!is.null(nrow(LOH[[i]]))) {
@@ -686,7 +731,7 @@ germline_reconstruct_normal <- function(
       if (nrow(m) >= hetSNP_number) {
         print("more rows in LOH region than Het SNP number")
         # to make the exact breakpoints are seen by Battenberg - making 1st and last SNP in region heterozygote
-        spike <- c(1, head(which(seq_len(nrow(m)) %% floor(nrow(m) / (hetSNP_number - 1)) == 0), -1), nrow(m))
+        spike <- c(1, utils::head(which(seq_len(nrow(m)) %% floor(nrow(m) / (hetSNP_number - 1)) == 0), -1), nrow(m))
         for (k in spike) {
           m$depth[k] <- max(m$depth[k], 10)
           m[cbind(k, 2 + m$a0[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, ceiling(m$depth[k] / 2))
@@ -775,24 +820,28 @@ generate_impute_input_wgs_germline <- function(
     lapply(impute_info$impute_legend, data.table::fread, sep = " "),
     use.names = TRUE
   )
-  data.table::setkey(known_SNPs, position)
+  data.table::setkeyv(known_SNPs, "position")
 
-  # Filter problem loci (anti-join)
+  # Filter problem loci (anti-join using base-style logic or setkey)
   if (!is.na(problem_loci_file) && problem_loci_file != "NA") {
     problemSNPs <- data.table::fread(
       problem_loci_file,
       sep = "\t",
       select = c("Chr", "Pos")
-    )[Chr == chrom_name]
+    )
+    # Subset using standard logical indexing to avoid NSE warnings
+    problemSNPs <- problemSNPs[problemSNPs[["Chr"]] == chrom_name, ]
 
-    data.table::setkey(problemSNPs, Pos)
+    data.table::setkeyv(problemSNPs, "Pos")
     known_SNPs <- known_SNPs[!problemSNPs, on = c(position = "Pos")]
   }
 
   # Filter to explicitly allowed loci
   if (!is.na(use_loci_file) && use_loci_file != "NA") {
-    goodSNPs <- data.table::fread(use_loci_file, sep = "\t")[chr == chrom_name, pos]
-    known_SNPs <- known_SNPs[position %in% goodSNPs]
+    use_loci <- data.table::fread(use_loci_file, sep = "\t")
+    # Using standard column access
+    goodSNPs <- use_loci[use_loci[["chr"]] == chrom_name, "pos", with = FALSE][[1]]
+    known_SNPs <- known_SNPs[known_SNPs[["position"]] %in% goodSNPs, ]
   }
 
   # Load allele counts
@@ -814,8 +863,8 @@ generate_impute_input_wgs_germline <- function(
   )
   data.table::setnames(normal_snp_data, cnt_names)
 
-  data.table::setkey(snp_data, position)
-  data.table::setkey(normal_snp_data, position)
+  data.table::setkeyv(snp_data, "position")
+  data.table::setkeyv(normal_snp_data, "position")
 
   # Join reference SNPs to observed data
   found_data <- known_SNPs[snp_data, nomatch = NULL][normal_snp_data, nomatch = NULL]
@@ -826,12 +875,14 @@ generate_impute_input_wgs_germline <- function(
   }
 
   # Compute BAF
-  ref_cols <- paste0("i.", found_data$a0)
-  alt_cols <- paste0("i.", found_data$a1)
+  # Accessing columns by character strings to avoid NSE
+  ref_cols <- paste0("i.", found_data[["a0"]])
+  alt_cols <- paste0("i.", found_data[["a1"]])
   rows <- seq_len(n)
 
-  ref_counts <- found_data[cbind(rows, match(ref_cols, names(found_data)))]
-  alt_counts <- found_data[cbind(rows, match(alt_cols, names(found_data)))]
+  # Column indexing via match ensures no variable binding issues
+  ref_counts <- as.numeric(found_data[cbind(rows, match(ref_cols, names(found_data)))])
+  alt_counts <- as.numeric(found_data[cbind(rows, match(alt_cols, names(found_data)))])
 
   BAFs <- alt_counts / (alt_counts + ref_counts)
   BAFs[is.nan(BAFs)] <- 0
@@ -849,16 +900,18 @@ generate_impute_input_wgs_germline <- function(
   data.table::setnames(genotype_dt, c("G1", "G2", "G3"))
 
   # Assemble output
-  found_data[, snp.names := paste0("snp", .I)]
-  found_data <- data.table::cbind(found_data, genotype_dt)
+  # Use set() to modify by reference using a character string for the column name
+  data.table::set(found_data, j = "snp.names", value = paste0("snp", seq_len(n)))
+  found_data <- data.table::as.data.table(cbind(found_data, genotype_dt))
 
   output_cols <- c("snp.names", "id", "position", "a0", "a1", "G1", "G2", "G3")
 
+  # Use with = FALSE to select columns by character vector
   data.table::fwrite(
-    found_data[, ..output_cols],
+    found_data[, output_cols, with = FALSE],
     file = output_file,
     sep = " ",
-    col_names = FALSE,
+    col.names = FALSE,
     quote = FALSE
   )
 
@@ -866,10 +919,10 @@ generate_impute_input_wgs_germline <- function(
   if (is.na(as.numeric(chrom_name))) {
     sample_g_file <- file.path(dirname(output_file), "sample_g.txt")
     sample_g_data <- data.table::data.table(
-      ID_1 = c(0, "INDIVI1"),
-      ID_2 = c(0, "INDIVI1"),
-      missing = c(0, 0),
-      sex = c("D", 2)
+      ID_1 = c("0", "INDIVI1"),
+      ID_2 = c("0", "INDIVI1"),
+      missing = c("0", "0"),
+      sex = c("D", "2")
     )
     data.table::fwrite(sample_g_data, sample_g_file, sep = " ")
   }
@@ -924,9 +977,9 @@ gc_correct_wgs_germline <- function(germline_LogR_file, outfile, correlations_ou
   }
   rm(locimatches)
 
-  corr <- abs(cor(GC_data[, 3:ncol(GC_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
+  corr <- abs(collapse::fcor(GC_data[, 3:ncol(GC_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
   if (!is.null(replic_timing_file_prefix)) {
-    corr_rep <- abs(cor(replic_data[, 3:ncol(replic_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
+    corr_rep <- abs(collapse::fcor(replic_data[, 3:ncol(replic_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
   }
 
   index_1kb <- which(names(corr) == "1kb")
@@ -988,9 +1041,9 @@ gc_correct_wgs_germline <- function(germline_LogR_file, outfile, correlations_ou
 
   if (recalc_corr_afterwards) {
     # Recalculate the correlations to see how much there is left
-    corr <- abs(cor(GC_data[, 3:ncol(GC_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
+    corr <- abs(collapse::fcor(GC_data[, 3:ncol(GC_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
     if (!is.null(replic_timing_file_prefix)) {
-      corr_rep <- abs(cor(replic_data[, 3:ncol(replic_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
+      corr_rep <- abs(collpse::fcor(replic_data[, 3:ncol(replic_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
       cat("Replication timing correlation post correction: ", paste(names(corr_rep), format(corr_rep, digits = 2), ";"), "\n")
     }
     cat("GC correlation post correction: ", paste(names(corr), format(corr, digits = 2), ";"), "\n")
@@ -1035,13 +1088,19 @@ gc_correct_wgs_germline <- function(germline_LogR_file, outfile, correlations_ou
 #' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
 #' @author Naser Ansari-Pour (BDI, Oxford)
 #' @export
-prepare_wgs_germline <- function(chrom_names, chrom_coord, germlinebam, germlinename, g1000lociprefix, g1000allelesprefix, gamma_ivd = 1e5, kmin_ivd = 50, centromere_noise_seg_size = 1e6,
-                                 centromere_dist = 5e5, min_het_dist = 2e3, gamma_logr = 100, length_adjacent = 5e4, gccorrectprefix, repliccorrectprefix, min_base_qual, min_map_qual,
-                                 allelecounter_exe, min_normal_depth, skip_allele_counting) {
-  requireNamespace("foreach")
-  requireNamespace("doParallel")
-  requireNamespace("parallel")
-
+prepare_wgs_germline <- function(
+  chrom_names, chrom_coord, germlinebam,
+  germlinename, g1000lociprefix, g1000allelesprefix,
+  gamma_ivd = 1e5, kmin_ivd = 50,
+  centromere_noise_seg_size = 1e6,
+  centromere_dist = 5e5, min_het_dist = 2e3,
+  gamma_logr = 100, length_adjacent = 5e4,
+  gccorrectprefix, repliccorrectprefix,
+  min_base_qual, min_map_qual,
+  allelecounter_exe, min_normal_depth,
+  skip_allele_counting
+) {
+  `%dopar%` <- foreach::`%dopar%`
   if (!skip_allele_counting) {
     # Obtain allele counts for 1000 Genomes locations for the germline
     foreach::foreach(i = seq_along(chrom_names)) %dopar% {
@@ -1058,27 +1117,31 @@ prepare_wgs_germline <- function(chrom_names, chrom_coord, germlinebam, germline
 
   # Standardise Chr notation (removes 'chr' string if present; essential for cell_line_baf_logR)
 
-  standardiseChrNotation_germline(GERMLINENAME = germlinename)
+  standardise_chr_notation_germline(GERMLINENAME = germlinename)
 
   # Obtain BAF and LogR from the raw allele counts of the germline
-  germline_baf_logR(
+  cl_data <- germline_baf_logR(
     GERMLINENAME = germlinename,
-    g1000alleles.prefix = g1000allelesprefix,
+    g1000alleles_prefix = g1000allelesprefix,
     chrom_names = chrom_names
   )
 
   # Reconstruct normal-pair allele count files for the germline
 
-  foreach::foreach(i = seq_along(chrom_names), .export = c("germline_reconstruct_normal", "GL_OHET", "GL_AL", "GL_AC", "GL_LogR"), .packages = c("copynumber", "ggplot2", "grid")) %dopar% {
+  foreach::foreach(
+    i = seq_along(chrom_names),
+    export = c("germline_reconstruct_normal", "cl_data"),
+    .packages = c("copynumber", "ggplot2", "grid")
+  ) %dopar% {
     germline_reconstruct_normal(
       GERMLINENAME = germlinename,
       NORMALNAME = paste0(germlinename, "_normal"),
       chrom_coord = chrom_coord,
       chrom = i,
-      GL_OHET = GL_OHET,
-      GL_AL = GL_AL,
-      GL_AC = GL_AC,
-      GL_LogR = GL_LogR,
+      GL_OHET = cl_data$OHET,
+      GL_AL = cl_data$AL,
+      GL_AC = cl_data$AC,
+      GL_LogR = cl_data$LogR,
       GAMMA_IVD = gamma_ivd,
       KMIN_IVD = kmin_ivd,
       CENTROMERE_NOISE_SEG_SIZE = centromere_noise_seg_size,

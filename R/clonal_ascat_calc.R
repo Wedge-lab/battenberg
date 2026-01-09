@@ -10,15 +10,10 @@ calc_Pvalue_t_twotailed <- function(
   max_dist
 ) {
   tvar <- (sample_mean - mu_pop) * sqrt(sample_size) / sample_SD
-  if (tvar < 0) {
-    lower_tail_prob <- pt(tvar, df = sample_size - 1, lower.tail = TRUE)
-  } else {
-    lower_tail_prob <- 1 - pt(tvar, df = sample_size - 1, lower.tail = TRUE)
-  }
-  pval <- 2 * lower_tail_prob
-  if (abs(sample_mean - mu_pop) < max_dist) {
-    pval <- 1
-  }
+
+  # We use abs(tvar) to always get the upper tail, then multiply by 2
+  pval <- 2 * stats::pt(abs(tvar), df = sample_size - 1, lower.tail = FALSE)
+  pval[abs(sample_mean - mu_pop) < max_dist] <- 1
   return(pval)
 }
 
@@ -30,7 +25,7 @@ calc_binomial_prob <- function(sample_proportion, sample_size, pop_proportion) {
   x <- round(sample_proportion * sample_size)
   x <- pmax(0, pmin(sample_size, x))
 
-  return(dbinom(x, size = sample_size, prob = p))
+  return(stats::dbinom(x, size = sample_size, prob = p))
 }
 
 ####################################################################################################
@@ -110,7 +105,7 @@ estimate_rho <- function(LogR_value, BAF_req_value, nA_value, nB_value) {
 estimate_psi <- function(LogR_value, BAF_req_value, nA_value, nB_value, rho_value, gamma_param) {
   temp_value <- 2^(-LogR_value / gamma_param)
   temp_value <- temp_value * (2 + (rho_value * (nA_value + nB_value - 2)))
-  # return(temp_value) # DCW this returns psi rather than psi_t, i.e. the average ploidy of normal and tumour cells
+  # DCW this returns psi rather than psi_t, i.e. the average ploidy of normal and tumour cells
   temp_value <- temp_value - (2 * (1 - rho_value))
   psi_value <- temp_value / rho_value
   return(psi_value)
@@ -236,13 +231,12 @@ recalc_psi_t <- function(psi, rho, gamma_param, lrrsegmented, segBAF_table, sigl
       segs[[length(segs) + 1]] <- data.frame(nMaj = nMaj, nMin = nMin, length = s[i, "length"], psi_t = psi_t)
     }
   }
-  segs <- do.call(rbind, segs)
+  segs <- data.table::rbindlist(segs)
 
   # Calculate psi_t as the weighted average copy number across all segments
   psi_t <- sum(segs$psi_t * segs$length, na.rm = TRUE) / sum(segs$length, na.rm = TRUE)
   return(psi_t)
 }
-
 
 #' Calculate psi based on a reference segment and its associated logr
 #'

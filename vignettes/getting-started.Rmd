@@ -167,17 +167,17 @@ Battenberg produces several key output files:
 ### Load Copy Number Data
 ```{r eval = FALSE}
 # Read the main results file
-cn_data <- read.delim("sample_tumor_copynumber.txt")
+cn_data <- utils::read.delim("sample_tumor_copynumber.txt")
 
 # Examine the structure
-head(cn_data)
+utils::head(cn_data)
 str(cn_data)
 ```
 
 ### Load Purity/Ploidy Estimates
 ```{r eval = FALSE}
 # Read purity and ploidy estimates
-rho_psi <- read.delim("sample_tumor_rho_and_psi.txt")
+rho_psi <- utils::read.delim("sample_tumor_rho_and_psi.txt")
 
 # Extract purity (rho) - use FRAC_genome value from second row
 tumor_purity <- rho_psi$rho[2]

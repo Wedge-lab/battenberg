@@ -34,54 +34,61 @@ find_centroid_of_global_minima <- function(
   uninformative_baf_threshold,
   read_depth
 ) {
-  # Ensure we are looking for the minimum value regardless of the input direction
   if (!minimise) d <- -d
 
-  # Identify the global minimum value and find all grid coordinates matching it
-  # which(..., arr.ind = TRUE) replaces nested loops for scanning the matrix
-  gmin <- min(d)
+  # Get global minimum value and grid indices
+  gmin <- collapse::fmin(d)
   optima_indices <- which(d == gmin, arr.ind = TRUE)
   nropt <- nrow(optima_indices)
 
-  # Pre-calculate shared constants to speed up the ploidy calculations
-  total_len <- sum(s[, "length"])
+  # Pre-extract numeric grid values from row/col names
+  psi_grid <- as.numeric(rownames(d))
+  rho_grid <- as.numeric(colnames(d))
 
-  # Process each found optimum to calculate its specific ploidy value
-  # apply() is used here to iterate over the rows of the indices matrix
-  optima_list <- apply(optima_indices, 1, function(idx) {
-    i <- idx[1]
-    j <- idx[2]
-    psi <- as.numeric(rownames(d)[i])
-    rho <- as.numeric(colnames(d)[j])
+  # Map indices to specific psi and rho values for all global optima
+  psis <- psi_grid[optima_indices[, 1]]
+  rhos <- rho_grid[optima_indices[, 2]]
 
-    # Vectorized calculation of nA and nB across all segments
-    common_term <- 2^(s[, "r"] / gamma_param) * ((1 - rho) * 2 + rho * psi)
-    nA <- (rho - 1 - (s[, "b"] - 1) * common_term) / rho
-    nB <- (rho - 1 + s[, "b"] * common_term) / rho
+  # Pre-calculate segment-level constants
+  s_length <- s[, "length"]
+  s_r <- s[, "r"]
+  total_len <- sum(s_length)
 
-    ploidy <- sum((nA + nB) * s[, "length"]) / total_len
-    return(c(gmin, i, j, ploidy, gmin))
-  })
+  # Calculate the segment-specific term: 2^(r / gamma)
+  s_term <- 2^(s_r / gamma_param)
 
-  # Calculate the centroid of the grid coordinates using the median logic
-  # This finds the middle-most point in the set of global optima
-  centre <- c(median(optima_indices[, 1]), median(optima_indices[, 2]))
+  # collapse::fdot is a C++ optimized dot product
+  weighted_s_term <- collapse::fdot(s_length, s_term)
+  sum_s_length <- sum(s_length)
 
-  # Identify the optimum closest to the centroid using squared Euclidean distance
-  # rowSums and sweep handle the distance calculation for all points at once
-  dists <- rowSums(sweep(optima_indices, 2, centre)^2)
+  # Calculate the specific ploidy for every global optimum in one vectorized step
+  rho_psi_term <- ((1 - rhos) * 2) + (rhos * psis)
+  ploidy_vector <- ((2 * rhos - 2) * sum_s_length + (weighted_s_term * rho_psi_term)) / (rhos * total_len)
+
+  # Using collapse::fmedian for C-based speed on the indices
+  centre <- c(
+    collapse::fmedian(optima_indices[, 1]),
+    collapse::fmedian(optima_indices[, 2])
+  )
+
+  # Calculate Euclidean distance to the centroid for all points
+  row_diffs <- optima_indices[, 1] - centre[1]
+  col_diffs <- optima_indices[, 2] - centre[2]
+  dists <- (row_diffs^2) + (col_diffs^2)
+
   best_idx <- which.min(dists)
 
-  # Extract coordinates and values for the selected "best" optimum
+  # Extract final optimized values
   grid_x <- optima_indices[best_idx, 1]
   grid_y <- optima_indices[best_idx, 2]
 
-  psi_opt1 <- as.numeric(rownames(d)[grid_x])
-  rho_opt1 <- min(as.numeric(colnames(d)[grid_y]), 1)
-  ploidy_opt1 <- optima_list[4, best_idx]
+  # Format return values
+  psi_opt1 <- psi_grid[grid_x]
+  rho_opt1 <- min(rho_grid[grid_y], 1)
+  ploidy_opt1 <- ploidy_vector[best_idx]
+  # Retrieve the reference segment index for the selected grid point
   goodness_of_fit_opt1 <- if (minimise) gmin else -gmin
 
-  # Retrieve the reference segment index for the selected grid point
   ref_seg <- ref_seg_matrix[grid_x, grid_y]
   optima_info_without_ref <- list(
     nropt = nropt,
@@ -125,9 +132,9 @@ find_centroid_of_global_minima <- function(
 
   # Generate the diagnostic sunrise plot if a file path is provided
   if (!is.na(distancepng)) {
-    png(filename = distancepng, width = 1000, height = 1000, res = 1000 / 7, type = "cairo")
+    grDevices::png(filename = distancepng, width = 1000, height = 1000, res = 1000 / 7, type = "cairo")
     clonal_findcentroid_plot(minimise, dist_choice, -d, c(psi_opt1), c(rho_opt1), new_bounds)
-    dev.off()
+    grDevices::dev.off()
   }
 
   # Return the structured results containing both raw and reference-adjusted optima
@@ -198,7 +205,14 @@ runASCAT <- function(
   dist_max_rho <- max_rho + 0.03
 
   s <- ASCAT::make_segments(r, b)
-  dist_matrix_info <- create_distance_matrix(s, dist_choice, gamma, uninformative_baf_threshold = uninformative_baf_threshold, min_psi = dist_min_psi, max_psi = dist_max_psi, min_rho = dist_min_rho, max_rho = dist_max_rho)
+  dist_matrix_info <- create_distance_matrix(
+    s, dist_choice, gamma,
+    uninformative_baf_threshold = uninformative_baf_threshold,
+    min_psi = dist_min_psi,
+    max_psi = dist_max_psi,
+    min_rho = dist_min_rho,
+    max_rho = dist_max_rho
+  )
   d <- dist_matrix_info$distance_matrix
   minimise <- dist_matrix_info$minimise
 
@@ -329,9 +343,9 @@ runASCAT <- function(
   # Plotting Sunrise (if paired)
   if (analysis == "paired") {
     if (!is.na(distancepng)) {
-      png(filename = distancepng, width = 1000, height = 1000, res = 1000 / 7, type = "cairo")
+      grDevices::png(filename = distancepng, width = 1000, height = 1000, res = 1000 / 7, type = "cairo")
       ASCAT::ascat.plotSunrise(-d, psi_opt1_plot, rho_opt1_plot, minimise)
-      dev.off()
+      grDevices::dev.off()
     }
   }
 
@@ -357,15 +371,36 @@ runASCAT <- function(
 
     # Generate Profile Plots
     if (!is.na(copynumberprofilespng)) {
-      png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200, type = "cairo")
-      ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented, chrs = chr_names)
-      dev.off()
+      grDevices::png(
+        filename = copynumberprofilespng,
+        width = 2000, height = 500,
+        res = 200, type = "cairo"
+      )
+      ASCAT::ascat.plotAscatProfile(
+        n1all = nA, n2all = nB, heteroprobes = TRUE,
+        ploidy = ploidy_opt1, rho = rho_opt1,
+        goodness_of_fit = goodness_of_fit_opt1,
+        nonaberrant = FALSE, ch = ch,
+        lrr = lrr, bafsegmented = bafsegmented,
+        chrs = chr_names
+      )
+      grDevices::dev.off()
     }
 
     if (!is.na(nonroundedprofilepng)) {
-      png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200, type = "cairo")
-      ASCAT::ascat.plotNonRounded(ploidy = ploidy_opt1, rho = rho_opt1, goodness_of_fit = goodness_of_fit_opt1, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs = chr_names)
-      dev.off()
+      grDevices::png(
+        filename = nonroundedprofilepng,
+        width = 2000, height = 500,
+        res = 200, type = "cairo"
+      )
+      ASCAT::ascat.plotNonRounded(
+        ploidy = ploidy_opt1, rho = rho_opt1,
+        goodness_of_fit = goodness_of_fit_opt1,
+        nonaberrant = FALSE, nAfull = nAfull,
+        nBfull = nBfull, bafsegmented = bafsegmented,
+        ch = ch, lrr = lrr, chrs = chr_names
+      )
+      grDevices::dev.off()
     }
   }
 
@@ -516,20 +551,42 @@ run_clonal_ASCAT <- function(
 
     # Make plots
     if (!is.na(copynumberprofilespng)) {
-      png(filename = copynumberprofilespng, width = 2000, height = 500, res = 200, type = "cairo")
+      grDevices::png(
+        filename = copynumberprofilespng,
+        width = 2000, height = 500,
+        res = 200, type = "cairo"
+      )
     }
-    ASCAT::ascat.plotAscatProfile(n1all = nA, n2all = nB, heteroprobes = TRUE, ploidy = ploidy, rho = rho, goodness_of_fit = goodness_of_fit, nonaberrant = FALSE, ch = ch, lrr = lrr, bafsegmented = bafsegmented, chrs = chr_names)
+    ASCAT::ascat.plotAscatProfile(
+      n1all = nA, n2all = nB,
+      heteroprobes = TRUE,
+      ploidy = ploidy, rho = rho,
+      goodness_of_fit = goodness_of_fit, nonaberrant = FALSE,
+      ch = ch, lrr = lrr,
+      bafsegmented = bafsegmented,
+      chrs = chr_names
+    )
     if (!is.na(copynumberprofilespng)) {
-      dev.off()
+      grDevices::dev.off()
     }
 
     # separated plotting from logic: create nonrounded copy number profile plot here
     if (!is.na(nonroundedprofilepng)) {
-      png(filename = nonroundedprofilepng, width = 2000, height = 500, res = 200, type = "cairo")
+      grDevices::png(
+        filename = nonroundedprofilepng,
+        width = 2000, height = 500,
+        res = 200, type = "cairo"
+      )
     }
-    ASCAT::ascat.plotNonRounded(ploidy = ploidy, rho = rho, goodness_of_fit = goodness_of_fit, nonaberrant = FALSE, nAfull = nAfull, nBfull = nBfull, bafsegmented = bafsegmented, ch = ch, lrr = lrr, chrs = chr_names)
+    ASCAT::ascat.plotNonRounded(
+      ploidy = ploidy, rho = rho,
+      goodness_of_fit = goodness_of_fit,
+      nonaberrant = FALSE, nAfull = nAfull,
+      nBfull = nBfull, bafsegmented = bafsegmented,
+      ch = ch, lrr = lrr, chrs = chr_names
+    )
     if (!is.na(nonroundedprofilepng)) {
-      dev.off()
+      grDevices::dev.off()
     }
   }
 
@@ -555,25 +612,66 @@ run_clonal_ASCAT <- function(
 #' standard deviation of the BAF values
 #' @noRd
 get_segment_info <- function(segLogR, segBAF_table) {
-  segBAF <- segBAF_table[, 5]
-  names(segBAF) <- rownames(segBAF_table)
-  names(segLogR) <- rownames(segBAF_table)
+  # Column 5: Segmented BAF (b), Column 4: Phased BAF (BAFke)
+  b_raw <- segBAF_table[, 5]
+  b_phased <- segBAF_table[, 4]
 
-  b <- segBAF
-  r <- segLogR[names(segBAF)]
-  pcf_segments <- ASCAT::make_segments(r, b)
-  segs <- matrix(ncol = 6, nrow = nrow(pcf_segments))
-  colnames(segs) <- c("r", "b", "length", "size", "mean", "sd")
-  segs[, c("r", "b", "length")] <- pcf_segments
+  # Match original make_segments(r, b) call
+  pcf_segments <- make_segments(segLogR, b_raw)
 
-  for (i in seq_len(segs)) {
-    BAF_req <- segs[i, "b"]
-    index_vect <- which(segBAF_table[, 5] == BAF_req)
-    BAFke <- segBAF_table[index_vect, 4] # column 4 contains "phased BAF" values
+  # To match 'which(segBAF_table[, 5] == BAF_req)' exactly:
+  # We group by the BAF value itself, not the segment position.
+  # collapse::GRP is extremely fast for this.
+  val_g <- collapse::GRP(b_raw)
 
-    segs[i, "size"] <- length(BAFke)
-    segs[i, "mean"] <- mean(BAFke)
-    segs[i, "sd"] <- sd(BAFke)
-  }
+  # Calculate stats for every unique BAF value once (O(N))
+  all_means <- as.numeric(collapse::fmean(b_phased, val_g))
+  all_sds <- as.numeric(collapse::fsd(b_phased, val_g))
+  all_sizes <- as.numeric(collapse::fnobs(b_phased, val_g))
+
+  # Map the calculated stats to each segment by matching the segment's BAF
+  # value back to the group values.
+  match_idx <- match(pcf_segments[, "b"], val_g$groups)
+
+  # Build final matrix
+  segs <- cbind(
+    pcf_segments,
+    size = all_sizes[match_idx],
+    mean = all_means[match_idx],
+    sd   = all_sds[match_idx]
+  )
+
   return(segs)
+}
+
+
+#' Optimized Segment Maker
+make_segments <- function(r, b) {
+  keep <- !is.na(r) & !is.na(b)
+  if (!any(keep)) {
+    return(matrix(ncol = 3, nrow = 0, dimnames = list(NULL, c("r", "b", "length"))))
+  }
+
+  r_clean <- r[keep]
+  b_clean <- b[keep]
+  ids <- data.table::rleid(r_clean, b_clean)
+
+  # To get 'r' and 'b' for each segment (the values at the start of each group):
+  # which(!duplicated(ids)) finds the index of the first row of every new segment.
+  first_idx <- which(!duplicated(ids))
+
+  # To get 'length' (the count of rows in each group):
+  # collapse::fnobs counts observations per group ID extremely quickly.
+  # we cast to numeric to match the original matrix type perfectly.
+  res_len <- as.numeric(collapse::fnobs(r_clean, g = ids))
+
+  # Creating the matrix via cbind on atomic vectors is nearly instantaneous.
+  # This avoids the 'as.matrix' call that slows down data.frame-based approaches.
+  pcf_segments <- cbind(
+    r      = r_clean[first_idx],
+    b      = b_clean[first_idx],
+    length = res_len
+  )
+
+  return(pcf_segments)
 }
