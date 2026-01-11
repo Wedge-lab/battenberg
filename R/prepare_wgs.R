@@ -67,11 +67,14 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
   norm_m <- as.matrix(normal_input_data[, 3:6])
   mut_m <- as.matrix(input_data[, 3:6])
 
+  idx_matrix <- cbind(seq_len(len), as.integer(allele_data[[3]]))
+  idx_matrix2 <- cbind(seq_len(len), as.integer(allele_data[[4]]))
+
   # allele_data[,3] and [,4] contain the column indices for A and B alleles
-  normCount1 <- norm_m[cbind(seq_len(len), allele_data[[3]])]
-  normCount2 <- norm_m[cbind(seq_len(len), allele_data[[4]])]
-  mutCount1 <- mut_m[cbind(seq_len(len), allele_data[[3]])]
-  mutCount2 <- mut_m[cbind(seq_len(len), allele_data[[4]])]
+  normCount1 <- norm_m[idx_matrix]
+  normCount2 <- norm_m[idx_matrix2]
+  mutCount1 <- mut_m[idx_matrix]
+  mutCount2 <- mut_m[idx_matrix2]
 
   totalNormal <- normCount1 + normCount2
   totalMutant <- mutCount1 + mutCount2
@@ -94,7 +97,7 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
 
   # Allele Randomization (Pixel-Perfect logic)
   # runif(n) generates values in [0,1], round() makes them 0 or 1
-  selector <- round(runif(n))
+  selector <- round(stats::runif(n))
   is_zero <- selector == 0
   is_one <- !is_zero
 
@@ -156,7 +159,7 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
     return(tmp[1]:tmp[length(tmp)])
   })
 
-  ascat.bc <- list(
+  ascat_bc <- list(
     Tumor_LogR = data.frame(tumorLogR_final),
     Tumor_BAF = data.frame(mutantBAF),
     Germline_LogR = data.frame(normalLogR),
@@ -170,7 +173,7 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
     ch = ch
   )
 
-  ASCAT::ascat.plotRawData(ascat.bc)
+  ASCAT::ascat.plotRawData(ascat_bc)
 }
 
 #' Prepare data for impute
@@ -301,7 +304,7 @@ gc_correct_wgs <- function(
   recalc_corr_afterwards = FALSE
 ) {
   if (is.null(gc_content_file_prefix)) {
-    stop("GC content reference files must be supplied to WGS GC content correction")
+    log_failure("GC content reference files must be supplied to WGS GC content correction")
   }
 
   Tumor_LogR <- read_logr(Tumour_LogR_file)
@@ -340,10 +343,18 @@ gc_correct_wgs <- function(
   }
   rm(logr_key, gc_key, locimatches, valid_idx, matched_gc)
 
-  # Initial Correlations
-  corr <- abs(collapse::fcor(GC_data[, 3:ncol(GC_data)], Tumor_LogR[, 3], use = "complete.obs")[, 1])
+  corr <- collapse::pwcor(
+    GC_data[, 3:ncol(GC_data)], Tumor_LogR[, 3],
+    use = 3
+  )
+  corr <- abs(corr[, 1])
+
   if (has_replic) {
-    corr_rep <- abs(collapse::fcor(replic_data[, 3:ncol(replic_data)], Tumor_LogR[, 3], use = "complete.obs")[, 1])
+    corr_rep <- collapse::pwcor(
+      replic_data[, 3:ncol(replic_data)], Tumor_LogR[, 3],
+      use = 3
+    )
+    corr_rep <- abs(corr_rep[, 1])
   }
 
   # Identify best windows
@@ -408,9 +419,12 @@ gc_correct_wgs <- function(
 
   # Post-correction processing
   if (recalc_corr_afterwards) {
-    corr_post <- abs(collapse::fcor(GC_data[, 3:ncol(GC_data)], Tumor_LogR[, 3], use = "complete.obs")[, 1])
+    corr_post <- abs(stats::cor(
+      GC_data[, 3:ncol(GC_data)], Tumor_LogR[, 3],
+      use = "complete.obs"
+    )[, 1])
     if (has_replic) {
-      corr_rep_post <- abs(collapse::fcor(replic_data[, 3:ncol(replic_data)], Tumor_LogR[, 3], use = "complete.obs")[, 1])
+      corr_rep_post <- abs(stats::cor(replic_data[, 3:ncol(replic_data)], Tumor_LogR[, 3], use = "complete.obs")[, 1])
       cat("Replication timing correlation post correction: ", paste(names(corr_rep_post), format(corr_rep_post, digits = 2), ";"), "\n")
 
       corr_final <- data.frame(

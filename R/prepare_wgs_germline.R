@@ -930,6 +930,22 @@ generate_impute_input_wgs_germline <- function(
   invisible(NULL)
 }
 
+# Helper function to replicate stats::cor(matrix, vector) using collapse speed
+# This performs C++ based scaling and a cross-product
+fast_cor_vec <- function(X, y) {
+  # Handle missing values equivalent to use = "complete.obs"
+  keep <- stats::complete.cases(X, y)
+
+  # Standardize using collapse (extremely fast)
+  X_std <- collapse::fscale(base::as.matrix(X[keep, ]))
+  y_std <- collapse::fscale(y[keep])
+
+  # Correlation = (X'y) / (n - 1)
+  n_obs <- base::sum(keep)
+  res <- (base::crossprod(X_std, y_std) / (n_obs - 1))[, 1]
+  return(res)
+}
+
 #' Function to correct LogR for waivyness that correlates with GC content
 #' @param germline_LogR_file String pointing to the germline LogR output
 #' @param outfile String pointing to where the GC corrected LogR should be written
@@ -942,122 +958,190 @@ generate_impute_input_wgs_germline <- function(
 #' @param recalc_corr_afterwards Set to TRUE to recalculate correlations after correction
 #' @author jonas demeulemeester, sd11, Naser Ansari-Pour (BDI, Oxford)
 #' @export
-gc_correct_wgs_germline <- function(germline_LogR_file, outfile, correlations_outfile, gc_content_file_prefix, replic_timing_file_prefix, chrom_names, recalc_corr_afterwards = FALSE) {
-  if (is.null(gc_content_file_prefix)) {
-    stop("GC content reference files must be supplied to WGS GC content correction")
+gc_correct_wgs_germline <- function(germline_LogR_file, outfile, correlations_outfile,
+                                    gc_content_file_prefix, replic_timing_file_prefix,
+                                    chrom_names, recalc_corr_afterwards = FALSE) {
+  if (base::is.null(gc_content_file_prefix)) {
+    base::stop("GC content reference files must be supplied to WGS GC content correction")
   }
 
+  # Fast reading of LogR
   Germline_LogR <- read_logr(germline_LogR_file)
 
-  print("Processing GC content data")
-  chrom_idx <- seq_along(chrom_names)
-  gc_files <- paste0(gc_content_file_prefix, chrom_idx, ".txt.gz")
-  GC_data <- do.call(rbind, lapply(gc_files, read_gccontent))
-  colnames(GC_data) <- c(
-    "chr", "Position", paste0(c(25, 50, 100, 200, 500), "bp"),
-    paste0(c(1, 2, 5, 10, 20, 50, 100), "kb")
-  ) # ,200,500), "kb"),
-  # paste0(c(1,2,5,10), "Mb"))
+  base::message("Processing GC content data")
+  chrom_idx <- base::seq_along(chrom_names)
 
-  if (!is.null(replic_timing_file_prefix)) {
-    print("Processing replciation timing data")
-    replic_files <- paste0(replic_timing_file_prefix, chrom_idx, ".txt.gz")
-    replic_data <- do.call(rbind, lapply(replic_files, read_replication))
-  }
-
-  # omit non-matching loci, replication data generated at exactly same GC loci
-  locimatches <- match(
-    x = paste0(Germline_LogR$Chromosome, "_", Germline_LogR$Position),
-    table = paste0(GC_data$chr, "_", GC_data$Position)
+  # Efficiently reading and binding GC data
+  gc_files <- base::paste0(gc_content_file_prefix, chrom_idx, ".txt.gz")
+  GC_data <- data.table::rbindlist(base::lapply(gc_files, read_gccontent))
+  base::colnames(GC_data) <- c(
+    "chr", "Position", base::paste0(c(25, 50, 100, 200, 500), "bp"),
+    base::paste0(c(1, 2, 5, 10, 20, 50, 100), "kb")
   )
-  Germline_LogR <- Germline_LogR[which(!is.na(locimatches)), ]
-  GC_data <- GC_data[na.omit(locimatches), ]
-  if (!is.null(replic_timing_file_prefix)) {
-    replic_data <- replic_data[na.omit(locimatches), ]
-  }
-  rm(locimatches)
 
-  corr <- abs(collapse::fcor(GC_data[, 3:ncol(GC_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
-  if (!is.null(replic_timing_file_prefix)) {
-    corr_rep <- abs(collapse::fcor(replic_data[, 3:ncol(replic_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
+  # Optional Replication timing data
+  if (!base::is.null(replic_timing_file_prefix)) {
+    base::message("Processing replication timing data")
+    replic_files <- base::paste0(replic_timing_file_prefix, chrom_idx, ".txt.gz")
+    replic_data <- data.table::rbindlist(base::lapply(replic_files, read_replication))
   }
 
-  index_1kb <- which(names(corr) == "1kb")
-  maxGCcol_insert <- names(which.max(corr[1:index_1kb]))
-  index_100kb <- which(names(corr) == "100kb")
-  # start large window sizes at 5kb rather than 2kb to avoid overly correlated expl variables
-  maxGCcol_amplic <- names(which.max(corr[(index_1kb + 2):index_100kb]))
-  if (!is.null(replic_timing_file_prefix)) {
-    maxreplic <- names(which.max(corr_rep))
+  # Efficient Loci Synchronization
+  key_logr <- base::paste0(Germline_LogR$Chromosome, "_", Germline_LogR$Position)
+  key_gc <- base::paste0(GC_data$chr, "_", GC_data$Position)
+
+  locimatches <- collapse::fmatch(key_logr, key_gc)
+
+  valid_idx <- base::which(!base::is.na(locimatches))
+  matched_gc_idx <- locimatches[valid_idx]
+
+  Germline_LogR <- Germline_LogR[valid_idx, ]
+  GC_data <- GC_data[matched_gc_idx, ]
+
+  if (!base::is.null(replic_timing_file_prefix)) {
+    replic_data <- replic_data[matched_gc_idx, ]
   }
 
-  if (!is.null(replic_timing_file_prefix)) {
-    cat("Replication timing correlation: ", paste(names(corr_rep), format(corr_rep, digits = 2), ";"), "\n")
-    cat("Replication dataset: ", maxreplic, "\n")
-  }
-  cat("GC correlation: ", paste(names(corr), format(corr, digits = 2), ";"), "\n")
-  cat("Short window size: ", maxGCcol_insert, "\n")
-  cat("Long window size: ", maxGCcol_amplic, "\n")
+  base::rm(key_logr, key_gc, locimatches, valid_idx, matched_gc_idx)
 
-  if (!is.null(replic_timing_file_prefix)) {
-    # Multiple regression - with replication timing
-    corrdata <- data.frame(
-      logr = Germline_LogR[, 3, drop = TRUE],
-      GC_insert = GC_data[, maxGCcol_insert, drop = TRUE],
-      GC_amplic = GC_data[, maxGCcol_amplic, drop = TRUE],
-      replic = replic_data[, maxreplic, drop = TRUE]
+  # Fast Correlation calculation
+  # Replaced stats::cor and non-existent fcor with helper
+  corr <- base::abs(
+    fast_cor_vec(GC_data[, 3:base::ncol(GC_data)], Germline_LogR[[3]])
+  )
+
+  if (!base::is.null(replic_timing_file_prefix)) {
+    corr_rep <- base::abs(
+      fast_cor_vec(replic_data[, 3:base::ncol(replic_data)], Germline_LogR[[3]])
     )
-    colnames(corrdata) <- c("logr", "GC_insert", "GC_amplic", "replic")
-    if (!recalc_corr_afterwards) {
-      rm(GC_data, replic_data)
-    }
+  }
 
-    model <- lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = TRUE) + splines::ns(x = GC_amplic, df = 5, intercept = TRUE) + splines::ns(x = replic, df = 5, intercept = TRUE), y = FALSE, model = FALSE, data = corrdata, na.action = "na.exclude")
+  # Identify best window sizes
+  index_1kb <- base::which(base::names(corr) == "1kb")
+  maxGCcol_insert <- base::names(base::which.max(corr[1:index_1kb]))
+  index_100kb <- base::which(base::names(corr) == "100kb")
+  maxGCcol_amplic <- base::names(base::which.max(corr[(index_1kb + 2):index_100kb]))
 
-    corr <- data.frame(windowsize = c(names(corr), names(corr_rep)), correlation = c(corr, corr_rep))
-    data.table::fwrite(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
+  if (!base::is.null(replic_timing_file_prefix)) {
+    maxreplic <- base::names(base::which.max(corr_rep))
+    base::cat(
+      "Replication timing correlation: ",
+      base::paste(base::names(corr_rep), base::format(corr_rep, digits = 2), collapse = "; "), "\n"
+    )
+    base::cat("Replication dataset: ", maxreplic, "\n")
+  }
+
+  base::cat(
+    "GC correlation: ",
+    base::paste(base::names(corr), base::format(corr, digits = 2), collapse = "; "), "\n"
+  )
+  base::cat("Short window size: ", maxGCcol_insert, "\n")
+  base::cat("Long window size: ", maxGCcol_amplic, "\n")
+
+  logr_vec <- Germline_LogR[[3]]
+
+  # Create spline design matrices
+  X_ins <- splines::ns(GC_data[[maxGCcol_insert]], df = 5, intercept = TRUE)
+  X_amp <- splines::ns(GC_data[[maxGCcol_amplic]], df = 5, intercept = TRUE)
+
+  if (!base::is.null(replic_timing_file_prefix)) {
+    X_rep <- splines::ns(replic_data[[maxreplic]], df = 5, intercept = TRUE)
+    X_design <- base::cbind(X_ins, X_amp, X_rep)
+
+    before_corr_df <- base::data.frame(
+      windowsize = base::c(base::names(corr), base::names(corr_rep)),
+      correlation = base::c(base::as.numeric(corr), base::as.numeric(corr_rep))
+    )
   } else {
-    # Multiple regression  - without replication timing
-    corrdata <- data.frame(
-      logr = Germline_LogR[, 3, drop = TRUE],
-      GC_insert = GC_data[, maxGCcol_insert, drop = TRUE],
-      GC_amplic = GC_data[, maxGCcol_amplic, drop = TRUE]
+    X_design <- base::cbind(X_ins, X_amp)
+    before_corr_df <- base::data.frame(
+      windowsize = base::names(corr),
+      correlation = base::as.numeric(corr)
     )
-    colnames(corrdata) <- c("logr", "GC_insert", "GC_amplic")
-    if (!recalc_corr_afterwards) {
-      rm(GC_data)
-    }
-
-    model <- lm(logr ~ splines::ns(x = GC_insert, df = 5, intercept = TRUE) + splines::ns(x = GC_amplic, df = 5, intercept = TRUE), y = FALSE, model = FALSE, data = corrdata, na.action = "na.exclude")
-
-    corr <- data.frame(windowsize = names(corr), correlation = corr)
-    data.table::fwrite(corr, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
   }
 
-  Germline_LogR[, 3] <- residuals(model)
-  rm(model, corrdata)
+  # Fast Linear Model via collapse
+  coeffs <- collapse::flm(logr_vec, X_design)
 
-  readr::write_tsv(x = Germline_LogR[which(!is.na(Germline_LogR[, 3])), ], file = outfile)
+  # Calculate residuals (Corrected LogR)
+  Germline_LogR[, 3] <- logr_vec - (X_design %*% coeffs)
 
+  base::rm(X_ins, X_amp, X_design, coeffs)
+  if (!base::is.null(replic_timing_file_prefix)) base::rm(X_rep)
+
+  data.table::fwrite(before_corr_df,
+    file = base::gsub(".txt", "_beforeCorrection.txt", correlations_outfile),
+    sep = "\t", quote = FALSE
+  )
+
+  if (!recalc_corr_afterwards) {
+    base::rm(GC_data)
+    if (base::exists("replic_data")) base::rm(replic_data)
+  }
+
+  data.table::fwrite(
+    Germline_LogR[!base::is.na(Germline_LogR[[3]]), ],
+    file = outfile, sep = "\t"
+  )
+
+  # Optional Post-correction Analysis
   if (recalc_corr_afterwards) {
-    # Recalculate the correlations to see how much there is left
-    corr <- abs(collapse::fcor(GC_data[, 3:ncol(GC_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
-    if (!is.null(replic_timing_file_prefix)) {
-      corr_rep <- abs(collpse::fcor(replic_data[, 3:ncol(replic_data)], Germline_LogR[, 3], use = "complete.obs")[, 1])
-      cat("Replication timing correlation post correction: ", paste(names(corr_rep), format(corr_rep, digits = 2), ";"), "\n")
-    }
-    cat("GC correlation post correction: ", paste(names(corr), format(corr, digits = 2), ";"), "\n")
+    # Re-using the helper for consistency and speed
+    post_corr <- base::abs(
+      fast_cor_vec(GC_data[, 3:base::ncol(GC_data)], Germline_LogR[[3]])
+    )
 
-    if (!is.null(replic_timing_file_prefix)) {
-      corr <- data.frame(windowsize = c(names(corr), names(corr_rep)), correlation = c(corr, corr_rep))
-      data.table::fwrite(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
+    if (!base::is.null(replic_timing_file_prefix)) {
+      post_corr_rep <- base::abs(
+        fast_cor_vec(
+          replic_data[, 3:base::ncol(replic_data)], Germline_LogR[[3]]
+        )
+      )
+
+      base::cat(
+        "Replication timing correlation post correction: ",
+        base::paste(
+          base::names(post_corr_rep),
+          base::format(post_corr_rep, digits = 2),
+          collapse = "; "
+        ),
+        "\n"
+      )
+
+      after_corr_df <- base::data.frame(
+        windowsize = base::c(
+          base::names(post_corr),
+          base::names(post_corr_rep)
+        ),
+        correlation = base::c(
+          base::as.numeric(post_corr),
+          base::as.numeric(post_corr_rep)
+        )
+      )
     } else {
-      corr <- data.frame(windowsize = c(names(corr)), correlation = corr)
-      data.table::fwrite(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
+      after_corr_df <- base::data.frame(
+        windowsize = base::names(post_corr),
+        correlation = base::as.numeric(post_corr)
+      )
     }
-  } else {
-    corr$correlation <- NA
-    data.table::fwrite(corr, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t", quote = FALSE, row.names = FALSE)
+
+    base::cat(
+      "GC correlation post correction: ",
+      base::paste(
+        base::names(post_corr),
+        base::format(post_corr, digits = 2),
+        collapse = "; "
+      ), "\n"
+    )
+    data.table::fwrite(
+      after_corr_df,
+      file = base::gsub(
+        ".txt", "_afterCorrection.txt",
+        correlations_outfile
+      ),
+      sep = "\t",
+      quote = FALSE
+    )
   }
 }
 

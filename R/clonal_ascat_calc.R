@@ -63,7 +63,14 @@ calc_ln_likelihood_ratio <- function(LogR, BAF_req, BAF_length, BAF_size, BAF_me
 
   # Check if there is a viable solution
   if (!is.na(BAF_req)) {
-    nearest_edge <- prioritizeCopyNumbers(rho, psi, BAF_req, nMajor, nMinor)
+    nearest_edge <- prioritizeCopyNumbers(
+      rho = rho,
+      psi = psi,
+      BAF_req = BAF_req,
+      nMajor = nMajor,
+      nMinor = nMinor,
+      full = FALSE
+    )
     nMaj <- nearest_edge$nMaj
     nMin <- nearest_edge$nMin
     BAF_levels <- (1 - rho + rho * nMaj) / (2 - 2 * rho + rho * (nMaj + nMin))

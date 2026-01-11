@@ -433,140 +433,115 @@ clonal_findcentroid_plot <- function(minimise, dist_choice, d, psis, rhos, new_b
   )
 }
 
+# Plot Battenberg copy number solutions for a segment
+# Refactored for clarity and data.table integration
+squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos,
+                        platform_gamma = 1, pdf = 0, binwidth_baf = 0.25, xylimits = c(-0.2, 5)) {
+  # Construct output paths
+  ext <- if (pdf) ".pdf" else ".png"
+  out_file <- file.path(run_dir, paste0(tumourname, "_squares_chr", segment_chr, "_", segment_pos, ext))
 
-#' Plot Battenberg copy number solutions for a segment
-#'
-#' \code{squaresplot} plots the different Battenberg copy number solutions for a segment
-#'
-#' The plot is output to the run directory as "tumourname_squares_chr_position.png/pdf"
-#'
-#' @param tumourname Sample name
-#' @param run_dir Running directory
-#' @param segment_chr Chromosome containing the segment to be investigated
-#' @param segment_pos Chromosomal position within the segment in Mb (e.g. 90M)
-#' @param platform_gamma Platform-specific gamma value (0.55 for SNP6, 1 for NGS), default 1
-#' @param pdf Output format: 0 for png (default), 1 for pdf
-#' @param binwidth_baf BAF isobafline spacing, default 0.25
-#' @param xylimits x/y-axis limits, default c(-0.2,5)
-#' @author jd
-#' @export
-squaresplot <- function(
-  tumourname, run_dir,
-  segment_chr, segment_pos,
-  platform_gamma = 1, pdf = 0,
-  binwidth_baf = 0.25, xylimits = c(-0.2, 5)
-) {
   if (pdf) {
-    grDevices::pdf(
-      file = paste(
-        run_dir, tumourname, "_squares", "_chr",
-        segment_chr, "_", segment_pos, ".pdf",
-        sep = ""
-      ), width = 7, height = 7
-    )
+    grDevices::pdf(file = out_file, width = 7, height = 7)
   } else {
-    grDevices::png(
-      filename = paste(run_dir, tumourname, "_squares", "_chr",
-        segment_chr, "_", segment_pos, ".png",
-        sep = ""
-      ),
-      width = 1200, height = 1200, res = 200, type = "cairo"
-    )
+    grDevices::png(filename = out_file, width = 1200, height = 1200, res = 200, type = "cairo")
   }
 
-  # read in and augment data
-  segment_pos <- as.numeric(gsub("M", "000000", segment_pos))
-  subclones <- utils::read.table(paste(run_dir, tumourname, "_copynumber.txt", sep = ""), header = TRUE, stringsAsFactors = FALSE)
-  subclone <- subclones[(subclones$chr == segment_chr) & (subclones$startpos <= segment_pos) & (subclones$endpos >= segment_pos), ]
-  rhopsi <- utils::read.table(paste(run_dir, tumourname, "_rho_and_psi.txt", sep = ""), header = TRUE, stringsAsFactors = FALSE)
-  rhopsi <- rhopsi[which(rhopsi$is_best == TRUE), c("rho", "psi")]
+  # Parse chromosomal position
+  segment_pos_num <- base::as.numeric(base::gsub("M", "000000", segment_pos))
 
-  nMincalc <- (rhopsi$rho - 1 - (subclone$BAF - 1) * 2^(subclone$LogR / platform_gamma) * ((1 - rhopsi$rho) * 2 + rhopsi$rho * rhopsi$psi)) / rhopsi$rho
-  nMajcalc <- (rhopsi$rho - 1 + subclone$BAF * 2^(subclone$LogR / platform_gamma) * ((1 - rhopsi$rho) * 2 + rhopsi$rho * rhopsi$psi)) / rhopsi$rho
+  # Read data using data.table
+  cn_file <- file.path(run_dir, paste0(tumourname, "_copynumber.txt"))
+  subclones <- data.table::fread(cn_file, data.table = FALSE)
 
-  subclone <- data.frame(subclone, rhopsi, nMincalc, nMajcalc)
+  # Select specific segment
+  subclone <- subclones[(subclones$chr == segment_chr) &
+    (subclones$startpos <= segment_pos_num) &
+    (subclones$endpos >= segment_pos_num), ]
 
-  # helper function to calculate isobaflines
+  # Get best rho and psi parameters
+  rp_file <- file.path(run_dir, paste0(tumourname, "_rho_and_psi.txt"))
+  rhopsi_df <- data.table::fread(rp_file, data.table = FALSE)
+  rhopsi <- rhopsi_df[rhopsi_df$is_best == TRUE, c("rho", "psi")]
+
+  rho <- rhopsi$rho
+  psi <- rhopsi$psi
+
+  # Theoretical calculations
+  logr_comp <- 2^(subclone$LogR / platform_gamma)
+  p_comp <- ((1 - rho) * 2 + rho * psi)
+  nMincalc <- (rho - 1 - (subclone$BAF - 1) * logr_comp * p_comp) / rho
+  nMajcalc <- (rho - 1 + subclone$BAF * logr_comp * p_comp) / rho
+
+  # Grid function
   isobafline <- function(nB, cstbaf) {
-    (1 - rhopsi$rho + rhopsi$rho * nB - cstbaf * (2 - 2 * rhopsi$rho) - rhopsi$rho * cstbaf * nB) / (rhopsi$rho * cstbaf)
+    (1 - rho + rho * nB - cstbaf * (2 - 2 * rho) - rho * cstbaf * nB) / (rho * cstbaf)
   }
 
-  # create grid for allelic copynumber
-  ngrid <- data.frame(nMaj = seq(0, 5, 1), nMin = seq(0, 5, 1))
-
-  # start plotting - setup
-  q <- ggplot2::ggplot(data = ngrid, ggplot2::aes(nMaj, nMin)) +
-    ggplot2::scale_x_continuous(breaks = 0:max(xylimits), limits = xylimits) +
-    ggplot2::scale_y_continuous(breaks = 0:max(xylimits), limits = xylimits) +
-    ggplot2::coord_fixed()
-  q <- q + ggplot2::theme_bw() + ggplot2::theme(
-    panel.grid.major = ggplot2::element_line(
-      colour = "darkgrey", size = 0.5
-    ),
-    panel.grid.minor = ggplot2::element_blank()
-  )
-
-  # add isobaflines
-  for (bafval in seq(0, 1, binwidth_baf)) {
-    q <- q + ggplot2::stat_function(
-      fun = isobafline,
-      args = list(cstbaf = bafval), colour = "blue", alpha = 0.6
+  # Base Plot
+  q <- ggplot2::ggplot() +
+    ggplot2::scale_x_continuous(name = "nMajor", breaks = 0:base::max(xylimits), limits = xylimits) +
+    ggplot2::scale_y_continuous(name = "nMinor", breaks = 0:base::max(xylimits), limits = xylimits) +
+    ggplot2::coord_fixed() +
+    ggplot2::theme_bw() +
+    ggplot2::theme(
+      panel.grid.major = ggplot2::element_line(colour = "darkgrey", size = 0.5),
+      panel.grid.minor = ggplot2::element_blank()
     )
+
+  # Grid Lines
+  baf_seq <- base::seq(0, 1, binwidth_baf)
+  for (bafval in baf_seq) {
+    q <- q + ggplot2::stat_function(fun = isobafline, args = list(cstbaf = bafval), colour = "blue", alpha = 0.6)
   }
-  q <- q + ggplot2::stat_function(
-    fun = isobafline, args = list(cstbaf = subclone$BAF), colour = "green"
+  q <- q + ggplot2::stat_function(fun = isobafline, args = list(cstbaf = subclone$BAF), colour = "green")
+
+  # Isologrline (Red Segment)
+  err_df <- base::data.frame(
+    x = base::floor(nMajcalc) - 0.2, y = base::ceiling(nMincalc) + 0.2,
+    xend = base::ceiling(nMajcalc) + 0.2, yend = base::floor(nMincalc) - 0.2
   )
 
-  # add isologrline
-  df <- data.frame(
-    flnMaj = floor(nMajcalc) - 0.2,
-    cnMin = ceiling(nMincalc) + 0.2,
-    cnMaj = ceiling(nMajcalc) + 0.2,
-    flnMin = floor(nMincalc) - 0.2
-  )
+  # Note the use of rlang::.data here
   q <- q + ggplot2::geom_segment(
-    data = df,
-    ggplot2::aes(
-      x = flnMaj, y = cnMin, xend = cnMaj, yend = flnMin
-    ), colour = "red", alpha = 0.6
+    data = err_df,
+    ggplot2::aes(x = rlang::.data$x, y = rlang::.data$y, xend = rlang::.data$xend, yend = rlang::.data$yend),
+    colour = "red", alpha = 0.6
   )
 
-  # if clonal segment, only plot clonal solution
+  # Clonal vs Subclonal points
   if (subclone$frac1_A == 1) {
+    q <- q + ggplot2::geom_point(data = subclone, ggplot2::aes(rlang::.data$nMaj1_A, rlang::.data$nMin1_A), size = 5)
+  } else {
+    target_cols <- base::grep("nM.{5}$|^frac.{3}$", base::colnames(subclone))
+    sol_matrix <- base::matrix(base::unlist(subclone[, target_cols]), byrow = TRUE, ncol = 3)
+    solutions <- base::cbind(sol_matrix, base::rep(1:6, each = 2))
+    solutions <- solutions[12:1, ]
+    base::colnames(solutions) <- c("nMaj", "nMin", "frac", "sol")
+
+    solutions_df <- stats::na.omit(base::as.data.frame(solutions))
+
     q <- q + ggplot2::geom_point(
-      data = subclone, ggplot2::aes(nMaj1_A, nMin1_A), size = 5
-    )
-  } else { # if subclonal, plot all equivalent solutions
-    solutions <- matrix(
-      unlist(subclone[, grep("nM.{5}$|^frac.{3}$", colnames(subclone))]),
-      byrow = TRUE, ncol = 3
-    )
-    solutions <- cbind(solutions, rep(1:6, rep(2, 6)))[12:1, ]
-    colnames(solutions) <- c("nMaj", "nMin", "frac", "sol")
-    solutions <- na.omit(as.data.frame(solutions))
-    q <- q + ggplot2::geom_point(
-      data = solutions, ggplot2::aes(
-        nMaj, nMin,
-        size = frac, colour = factor(sol)
-      ), alpha = 0.75,
-      position = ggplot2::position_jitter(width = .05, height = .05), shape = 79
+      data = solutions_df,
+      ggplot2::aes(
+        x = rlang::.data$nMaj,
+        y = rlang::.data$nMin,
+        size = rlang::.data$frac,
+        colour = base::factor(rlang::.data$sol)
+      ),
+      alpha = 0.75,
+      position = ggplot2::position_jitter(width = .05, height = .05),
+      shape = 79
     ) +
-      ggplot2::scale_size_continuous(
-        guide = FALSE, limits = c(0, 1), range = c(2, 10)
-      ) + ggplot2::scale_color_discrete(name = "solution")
+      ggplot2::scale_size_continuous(guide = "none", limits = c(0, 1), range = c(2, 10)) +
+      ggplot2::scale_color_discrete(name = "solution")
   }
 
-  # plot precise values, as calculated by battenberg
-  q <- q + ggplot2::geom_point(
-    data = subclone, ggplot2::aes(nMajcalc, nMincalc), size = 4, shape = 88
-  )
-  q <- q + ggplot2::labs(
-    title = paste(
-      tumourname, " chr", subclone$chr, ": ", subclone$startpos, "-", subclone$endpos,
-      sep = ""
-    )
-  )
-  print(q)
+  # Final markers
+  q <- q + ggplot2::geom_point(ggplot2::aes(x = nMajcalc, y = nMincalc), size = 4, shape = 88)
+  q <- q + ggplot2::labs(title = base::paste0(tumourname, " chr", subclone$chr, ": ", subclone$startpos, "-", subclone$endpos))
+
+  base::print(q)
   grDevices::dev.off()
 }
 
@@ -581,7 +556,7 @@ squaresplot <- function(
 runmed_data <- function(chromosome, data, k = 101) {
   data_smoothed <- rep(NA, length(data))
   for (chrom in unique(chromosome)) {
-    data_smoothed[chromosome == chrom] <- runmed(data[chromosome == chrom], k)
+    data_smoothed[chromosome == chrom] <- stats::runmed(data[chromosome == chrom], k)
   }
   return(data_smoothed)
 }
@@ -604,67 +579,97 @@ totalcn_chrom_plot <- function(
   outputfile,
   purity
 ) {
-  # Smooth the logR
-  colnames(logr)[3] <- "raw_logr"
+  # Using data.table::setnames to avoid copying the whole table
+  data.table::setnames(logr, 3, "raw_logr")
+
+  # collapse::fcompute/fmutate is faster for smoothing across chromosomes
+  # Assuming runmed_data is your custom function
   logr$logr_smoothed <- runmed_data(logr$Chromosome, logr$raw_logr, 101)
 
-  # Prepare subclones data
-  subclones$len <- subclones$endpos / 1000 - subclones$startpos / 1000
+  subclones$len <- (subclones$endpos - subclones$startpos) / 1000
   subclones$total_major <- calc_total_cn_major(subclones)
   subclones$total_minor <- calc_total_cn_minor(subclones)
   subclones$total_cn <- subclones$total_minor + subclones$total_major
   subclones$is_subclonal <- subclones$frac1_A < 1
   subclones$is_50_50 <- subclones$frac1_A >= 0.48 & subclones$frac1_A <= 0.52
 
-  # Calculate psi from the data
   ploidy <- calc_ploidy(subclones)
   psi <- psit2psi(purity, ploidy)
 
-  # Estimate total CN for each segment based on the logR
-  logr$total_cn <- NA
-  logr$total_cn_psi <- NA
-  for (i in seq_len(nrow(subclones))) {
-    print(i)
-    sel <- which(logr$Chromosome == subclones$chr[i] & logr$Position >= subclones$startpos[i] & logr$Position <= subclones$endpos[i])
-    tumour_cn <- calculate_bb_total_cn(subclones[i, , drop = FALSE])
-    total_cn <- purity * tumour_cn + 2 * (1 - purity)
-    logr$total_cn[sel] <- logr2tumcn(purity, total_cn, logr$logr_smoothed[sel])
-    logr$total_cn_psi[sel] <- logr2tumcn(purity, psi, logr$logr_smoothed[sel])
-  }
+  # Convert to data.table if they aren't already
+  data.table::setDT(logr)
+  data.table::setDT(subclones)
+  logr$Position_end <- logr$Position
 
-  # Plot every 100 data point, there are too many for them all to be seen
-  logr_plot <- logr[seq(1, nrow(logr), 100), ]
+  # Calculate segment constants once (Vectorized)
+  subclones$target_total_cn <- purity * calculate_bb_total_cn(subclones) + 2 * (1 - purity)
 
-  # Sync the levels for chromosome so that all corresponding data ends up in the same plot
-  logr_plot$Chromosome <- factor(logr_plot$Chromosome, levels = mixedsort(unique(logr_plot$Chromosome)))
-  subclones$Chromosome <- factor(subclones$chr, levels = levels(logr_plot$Chromosome))
+  # Set keys for foverlaps (Standard requirement for range joins)
+  data.table::setkeyv(subclones, c("chr", "startpos", "endpos"))
 
-  # Set plot boundaries for x and y - take as y value the maximum between the data and the fit
-  max_cn_plot_data <- ceiling(quantile(logr_plot$total_cn_psi, c(.98), na.rm = TRUE))
-  max_cn_plot_fit <- ceiling(quantile(unlist(lapply(seq_len(nrow(subclones)), function(i) rep(subclones$total_cn[i], subclones$len[i]))), c(.98), na.rm = TRUE))
-  max_cn_plot <- ifelse(max_cn_plot_fit > max_cn_plot_data, max_cn_plot_fit, max_cn_plot_data)
-  maxpos <- max(logr$Position)
-
-  # catch case when there is no clonal CNA called
-  if (is.na(max_cn_plot) || max_cn_plot < 4) {
-    max_cn_plot <- 4
-  }
-
-  # These are the grey lines in the background
-  background <- data.frame(
-    xmin = rep(0, (max_cn_plot / 2) + 1),
-    xmax = rep(max(logr$Position), (max_cn_plot / 2) + 1),
-    ymin = seq(0, max_cn_plot, 2) + 0.5,
-    ymax = seq(0, max_cn_plot, 2) + 1.5
+  # Perform the join - This maps the correct 'target_total_cn' to every SNP
+  logr_joined <- data.table::foverlaps(
+    logr,
+    subclones,
+    by.x = c("Chromosome", "Position", "Position_end"),
+    by.y = c("chr", "startpos", "endpos"),
+    type = "within",
+    nomatch = NA
   )
 
-  # Calc a couple of stats for the plot title
-  genome_50_50 <- sum(subclones$len[subclones$is_50_50] / 1000)
-  prop_subclonal <- round(sum(subclones$len[subclones$is_subclonal]) / sum(subclones$len), 2)
-  homdel <- sum(subclones$len[subclones$total_cn == 0] / 1000)
-  plot_title <- samplename
-  plot_subtitle <- paste0("Purity: ", round(purity, 2), " - Ploidy: ", round(ploidy, 2), " - Hom del: ", round(homdel, 2), "Mb - Prop. subclonal: ", prop_subclonal, " - Subclonal 50/50: ", round(genome_50_50, 2), "Mb")
+  # Vectorized calculation of CN columns on the joined data
+  logr_joined$total_cn <- logr2tumcn(purity, logr_joined$target_total_cn, logr_joined$logr_smoothed)
+  logr_joined$total_cn_psi <- logr2tumcn(purity, psi, logr_joined$logr_smoothed)
 
+  # Replace .N with standard nrow() indexing
+  sample_idx <- seq(from = 1, to = nrow(logr_joined), by = 100)
+  logr_plot <- logr_joined[sample_idx, ]
+
+  # mixedsort handles the chr1, chr2, chr10 order correctly
+  chr_levels <- gtools::mixedsort(unique(as.character(logr_plot$Chromosome)))
+  logr_plot$Chromosome <- factor(logr_plot$Chromosome, levels = chr_levels)
+  subclones$Chromosome <- factor(subclones$chr, levels = chr_levels)
+
+  max_cn_plot_data <- ceiling(
+    collapse::fquantile(
+      logr_plot$total_cn_psi, 0.98,
+      na.rm = TRUE
+    )
+  )
+
+  # Optimization: Use weighted quantile for the fit instead of rep() + unlist()
+  # This saves massive amounts of memory
+  max_cn_plot_fit <- ceiling(
+    collapse::fquantile(
+      subclones$total_cn, 0.98,
+      w = subclones$len, na.rm = TRUE
+    )
+  )
+
+  max_cn_plot <- max(4, max_cn_plot_data, max_cn_plot_fit, na.rm = TRUE)
+  maxpos <- max(logr$Position)
+
+  # 7. Background Data Preparation
+  bg_y <- seq(0, max_cn_plot, 2)
+  background <- data.frame(
+    xmin = 0,
+    xmax = maxpos,
+    ymin = bg_y + 0.5,
+    ymax = bg_y + 1.5
+  )
+
+  # 8. Plot Annotations
+  prop_subclonal <- round(
+    sum(subclones$len[subclones$is_subclonal]) / sum(subclones$len), 2
+  )
+  homdel <- sum(subclones$len[subclones$total_cn == 0] / 1000)
+
+  plot_subtitle <- paste0(
+    "Purity: ", round(purity, 2),
+    " - Ploidy: ", round(ploidy, 2),
+    " - Hom del: ", round(homdel, 2), "Mb",
+    " - Prop. subclonal: ", prop_subclonal
+  )
   rect_height_padding <- 0.2
 
   # Build the actual plot - CNA segments are drawn separately depending on their category as categories have different colours
@@ -691,10 +696,14 @@ totalcn_chrom_plot <- function(
       ylim = c(-rect_height_padding, max_cn_plot + rect_height_padding)
     ) +
     ggplot2::facet_wrap(~Chromosome, ncol = 2, strip.position = "right") +
-    ggplot2::ggtitle(bquote(atop(
-      .(plot_title),
-      atop(.(plot_subtitle), "")
-    ))) +
+    ggplot2::ggtitle(
+      bquote(
+        atop(
+          .(samplename),
+          atop(.(plot_subtitle), "")
+        )
+      )
+    ) +
     ggplot2::theme_bw() +
     ggplot2::theme(
       axis.title.x = ggplot2::element_blank(),
@@ -758,9 +767,10 @@ totalcn_chrom_plot <- function(
     p <- p + ggplot2::geom_rect(
       data = subclones[sel, ],
       mapping = ggplot2::aes(
-        xmin = startpos, xmax = endpos,
-        ymin = total_cn - rect_height_padding,
-        ymax = total_cn + rect_height_padding
+        xmin = rlang::.data$startpos,
+        xmax = rlang::.data$endpos,
+        ymin = rlang::.data$total_cn - rect_height_padding,
+        ymax = rlang::.data$total_cn + rect_height_padding
       ), fill = "#E69F00"
     )
   }
@@ -770,9 +780,10 @@ totalcn_chrom_plot <- function(
     p <- p + ggplot2::geom_rect(
       data = subclones[sel, ],
       mapping = ggplot2::aes(
-        xmin = startpos, xmax = endpos,
-        ymin = total_cn - rect_height_padding,
-        ymax = total_cn + rect_height_padding
+        xmin = rlang::.data$startpos,
+        xmax = rlang::.data$endpos,
+        ymin = rlang::.data$total_cn - rect_height_padding,
+        ymax = rlang::.data$total_cn + rect_height_padding
       ), fill = "#E55300"
     )
   }

@@ -327,43 +327,34 @@ findMarks <- function(markSub, Nr, subsize) {
 }
 
 filterMarkS4 <- function(x, kmin, L, L2, frac1, frac2, frac3, thres) {
-  ## marks potential breakpoints, partially by a two 6*L and 6*L2 highpass
-  ## filters (L>L2), then by a filter seaching for potential kmin long segments
   lengdeArr <- length(x)
-  xc <- cumsum(x)
-  xc <- c(0, xc)
+  xc <- c(0, cumsum(x)) # Lead with 0 so xc[1] is 0
+
+  # --- Cost 1 Calculation (Window L) ---
   ind11 <- 1:(lengdeArr - 6 * L + 1)
-  ind12 <- ind11 + L
-  ind13 <- ind11 + 3 * L
-  ind14 <- ind11 + 5 * L
-  ind15 <- ind11 + 6 * L
-  cost1 <- abs(4 * xc[ind13] - xc[ind11] - xc[ind12] - xc[ind14] - xc[ind15])
-  cost1 <- c(rep(0, 3 * L - 1), cost1, rep(0, 3 * L))
-  ## mark shortening in here
-  in1 <- 1:(lengdeArr - 6)
-  in2 <- in1 + 1
-  in3 <- in1 + 2
-  in4 <- in1 + 3
-  in5 <- in1 + 4
-  in6 <- in1 + 5
-  in7 <- in1 + 6
-  test <- pmax(cost1[in1], cost1[in2], cost1[in3], cost1[in4], cost1[in5], cost1[in6], cost1[in7])
-  test <- c(rep(0, 3), test, rep(0, 3))
-  cost1B <- cost1[cost1 >= thres * test]
-  frac1B <- min(0.8, frac1 * length(cost1) / length(cost1B))
-  limit <- quantile(cost1B, (1 - frac1B), names = FALSE)
-  mark <- (cost1 > limit) & (cost1 > 0.9 * test)
+  # The formula: 4*xc[ind13] - xc[ind11] - xc[ind12] - xc[ind14] - xc[ind15]
+  cost1 <- abs(4 * xc[ind11 + 3 * L] - xc[ind11] - xc[ind11 + L] - xc[ind11 + 5 * L] - xc[ind11 + 6 * L])
+  cost1_full <- c(numeric(3 * L - 1), cost1, numeric(3 * L))
 
+  # --- Rolling Max Parity ---
+  # Your pmax was: pmax(cost1[i], cost1[i+1], ..., cost1[i+6])
+  # To match 'rep(0, 3)' at both ends, we use align="center" with a window of 7
+  test1 <- RcppRoll::roll_max(cost1_full, n = 7, fill = 0, align = "center")
 
+  cost1B <- cost1_full[cost1_full >= thres * test1]
+  frac1B <- min(0.8, frac1 * length(cost1_full) / length(cost1B))
+  limit1 <- collapse::fquantile(cost1B, (1 - frac1B), names = FALSE)
+  mark <- (cost1_full > limit1) & (cost1_full > 0.9 * test1)
+
+  # --- Cost 2 Calculation (Window L2) ---
   ind21 <- 1:(lengdeArr - 6 * L2 + 1)
-  ind22 <- ind21 + L2
-  ind23 <- ind21 + 3 * L2
-  ind24 <- ind21 + 5 * L2
-  ind25 <- ind21 + 6 * L2
-  cost2 <- abs(4 * xc[ind23] - xc[ind21] - xc[ind22] - xc[ind24] - xc[ind25])
-  limit2 <- quantile(cost2, (1 - frac2), names = FALSE)
-  mark2 <- (cost2 > limit2)
-  mark2 <- c(rep(0, 3 * L2 - 1), mark2, rep(0, 3 * L2))
+  cost2 <- abs(4 * xc[ind21 + 3 * L2] - xc[ind21] - xc[ind21 + L2] - xc[ind21 + 5 * L2] - xc[ind21 + 6 * L2])
+  limit2 <- collapse::fquantile(cost2, (1 - frac2), names = FALSE)
+
+  mark2_core <- (cost2 > limit2)
+  mark2 <- c(numeric(3 * L2 - 1), mark2_core, numeric(3 * L2))
+
+  # --- Edge Case Overrides ---
   if (3 * L > kmin) {
     mark[kmin:(3 * L - 1)] <- TRUE
     mark[(lengdeArr - 3 * L + 1):(lengdeArr - kmin)] <- TRUE
@@ -372,52 +363,48 @@ filterMarkS4 <- function(x, kmin, L, L2, frac1, frac2, frac3, thres) {
     mark[lengdeArr - kmin] <- TRUE
   }
 
+  # --- Short Segment Detection (kmin) ---
   if (kmin > 1) {
-    ind1 <- 1:(lengdeArr - 3 * kmin + 1)
-    ind2 <- ind1 + 3 * kmin
-    ind3 <- ind1 + kmin
-    ind4 <- ind1 + 2 * kmin
-    shortAb <- abs(3 * (xc[ind4] - xc[ind3]) - (xc[ind2] - xc[ind1]))
-    in1 <- 1:(length(shortAb) - 6)
-    in2 <- in1 + 1
-    in3 <- in1 + 2
-    in4 <- in1 + 3
-    in5 <- in1 + 4
-    in6 <- in1 + 5
-    in7 <- in1 + 6
-    test <- pmax(shortAb[in1], shortAb[in2], shortAb[in3], shortAb[in4], shortAb[in5], shortAb[in6], shortAb[in7])
-    test <- c(rep(0, 3), test, rep(0, 3))
-    cost1C <- shortAb[shortAb >= thres * test]
+    i_s <- 1:(lengdeArr - 3 * kmin + 1)
+    shortAb <- abs(3 * (xc[i_s + 2 * kmin] - xc[i_s + kmin]) - (xc[i_s + 3 * kmin] - xc[i_s]))
+
+    test_s <- RcppRoll::roll_max(shortAb, n = 7, fill = 0, align = "center")
+
+    cost1C <- shortAb[shortAb >= thres * test_s]
     frac1C <- min(0.8, frac3 * length(shortAb) / length(cost1C))
-    limit3 <- quantile(cost1C, (1 - frac1C), names = FALSE)
-    markH1 <- (shortAb > limit3) & (shortAb > thres * test)
-    markH2 <- c(rep(FALSE, (kmin - 1)), markH1, rep(FALSE, 2 * kmin))
-    markH3 <- c(rep(FALSE, (2 * kmin - 1)), markH1, rep(FALSE, kmin))
+    limit3 <- collapse::fquantile(cost1C, (1 - frac1C), names = FALSE)
+
+    markH1 <- (shortAb > limit3) & (shortAb > thres * test_s)
+
+    # Pixel-perfect shift reproduction
+    markH2 <- c(logical(kmin - 1), markH1, logical(2 * kmin))
+    markH3 <- c(logical(2 * kmin - 1), markH1, logical(kmin))
     mark <- mark | mark2 | markH2 | markH3
   } else {
     mark <- mark | mark2
   }
 
+  # --- Final Boundary Cleanup ---
+  # Re-applying the final mark overrides exactly as the original function
   if (3 * L > kmin) {
     mark[1:(kmin - 1)] <- FALSE
     mark[kmin:(3 * L - 1)] <- TRUE
     mark[(lengdeArr - 3 * L + 1):(lengdeArr - kmin)] <- TRUE
     mark[(lengdeArr - kmin + 1):(lengdeArr - 1)] <- FALSE
-    mark[lengdeArr] <- TRUE
   } else {
     mark[1:(kmin - 1)] <- FALSE
     mark[(lengdeArr - kmin + 1):(lengdeArr - 1)] <- FALSE
-    mark[lengdeArr] <- TRUE
     mark[kmin] <- TRUE
     mark[lengdeArr - kmin] <- TRUE
   }
+  mark[lengdeArr] <- TRUE
 
   return(mark)
 }
 
 # Optimized function to calculate the Median Absolute Deviation of a signal
 # after removing a running median trend.
-getMad <- function(x, k = 25) {
+get_mad <- function(x, k = 25) {
   # Use collapse for fast, memory-efficient subsetting
   # Removes zeros which often represent missing/imputed data in genomics
   x_filtered <- collapse::fsubset(x, x != 0)
@@ -438,12 +425,12 @@ getMad <- function(x, k = 25) {
 
   # Calculate the running median using the C-based engine
   # endrule = "median" ensures we don't get NAs at the start/end of the vector
-  run_median <- runmed(x_filtered, k = filt_width, endrule = "median")
+  run_median <- stats::runmed(x_filtered, k = filt_width, endrule = "median")
 
   # Calculate the difference and the MAD
   # collapse::fmad is significantly faster than stats::mad
   residual_signal <- x_filtered - run_median
-  SD <- collapse::fmad(residual_signal)
+  SD <- stats::mad(residual_signal)
 
   return(SD)
 }

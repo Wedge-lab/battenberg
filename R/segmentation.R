@@ -7,7 +7,7 @@
 #' @author sd11
 #' @noRd
 adjustSegmValues <- function(baf_chrom) {
-  runs <- collapse::cumsumv(collapse::fdiff(baf_chrom$BAFseg) != 0)
+  runs <- collapse::fcumsum(collapse::fdiff(baf_chrom$BAFseg) != 0)
   baf_chrom$BAFseg <- collapse::fmedian(
     baf_chrom$BAFphased,
     g = runs,
@@ -159,7 +159,7 @@ segment_baf_phased <- function(
 
     BAF <- BAFrawchr[row.indices, 2]
 
-    sdev <- getMad(ifelse(BAF < 0.5, BAF, 1 - BAF), k = 25)
+    sdev <- get_mad(ifelse(BAF < 0.5, BAF, 1 - BAF), k = 25)
     # Standard deviation is not defined for a single value
     if (is.na(sdev)) {
       sdev <- 0
@@ -327,7 +327,7 @@ segment_baf_phased_multisample <- function(
     segments <- data.table::data.table(
       chrom = chrom, start = seg_starts, end = seg_ends
     )
-    return(segments[start <= end])
+    return(segments[segments$start <= segments$end])
   }
 
   run_pcf_helper <- function(BAFrawchr, start, end, gamma) {
@@ -341,9 +341,8 @@ segment_baf_phased_multisample <- function(
     vals <- as.matrix(BAF_subset[, -c(1:2)])
 
     # Calculate sdev using Mean Absolute Deviation
-    # Assuming getMad is available in your environment or a specific package
     sdevs <- apply(vals, 2, function(x) {
-      getMad(ifelse(x < 0.5, x, 1 - x), k = 25)
+      get_mad(ifelse(x < 0.5, x, 1 - x), k = 25)
     })
     sdevs[is.na(sdevs) | sdevs < 0.09] <- 0.09
     sdev <- mean(sdevs)

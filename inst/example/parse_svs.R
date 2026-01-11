@@ -26,8 +26,11 @@ write_svs <- function(svs, filename) {
 #' 1       234        2     X       ]1:280]YYX
 #' 1       280        3     Z       ZYY[1:234[
 parse_svs_1 <- function(vcffile, ref_genome = "hg19") {
-  svs <- readVcf(vcffile, genome = ref_genome)
-  output <- data.frame(chromosome = GenomimcRanges::seqnames(svs), position = start(svs))
+  svs <- VariantAnnotation::readVcf(vcffile, genome = ref_genome)
+  output <- data.frame(
+    chromosome = GenomimcRanges::seqnames(svs),
+    position = GenomicRanges::start(svs)
+  )
   endpoints <- alt(svs)
   endpoints <- lapply(endpoints, function(x) {
     if (grepl("[", x, fixed = T)) {
@@ -56,8 +59,8 @@ parse_svs_1 <- function(vcffile, ref_genome = "hg19") {
 #' 1       234     ...     ...CHR2=1;END=143274758...
 #' 1       280     ...     ...CHR2=1;END=143274758...
 parse_svs_2 <- function(vcffile, ref_genome = "hg19") {
-  v <- readVcf(vcffile, ref_genome)
-  output <- data.frame(chromosome = GenomimcRanges::seqnames(v), position = start(v))
+  v <- VariantAnnotation::readVcf(vcffile, ref_genome)
+  output <- data.frame(chromosome = GenomimcRanges::seqnames(v), position = GenomicRanges::start(v))
   output <- rbind(output, data.frame(chromosome = info(v)$CHR2, position = info(v)$END))
   return(output)
 }

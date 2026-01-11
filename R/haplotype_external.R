@@ -357,15 +357,32 @@ get_multisample_phasing <- function(chrom, bbphasingprefixes, maxlag = 90, relat
 #' @param plotting Should the multisample phasing plots be made? (Default: TRUE)
 #' @author jdemeul
 #' @export
-call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumournames, plotting = TRUE) {
+call_multisample_MSAI <- function(
+  rdsprefix,
+  subclonesfiles,
+  chrom_names,
+  tumournames,
+  plotting = TRUE
+) {
   # compile all CN results
-  subclonescat <- lapply(X = subclonesfiles, FUN = function(x) utils::read.delim(file = x, as.is = TRUE))
+  subclonescat <- lapply(
+    X = subclonesfiles, FUN = function(x) utils::read.delim(file = x, as.is = TRUE)
+  )
   imbalancedregions <- do.call(rbind, subclonescat)
   # add sample identifiers
-  imbalancedregions$sampleid <- rep(x = tumournames, sapply(X = subclonescat, FUN = nrow))
+  imbalancedregions$sampleid <- rep(
+    x = tumournames, sapply(X = subclonescat, FUN = nrow)
+  )
   # subset to regions which are imbalanced in at least 2 samples
   imbalancedregions <- imbalancedregions[which(imbalancedregions$nMaj1_A != imbalancedregions$nMin1_A | imbalancedregions$nMaj2_A != imbalancedregions$nMin2_A), ]
-  imbalancedregions <- GenomicRanges::GRanges(seqnames = imbalancedregions$chr, ranges = IRanges::IRanges(start = imbalancedregions$startpos, end = imbalancedregions$endpos), sampleid = imbalancedregions$sampleid)
+  imbalancedregions <- GenomicRanges::GRanges(
+    seqnames = imbalancedregions$chr,
+    ranges = IRanges::IRanges(
+      start = imbalancedregions$startpos,
+      end = imbalancedregions$endpos
+    ),
+    sampleid = imbalancedregions$sampleid
+  )
   imbalancedregions_disj <- GenomicRanges::disjoin(imbalancedregions)
   imbalancedregions_disj <- imbalancedregions_disj[GenomicRanges::countOverlaps(query = imbalancedregions_disj, subject = imbalancedregions) > 1]
 
@@ -420,21 +437,47 @@ call_multisample_MSAI <- function(rdsprefix, subclonesfiles, chrom_names, tumour
 
     if (plotting) {
       # Plot the resulting data
-      df1 <- data.frame(pos = GenomicRanges::start(loci), haplo = S4Vectors::mcols(loci)$multisample_haplo, BAF = as.numeric(rep(NA, length(loci))))
+      df1 <- data.frame(
+        pos = GenomicRanges::start(loci),
+        haplo = S4Vectors::mcols(loci)$multisample_haplo,
+        BAF = as.numeric(rep(NA, length(loci)))
+      )
 
       # visualise the haplotypes for the different samples
       for (tumour in tumournames) {
-        df1$BAF <- ifelse(df1$haplo == 1, S4Vectors::mcols(loci)[, paste0(tumour, "_BAF")], 1 - S4Vectors::mcols(loci)[, paste0(tumour, "_BAF")])
+        df1$BAF <- ifelse(df1$haplo == 1, S4Vectors::mcols(
+          loci
+        )[, paste0(tumour, "_BAF")],
+        1 - S4Vectors::mcols(loci)[, paste0(tumour, "_BAF")]
+        )
 
         p1 <- ggplot2::ggplot()
         if (nrow(msaidf) > 0) {
-          p1 <- p1 + ggplot2::geom_rect(data = msaidf, mapping = ggplot2::aes(xmin = start, xmax = end, ymin = 0, ymax = 1), alpha = .05, color = "gray", size = 0)
+          p1 <- p1 + ggplot2::geom_rect(
+            data = msaidf, mapping = ggplot2::aes(
+              xmin = rlang::.data$start,
+              xmax = rlang::.data$end,
+              ymin = 0, ymax = 1
+            ),
+            alpha = .05, color = "gray", size = 0
+          )
         }
-        p1 <- p1 + ggplot2::geom_point(data = df1, mapping = ggplot2::aes(x = pos, y = 1 - BAF), alpha = .6, colour = "#67a9cf", shape = 46, show.legend = FALSE)
-        p1 <- p1 + ggplot2::geom_point(data = df1, mapping = ggplot2::aes(x = pos, y = BAF), alpha = .6, colour = "#ef8a62", shape = 46, show.legend = FALSE) + ggplot2::theme_minimal()
-        p1 <- p1 + ggplot2::labs(x = "Position", y = "BAF", title = paste0(tumour, ": multisample phasing chr", chrom))
+        p1 <- p1 + ggplot2::geom_point(data = df1, mapping = ggplot2::aes(
+          x = pos, y = 1 - BAF
+        ), alpha = .6, colour = "#67a9cf", shape = 46, show.legend = FALSE)
+        p1 <- p1 + ggplot2::geom_point(
+          data = df1, mapping = ggplot2::aes(x = pos, y = BAF),
+          alpha = .6, colour = "#ef8a62", shape = 46, show.legend = FALSE
+        ) + ggplot2::theme_minimal()
+        p1 <- p1 + ggplot2::labs(
+          x = "Position", y = "BAF",
+          title = paste0(tumour, ": multisample phasing chr", chrom)
+        )
 
-        ggplot2::ggsave(filename = paste0(tumour, "_multisample_phasing_chr", chrom, ".png"), plot = p1, width = 20, height = 5)
+        ggplot2::ggsave(
+          filename = paste0(tumour, "_multisample_phasing_chr", chrom, ".png"),
+          plot = p1, width = 20, height = 5
+        )
       }
     }
   }

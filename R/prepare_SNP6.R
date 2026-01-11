@@ -120,39 +120,39 @@ gc_correct <- function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.
   sex[sex == "male"] <- "XY"
   sex[sex == "unknown"] <- NA
 
-  ascat.bc <- ASCAT::ascat.loadData(paste(outfile.tumor.LogR, "_noGCcorr.txt", sep = ""), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep = ""), paste(outfile.normal.LogR, "_noGCcorr.txt", sep = ""), paste(outfile.normal.BAF, "_noGCcorr.txt", sep = ""), chrs = chr_names, gender = sex, genomeVersion = genomebuild)
-  ASCAT::ascat.plotRawData(ascat.bc)
-  ascat.bc <- ASCAT::ascat.correctLogR(ascat.bc, GC_SNP6)
+  ascat_bc <- ASCAT::ascat.loadData(paste(outfile.tumor.LogR, "_noGCcorr.txt", sep = ""), paste(outfile.tumor.BAF, "_noGCcorr.txt", sep = ""), paste(outfile.normal.LogR, "_noGCcorr.txt", sep = ""), paste(outfile.normal.BAF, "_noGCcorr.txt", sep = ""), chrs = chr_names, gender = sex, genomeVersion = genomebuild)
+  ASCAT::ascat.plotRawData(ascat_bc)
+  ascat_bc <- ASCAT::ascat.correctLogR(ascat_bc, GC_SNP6)
 
   # Make sure the right column names are added here, because these are expected by fitcopynumber
-  colnames(ascat.bc$SNPpos) <- c("Chromosome", "Position")
+  colnames(ascat_bc$SNPpos) <- c("Chromosome", "Position")
 
   # Determine SNPs with BAF between 0.3-0.7 from normal => these are supposed to be heterozygous
-  is.het <- (ascat.bc$Germline_BAF >= 0.3 & ascat.bc$Germline_BAF <= 0.7)
-  dat <- cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_LogR, 4))
+  is.het <- (ascat_bc$Germline_BAF >= 0.3 & ascat_bc$Germline_BAF <= 0.7)
+  dat <- cbind(ascat_bc$SNPpos, round(ascat_bc$Germline_LogR, 4))
   dat <- dat[which(is.het), ]
   colnames(dat) <- c("Chromosome", "Position", samplename)
   data.table::fwrite(dat, file = outfile.normal.LogR, row.names = FALSE, quote = FALSE, sep = "\t")
 
-  select <- !is.na(ascat.bc$Germline_BAF)
-  dat <- cbind(ascat.bc$SNPpos, round(ascat.bc$Germline_BAF, 4))
+  select <- !is.na(ascat_bc$Germline_BAF)
+  dat <- cbind(ascat_bc$SNPpos, round(ascat_bc$Germline_BAF, 4))
   colnames(dat) <- c("Chromosome", "Position", samplename)
   data.table::fwrite(dat[which(select), ], file = outfile.normal.BAF, row.names = FALSE, quote = FALSE, sep = "\t")
 
   # Save the probe ids plus their BAF for only the germline heterozygous mutations
-  select <- !is.na(ascat.bc$Tumor_BAF)
-  dat <- cbind(row.names(ascat.bc$SNPpos), ascat.bc$Tumor_BAF)
+  select <- !is.na(ascat_bc$Tumor_BAF)
+  dat <- cbind(row.names(ascat_bc$SNPpos), ascat_bc$Tumor_BAF)
   dat <- dat[which(select & is.het), ]
   data.table::fwrite(dat, file = outfile.probeBAF, row.names = FALSE, quote = FALSE, col_names = FALSE, sep = "\t")
 
   # Save tumour BAF and LogR directly. Include homozygous SNPs here.
-  dat <- cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_BAF, 4))
+  dat <- cbind(ascat_bc$SNPpos, round(ascat_bc$Tumor_BAF, 4))
   dat <- dat[which(select), ]
   colnames(dat) <- c("Chromosome", "Position", samplename)
   data.table::fwrite(dat, file = outfile.tumor.BAF, row.names = FALSE, quote = FALSE, sep = "\t")
 
-  select <- !is.na(ascat.bc$Tumor_LogR)
-  dat <- cbind(ascat.bc$SNPpos, round(ascat.bc$Tumor_LogR, 4))
+  select <- !is.na(ascat_bc$Tumor_LogR)
+  dat <- cbind(ascat_bc$SNPpos, round(ascat_bc$Tumor_LogR, 4))
   dat <- dat[which(select), ]
   colnames(dat) <- c("Chromosome", "Position", samplename)
   data.table::fwrite(dat, file = outfile.tumor.LogR, row.names = FALSE, quote = FALSE, sep = "\t")

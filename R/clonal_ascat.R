@@ -57,8 +57,7 @@ find_centroid_of_global_minima <- function(
   # Calculate the segment-specific term: 2^(r / gamma)
   s_term <- 2^(s_r / gamma_param)
 
-  # collapse::fdot is a C++ optimized dot product
-  weighted_s_term <- collapse::fdot(s_length, s_term)
+  weighted_s_term <- collapse::fsum(s_term, w = s_length, na.rm = FALSE)
   sum_s_length <- sum(s_length)
 
   # Calculate the specific ploidy for every global optimum in one vectorized step

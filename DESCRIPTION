@@ -48,7 +48,8 @@ Imports:
   rlang,
   SummarizedExperiment,
   collapse,
-  dplyr
+  dplyr,
+  RcppRoll
 Remotes:
   Crick-CancerGenomics/ascat/ASCAT,
   igordot/copynumber

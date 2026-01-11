@@ -102,11 +102,6 @@ is_segment_clonal <- function(
   # note that these are sorted in the order of ascending BAF:
   nMaj <- c(floor(nMajor), ceiling(nMajor), floor(nMajor), ceiling(nMajor))
   nMin <- c(ceiling(nMinor), ceiling(nMinor), floor(nMinor), floor(nMinor))
-  x <- floor(nMinor)
-  y <- floor(nMajor)
-
-  # total copy number, to determine priority options
-  ntot <- nMajor + nMinor
 
   BAF_levels <- (1 - rho + rho * nMaj) / (2 - 2 * rho + rho * (nMaj + nMin))
   # problem if rho=1 and nMaj=0 and nMin=0
@@ -114,7 +109,14 @@ is_segment_clonal <- function(
 
   # DCW - just test corners on the nearest edge to determine clonality
   # If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
-  all.edges <- prioritizeCopyNumbers(BAF_levels, BAF_req, ntot, x, y, full = TRUE)
+  all.edges <- prioritizeCopyNumbers(
+    rho = rho,
+    psi = psi,
+    BAF_req = BAF_req, # The observed BAF value for this segment
+    nMajor = nMajor,
+    nMinor = nMinor,
+    full = TRUE
+  )
 
   nMaj.test <- all.edges[1, c(1, 3)]
   nMin.test <- all.edges[1, c(2, 4)]
