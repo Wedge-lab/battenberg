@@ -93,7 +93,7 @@ prior_breakpoints <- data.frame(
 )
 
 data.table::fwrite(prior_breakpoints, "prior_breakpoints.txt",
-  row.names = FALSE, col_names = FALSE,
+  row.names = FALSE, col.names = FALSE,
   quote = FALSE, sep = "\t"
 )
 

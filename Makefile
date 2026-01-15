@@ -24,6 +24,7 @@ deps:
 
 check:
 	Rscript -e "devtools::check(error_on = 'warning')"
+	Rscript -e "devtools::load_all('.'); codetools::checkUsagePackage('Battenberg')"
 
 install:
 	@echo "Installing Battenberg..."

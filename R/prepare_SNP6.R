@@ -33,17 +33,17 @@ cel2baf_logr <- function(
 
   # Unpack the normal cel file
   cmd <- paste(apt_probeset_genotype_exe, "-c", GW_SNP6, "-a birdseed", "--read-models-birdseed", SNP6_BIRDSEED_MODELS, "--special-snps", SNP6_SPECIALSNPS, "--cels", normal_cel_file)
-  print(cmd)
+  log_info(cmd)
   exit_code <- system(cmd, wait = TRUE)
   stopifnot(exit_code == 0)
   # Unpack the tumour cel file
   cmd <- paste(apt_probeset_summarize_exe, "--cdf-file", GW_SNP6, "--analysis quant-norm.sketch=50000,pm-only,med-polish,expr.genotype=true", "--target-sketch", QUANT_NORM_TARGET, normal_cel_file, tumour_cel_file)
-  print(cmd)
+  log_info(cmd)
   exit_code <- system(cmd, wait = TRUE)
   stopifnot(exit_code == 0)
   # Construct the LogR and BAF and push that to
   cmd <- paste(norm_geno_clust_exe, UNM_NORMALS, "quant-norm.pm-only.med-polish.expr.summary.txt", "-locfile", LOCFILE, "-out", output_file)
-  print(cmd)
+  log_info(cmd)
   exit_code <- system(cmd, wait = TRUE)
   stopifnot(exit_code == 0)
 }
@@ -143,7 +143,7 @@ gc_correct <- function(samplename, infile.logr.baf, outfile.tumor.LogR, outfile.
   select <- !is.na(ascat_bc$Tumor_BAF)
   dat <- cbind(row.names(ascat_bc$SNPpos), ascat_bc$Tumor_BAF)
   dat <- dat[which(select & is.het), ]
-  data.table::fwrite(dat, file = outfile.probeBAF, row.names = FALSE, quote = FALSE, col_names = FALSE, sep = "\t")
+  data.table::fwrite(dat, file = outfile.probeBAF, row.names = FALSE, quote = FALSE, col.names = FALSE, sep = "\t")
 
   # Save tumour BAF and LogR directly. Include homozygous SNPs here.
   dat <- cbind(ascat_bc$SNPpos, round(ascat_bc$Tumor_BAF, 4))

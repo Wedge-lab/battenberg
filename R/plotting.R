@@ -104,7 +104,8 @@ create_baf_plot <- function(
 #' Note: This is a plot PER chromosome.
 #' @noRd
 create_subclonal_cn_plot <- function(
-  chrom, chrom_position,
+  chrom,
+  chrom_position,
   LogRposke, LogRchr,
   BAFchr, BAFsegchr,
   BAFpvalschr, subcloneres,
@@ -448,7 +449,7 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos,
   }
 
   # Parse chromosomal position
-  segment_pos_num <- base::as.numeric(base::gsub("M", "000000", segment_pos))
+  segment_pos_num <- as.numeric(gsub("M", "000000", segment_pos))
 
   # Read data using data.table
   cn_file <- file.path(run_dir, paste0(tumourname, "_copynumber.txt"))
@@ -480,8 +481,8 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos,
 
   # Base Plot
   q <- ggplot2::ggplot() +
-    ggplot2::scale_x_continuous(name = "nMajor", breaks = 0:base::max(xylimits), limits = xylimits) +
-    ggplot2::scale_y_continuous(name = "nMinor", breaks = 0:base::max(xylimits), limits = xylimits) +
+    ggplot2::scale_x_continuous(name = "nMajor", breaks = 0:max(xylimits), limits = xylimits) +
+    ggplot2::scale_y_continuous(name = "nMinor", breaks = 0:max(xylimits), limits = xylimits) +
     ggplot2::coord_fixed() +
     ggplot2::theme_bw() +
     ggplot2::theme(
@@ -490,36 +491,47 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos,
     )
 
   # Grid Lines
-  baf_seq <- base::seq(0, 1, binwidth_baf)
+  baf_seq <- seq(0, 1, binwidth_baf)
   for (bafval in baf_seq) {
     q <- q + ggplot2::stat_function(fun = isobafline, args = list(cstbaf = bafval), colour = "blue", alpha = 0.6)
   }
   q <- q + ggplot2::stat_function(fun = isobafline, args = list(cstbaf = subclone$BAF), colour = "green")
 
   # Isologrline (Red Segment)
-  err_df <- base::data.frame(
-    x = base::floor(nMajcalc) - 0.2, y = base::ceiling(nMincalc) + 0.2,
-    xend = base::ceiling(nMajcalc) + 0.2, yend = base::floor(nMincalc) - 0.2
+  err_df <- data.frame(
+    x = floor(nMajcalc) - 0.2, y = ceiling(nMincalc) + 0.2,
+    xend = ceiling(nMajcalc) + 0.2, yend = floor(nMincalc) - 0.2
   )
 
   # Note the use of rlang::.data here
   q <- q + ggplot2::geom_segment(
     data = err_df,
-    ggplot2::aes(x = rlang::.data$x, y = rlang::.data$y, xend = rlang::.data$xend, yend = rlang::.data$yend),
+    ggplot2::aes(
+      x = rlang::.data$x,
+      y = rlang::.data$y,
+      xend = rlang::.data$xend,
+      yend = rlang::.data$yend
+    ),
     colour = "red", alpha = 0.6
   )
 
   # Clonal vs Subclonal points
   if (subclone$frac1_A == 1) {
-    q <- q + ggplot2::geom_point(data = subclone, ggplot2::aes(rlang::.data$nMaj1_A, rlang::.data$nMin1_A), size = 5)
+    q <- q + ggplot2::geom_point(
+      data = subclone,
+      ggplot2::aes(
+        rlang::.data$nMaj1_A,
+        rlang::.data$nMin1_A
+      ), size = 5
+    )
   } else {
-    target_cols <- base::grep("nM.{5}$|^frac.{3}$", base::colnames(subclone))
-    sol_matrix <- base::matrix(base::unlist(subclone[, target_cols]), byrow = TRUE, ncol = 3)
-    solutions <- base::cbind(sol_matrix, base::rep(1:6, each = 2))
+    target_cols <- grep("nM.{5}$|^frac.{3}$", colnames(subclone))
+    sol_matrix <- matrix(unlist(subclone[, target_cols]), byrow = TRUE, ncol = 3)
+    solutions <- cbind(sol_matrix, rep(1:6, each = 2))
     solutions <- solutions[12:1, ]
-    base::colnames(solutions) <- c("nMaj", "nMin", "frac", "sol")
+    colnames(solutions) <- c("nMaj", "nMin", "frac", "sol")
 
-    solutions_df <- stats::na.omit(base::as.data.frame(solutions))
+    solutions_df <- stats::na.omit(as.data.frame(solutions))
 
     q <- q + ggplot2::geom_point(
       data = solutions_df,
@@ -527,7 +539,7 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos,
         x = rlang::.data$nMaj,
         y = rlang::.data$nMin,
         size = rlang::.data$frac,
-        colour = base::factor(rlang::.data$sol)
+        colour = factor(rlang::.data$sol)
       ),
       alpha = 0.75,
       position = ggplot2::position_jitter(width = .05, height = .05),
@@ -538,10 +550,10 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos,
   }
 
   # Final markers
-  q <- q + ggplot2::geom_point(ggplot2::aes(x = nMajcalc, y = nMincalc), size = 4, shape = 88)
-  q <- q + ggplot2::labs(title = base::paste0(tumourname, " chr", subclone$chr, ": ", subclone$startpos, "-", subclone$endpos))
+  q <- q + ggplot2::geom_point(ggplot2::aes(x = rlang::.data$nMajcalc, y = rlang::.data$nMincalc), size = 4, shape = 88)
+  q <- q + ggplot2::labs(title = paste0(tumourname, " chr", subclone$chr, ": ", subclone$startpos, "-", subclone$endpos))
 
-  base::print(q)
+  print(q)
   grDevices::dev.off()
 }
 
@@ -676,12 +688,20 @@ totalcn_chrom_plot <- function(
   p <- ggplot2::ggplot() +
     ggplot2::geom_rect(
       data = background,
-      ggplot2::aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+      ggplot2::aes(
+        xmin = rlang::.data$xmin,
+        xmax = rlang::.data$xmax,
+        ymin = rlang::.data$ymin,
+        ymax = rlang::.data$ymax
+      ),
       fill = "gray80", alpha = 0.5
     ) +
     ggplot2::geom_point(
       data = logr_plot,
-      mapping = ggplot2::aes(x = Position, y = total_cn_psi),
+      mapping = ggplot2::aes(
+        x = rlang::.data$Position,
+        y = rlang::.data$total_cn_psi
+      ),
       size = 0.5
     ) +
     ggplot2::ylab("Copy Number") +
@@ -695,7 +715,7 @@ totalcn_chrom_plot <- function(
     ggplot2::coord_cartesian(
       ylim = c(-rect_height_padding, max_cn_plot + rect_height_padding)
     ) +
-    ggplot2::facet_wrap(~Chromosome, ncol = 2, strip.position = "right") +
+    ggplot2::facet_wrap(~ rlang::.data$Chromosome, ncol = 2, strip.position = "right") +
     ggplot2::ggtitle(
       bquote(
         atop(
@@ -731,9 +751,10 @@ totalcn_chrom_plot <- function(
     p <- p + ggplot2::geom_rect(
       data = subclones[sel, ],
       mapping = ggplot2::aes(
-        xmin = startpos, xmax = endpos,
-        ymin = total_minor - rect_height_padding,
-        ymax = total_minor + rect_height_padding
+        xmin = rlang::.data$startpos,
+        xmax = rlang::.data$endpos,
+        ymin = rlang::.data$total_minor - rect_height_padding,
+        ymax = rlang::.data$total_minor + rect_height_padding
       ), fill = "#2f4f4f"
     )
   }
@@ -743,9 +764,10 @@ totalcn_chrom_plot <- function(
     p <- p + ggplot2::geom_rect(
       data = subclones[sel, ],
       mapping = ggplot2::aes(
-        xmin = startpos, xmax = endpos,
-        ymin = total_minor - rect_height_padding,
-        ymax = total_minor + rect_height_padding
+        xmin = rlang::.data$startpos,
+        xmax = rlang::.data$endpos,
+        ymin = rlang::.data$total_minor - rect_height_padding,
+        ymax = rlang::.data$total_minor + rect_height_padding
       ), fill = "#2f3f4f"
     )
   }
@@ -755,9 +777,10 @@ totalcn_chrom_plot <- function(
     p <- p + ggplot2::geom_rect(
       data = subclones[sel, ],
       mapping = ggplot2::aes(
-        xmin = startpos, xmax = endpos,
-        ymin = total_minor - rect_height_padding,
-        ymax = total_minor + rect_height_padding
+        xmin = rlang::.data$startpos,
+        xmax = rlang::.data$endpos,
+        ymin = rlang::.data$total_minor - rect_height_padding,
+        ymax = rlang::.data$total_minor + rect_height_padding
       ), fill = "#2f3f4f", colour = "red"
     )
   }
@@ -828,7 +851,7 @@ allele_ratio_plot <- function(
   copyratio_binnedLogR$Chromosome <- bafsegmented$Chromosome
   copyratio_binnedLogR$Position <- bafsegmented$Position
 
-  print("Calculating copy ratios..")
+  log_info("Calculating copy ratios..")
   for (chrom in unique(bafsegmented$Chromosome)) {
     print(chrom)
 
@@ -845,7 +868,7 @@ allele_ratio_plot <- function(
 
   background <- data.frame(y = seq(0, max.plot.cn, 0.5))
 
-  print("Plotting..")
+  log_info("Plotting..")
   if (platform == "WGS") {
     sel <- seq(1, nrow(allelecounts), 100)
   } else {
@@ -855,15 +878,18 @@ allele_ratio_plot <- function(
   plot_title <- samplename
   copy_ratio <- ggplot2::ggplot(allelecounts[sel, ]) +
     ggplot2::geom_hline(
-      data = background, mapping = ggplot2::aes(yintercept = y),
+      data = background, mapping = ggplot2::aes(yintercept = rlang::.data$y),
       colour = "black", alpha = 0.3
     ) +
     ggplot2::geom_point(
-      mapping = ggplot2::aes(x = Position, y = copy_ratio_binned),
+      mapping = ggplot2::aes(
+        x = rlang::.data$Position,
+        y = rlang::.data$copy_ratio_binned
+      ),
       alpha = 0.5, size = 0.9, colour = "darkgreen"
     ) +
-    ggplot2::facet_grid(~Chromosome, scales = "free_x", space = "free_x") +
-    ggplot2::scale_x_continuous(expand = c(0, 0)) +
+    ggplot2::facet_grid(~ rlang::.data$Chromosome, scales = "free_x", space = "free_x")
+  ggplot2::scale_x_continuous(expand = c(0, 0)) +
     ggplot2::ylim(0, max.plot.cn) +
     ggplot2::ylab("Copy Ratio") +
     ggplot2::ggtitle(plot_title) +
@@ -892,18 +918,22 @@ allele_ratio_plot <- function(
     sel <- rep(TRUE, nrow(copyratio_binnedLogR))
   }
   as_copy_ratio_seg <- ggplot2::ggplot(copyratio_binnedLogR[sel, ]) +
-    ggplot2::geom_hline(data = background, mapping = ggplot2::aes(yintercept = y), colour = "black", alpha = 0.3) +
+    ggplot2::geom_hline(
+      data = background,
+      mapping = ggplot2::aes(yintercept = rlang::.data$y),
+      colour = "black", alpha = 0.3
+    ) +
     ggplot2::geom_point(
       mapping = ggplot2::aes(
-        x = Position, y = ratioBAFseg_alt
+        x = rlang::.data$Position, y = rlang::.data$ratioBAFseg_alt
       ), alpha = 0.5, size = 0.9, colour = "darkblue"
     ) +
     ggplot2::geom_point(
       mapping = ggplot2::aes(
-        x = Position, y = ratioBAFseg
+        x = rlang::.data$Position, y = rlang::.data$ratioBAFseg
       ), alpha = 0.5, size = 0.9, colour = "purple"
     ) +
-    ggplot2::facet_grid(~Chromosome, scales = "free_x", space = "free_x") +
+    ggplot2::facet_grid(~ rlang::.data$Chromosome, scales = "free_x", space = "free_x") +
     ggplot2::scale_x_continuous(expand = c(0, 0)) +
     ggplot2::ylim(0, max.plot.cn) +
     ggplot2::ylab("AS Copy Ratio - Segm") +
@@ -941,13 +971,13 @@ allele_ratio_plot <- function(
 #' @author sd11
 #' @export
 coverage_plot <- function(samplename, allelecounts, outputfile, max.y = 4) {
-  print("Normalising allele counts..")
+  log_info("Normalising allele counts..")
   allelecounts$tumour <- allelecounts$mutCountT1 + allelecounts$mutCountT2
   allelecounts$tumour <- allelecounts$tumour / collapse::fmedian(allelecounts$tumour, na.rm = TRUE)
   allelecounts$normal <- allelecounts$mutCountN1 + allelecounts$mutCountN2
   allelecounts$normal <- allelecounts$normal / collapse::fmedian(allelecounts$normal, na.rm = TRUE)
 
-  print("Smoothing data..")
+  log_info("Smoothing data..")
   # res = bin_coverage_tumour(allelecounts, binsize=10000)
   # allelecounts$tumour_binned = res$tumour_binned
   allelecounts$tumour_binned <- runmed_data(allelecounts$Chromosome, allelecounts$tumour)
@@ -962,11 +992,11 @@ coverage_plot <- function(samplename, allelecounts, outputfile, max.y = 4) {
   plot_title <- samplename
   p <- ggplot2::ggplot(allelecounts[seq(1, nrow(allelecounts), 100), ]) +
     ggplot2::geom_hline(
-      data = background, mapping = ggplot2::aes(yintercept = y),
+      data = background, mapping = ggplot2::aes(yintercept = rlang::.data$y),
       colour = "black", alpha = 0.3
     ) +
     ggplot2::geom_point(
-      mapping = ggplot2::aes(x = Position, y = normal_binned),
+      mapping = ggplot2::aes(x = rlang::.data$Position, y = rlang::.data$normal_binned),
       alpha = 0.5, size = 0.5, colour = "darkgreen"
     ) +
     ggplot2::facet_grid(~Chromosome, scales = "free_x", space = "free_x") +
@@ -997,11 +1027,14 @@ coverage_plot <- function(samplename, allelecounts, outputfile, max.y = 4) {
   p3 <- ggplot2::ggplot(allelecounts[seq(1, nrow(allelecounts), 100), ]) +
     ggplot2::geom_hline(
       data = background,
-      mapping = ggplot2::aes(yintercept = y),
+      mapping = ggplot2::aes(yintercept = rlang::.data$y),
       colour = "black", alpha = 0.3
     ) +
     ggplot2::geom_point(
-      mapping = ggplot2::aes(x = Position, y = tumour_binned),
+      mapping = ggplot2::aes(
+        x = rlang::.data$Position,
+        y = rlang::.data$tumour_binned
+      ),
       alpha = 0.5, size = 0.5, colour = "darkgreen"
     ) +
     ggplot2::facet_grid(~Chromosome, scales = "free_x", space = "free_x") +

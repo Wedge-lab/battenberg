@@ -7,7 +7,12 @@
 #' @author sd11
 #' @noRd
 adjustSegmValues <- function(baf_chrom) {
-  runs <- collapse::fcumsum(collapse::fdiff(baf_chrom$BAFseg) != 0)
+  if (nrow(baf_chrom) <= 1) {
+    baf_chrom$BAFseg <- baf_chrom$BAFphased
+    return(baf_chrom)
+  }
+  diffs <- collapse::fdiff(baf_chrom$BAFseg)
+  runs <- collapse::fcumsum(diffs != 0)
   baf_chrom$BAFseg <- collapse::fmedian(
     baf_chrom$BAFphased,
     g = runs,
@@ -42,40 +47,42 @@ segment_baf_phased <- function(
   # Function that takes SNPs that belong to a single segment and looks for big holes between
   # each pair of SNPs. If there is a big hole it will add another breakpoint to the breakpoints data.frame
   addin_bigholes <- function(breakpoints, positions, chrom, startpos, maxsnpdist) {
-    # Find where the gaps are
-    gap_mask <- diff(positions) >= maxsnpdist
-    gap_indices <- which(gap_mask)
+    # Calculate gaps between consecutive SNPs
+    gaps <- diff(positions)
+    gap_indices <- which(gaps >= maxsnpdist)
 
-    # If no holes, just return the original state
+    # If no holes, we don't return a new table, just the original
     if (length(gap_indices) == 0) {
       return(list(breakpoints = breakpoints, startpos = startpos))
     }
 
-    # All 'ends' are the SNPs before a gap PLUS the very last SNP
+    # Define segment boundaries
+    # Segment ends at the SNP before the gap
     ends <- c(positions[gap_indices], positions[length(positions)])
 
-    # All 'starts' are the initial startpos PLUS the SNPs after each gap
+    # Segment starts at the original startpos, then the SNP AFTER each gap
     starts <- c(startpos, positions[gap_indices + 1])
 
-    # Create the table in one single memory allocation
+    # Safety: Remove segments where start == end (the BAFlen=1 case)
+    # Also ensures we don't have overlapping boundaries
+    valid_mask <- starts < ends
+
     new_segments <- data.table::data.table(
       chrom = chrom,
-      start = starts,
-      end = ends
+      start = starts[valid_mask],
+      end = ends[valid_mask]
     )
 
-    # Combine with previous data
-    # use use.names=TRUE to ensure columns align correctly even if order varies
     updated_breakpoints <- data.table::rbindlist(
       list(breakpoints, new_segments),
       use.names = TRUE
     )
 
-    # The new startpos for the NEXT call is the very last SNP position
-    # (or however your logic defines the carry-over)
+    # The startpos for the NEXT segment in the outer loop
+    # should be the position AFTER the last SNP of this batch
     return(list(
       breakpoints = updated_breakpoints,
-      startpos = positions[length(positions)]
+      startpos = positions[length(positions)] + 1
     ))
   }
   # Helper function that creates segment breakpoints from SV calls
@@ -86,7 +93,6 @@ segment_baf_phased <- function(
   # @author sd11
   bkps_to_presegment_breakpoints <- function(chrom, bkps_chrom, BAFrawchr, use_bigholes) {
     maxsnpdist <- 3000000
-
     bkps_breakpoints <- bkps_chrom$position
 
     # If there are no prior breakpoints, we cannot insert any
@@ -127,7 +133,7 @@ segment_baf_phased <- function(
       }
     } else {
       # There are no SVs, so create one big segment
-      print("No prior breakpoints found")
+      log_info("No prior breakpoints found")
       startpos <- BAFrawchr$Position[1]
       breakpoints <- data.frame()
 
@@ -158,7 +164,6 @@ segment_baf_phased <- function(
       BAFrawchr$Position <= presegment_chrom_end)
 
     BAF <- BAFrawchr[row.indices, 2]
-
     sdev <- get_mad(ifelse(BAF < 0.5, BAF, 1 - BAF), k = 25)
     # Standard deviation is not defined for a single value
     if (is.na(sdev)) {
@@ -235,12 +240,21 @@ segment_baf_phased <- function(
       bkps_chrom <- data.frame(chromosome = character(), position = numeric())
     }
 
-    breakpoints_chrom <- bkps_to_presegment_breakpoints(chr, bkps_chrom, BAFrawchr, addin_bigholes = TRUE)
+    breakpoints_chrom <- bkps_to_presegment_breakpoints(chr, bkps_chrom, BAFrawchr, use_bigholes = TRUE)
     BAFoutputchr <- NULL
 
     for (r in seq_len(nrow(breakpoints_chrom))) {
+      current_snps <- which(BAFrawchr$Position >= breakpoints_chrom$start[r] &
+        BAFrawchr$Position <= breakpoints_chrom$end[r])
+
+      if (length(current_snps) < 2) {
+        log_info("Skipping empty/tiny segment {r} on chr {chr} (SNPs: {length(current_snps)})")
+        next
+      }
       BAFoutput_preseg <- run_pcf(BAFrawchr, breakpoints_chrom$start[r], breakpoints_chrom$end[r], phasekmin, phasegamma, kmin, gamma, no_segmentation)
-      BAFoutputchr <- rbind(BAFoutputchr, BAFoutput_preseg)
+      if (!is.null(BAFoutput_preseg)) {
+        BAFoutputchr <- rbind(BAFoutputchr, BAFoutput_preseg)
+      }
     }
 
     grDevices::png(
@@ -284,7 +298,7 @@ segment_baf_phased <- function(
     BAFoutput <- rbind(BAFoutput, BAFoutputchr[, c(1:5)])
   }
   colnames(BAFoutput) <- c("Chromosome", "Position", "BAF", "BAFphased", "BAFseg")
-  data.table::fwrite(BAFoutput, outputfile, sep = "\t", row.names = FALSE, col_names = TRUE, quote = FALSE)
+  data.table::fwrite(BAFoutput, outputfile, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
 }
 
 
@@ -331,8 +345,8 @@ segment_baf_phased_multisample <- function(
   }
 
   run_pcf_helper <- function(BAFrawchr, start, end, gamma) {
-    # Subset using rlang::.data to prevent binding warnings
-    BAF_subset <- BAFrawchr[rlang::.data$Position >= start & rlang::.data$Position <= end]
+    Position <- NULL
+    BAF_subset <- BAFrawchr[Position >= start & Position <= end]
 
     if (nrow(BAF_subset) == 0) {
       return(NULL)
@@ -401,15 +415,17 @@ segment_baf_phased_multisample <- function(
 
   all_results <- list()
 
+  Chromosome <- chromosome <- NULL
+
   # Using string indexing to avoid warnings in the loop header
   for (chr in unique(BAFraw[["Chromosome"]])) {
     cli::cli_inform("Processing {chr}...")
 
-    chr_data <- BAFraw[rlang::.data$Chromosome == chr]
+    chr_data <- BAFraw[Chromosome == chr]
     chr_data <- chr_data[stats::complete.cases(chr_data[, -c(1:2)])]
 
     chr_bkps <- if (!is.null(bkps)) {
-      bkps[rlang::.data$chromosome == chr]
+      bkps[chromosome == chr]
     } else {
       data.table::data.table(position = numeric())
     }

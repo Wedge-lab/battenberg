@@ -43,8 +43,10 @@ setwd(run_dir)
 chrom_names <- get_chrom_names(imputeinfofile, ismale)
 
 # Parallel computing setup
-clp <- parallel::makeCluster(nthreads)
-doParallel::registerDoParallel(clp)
+if (!debug) {
+  clp <- parallel::makeCluster(nthreads)
+  doParallel::registerDoParallel(clp)
+}
 
 # run allele counter
 `%dopar%` <- foreach::`%dopar%`
@@ -69,4 +71,6 @@ foreach::foreach(i = seq_along(chrom_names)) %dopar% {
 }
 
 # Kill the threads
-parallel::stopCluster(clp)
+if (!debug) {
+  parallel::stopCluster(clp)
+}

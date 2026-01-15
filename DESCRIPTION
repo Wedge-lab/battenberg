@@ -3,7 +3,7 @@ Maintainer: Stefan Dentro <sd11@sanger.ac.uk>
 License: AGPL-3
 Type: Package
 Title: Battenberg subclonal copy number caller
-Version: 3.0.0
+Version: 3.0.2
 Encoding: UTF-8
 Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
     person("Peter", "Van Loo", role=c("aut")),
@@ -49,7 +49,10 @@ Imports:
   SummarizedExperiment,
   collapse,
   dplyr,
-  RcppRoll
+  RcppRoll,
+  optparse,
+  tictoc,
+  devtools
 Remotes:
   Crick-CancerGenomics/ascat/ASCAT,
   igordot/copynumber

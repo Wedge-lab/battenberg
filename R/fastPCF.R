@@ -410,7 +410,7 @@ get_mad <- function(x, k = 25) {
   x_filtered <- collapse::fsubset(x, x != 0)
 
   # Use rlang to safely check for empty input after filtering
-  if (rlang::is_empty(x_filtered)) {
+  if (length(x_filtered) == 0) {
     return(NA)
   }
 

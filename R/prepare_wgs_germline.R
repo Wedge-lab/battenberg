@@ -75,7 +75,7 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles_prefix, chrom_names) {
   BAF <- BAF[order(BAF$Chromosome, BAF$Position), ]
   # revert back from 23 to X for Chromosome number
   BAF$Chromosome[BAF$Chromosome == 23] <- "X"
-  data.table::fwrite(BAF, paste0(germline, "_mutantBAF.tab"), col_names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  data.table::fwrite(BAF, paste0(germline, "_mutantBAF.tab"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
   rm(BAF)
 
   LogR <- data.frame(Chromosome = MACC$chr, Position = MACC$pos, germline = MACC$logr)
@@ -83,7 +83,7 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles_prefix, chrom_names) {
   LogR <- LogR[order(LogR$Chromosome, LogR$Position), ]
   # revert back from 23 to X for Chromosome number
   LogR$Chromosome[LogR$Chromosome == 23] <- "X"
-  data.table::fwrite(LogR, paste0(germline, "_mutantLogR.tab"), col_names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  data.table::fwrite(LogR, paste0(germline, "_mutantLogR.tab"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 
   rm(MAC)
   rm(MaC)
@@ -146,9 +146,11 @@ germline_reconstruct_normal <- function(
   pcf_input <- pcf_input[which(pcf_input$position < chr_loc[i, "cen.left.base"] - CENTROMERE_DIST | pcf_input$position > chr_loc[i, "cen.right.base"] + CENTROMERE_DIST), ]
   # use only regions covered with gcCorrect LogR range
   pcf_input <- pcf_input[which(pcf_input$position >= chr_loc[i, "start"] & pcf_input$position <= chr_loc[i, "end"]), ]
-  PCF <- pcf(pcf_input, gamma = GAMMA_IVD, kmin = KMIN_IVD)
-  grDevices::pdf(paste0(PCF_folder, "/", GERMLINENAME, "_chr", i, "_PCF_plot.pdf"))
-  plotChrom(pcf_input, PCF)
+  PCF <- copynumber::pcf(pcf_input, gamma = GAMMA_IVD, kmin = KMIN_IVD)
+  grDevices::pdf(paste0(
+    PCF_folder, "/", GERMLINENAME, "_chr", i, "_PCF_plot.pdf"
+  ))
+  copynumber::plotChrom(pcf_input, PCF)
   grDevices::dev.off()
   PCF$diff <- PCF$end.pos - PCF$start.pos
 
@@ -327,7 +329,7 @@ germline_reconstruct_normal <- function(
             denSNP <- nrow(COV) / (nSNPs / sum(chr_loc$length) * seg_ivd$Position_dist[j])
             # to use a minimum SNP density of 0.5 to get logR estimate AND not put the cov cut-off before applying PCF
             if (!is.na(cov) && !is.null(denSNP) && denSNP > 0.5) {
-              jpcf <- pcf(COV, gamma = GAMMA_LOGR, verbose = FALSE)
+              jpcf <- copynumber::pcf(COV, gamma = GAMMA_LOGR, verbose = FALSE)
               jpcf <- jpcf[which(jpcf$mean < -0.8), ]
               if (nrow(jpcf) > 0) {
                 loh <- data.frame(start = jpcf$start.pos[1], end = jpcf$end.pos[nrow(jpcf)], LogR = mean(jpcf$mean), denSNP = denSNP)
@@ -387,7 +389,9 @@ germline_reconstruct_normal <- function(
         grDevices::pdf(paste0(GERMLINENAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_pLOH_events.pdf"))
         suppressWarnings(
           for (s in seq_len(nrow(pLOH_regions))) {
-            sBAF <- ggplot2::ggplot(ohet, ggplot2::aes(Position, baf)) +
+            sBAF <- ggplot2::ggplot(
+              ohet, ggplot2::aes(rlang::.data$Position, rlang::.data$baf)
+            ) +
               ggplot2::geom_jitter() +
               ggplot2::ylim(0, 1) +
               ggplot2::geom_vline(
@@ -400,7 +404,10 @@ germline_reconstruct_normal <- function(
               ) +
               ggplot2::ggtitle(paste("pARM LOH region", s)) +
               ggplot2::labs(y = "BAF")
-            sLogR <- ggplot2::ggplot(logr, ggplot2::aes(Position, LogR)) +
+            sLogR <- ggplot2::ggplot(
+              logr,
+              ggplot2::aes(rlang::.data$Position, rlang::.data$LogR)
+            ) +
               ggplot2::geom_jitter() +
               ggplot2::ylim(-5.2, 1.2) +
               ggplot2::geom_vline(
@@ -517,7 +524,7 @@ germline_reconstruct_normal <- function(
       grDevices::pdf(paste0(GERMLINENAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_qLOH_events.pdf"))
       suppressWarnings(
         for (s in seq_len(nrow(qLOH_regions))) {
-          sBAF <- ggplot2::ggplot(ohet, ggplot2::aes(Position, baf)) +
+          sBAF <- ggplot2::ggplot(ohet, ggplot2::aes(rlang::.data$Position, rlang::.data$baf)) +
             ggplot2::geom_jitter() +
             ggplot2::ylim(0, 1) +
             ggplot2::geom_vline(
@@ -533,7 +540,7 @@ germline_reconstruct_normal <- function(
             ) +
             ggplot2::ggtitle(paste("qARM LOH region", s))
           sLogR <- ggplot2::ggplot(
-            logr, ggplot2::aes(Position, LogR)
+            logr, ggplot2::aes(rlang::.data$Position, rlang::.data$LogR)
           ) +
             ggplot2::geom_jitter() +
             ggplot2::ylim(-5.2, 1.2) +
@@ -765,7 +772,7 @@ germline_reconstruct_normal <- function(
     if (nrow(non_lohs) + nrow(lohs) == nrow(ac)) {
       ac_out <- rbind(non_lohs, lohs)
       ac_out <- ac_out[order(ac_out$position), ]
-      data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col_names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+      data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
       print(paste("reconstruction OK - new alleleCounts file generated for chr", i))
     } else {
       centro_ac <- ac[which(ac$position > chr_loc$cen.left.base[i] & ac$position < chr_loc$cen.right.base[i]), ]
@@ -774,14 +781,14 @@ germline_reconstruct_normal <- function(
       ac_out <- ac_out[!duplicated(ac_out$position), ]
       if (nrow(ac_out) == nrow(ac)) {
         print("reconstruction OK but SNPs found in the centromeric region - adding them back for consistency with original ac files")
-        data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col_names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+        data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
       } else {
         print("ERROR - missing SNPs - LOH and non-LOH regions not generated correctly; no AC file generated")
       }
     }
   } else {
     ac_out <- ac
-    data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col_names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
+    data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
     print(paste("No changes made to the alleleCounter file - no LOH in chr", i))
   }
   print(paste("STEP 2&3 - chr", i, "completed"))
@@ -937,12 +944,12 @@ fast_cor_vec <- function(X, y) {
   keep <- stats::complete.cases(X, y)
 
   # Standardize using collapse (extremely fast)
-  X_std <- collapse::fscale(base::as.matrix(X[keep, ]))
+  X_std <- collapse::fscale(as.matrix(X[keep, ]))
   y_std <- collapse::fscale(y[keep])
 
   # Correlation = (X'y) / (n - 1)
-  n_obs <- base::sum(keep)
-  res <- (base::crossprod(X_std, y_std) / (n_obs - 1))[, 1]
+  n_obs <- sum(keep)
+  res <- (crossprod(X_std, y_std) / (n_obs - 1))[, 1]
   return(res)
 }
 
@@ -961,82 +968,82 @@ fast_cor_vec <- function(X, y) {
 gc_correct_wgs_germline <- function(germline_LogR_file, outfile, correlations_outfile,
                                     gc_content_file_prefix, replic_timing_file_prefix,
                                     chrom_names, recalc_corr_afterwards = FALSE) {
-  if (base::is.null(gc_content_file_prefix)) {
-    base::stop("GC content reference files must be supplied to WGS GC content correction")
+  if (is.null(gc_content_file_prefix)) {
+    stop("GC content reference files must be supplied to WGS GC content correction")
   }
 
   # Fast reading of LogR
   Germline_LogR <- read_logr(germline_LogR_file)
 
-  base::message("Processing GC content data")
-  chrom_idx <- base::seq_along(chrom_names)
+  message("Processing GC content data")
+  chrom_idx <- seq_along(chrom_names)
 
   # Efficiently reading and binding GC data
-  gc_files <- base::paste0(gc_content_file_prefix, chrom_idx, ".txt.gz")
-  GC_data <- data.table::rbindlist(base::lapply(gc_files, read_gccontent))
-  base::colnames(GC_data) <- c(
-    "chr", "Position", base::paste0(c(25, 50, 100, 200, 500), "bp"),
-    base::paste0(c(1, 2, 5, 10, 20, 50, 100), "kb")
+  gc_files <- paste0(gc_content_file_prefix, chrom_idx, ".txt.gz")
+  GC_data <- data.table::rbindlist(lapply(gc_files, read_gccontent))
+  colnames(GC_data) <- c(
+    "chr", "Position", paste0(c(25, 50, 100, 200, 500), "bp"),
+    paste0(c(1, 2, 5, 10, 20, 50, 100), "kb")
   )
 
   # Optional Replication timing data
-  if (!base::is.null(replic_timing_file_prefix)) {
-    base::message("Processing replication timing data")
-    replic_files <- base::paste0(replic_timing_file_prefix, chrom_idx, ".txt.gz")
-    replic_data <- data.table::rbindlist(base::lapply(replic_files, read_replication))
+  if (!is.null(replic_timing_file_prefix)) {
+    message("Processing replication timing data")
+    replic_files <- paste0(replic_timing_file_prefix, chrom_idx, ".txt.gz")
+    replic_data <- data.table::rbindlist(lapply(replic_files, read_replication))
   }
 
   # Efficient Loci Synchronization
-  key_logr <- base::paste0(Germline_LogR$Chromosome, "_", Germline_LogR$Position)
-  key_gc <- base::paste0(GC_data$chr, "_", GC_data$Position)
+  key_logr <- paste0(Germline_LogR$Chromosome, "_", Germline_LogR$Position)
+  key_gc <- paste0(GC_data$chr, "_", GC_data$Position)
 
   locimatches <- collapse::fmatch(key_logr, key_gc)
 
-  valid_idx <- base::which(!base::is.na(locimatches))
+  valid_idx <- which(!is.na(locimatches))
   matched_gc_idx <- locimatches[valid_idx]
 
   Germline_LogR <- Germline_LogR[valid_idx, ]
   GC_data <- GC_data[matched_gc_idx, ]
 
-  if (!base::is.null(replic_timing_file_prefix)) {
+  if (!is.null(replic_timing_file_prefix)) {
     replic_data <- replic_data[matched_gc_idx, ]
   }
 
-  base::rm(key_logr, key_gc, locimatches, valid_idx, matched_gc_idx)
+  rm(key_logr, key_gc, locimatches, valid_idx, matched_gc_idx)
 
   # Fast Correlation calculation
   # Replaced stats::cor and non-existent fcor with helper
-  corr <- base::abs(
-    fast_cor_vec(GC_data[, 3:base::ncol(GC_data)], Germline_LogR[[3]])
+  corr <- abs(
+    fast_cor_vec(GC_data[, 3:ncol(GC_data)], Germline_LogR[[3]])
   )
 
-  if (!base::is.null(replic_timing_file_prefix)) {
-    corr_rep <- base::abs(
-      fast_cor_vec(replic_data[, 3:base::ncol(replic_data)], Germline_LogR[[3]])
+  if (!is.null(replic_timing_file_prefix)) {
+    corr_rep <- abs(
+      fast_cor_vec(replic_data[, 3:ncol(replic_data)], Germline_LogR[[3]])
     )
   }
 
   # Identify best window sizes
-  index_1kb <- base::which(base::names(corr) == "1kb")
-  maxGCcol_insert <- base::names(base::which.max(corr[1:index_1kb]))
-  index_100kb <- base::which(base::names(corr) == "100kb")
-  maxGCcol_amplic <- base::names(base::which.max(corr[(index_1kb + 2):index_100kb]))
+  index_1kb <- which(names(corr) == "1kb")
+  maxGCcol_insert <- names(which.max(corr[1:index_1kb]))
+  index_100kb <- which(names(corr) == "100kb")
+  maxGCcol_amplic <- names(which.max(corr[(index_1kb + 2):index_100kb]))
 
-  if (!base::is.null(replic_timing_file_prefix)) {
-    maxreplic <- base::names(base::which.max(corr_rep))
-    base::cat(
+  if (!is.null(replic_timing_file_prefix)) {
+    maxreplic <- names(which.max(corr_rep))
+    cat(
       "Replication timing correlation: ",
-      base::paste(base::names(corr_rep), base::format(corr_rep, digits = 2), collapse = "; "), "\n"
+      paste(names(corr_rep), format(corr_rep, digits = 2), collapse = "; "), "\n"
     )
-    base::cat("Replication dataset: ", maxreplic, "\n")
+    cat("Replication dataset: ", maxreplic, "\n")
   }
 
-  base::cat(
+  cat(
     "GC correlation: ",
-    base::paste(base::names(corr), base::format(corr, digits = 2), collapse = "; "), "\n"
+    paste(names(corr), format(corr, digits = 2), collapse = "; "), "\n"
   )
-  base::cat("Short window size: ", maxGCcol_insert, "\n")
-  base::cat("Long window size: ", maxGCcol_amplic, "\n")
+  cat("Short window size: ", maxGCcol_insert, "\n")
+  cat("Long window size: ", maxGCcol_amplic, "\n")
 
   logr_vec <- Germline_LogR[[3]]
 
@@ -1044,19 +1051,19 @@ gc_correct_wgs_germline <- function(germline_LogR_file, outfile, correlations_ou
   X_ins <- splines::ns(GC_data[[maxGCcol_insert]], df = 5, intercept = TRUE)
   X_amp <- splines::ns(GC_data[[maxGCcol_amplic]], df = 5, intercept = TRUE)
 
-  if (!base::is.null(replic_timing_file_prefix)) {
+  if (!is.null(replic_timing_file_prefix)) {
     X_rep <- splines::ns(replic_data[[maxreplic]], df = 5, intercept = TRUE)
-    X_design <- base::cbind(X_ins, X_amp, X_rep)
+    X_design <- cbind(X_ins, X_amp, X_rep)
 
-    before_corr_df <- base::data.frame(
-      windowsize = base::c(base::names(corr), base::names(corr_rep)),
-      correlation = base::c(base::as.numeric(corr), base::as.numeric(corr_rep))
+    before_corr_df <- data.frame(
+      windowsize = c(names(corr), names(corr_rep)),
+      correlation = c(as.numeric(corr), as.numeric(corr_rep))
     )
   } else {
-    X_design <- base::cbind(X_ins, X_amp)
-    before_corr_df <- base::data.frame(
-      windowsize = base::names(corr),
-      correlation = base::as.numeric(corr)
+    X_design <- cbind(X_ins, X_amp)
+    before_corr_df <- data.frame(
+      windowsize = names(corr),
+      correlation = as.numeric(corr)
     )
   }
 
@@ -1066,76 +1073,76 @@ gc_correct_wgs_germline <- function(germline_LogR_file, outfile, correlations_ou
   # Calculate residuals (Corrected LogR)
   Germline_LogR[, 3] <- logr_vec - (X_design %*% coeffs)
 
-  base::rm(X_ins, X_amp, X_design, coeffs)
-  if (!base::is.null(replic_timing_file_prefix)) base::rm(X_rep)
+  rm(X_ins, X_amp, X_design, coeffs)
+  if (!is.null(replic_timing_file_prefix)) rm(X_rep)
 
   data.table::fwrite(before_corr_df,
-    file = base::gsub(".txt", "_beforeCorrection.txt", correlations_outfile),
+    file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile),
     sep = "\t", quote = FALSE
   )
 
   if (!recalc_corr_afterwards) {
-    base::rm(GC_data)
-    if (base::exists("replic_data")) base::rm(replic_data)
+    rm(GC_data)
+    if (exists("replic_data")) rm(replic_data)
   }
 
   data.table::fwrite(
-    Germline_LogR[!base::is.na(Germline_LogR[[3]]), ],
+    Germline_LogR[!is.na(Germline_LogR[[3]]), ],
     file = outfile, sep = "\t"
   )
 
   # Optional Post-correction Analysis
   if (recalc_corr_afterwards) {
     # Re-using the helper for consistency and speed
-    post_corr <- base::abs(
-      fast_cor_vec(GC_data[, 3:base::ncol(GC_data)], Germline_LogR[[3]])
+    post_corr <- abs(
+      fast_cor_vec(GC_data[, 3:ncol(GC_data)], Germline_LogR[[3]])
     )
 
-    if (!base::is.null(replic_timing_file_prefix)) {
-      post_corr_rep <- base::abs(
+    if (!is.null(replic_timing_file_prefix)) {
+      post_corr_rep <- abs(
         fast_cor_vec(
-          replic_data[, 3:base::ncol(replic_data)], Germline_LogR[[3]]
+          replic_data[, 3:ncol(replic_data)], Germline_LogR[[3]]
         )
       )
 
-      base::cat(
+      cat(
         "Replication timing correlation post correction: ",
-        base::paste(
-          base::names(post_corr_rep),
-          base::format(post_corr_rep, digits = 2),
+        paste(
+          names(post_corr_rep),
+          format(post_corr_rep, digits = 2),
           collapse = "; "
         ),
         "\n"
       )
 
-      after_corr_df <- base::data.frame(
-        windowsize = base::c(
-          base::names(post_corr),
-          base::names(post_corr_rep)
+      after_corr_df <- data.frame(
+        windowsize = c(
+          names(post_corr),
+          names(post_corr_rep)
         ),
-        correlation = base::c(
-          base::as.numeric(post_corr),
-          base::as.numeric(post_corr_rep)
+        correlation = c(
+          as.numeric(post_corr),
+          as.numeric(post_corr_rep)
         )
       )
     } else {
-      after_corr_df <- base::data.frame(
-        windowsize = base::names(post_corr),
-        correlation = base::as.numeric(post_corr)
+      after_corr_df <- data.frame(
+        windowsize = names(post_corr),
+        correlation = as.numeric(post_corr)
       )
     }
 
-    base::cat(
+    cat(
       "GC correlation post correction: ",
-      base::paste(
-        base::names(post_corr),
-        base::format(post_corr, digits = 2),
+      paste(
+        names(post_corr),
+        format(post_corr, digits = 2),
         collapse = "; "
       ), "\n"
     )
     data.table::fwrite(
       after_corr_df,
-      file = base::gsub(
+      file = gsub(
         ".txt", "_afterCorrection.txt",
         correlations_outfile
       ),
@@ -1182,23 +1189,26 @@ prepare_wgs_germline <- function(
   gccorrectprefix, repliccorrectprefix,
   min_base_qual, min_map_qual,
   allelecounter_exe, min_normal_depth,
-  skip_allele_counting
+  skip_allele_counting,
+  debug = FALSE
 ) {
-  `%dopar%` <- foreach::`%dopar%`
   if (!skip_allele_counting) {
-    # Obtain allele counts for 1000 Genomes locations for the germline
-    foreach::foreach(i = seq_along(chrom_names)) %dopar% {
-      getAlleleCounts(
-        bam.file = germlinebam,
-        output_file = paste(germlinename, "_alleleFrequencies_chr", i, ".txt", sep = ""),
-        g1000.loci = paste(g1000lociprefix, i, ".txt", sep = ""),
-        min.base.qual = min_base_qual,
-        min.map.qual = min_map_qual,
-        allelecounter.exe = allelecounter_exe
-      )
-    }
+    run_parallel_or_serial(
+      iterator = seq_along(chrom_names),
+      func = function(i) {
+        getAlleleCounts(
+          bam.file = germlinebam,
+          output_file = paste(germlinename, "_alleleFrequencies_chr", i, ".txt", sep = ""),
+          g1000.loci = paste(g1000lociprefix, i, ".txt", sep = ""),
+          min.base.qual = min_base_qual,
+          min.map.qual = min_map_qual,
+          allelecounter.exe = allelecounter_exe
+        )
+      },
+      debug = debug,
+      label = "Germline Allele Counting"
+    )
   }
-
   # Standardise Chr notation (removes 'chr' string if present; essential for cell_line_baf_logR)
 
   standardise_chr_notation_germline(GERMLINENAME = germlinename)
@@ -1210,31 +1220,35 @@ prepare_wgs_germline <- function(
     chrom_names = chrom_names
   )
 
-  # Reconstruct normal-pair allele count files for the germline
-
-  foreach::foreach(
-    i = seq_along(chrom_names),
-    export = c("germline_reconstruct_normal", "cl_data"),
-    .packages = c("copynumber", "ggplot2", "grid")
-  ) %dopar% {
-    germline_reconstruct_normal(
-      GERMLINENAME = germlinename,
-      NORMALNAME = paste0(germlinename, "_normal"),
-      chrom_coord = chrom_coord,
-      chrom = i,
-      GL_OHET = cl_data$OHET,
-      GL_AL = cl_data$AL,
-      GL_AC = cl_data$AC,
-      GL_LogR = cl_data$LogR,
-      GAMMA_IVD = gamma_ivd,
-      KMIN_IVD = kmin_ivd,
-      CENTROMERE_NOISE_SEG_SIZE = centromere_noise_seg_size,
-      CENTROMERE_DIST = centromere_dist,
-      MIN_HET_DIST = min_het_dist,
-      GAMMA_LOGR = gamma_logr,
-      LENGTH_ADJACENT = length_adjacent
-    )
-  }
+  run_parallel_or_serial(
+    iterator = seq_along(chrom_names),
+    func = function(i) {
+      # Ensure workers have the required namespaces loaded
+      if (!debug) {
+        requireNamespace("copynumber", quietly = TRUE)
+        requireNamespace("ggplot2", quietly = TRUE)
+        requireNamespace("grid", quietly = TRUE)
+      }
+      germline_reconstruct_normal(
+        GERMLINENAME = germlinename,
+        NORMALNAME = paste(germlinename, "_normal", sep = ""),
+        chrom_coord = chrom_coord,
+        chrom = i,
+        GL_OHET = cl_data$OHET,
+        GL_AL = cl_data$AL,
+        GL_AC = cl_data$AC,
+        GL_LogR = cl_data$LogR,
+        GAMMA_IVD = gamma_ivd,
+        KMIN_IVD = kmin_ivd,
+        CENTROMERE_NOISE_SEG_SIZE = centromere_noise_seg_size,
+        CENTROMERE_DIST = centromere_dist,
+        MIN_HET_DIST = min_het_dist,
+        GAMMA_LOGR = gamma_logr,
+        LENGTH_ADJACENT = length_adjacent
+      )
+    },
+    debug = debug,
+  )
 
   if (length(list.files(pattern = "normal_alleleFrequencies")) == length(chrom_names)) {
     print("STEP 2 - Normal allelecounts reconstruction - completed")

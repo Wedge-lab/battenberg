@@ -24,7 +24,8 @@ prepare_wgs_germline(
   min_map_qual,
   allelecounter_exe,
   min_normal_depth,
-  skip_allele_counting
+  skip_allele_counting,
+  debug = FALSE
 )
 }
 \arguments{

@@ -62,9 +62,15 @@ fit_copy_number <- function(
   # Read in the required data
   segmented.BAF.data <- read_bafsegmented(inputfile_baf_segmented)
   data.table::setDF(segmented.BAF.data)
+  log_info("Read segmented BAF: {nrow(segmented.BAF.data)} rows")
 
   raw.BAF.data <- read_baf_as_data_frame(inputfile_baf)
+  names(raw.BAF.data)[3] <- samplename
+
+  log_info("Read raw BAF: {nrow(raw.BAF.data)} rows")
   raw.logR.data <- read_baf_as_data_frame(inputfile_logr)
+  names(raw.logR.data)[3] <- samplename
+  log_info("Read raw LogR: {nrow(raw.logR.data)} rows, and samplename is {samplename}")
 
   # Assign rownames as those are required by various clonal_ascat.R functions
   # If there are duplicates (possible with old versions of BB) then remove those
@@ -75,10 +81,19 @@ fit_copy_number <- function(
     identifiers <- identifiers[-dups]
   }
   rownames(segmented.BAF.data) <- identifiers
+  log_info("Segmented BAF now has {nrow(segmented.BAF.data)} rows with unique identifiers")
 
   # Drop NAs
   raw.BAF.data <- raw.BAF.data[!is.na(raw.BAF.data[, 3]), ]
   raw.logR.data <- raw.logR.data[!is.na(raw.logR.data[, 3]), ]
+  log_info("After dropping NAs - raw BAF: {nrow(raw.BAF.data)}, raw LogR: {nrow(raw.logR.data)}")
+  if (nrow(raw.BAF.data) == 0) {
+    log_failure("No raw BAF data remaining after dropping NAs. Cannot continue")
+  }
+  if (nrow(raw.logR.data) == 0) {
+    log_failure("No raw LogR data remaining after dropping NAs. Cannot continue")
+  }
+
 
   BAF.data <- list()
   logR.data <- list()
@@ -87,6 +102,7 @@ fit_copy_number <- function(
   gsubchr <- function(chr) gsub("chr", "", as.character(chr))
 
   chr_names <- gsubchr(unique(segmented.BAF.data[, 1]))
+  log_info("Processing chromosomes: {paste(chr_names, collapse=', ')}")
 
   segmented.BAF.data$Chromosome <- gsubchr(segmented.BAF.data$Chromosome)
   raw.BAF.data$Chromosome <- gsubchr(raw.BAF.data$Chromosome)
@@ -96,43 +112,39 @@ fit_copy_number <- function(
   baf_split <- split(raw.BAF.data, f = raw.BAF.data$Chromosome)
   logr_split <- split(raw.logR.data, f = raw.logR.data$Chromosome)
 
+  log_info("Data split by chromosome - segmented: {length(baf_segmented_split)}, raw BAF: {length(baf_split)}, raw LogR: {length(logr_split)}")
+
   # For each chromosome
   for (chr in chr_names) {
     chr.BAF.data <- baf_split[[chr]]
-
-    # Skip the rest if there is no data for this chromosome
-    if (is.null(chr.BAF.data) || nrow(chr.BAF.data) == 0) {
-      next
-    }
-    # Match segments with chromosome position
     chr.segmented.BAF.data <- baf_segmented_split[[chr]]
-    indices <- match(chr.segmented.BAF.data[, 2], chr.BAF.data$Position)
 
-    if (sum(is.na(indices)) == length(indices) || length(indices) == 0) {
+    log_info("Processing chromosome {chr}: raw BAF rows = {ifelse(is.null(chr.BAF.data), 0, nrow(chr.BAF.data))}, segmented BAF rows = {ifelse(is.null(chr.segmented.BAF.data), 0, nrow(chr.segmented.BAF.data))}")
+
+    if (is.null(chr.BAF.data) || nrow(chr.BAF.data) == 0) {
+      log_info("Skipping chromosome {chr} because raw BAF is empty")
       next
     }
 
-    # Drop NAs here too
-    chr.segmented.BAF.data <- chr.segmented.BAF.data[!is.na(indices), ]
+    # Merge segmented and raw BAF on Position
+    merged <- merge(chr.segmented.BAF.data, chr.BAF.data, by.x = "Position", by.y = "Position", all = TRUE)
+    log_info("Chromosome {chr}: merged rows = {nrow(merged)}")
 
-    # Append the segmented data
-    matched.segmented.BAF.data[[chr]] <- chr.segmented.BAF.data
-    BAF.data[[chr]] <- chr.BAF.data[indices[!is.na(indices)], ]
+    matched.segmented.BAF.data[[chr]] <- merged
+    BAF.data[[chr]] <- merged[, c("Position", samplename[sampleidx]), drop = FALSE]
 
-    # Append raw LogR
+    # Merge LogR
     chr.logR.data <- logr_split[[chr]]
-    indices <- match(chr.segmented.BAF.data[, 2], chr.logR.data$Position)
-    logR.data[[chr]] <- chr.logR.data[indices[!is.na(indices)], ]
-    chr.segmented.logR.data <- chr.logR.data[indices[!is.na(indices)], ]
-
-    # Append segmented LogR
-    segs <- rle(chr.segmented.BAF.data[, 5])$lengths
-    cum.segs <- c(0, cumsum(segs))
-    for (s in seq_along(segs)) {
-      chr.segmented.logR.data[(cum.segs[s] + 1):cum.segs[s + 1], 3] <- mean(chr.segmented.logR.data[(cum.segs[s] + 1):cum.segs[s + 1], 3], na.rm = TRUE)
+    if (!is.null(chr.logR.data) && nrow(chr.logR.data) > 0) {
+      merged_logR <- merge(merged, chr.logR.data, by = "Position", all = TRUE)
+      log_info("Chromosome {chr}: LogR merged rows = {nrow(merged_logR)}")
+      logR.data[[chr]] <- merged_logR[, ncol(merged_logR), drop = FALSE] # Last column is LogR
+      segmented.logR.data[[chr]] <- merged_logR[, 3, drop = FALSE] # third column of merged segment
+    } else {
+      log_info("Chromosome {chr}: no LogR data")
     }
-    segmented.logR.data[[chr]] <- chr.segmented.logR.data
   }
+
 
   # Sync the dataframes
   selection <- c()
@@ -141,6 +153,10 @@ fit_copy_number <- function(
     logR.data.chr <- logR.data[[chrom]] # logR.data[logR.data[,1]==chrom,]
 
     selection <- matched.segmented.BAF.data.chr[, 2] %in% logR.data.chr[, 2]
+    if (sum(selection) == 0) {
+      log_info("Chromosome {chrom}: no positions match between segmented BAF and LogR, skipping")
+      next
+    }
     matched.segmented.BAF.data[[chrom]] <- matched.segmented.BAF.data.chr[selection, ]
     segmented.logR.data[[chrom]] <- segmented.logR.data[[chrom]][selection, ]
   }
@@ -156,7 +172,7 @@ fit_copy_number <- function(
   # write out the segmented logR data
   row.names(segmented.logR.data) <- row.names(matched.segmented.BAF.data)
   row.names(logR.data) <- row.names(matched.segmented.BAF.data)
-  data.table::fwrite(segmented.logR.data, paste(samplename, ".logRsegmented.txt", sep = ""), sep = "\t", quote = FALSE, col_names = FALSE, row.names = FALSE)
+  data.table::fwrite(segmented.logR.data, paste(samplename, ".logRsegmented.txt", sep = ""), sep = "\t", quote = FALSE, col.names = FALSE, row.names = FALSE)
 
   # Prepare the data for going into the runASCAT functions
   segBAF <- 1 - matched.segmented.BAF.data[, 5]
@@ -765,7 +781,7 @@ merge_segments <- function(
 
       # Robust Logic: Only use the median if it's not NA
       # This avoids the "missing value where TRUE/FALSE needed" error
-      if (!base::is.na(m_baf) && m_baf != 0 && m_baf != 1) {
+      if (!is.na(m_baf) && m_baf != 0 && m_baf != 1) {
         NEW_BAF <- m_baf
       } else {
         NEW_BAF <- collapse::fmean(baf_vals, na.rm = TRUE)
@@ -777,7 +793,7 @@ merge_segments <- function(
       GenomicRanges::findOverlaps(subclones[INDEX], logR)
     )
 
-    if (base::length(logr_idx) == 0) {
+    if (length(logr_idx) == 0) {
       subclones[INDEX]$LogR <- 0
     } else {
       subclones[INDEX]$LogR <- collapse::fmean(
@@ -791,7 +807,7 @@ merge_segments <- function(
     bafsegmented$BAFseg[baf_idx] <- NEW_BAF
 
     # Standard Evaluation sequence generation
-    subclones$ID <- base::seq_along(subclones)
+    subclones$ID <- seq_along(subclones)
 
     list(subclones = subclones, bafsegmented = bafsegmented)
   }
@@ -1435,8 +1451,8 @@ callChrXsubclones <- function(
     ) +
     ggplot2::geom_rect(
       ggplot2::aes(
-        xmin = startpos, xmax = endpos,
-        ymin = subclonalCN - 0.02, ymax = subclonalCN + 0.02
+        xmin = rlang::.data$startpos, xmax = rlang::.data$endpos,
+        ymin = rlang::.data$subclonalCN - 0.02, ymax = rlang::.data$subclonalCN + 0.02
       )
     ) +
     ggplot2::geom_vline(
@@ -1457,9 +1473,10 @@ callChrXsubclones <- function(
       avg_plot <- avg_plot + ggplot2::geom_rect(
         data = seg_ar,
         ggplot2::aes(
-          xmin = startpos, xmax = endpos,
-          ymin = subclonalCN - 0.02,
-          ymax = subclonalCN + 0.02
+          xmin = rlang::.data$startpos,
+          xmax = rlang::.data$endpos,
+          ymin = rlang::.data$subclonalCN - 0.02,
+          ymax = rlang::.data$subclonalCN + 0.02
         ),
         fill = "red"
       )

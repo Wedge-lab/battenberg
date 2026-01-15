@@ -40,6 +40,10 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
   normal_input_data <- concatenateAlleleCountFiles(normalAlleleCountsFile.prefix, ".txt", chr_names)
   allele_data <- concatenateG1000SnpFiles(g1000file.prefix, ".txt", chr_names)
 
+  log_info(
+    "Data Loading Complete: Tumour {nrow(input_data)} rows, Normal {nrow(normal_input_data)} rows, G1000 Ref {nrow(allele_data)} rows",
+  )
+
   # Efficient chr prefix stripping
   allele_data[[1]] <- gsub("chr", "", allele_data[[1]])
   normal_input_data[[1]] <- gsub("chr", "", normal_input_data[[1]])
@@ -59,13 +63,18 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
   normal_input_data <- normal_input_data[collapse::fmatch(common_keys, key_normal), ]
   input_data <- input_data[collapse::fmatch(common_keys, key_tumour), ]
 
+  log_info("Sync complete. Remaining SNPs: {nrow(input_data)}")
+
   rm(key_allele, key_normal, key_tumour, common_keys)
 
-  # Map alleles to counts
-  len <- nrow(normal_input_data)
+  names(input_data)[1] <- "CHR"
+  names(normal_input_data)[1] <- "CHR"
   # Using matrix indexing for fast extraction
   norm_m <- as.matrix(normal_input_data[, 3:6])
   mut_m <- as.matrix(input_data[, 3:6])
+
+  # Map alleles to counts
+  len <- nrow(norm_m)
 
   idx_matrix <- cbind(seq_len(len), as.integer(allele_data[[3]]))
   idx_matrix2 <- cbind(seq_len(len), as.integer(allele_data[[4]]))
@@ -119,36 +128,53 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
   CHR_final <- input_data[[1]][indices]
   POS_final <- input_data[[2]][indices]
 
-  # Fast File Saving (Direct List writing avoids data.frame overhead)
-  data.table::fwrite(
-    list(CHR_final, POS_final, normalBAF),
-    file = BAFnormalFile,
-    sep = "\t", col.names = c("Chromosome", "Position", samplename)
+  baseDT <- data.table::data.table(
+    Chromosome = CHR_final,
+    Position   = POS_final
   )
-  data.table::fwrite(
-    list(CHR_final, POS_final, mutantBAF),
-    file = BAFmutantFile,
-    sep = "\t", col.names = c("Chromosome", "Position", samplename)
-  )
-  data.table::fwrite(
-    list(CHR_final, POS_final, normalLogR),
-    file = logRnormalFile,
-    sep = "\t", col.names = c("Chromosome", "Position", samplename)
-  )
-  data.table::fwrite(
-    list(CHR_final, POS_final, tumorLogR_final),
-    file = logRmutantFile, sep = "\t",
-    col.names = c("Chromosome", "Position", samplename)
-  )
-  data.table::fwrite(
-    list(CHR_final, POS_final, mutCount1, mutCount2, normCount1, normCount2),
-    file = combinedAlleleCountsFile, sep = "\t",
-    col.names = c("Chromosome", "Position", "mutCountT1", "mutCountT2", "mutCountN1", "mutCountN2")
-  )
+
+
+  # Write Normal BAF
+  baseDT[, (samplename) := normalBAF]
+  data.table::fwrite(baseDT, file = BAFnormalFile, sep = "\t")
+  log_info("Saved Normal BAF to: {normalizePath(BAFnormalFile, mustWork = FALSE)}")
+
+  # Write Mutant BAF
+  baseDT[, (samplename) := mutantBAF]
+  data.table::fwrite(baseDT, file = BAFmutantFile, sep = "\t")
+  log_info("Saved Mutant BAF to: {normalizePath(BAFmutantFile, mustWork = FALSE)}")
+
+  # Write Normal LogR
+  baseDT[, (samplename) := normalLogR]
+  data.table::fwrite(baseDT, file = logRnormalFile, sep = "\t")
+  log_info("Saved Normal LogR to: {normalizePath(logRnormalFile, mustWork = FALSE)}")
+
+
+  # Write Mutant LogR
+  baseDT[, (samplename) := tumorLogR_final]
+  data.table::fwrite(baseDT, file = logRmutantFile, sep = "\t")
+  log_info("Saved Mutant LogR to: {normalizePath(logRmutantFile, mustWork = FALSE)}")
+
+  # Write Combined Allele Counts
+  # We use a standard data.table definition here which is safe from list-bloat
+  baseDT[, (samplename) := NULL] # Clean up the sample column before combining
+  combinedDT <- cbind(baseDT, data.table::data.table(
+    mutCountT1 = mutCount1,
+    mutCountT2 = mutCount2,
+    mutCountN1 = normCount1,
+    mutCountN2 = normCount2
+  ))
+
+  data.table::fwrite(combinedDT, file = combinedAlleleCountsFile, sep = "\t")
+  log_info("Saved combined Allele Counts to: {normalizePath(combinedAlleleCountsFile, mustWork = FALSE)}")
 
   # Plotting Setup
   # Re-using vectors to build the ASCAT list object without re-reading files
-  SNPpos <- data.frame(Chromosome = CHR_final, Position = POS_final, stringsAsFactors = FALSE)
+  SNPpos <- data.frame(
+    Chromosome = CHR_final,
+    Position = POS_final,
+    stringsAsFactors = FALSE
+  )
 
   # Optimized 'ch' list creation
   ch <- lapply(chr_names, function(x) {
@@ -267,7 +293,7 @@ generate_impute_input_wgs <- function(
   out_data <- cbind(snp_names, valid_known_snps[, 1:4], genotypes)
 
   # Write main output
-  data.table::fwrite(out_data, file = output_file, sep = " ", row.names = FALSE, col_names = FALSE, quote = FALSE)
+  data.table::fwrite(out_data, file = output_file, sep = " ", row.names = FALSE, col.names = FALSE, quote = FALSE)
 
   # Legacy check: Write sample_g.txt if chrom_name is NA (usually for non-standard chrom processing)
   if (is.na(chrom_name)) {
@@ -278,7 +304,7 @@ generate_impute_input_wgs <- function(
       missing = c(0, 0),
       sex = c("D", 2)
     )
-    data.table::fwrite(sample_g_data, file = sample_g_file, sep = " ", row.names = FALSE, col_names = TRUE, quote = FALSE)
+    data.table::fwrite(sample_g_data, file = sample_g_file, sep = " ", row.names = FALSE, col.names = TRUE, quote = FALSE)
   }
 }
 
@@ -301,146 +327,130 @@ gc_correct_wgs <- function(
   gc_content_file_prefix,
   replic_timing_file_prefix,
   chrom_names,
-  recalc_corr_afterwards = FALSE
+  recalc_corr_afterwards = FALSE,
+  debug = FALSE
 ) {
+  # :: syntax used
+  # Pure comments instead of numbering
+
   if (is.null(gc_content_file_prefix)) {
-    log_failure("GC content reference files must be supplied to WGS GC content correction")
+    stop("GC content reference files must be supplied")
   }
 
   Tumor_LogR <- read_logr(Tumour_LogR_file)
 
-  # Processing GC data
-  print("Processing GC content data")
+  # Efficiently load and combine GC data
   gc_files <- paste0(gc_content_file_prefix, chrom_names, ".txt.gz")
   GC_data <- do.call(rbind, lapply(gc_files, read_gccontent))
-  colnames(GC_data) <- c(
-    "chr", "Position", paste0(c(25, 50, 100, 200, 500), "bp"),
-    paste0(c(1, 2, 5, 10, 20, 50, 100), "kb")
-  )
 
-  # Processing replication data
+  # Clean up the GC_data headers
+  # The first column is often a duplicate of the third; we remove it safely
+  correct_headers <- colnames(GC_data)[2:ncol(GC_data)]
+  GC_data <- GC_data[, -1]
+  colnames(GC_data) <- trimws(correct_headers)
+  data.table::setnames(GC_data, old = 1:2, new = c("Chromosome", "Position"))
+
+  # Processing replication data if prefix is provided
   has_replic <- !is.null(replic_timing_file_prefix)
   if (has_replic) {
-    print("Processing replication timing data")
     replic_files <- paste0(replic_timing_file_prefix, chrom_names, ".txt.gz")
     replic_data <- do.call(rbind, lapply(replic_files, read_replication))
+    colnames(replic_data) <- trimws(colnames(replic_data))
+    if ("pos" %in% colnames(replic_data)) data.table::setnames(replic_data, "pos", "Position")
+    if ("chr" %in% colnames(replic_data)) data.table::setnames(replic_data, "chr", "Chromosome")
   }
 
-  # Matching loci - using a more efficient matching key
-  # Pixel-perfect match to: paste0(Tumor_LogR$Chromosome, "_", Tumor_LogR$Position)
+  # Fast Loci Matching
   logr_key <- paste0(Tumor_LogR$Chromosome, "_", Tumor_LogR$Position)
-  gc_key <- paste0(GC_data$chr, "_", GC_data$Position)
+  gc_key <- paste0(GC_data$Chromosome, "_", GC_data$Position)
   locimatches <- match(logr_key, gc_key)
 
   valid_idx <- which(!is.na(locimatches))
   matched_gc <- locimatches[valid_idx]
 
+  # Subsetting objects to matched rows
   Tumor_LogR <- Tumor_LogR[valid_idx, ]
   GC_data <- GC_data[matched_gc, ]
+  if (has_replic) replic_data <- replic_data[matched_gc, ]
 
-  if (has_replic) {
-    replic_data <- replic_data[matched_gc, ]
-  }
-  rm(logr_key, gc_key, locimatches, valid_idx, matched_gc)
+  # Clean up memory
+  rm(logr_key, gc_key, locimatches)
 
-  corr <- collapse::pwcor(
-    GC_data[, 3:ncol(GC_data)], Tumor_LogR[, 3],
-    use = 3
-  )
+  # Calculate correlations and identify best window sizes
+  # We use collapse::pwcor for speed
+  corr <- collapse::pwcor(GC_data[, 3:ncol(GC_data)], Tumor_LogR[[3]], use = "pairwise.complete.obs")
   corr <- abs(corr[, 1])
 
-  if (has_replic) {
-    corr_rep <- collapse::pwcor(
-      replic_data[, 3:ncol(replic_data)], Tumor_LogR[, 3],
-      use = 3
-    )
-    corr_rep <- abs(corr_rep[, 1])
-  }
-
-  # Identify best windows
-  index_1kb <- which(names(corr) == "1kb")
-  maxGCcol_insert <- names(which.max(corr[1:index_1kb]))
+  # instead of capping it at 100kb go to the end of the frame
+  index_2kb <- which(names(corr) == "2kb")
+  maxGCcol_insert <- names(which.max(corr[1:index_2kb]))
+  maxGCcol_amplic <- names(which.max(corr[(index_2kb + 1):length(corr)]))
   index_100kb <- which(names(corr) == "100kb")
-  maxGCcol_amplic <- names(which.max(corr[(index_1kb + 2):index_100kb]))
+  maxGCcol_amplic <- names(which.max(corr[(index_2kb + 2):index_100kb]))
 
+  # Construct the design matrix for splines
+  # We use intercept = TRUE for the first and FALSE for the others to avoid rank deficiency
   if (has_replic) {
+    corr_rep <- collapse::pwcor(replic_data[, 3:ncol(replic_data)], Tumor_LogR[[3]], use = "pairwise.complete.obs")
+    corr_rep <- abs(corr_rep[, 1])
     maxreplic <- names(which.max(corr_rep))
-    cat("Replication timing correlation: ", paste(names(corr_rep), format(corr_rep, digits = 2), ";"), "\n")
-    cat("Replication dataset: ", maxreplic, "\n")
-  }
-  cat("GC correlation: ", paste(names(corr), format(corr, digits = 2), ";"), "\n")
-  cat("Short window size: ", maxGCcol_insert, "\n")
-  cat("Long window size: ", maxGCcol_amplic, "\n")
 
-  # Write 'before' correlations
-  corr_df_save <- if (has_replic) {
-    data.frame(windowsize = c(names(corr), names(corr_rep)), correlation = c(corr, corr_rep))
+    X <- cbind(
+      splines::ns(GC_data[[maxGCcol_insert]], df = 5, intercept = TRUE),
+      splines::ns(GC_data[[maxGCcol_amplic]], df = 5, intercept = FALSE),
+      splines::ns(replic_data[[maxreplic]], df = 5, intercept = FALSE)
+    )
   } else {
-    data.frame(windowsize = names(corr), correlation = corr)
-  }
-  data.table::fwrite(corr_df_save, file = gsub(".txt", "_beforeCorrection.txt", correlations_outfile), sep = "\t")
-
-  # Setup Design Matrix (X) for Linear Model
-  # This replaces the lm() formula interface
-  if (has_replic) {
-    X <- stats::model.matrix(~ splines::ns(GC_data[[maxGCcol_insert]], df = 5, intercept = TRUE) +
-      splines::ns(GC_data[[maxGCcol_amplic]], df = 5, intercept = TRUE) +
-      splines::ns(replic_data[[maxreplic]], df = 5, intercept = TRUE))
-  } else {
-    X <- stats::model.matrix(~ splines::ns(GC_data[[maxGCcol_insert]], df = 5, intercept = TRUE) +
-      splines::ns(GC_data[[maxGCcol_amplic]], df = 5, intercept = TRUE))
+    X <- cbind(
+      splines::ns(GC_data[[maxGCcol_insert]], df = 5, intercept = TRUE),
+      splines::ns(GC_data[[maxGCcol_amplic]], df = 5, intercept = FALSE)
+    )
   }
 
-  # Pixel-perfect NA handling (na.exclude behavior)
-  y <- Tumor_LogR[, 3, drop = TRUE]
+  y <- as.numeric(Tumor_LogR[[3]])
+
+  # Robust Linear Model fitting
+  # We use stats::lm.fit directly for a balance of speed and numerical stability
+  # It is faster than lm() but more stable than flm() for splines
   keep_idx <- stats::complete.cases(X) & !is.na(y)
+  fit <- stats::lm.fit(x = as.matrix(X[keep_idx, ]), y = y[keep_idx])
 
-  # Solve OLS using fast C++ backend
-  y_clean <- y[keep_idx]
-  X_clean <- X[keep_idx, , drop = FALSE]
-  betas <- collapse::flm(y_clean, X_clean)
-
-  # Reconstruct residuals (Observed - Predicted)
-  # Pre-filling with NA matches 'na.exclude' padding
+  # Calculate residuals and cap them to remove outliers
   resids <- rep(NA, length(y))
-  resids[keep_idx] <- y_clean - as.vector(X_clean %*% betas)
+  resids[keep_idx] <- fit$residuals
+  resids <- pmax(pmin(resids, 5), -5)
 
-  # Update LogR and clean up predictors if requested
-  Tumor_LogR[, 3] <- resids
+  # Metrics for noise reduction
+  sd_before <- stats::sd(y, na.rm = TRUE)
+  sd_after <- stats::sd(resids, na.rm = TRUE)
+  reduction <- ((sd_before - sd_after) / sd_before) * 100
 
-  if (!recalc_corr_afterwards) {
-    rm(GC_data)
-    if (has_replic) rm(replic_data)
-  }
-  rm(X, X_clean, y_clean, betas, resids)
+  # Apply corrected LogR
+  Tumor_LogR[[3]] <- resids
+
+  # Log results
+  message(paste0("Noise Reduction: ", round(reduction, 2), "%"))
+
+  sd_before <- stats::sd(y, na.rm = TRUE)
+  sd_after <- stats::sd(resids, na.rm = TRUE)
+  reduction <- ((sd_before - sd_after) / sd_before) * 100
+  # Post-correction correlation check
+  corr_post_short <- abs(stats::cor(resids[keep_idx], GC_data[[maxGCcol_insert]][keep_idx], use = "complete.obs"))
+  corr_post_long <- abs(stats::cor(resids[keep_idx], GC_data[[maxGCcol_amplic]][keep_idx], use = "complete.obs"))
+
+  # Glue Log: Interpretation block
+  log_info("Noise Reduction (SD): {round(reduction, 2)}%")
+  log_info("Residual Correlation (Short): {round(corr_post_short, 4)} (Target: ~0)")
+  log_info("Residual Correlation (Long): {round(corr_post_long, 4)} (Target: ~0)")
+  log_info("LogR Mean Shift: {round(mean(resids, na.rm=TRUE), 6)} (Target: 0)")
 
   # Write corrected LogR
-  readr::write_tsv(x = Tumor_LogR[!is.na(Tumor_LogR[, 3]), ], file = outfile)
-
-  # Post-correction processing
-  if (recalc_corr_afterwards) {
-    corr_post <- abs(stats::cor(
-      GC_data[, 3:ncol(GC_data)], Tumor_LogR[, 3],
-      use = "complete.obs"
-    )[, 1])
-    if (has_replic) {
-      corr_rep_post <- abs(stats::cor(replic_data[, 3:ncol(replic_data)], Tumor_LogR[, 3], use = "complete.obs")[, 1])
-      cat("Replication timing correlation post correction: ", paste(names(corr_rep_post), format(corr_rep_post, digits = 2), ";"), "\n")
-
-      corr_final <- data.frame(
-        windowsize = c(names(corr_post), names(corr_rep_post)),
-        correlation = c(corr_post, corr_rep_post)
-      )
-    } else {
-      cat("GC correlation post correction: ", paste(names(corr_post), format(corr_post, digits = 2), ";"), "\n")
-      corr_final <- data.frame(windowsize = names(corr_post), correlation = corr_post)
-    }
-    data.table::fwrite(corr_final, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t")
-  } else {
-    # If not recalculating, set correlation to NA as per original code
-    corr_df_save$correlation <- NA
-    data.table::fwrite(corr_df_save, file = gsub(".txt", "_afterCorrection.txt", correlations_outfile), sep = "\t")
-  }
+  data.table::fwrite(
+    x = Tumor_LogR[!is.na(Tumor_LogR[[3]]), ],
+    file = outfile,
+    sep = "\t",
+    quote = FALSE
+  )
 }
 
 #' Prepare WGS data for haplotype construction
@@ -482,15 +492,19 @@ prepare_wgs <- function(
   min_normal_depth,
   nthreads,
   skip_allele_counting,
-  skip_allele_counting_normal = FALSE
+  skip_allele_counting_normal = FALSE,
+  debug = FALSE
 ) {
-  `%dopar%` <- foreach::`%dopar%`
   if (!skip_allele_counting) {
-    # Obtain allele counts for 1000 Genomes locations for both tumour and normal
-    foreach::foreach(i = seq_along(chrom_names)) %dopar% {
+    do_allele_counting <- function(i) {
       getAlleleCounts(
-        bam.file = tumourbam,
-        output_file = paste(tumourname, "_alleleFrequencies_chr", chrom_names[i], ".txt", sep = ""),
+        bam.file = normalbam,
+        output_file = paste(
+          normalname,
+          "_alleleFrequencies_chr",
+          chrom_names[i], ".txt",
+          sep = ""
+        ),
         g1000.loci = paste(g1000prefix, chrom_names[i], ".txt", sep = ""),
         min.base.qual = min_base_qual,
         min.map.qual = min_map_qual,
@@ -500,38 +514,51 @@ prepare_wgs <- function(
       if (!skip_allele_counting_normal) {
         getAlleleCounts(
           bam.file = normalbam,
-          output_file = paste(normalname, "_alleleFrequencies_chr", chrom_names[i], ".txt", sep = ""),
-          g1000.loci = paste(g1000prefix, chrom_names[i], ".txt", sep = ""),
+          output_file = paste(normalname,
+            "_alleleFrequencies_chr",
+            chrom_names[i], ".txt",
+            sep = ""
+          ),
+          g1000.loci = paste(
+            g1000prefix,
+            chrom_names[i], ".txt",
+            sep = ""
+          ),
           min.base.qual = min_base_qual,
           min.map.qual = min_map_qual,
           allelecounter.exe = allelecounter_exe
         )
       }
     }
+    run_parallel_or_serial(
+      iterator = seq_along(chrom_names),
+      func = do_allele_counting,
+      debug = debug
+    )
   }
 
   # Obtain BAF and LogR from the raw allele counts
-  getBAFsAndLogRs(
-    tumourAlleleCountsFile.prefix = paste(tumourname, "_alleleFrequencies_chr", sep = ""),
-    normalAlleleCountsFile.prefix = paste(normalname, "_alleleFrequencies_chr", sep = ""),
-    figuresFile.prefix = paste(tumourname, "_", sep = ""),
-    BAFnormalFile = paste(tumourname, "_normalBAF.tab", sep = ""),
-    BAFmutantFile = paste(tumourname, "_mutantBAF.tab", sep = ""),
-    logRnormalFile = paste(tumourname, "_normalLogR.tab", sep = ""),
-    logRmutantFile = paste(tumourname, "_mutantLogR.tab", sep = ""),
-    combinedAlleleCountsFile = paste(tumourname, "_alleleCounts.tab", sep = ""),
-    chr_names = chrom_names,
-    g1000file.prefix = g1000allelesprefix,
-    minCounts = min_normal_depth,
-    samplename = tumourname
-  )
+  # getBAFsAndLogRs(
+  #  tumourAlleleCountsFile.prefix = paste(tumourname, "_alleleFrequencies_chr", sep = ""),
+  #  normalAlleleCountsFile.prefix = paste(normalname, "_alleleFrequencies_chr", sep = ""),
+  #  figuresFile.prefix = paste(tumourname, "_", sep = ""),
+  #  BAFnormalFile = paste(tumourname, "_normalBAF.tab", sep = ""),
+  #  BAFmutantFile = paste(tumourname, "_mutantBAF.tab", sep = ""),
+  #  logRnormalFile = paste(tumourname, "_normalLogR.tab", sep = ""),
+  #  logRmutantFile = paste(tumourname, "_mutantLogR.tab", sep = ""),
+  #  combinedAlleleCountsFile = paste(tumourname, "_alleleCounts.tab", sep = ""),
+  #  chr_names = chrom_names,
+  #  g1000file.prefix = g1000allelesprefix,
+  #   minCounts = min_normal_depth,
+  #   samplename = tumourname
+  # )
   # Perform GC correction
-  gc_correct_wgs(
-    Tumour_LogR_file = paste(tumourname, "_mutantLogR.tab", sep = ""),
-    outfile = paste(tumourname, "_mutantLogR_gcCorrected.tab", sep = ""),
-    correlations_outfile = paste(tumourname, "_GCwindowCorrelations.txt", sep = ""),
-    gc_content_file_prefix = gccorrectprefix,
-    replic_timing_file_prefix = repliccorrectprefix,
-    chrom_names = chrom_names
-  )
+  # gc_correct_wgs(
+  #  Tumour_LogR_file = paste(tumourname, "_mutantLogR.tab", sep = ""),
+  #  outfile = paste(tumourname, "_mutantLogR_gcCorrected.tab", sep = ""),
+  #  correlations_outfile = paste(tumourname, "_GCwindowCorrelations.txt", sep = ""),
+  #  gc_content_file_prefix = gccorrectprefix,
+  #  replic_timing_file_prefix = repliccorrectprefix,
+  #  chrom_names = chrom_names
+  # )
 }

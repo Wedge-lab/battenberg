@@ -154,7 +154,7 @@ runASCAT_enhanced <- function(
   rho_opt1_plot <- vector(mode = "numeric")
 
   if (nropt > 0) {
-    data.table::fwrite(paste(nropt, " copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col_names = FALSE, row.names = FALSE)
+    data.table::fwrite(paste(nropt, " copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col.names = FALSE, row.names = FALSE)
     optlim <- sort(localmin)[1]
 
     for (i in seq_along(optima)) {
@@ -171,7 +171,7 @@ runASCAT_enhanced <- function(
       }
     }
   } else {
-    data.table::fwrite(paste("no copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col_names = FALSE, row.names = FALSE)
+    data.table::fwrite(paste("no copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col.names = FALSE, row.names = FALSE)
     if (verbose) cat("No suitable copy number solution found\n")
     psi <- NA
     ploidy <- NA

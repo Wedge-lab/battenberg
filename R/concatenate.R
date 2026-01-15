@@ -32,12 +32,13 @@ concatenateAlleleCountFiles <- function(inputStart, inputEnd, chr_names) {
   if (length(infiles) == 0) {
     return(data.frame())
   }
+  log_info("Using infiles in concatenateAlleleCountFiles: {infiles}")
 
   # Use rbindlist for the merge
   # We read them as data.tables first (internal to rbindlist)
   # then convert to data.frame at the very end.
   combined <- data.table::rbindlist(
-    lapply(infiles, read_table_generic())
+    lapply(infiles, read_table_generic)
   )
   data.table::setDF(combined)
   return(combined)
@@ -46,23 +47,26 @@ concatenateAlleleCountFiles <- function(inputStart, inputEnd, chr_names) {
 #' Function to concatenate 1000 Genomes SNP reference files
 #' @noRd
 concatenateG1000SnpFiles <- function(inputStart, inputEnd, chr_names) {
-  # Generate all potential filenames at once
+  # Vectorized filename generation
   filenames <- paste0(inputStart, chr_names, inputEnd)
-  names(filenames) <- chr_names # Keep names so rbindlist knows the ID
-  # Filter for files that exist and are not empty
+  names(filenames) <- chr_names
+
+  # Filter for valid files
   existing_files <- filenames[file.exists(filenames) & file.info(filenames)$size > 0]
 
   if (length(existing_files) == 0) {
     return(data.frame())
   }
 
-  # read_table_generic should ideally return a data.table for this to be fastest
-  # We use lapply to read them into a list
+  # Read files into a named list
   data_list <- lapply(existing_files, read_table_generic)
-  # rbindlist with 'idcol' automatically creates the 'chromosome' column
-  # based on the names of our list (which are the chr_names)
+
+  # idcol = "chromosome" prepends the list names (chr_names) as the first column
+  # This matches the original: cbind(chromosome=chrom, read_table_generic(filename))
   combined <- data.table::rbindlist(data_list, idcol = "chromosome")
 
+  # Convert back to data.frame for index compatibility [[4]]
   data.table::setDF(combined)
+
   return(combined)
 }

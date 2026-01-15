@@ -66,7 +66,7 @@ cell_line_baf_logR <- function(TUMOURNAME, g1000alleles_prefix, chrom_names) {
     ohet$Position_dist <- ohet$Position2 - ohet$Position
     ohet$Position_dist_percent <- ohet$Position_dist / max(ohet$Position_dist)
     OHET[[chr]] <- ohet
-    print(paste("chromosome", chr, "file read"))
+    log_info(paste("chromosome", chr, "file read"))
   }
   # CREATE mutantBAF and mutantLogR *.tab files #
   cellline <- TUMOURNAME
@@ -88,14 +88,14 @@ cell_line_baf_logR <- function(TUMOURNAME, g1000alleles_prefix, chrom_names) {
   names(BAF)[names(BAF) == "cellline"] <- cellline
   BAF <- BAF[order(BAF$Chromosome, BAF$Position), ]
   BAF$Chromosome[BAF$Chromosome == 23] <- "X" # revert back from 23 to X for Chromosome name
-  data.table::fwrite(BAF, paste0(cellline, "_mutantBAF.tab"), col_names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  data.table::fwrite(BAF, paste0(cellline, "_mutantBAF.tab"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
   rm(BAF)
 
   LogR <- data.frame(Chromosome = MACC$chr, Position = MACC$pos, cellline = MACC$logr)
   names(LogR)[names(LogR) == "cellline"] <- cellline
   LogR <- LogR[order(LogR$Chromosome, LogR$Position), ]
   LogR$Chromosome[LogR$Chromosome == 23] <- "X" # revert back from 23 to X for Chromosome name
-  data.table::fwrite(LogR, paste0(cellline, "_mutantLogR.tab"), col_names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+  data.table::fwrite(LogR, paste0(cellline, "_mutantLogR.tab"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 
   rm(MAC)
   rm(MaC)
@@ -428,14 +428,14 @@ cell_line_reconstruct_normal <- function(
         grDevices::pdf(paste0(TUMOURNAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_pLOH_events.pdf"))
         suppressWarnings(
           for (s in seq_len(nrow(pLOH_regions))) {
-            sBAF <- ggplot2::ggplot(ohet, ggplot2::aes(Position, baf)) +
+            sBAF <- ggplot2::ggplot(ohet, ggplot2::aes(rlang::.data$Position, rlang::.data$baf)) +
               ggplot2::geom_jitter() +
               ggplot2::ylim(0, 1) +
               ggplot2::geom_vline(xintercept = c(pLOH_regions$start.pos[s], pLOH_regions$end.pos[s]), col = "red", linetype = "longdash") +
               ggplot2::xlim(pLOH_regions$start.pos[s] - LENGTH_ADJACENT, pLOH_regions$end.pos[s] + LENGTH_ADJACENT) +
               ggplot2::ggtitle(paste("pARM LOH region", s)) +
               ggplot2::labs(y = "BAF")
-            sLogR <- ggplot2::ggplot(logr, ggplot2::aes(Position, LogR)) +
+            sLogR <- ggplot2::ggplot(logr, ggplot2::aes(rlang::.data$Position, rlang::.data$LogR)) +
               ggplot2::geom_jitter() +
               ggplot2::ylim(-5.2, 1.2) +
               ggplot2::geom_vline(xintercept = c(pLOH_regions$start.pos[s], pLOH_regions$end.pos[s]), col = "red", linetype = "longdash") +
@@ -554,13 +554,13 @@ cell_line_reconstruct_normal <- function(
       grDevices::pdf(paste0(TUMOURNAME, "_chr", i, "_", MIN_HET_DIST / 1e3, "k_based_qLOH_events.pdf"))
       suppressWarnings(
         for (s in seq_len(nrow(qLOH_regions))) {
-          sBAF <- ggplot2::ggplot(ohet, ggplot2::aes(Position, baf)) +
+          sBAF <- ggplot2::ggplot(ohet, ggplot2::aes(rlang::.data$Position, rlang::.data$baf)) +
             ggplot2::geom_jitter() +
             ggplot2::ylim(0, 1) +
             ggplot2::geom_vline(xintercept = c(qLOH_regions$start.pos[s], qLOH_regions$end.pos[s]), col = "red", linetype = "longdash") +
             ggplot2::xlim(qLOH_regions$start.pos[s] - LENGTH_ADJACENT, qLOH_regions$end.pos[s] + LENGTH_ADJACENT) +
             ggplot2::ggtitle(paste("qARM LOH region", s))
-          sLogR <- ggplot2::ggplot(logr, ggplot2::aes(Position, LogR)) +
+          sLogR <- ggplot2::ggplot(logr, ggplot2::aes(rlang::.data$Position, rlang::.data$LogR)) +
             ggplot2::geom_jitter() +
             ggplot2::ylim(-5.2, 1.2) +
             ggplot2::geom_vline(xintercept = c(qLOH_regions$start.pos[s], qLOH_regions$end.pos[s]), col = "red", linetype = "longdash") +
@@ -830,19 +830,34 @@ prepare_wgs_cell_line <- function(
   min_base_qual, min_map_qual, allelecounter_exe, min_normal_depth,
   skip_allele_counting
 ) {
-  `%dopar%` <- foreach::`%dopar%`
   if (!skip_allele_counting) {
-    # Obtain allele counts for 1000 Genomes locations for the cell line
-    foreach::foreach(i = seq_along(chrom_names)) %dopar% {
+    # Define the counting logic for a single chromosome
+    do_cell_line_counting <- function(i) {
       getAlleleCounts(
         bam.file = tumourbam,
-        output_file = paste(tumourname, "_alleleFrequencies_chr", i, ".txt", sep = ""),
-        g1000.loci = paste(g1000lociprefix, i, ".txt", sep = ""),
+        output_file = paste(
+          tumourname,
+          "_alleleFrequencies_chr",
+          chrom_names[i], ".txt",
+          sep = ""
+        ),
+        g1000.loci = paste(
+          g1000lociprefix,
+          chrom_names[i],
+          ".txt",
+          sep = ""
+        ),
         min.base.qual = min_base_qual,
         min.map.qual = min_map_qual,
         allelecounter.exe = allelecounter_exe
       )
     }
+    # Use the abstraction to handle parallel vs serial
+    run_parallel_or_serial(
+      iterator = seq_along(chrom_names),
+      func = do_cell_line_counting,
+      debug = debug
+    )
   }
 
   # Standardise Chr notation (removes 'chr' string if present; essential for cell_line_baf_logR)
@@ -860,32 +875,39 @@ prepare_wgs_cell_line <- function(
   )
   # Reconstruct normal-pair allele count files for the cell line
 
-  foreach::foreach(
-    i = seq_along(chrom_names),
-    .export = c(
-      "cell_line_reconstruct_normal", "cl_data"
-    ),
-    .packages = c("copynumber", "ggplot2", "grid")
-  ) %dopar% {
-    # Now the worker has everything it needs in its local memory
-    cell_line_reconstruct_normal(
-      TUMOURNAME = tumourname,
-      NORMALNAME = paste0(tumourname, "_normal"),
-      chrom_coord = chrom_coord,
-      chrom = i,
-      CL_OHET = cl_data$OHET,
-      CL_AL = cl_data$AL,
-      CL_AC = cl_data$AC,
-      CL_LogR = cl_data$LogR,
-      GAMMA_IVD = gamma_ivd,
-      KMIN_IVD = kmin_ivd,
-      CENTROMERE_NOISE_SEG_SIZE = centromere_noise_seg_size,
-      CENTROMERE_DIST = centromere_dist,
-      MIN_HET_DIST = min_het_dist,
-      GAMMA_LOGR = gamma_logr,
-      LENGTH_ADJACENT = length_adjacent
-    )
-  }
+  run_parallel_or_serial(
+    iterator = seq_along(chrom_names),
+    func = function(i) {
+      # If we are in parallel mode, ensure the packages are loaded on the worker
+      if (!debug) {
+        # The least shit way to load dependencies inside a worker
+        # This replaces the .packages argument from foreach
+        requireNamespace("copynumber", quietly = TRUE)
+        requireNamespace("ggplot2", quietly = TRUE)
+        requireNamespace("grid", quietly = TRUE)
+      }
+
+      # Execute the reconstruction
+      cell_line_reconstruct_normal(
+        TUMOURNAME = tumourname,
+        NORMALNAME = paste(tumourname, "_normal", sep = ""),
+        chrom_coord = chrom_coord,
+        chrom = i,
+        CL_OHET = cl_data$OHET,
+        CL_AL = cl_data$AL,
+        CL_AC = cl_data$AC,
+        CL_LogR = cl_data$LogR,
+        GAMMA_IVD = gamma_ivd,
+        KMIN_IVD = kmin_ivd,
+        CENTROMERE_NOISE_SEG_SIZE = centromere_noise_seg_size,
+        CENTROMERE_DIST = centromere_dist,
+        MIN_HET_DIST = min_het_dist,
+        GAMMA_LOGR = gamma_logr,
+        LENGTH_ADJACENT = length_adjacent
+      )
+    },
+    debug = debug,
+  )
 
   if (length(list.files(pattern = "normal_alleleFrequencies")) == length(chrom_names)) {
     print("STEP 2 - Normal allelecounts reconstruction - completed")

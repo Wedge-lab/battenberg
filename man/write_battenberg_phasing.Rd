@@ -2,7 +2,7 @@
 % Please edit documentation in R/haplotype_external.R
 \name{write_battenberg_phasing}
 \alias{write_battenberg_phasing}
-\title{Writes the imputation and copy number phased haplotypes to a vcf}
+\title{Writes the imputation and copy number phased haplotypes to a VCF}
 \usage{
 write_battenberg_phasing(
   tumourname,
@@ -17,21 +17,18 @@ write_battenberg_phasing(
 \arguments{
 \item{tumourname}{Sample name}
 
-\item{SNPfiles}{Character vector of the paths to the alleleFrequencies files, ordered by chromosome index}
+\item{SNPfiles}{Character vector of alleleFrequency files (per chromosome)}
 
-\item{imputedHaplotypeFiles}{Character vector of the paths to the impute_output files, ordered by chromosome index}
+\item{imputedHaplotypeFiles}{Character vector of impute2 haplotype files}
 
-\item{bafsegmented_file}{Path to the BAFSegmented file}
+\item{bafsegmented_file}{Path to BAFSegmented file}
 
-\item{outprefix}{Prefix to write the output vcf files to}
+\item{outprefix}{Output VCF prefix}
 
-\item{chrom_names}{Names of the chromosomes}
+\item{chrom_names}{Chromosome names}
 
-\item{include_homozygous}{Include homozygous SNPs in the output vcf file (Default = FALSE)}
+\item{include_homozygous}{Include homozygous SNPs (default FALSE)}
 }
 \description{
-Writes the imputation and copy number phased haplotypes to a vcf
-}
-\author{
-jdemeul
+Writes the imputation and copy number phased haplotypes to a VCF
 }

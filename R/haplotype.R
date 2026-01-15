@@ -30,7 +30,7 @@ GetChromosomeBAFs_SNP6 <- function(chrom, alleleFreqFile, haplotypeFile, samplen
   print(paste(nrow(variant_data), length(alleleFreqs), sep = ","))
   # Combine the allele frequencies and variant info and save output
   knownMutBAFs <- cbind(chr_name, variant_data[, 3], alleleFreqs)
-  data.table::fwrite(knownMutBAFs, outputfile, sep = "\t", row.names = FALSE, col_names = c("Chromosome", "Position", samplename), quote = FALSE)
+  data.table::fwrite(knownMutBAFs, outputfile, sep = "\t", row.names = FALSE, col.names = c("Chromosome", "Position", samplename), quote = FALSE)
 }
 
 #' Morphs phased SNPs from WGS input into haplotype blocks
@@ -215,7 +215,10 @@ concatenate_baf_files <- function(
   output_file,
   chr_names
 ) {
-  files <- fs::path(input_start, chr_names, input_end)
+  files <- paste0(input_start, chr_names, input_end)
+
+  log_info("Starting concatenation for {length(chr_names)} expected BAF files {files}")
+
 
   # Filter for existing and non-empty files
   valid_files <- files[
@@ -223,31 +226,56 @@ concatenate_baf_files <- function(
       fs::file_size(files) > 0
   ]
 
-  if (length(valid_files) == 0) {
-    cli::cli_abort("No valid BAF files found matching the pattern.")
+  exists_mask <- fs::file_exists(files)
+  size_mask <- fs::file_size(files) > 0
+  missing_chrs <- chr_names[!exists_mask]
+  if (base::length(missing_chrs) > 0) {
+    log_info("Chromosomes missing files: {base::paste(missing_chrs, collapse = ', ')}")
   }
+
+  empty_chrs <- chr_names[exists_mask & !size_mask]
+  if (base::length(empty_chrs) > 0) {
+    log_info("DATA ISSUE: Chromosomes with 0-byte files: {base::paste(empty_chrs, collapse = ', ')}")
+  }
+
+  valid_files <- files[exists_mask & size_mask]
+
+  if (base::length(valid_files) == 0) {
+    log_info("CRITICAL: Zero valid BAF files found across all chromosomes.")
+  }
+
+  log_info("Proceeding to combine {base::length(valid_files)} valid files")
 
   # Force first column to character
   # Use column index 1 to avoid needing names(vroom(...)) twice
-  first_file_cols <- names(vroom::vroom(valid_files[1], n_max = 0))
+  first_file_cols <- names(vroom::vroom(
+    valid_files[1],
+    n_max = 0,
+    progress = FALSE,
+  ))
   col_spec <- vroom::cols(
     .default = vroom::col_guess(),
     !!!stats::setNames(list(vroom::col_character()), first_file_cols[1])
   )
+
+  log_info("Reading data using column spec based on {fs::path_file(valid_files[1])}")
 
   combined <- vroom::vroom(
     valid_files,
     id = "file_path",
     delim = "\t",
     col_types = col_spec,
-    progress = TRUE,
+    progress = FALSE,
     .name_repair = "universal"
   ) |>
     dplyr::select(-dplyr::any_of("file_path"))
 
-  if (nrow(combined) == 0) {
-    cli::cli_abort("All files were read but contained no rows.")
+  total_rows <- base::nrow(combined)
+  if (total_rows == 0) {
+    log_failure("DATA ISSUE: Files were read but the resulting table is empty.")
   }
+
+  log_info("Total combined rows: {base::format(total_rows, big.mark = ',')}")
 
   # Ensure output directory exists
   fs::dir_create(fs::path_dir(output_file), recurse = TRUE)
@@ -261,7 +289,5 @@ concatenate_baf_files <- function(
     quote = "none"
   )
 
-  cli::cli_inform(
-    "Combined BAF table ({format(nrow(combined), big.mark = ',')} rows) written to {.path {output_file}}"
-  )
+  log_info("BAF concatenation complete. Final file size: {fs::file_size(output_file)}")
 }

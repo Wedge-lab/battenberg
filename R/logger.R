@@ -10,8 +10,12 @@
 #'
 #' @export
 log_setup <- function(log_path, verbose = FALSE) {
+  if (file.info(log_path)$isdir %||% dir.exists(log_path)) {
+    log_path <- file.path(log_path, "session.log")
+  }
+
   # Create directory if it doesn't exist
-  base::dir.create(base::dirname(log_path), recursive = TRUE, showWarnings = FALSE)
+  dir.create(dirname(log_path), recursive = TRUE, showWarnings = FALSE)
 
   # Set where the log goes
   logger::log_appender(logger::appender_file(log_path))
@@ -35,10 +39,12 @@ log_setup <- function(log_path, verbose = FALSE) {
 #'
 #' @export
 log_info <- function(msg, ...) {
-  cli::cli_inform(msg, ...) # High-level UI for the human
-  formatted_msg <- cli::cli_format_method(
-    cli::cli_text(msg),
-    .envir = base::parent.frame()
+  caller_env <- parent.frame()
+  cli::cli_inform(msg, .envir = caller_env, ...)
+
+  formatted_msg <- cli::format_inline(
+    msg,
+    .envir = parent.frame()
   )
   clean <- cli::ansi_strip(formatted_msg)
 
@@ -57,9 +63,9 @@ log_info <- function(msg, ...) {
 #' @export
 log_debug <- function(msg, ...) {
   cli::cli_inform(msg, ...)
-  formatted_msg <- cli::cli_format_method(
-    cli::cli_text(msg),
-    .envir = base::parent.frame()
+  formatted_msg <- cli::format_inline(
+    msg,
+    .envir = parent.frame()
   )
   clean <- cli::ansi_strip(formatted_msg)
   logger::log_debug(clean) # Record to file ONLY if threshold is DEBUG
@@ -77,9 +83,9 @@ log_debug <- function(msg, ...) {
 #' @export
 log_failure <- function(msg, ...) {
   cli::cli_abort(msg, ...)
-  formatted_msg <- cli::cli_format_method(
-    cli::cli_text(msg),
-    .envir = base::parent.frame()
+  formatted_msg <- cli::format_inline(
+    msg,
+    .envir = parent.frame()
   )
   clean <- cli::ansi_strip(formatted_msg)
   logger::log_failure(clean)

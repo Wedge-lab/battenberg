@@ -68,7 +68,8 @@ battenberg(
   chrom_coord_file = NULL,
   enhanced_grid_search = FALSE,
   verbose_logging = FALSE,
-  logging_path = "."
+  logging_path = ".",
+  debug = FALSE
 )
 }
 \arguments{

@@ -69,8 +69,7 @@ cnfit_to_refit_suggestions <- function(samplename, subclones_file, rho_psi_file,
     # Take only segments that are clonal and are an alteration
     is_subclonal <- subclones$frac1_A < 1
     subclones_clonal_cna <- subset(subclones, !is_subclonal & subclones$is_cna)
-    subclones_clonal_cna <- subclones_clonal_cna[with(subclones_clonal_cna, order(len, decreasing = TRUE)), ]
-
+    subclones_clonal_cna <- subclones_clonal_cna[order(subclones_clonal_cna$len, decreasing = TRUE), ]
     if (nrow(subclones_clonal_cna) == 0) {
       output <- data.table::data.table(
         project = NA, samplename = samplename,

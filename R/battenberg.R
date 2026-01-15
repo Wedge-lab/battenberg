@@ -54,7 +54,7 @@
 #' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
 #' @param heterozygous_filter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
 #' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
-#' @param genomebuild Genome build upon which the 1000G SNP coordinates were obtained (Default: hg19; options: "hg19" or "hg38")
+#' @param genomebuild Genome build upon which the 1000G SNP coordinates were obtained (Default: hg38; options: "hg19" or "hg38")
 #' @param chrom_chrod_file TODO: no idea what this does
 #' @param externalhaplotypefile Vcf containing externally obtained haplotype blocks (Default: NA)
 #' @param write_battenberg_phasing Write the Battenberg phasing results as vcf to disk, e.g. for multisample cases (Default: TRUE)
@@ -63,6 +63,8 @@
 #' @param enhanced_grid_search Should use multi-start, parallelized and multi-approach grid search (Default: FALSE)
 #' @param verbose_logging Print out more information during the run (Default: FALSE)
 #' @param logging_path Path to write log files to (Default: ".")
+#' @param debug Flag the determines if battenberg runs in debug mode or not. The difference is no parallelization in debug mode. (Default: FALSE)
+
 #' @author sd11, jdemeul, Naser Ansari-Pour, Julio Cesar Cortes Rios
 #' @export
 battenberg <- function(
@@ -125,18 +127,16 @@ battenberg <- function(
   birdseed_report_file = "birdseed.report.txt",
   heterozygous_filter = "none",
   prior_breakpoints_file = NULL,
-  genomebuild = "hg19",
+  genomebuild = "hg38",
   chrom_coord_file = NULL,
   enhanced_grid_search = FALSE,
   verbose_logging = FALSE,
-  logging_path = "."
+  logging_path = ".",
+  debug = FALSE
 ) {
   libs <- .libPaths()
-  `%dopar%` <- foreach::`%dopar%`
-
-
   log_setup(logging_path, verbose_logging)
-  log_info("Starting analysis for {samplename}")
+  log_info("Starting analysis for {samplename} in debug='{debug}' mode")
 
 
   if (analysis == "cell_line") {
@@ -223,8 +223,10 @@ samples: {paste(samplename, collapse = ', ')}")
     if (!skip_preprocessing[sampleidx]) {
       if (data_type == "wgs" || data_type == "WGS") {
         # Setup for parallel computing
-        clp <- parallel::makeCluster(nthreads, outfile = "")
-        doParallel::registerDoParallel(clp)
+        if (!debug) {
+          clp <- parallel::makeCluster(nthreads, outfile = "")
+          doParallel::registerDoParallel(clp)
+        }
 
         if (analysis == "paired") {
           if (is.null(normalname) || is.na(normalname)) {
@@ -297,7 +299,9 @@ samples: {paste(samplename, collapse = ', ')}")
         }
 
         # Kill the threads
-        parallel::stopCluster(clp)
+        if (!debug) {
+          parallel::stopCluster(clp)
+        }
       } else if (data_type == "snp6" || data_type == "SNP6") {
         prepare_snp6(
           tumour_cel_file = sample_data_file[sampleidx],
@@ -345,17 +349,18 @@ samples: {paste(samplename, collapse = ', ')}")
       }
 
       # Setup for parallel computing
-      clp <- parallel::makeCluster(nthreads, outfile = "")
-      doParallel::registerDoParallel(clp)
+      if (!debug) {
+        clp <- parallel::makeCluster(nthreads, outfile = "")
+        doParallel::registerDoParallel(clp)
+      }
 
       # Reconstruct haplotypes
       # mclapply(seq_along(chrom_names), function(chrom) {
-      if (analysis == "germline") {
-        foreach::foreach(i = seq_along(chrom_names)) %dopar% {
-          .libPaths(libs)
-          chrom <- chrom_names[i]
-          log_info("chrom {chrom}")
-
+      do_haplotyping <- function(i) {
+        .libPaths(libs)
+        chrom <- chrom_names[i]
+        if (analysis == "germline") {
+          log_info("germline chrom {chrom}")
           run_haplotyping_germline(
             chrom = chrom,
             germlinename = samplename,
@@ -379,40 +384,46 @@ samples: {paste(samplename, collapse = ', ')}")
             beaglewindow = beaglewindow,
             beagleoverlap = beagleoverlap
           )
-        }
-      } else {
-        foreach::foreach(i = seq_along(chrom_names)) %dopar% {
+        } else {
           .libPaths(libs)
           chrom <- chrom_names[i]
           log_info("chrom {chrom}")
-          run_haplotyping(
-            chrom = chrom,
-            tumourname = samplename[sampleidx],
-            normalname = normalname,
-            ismale = ismale,
-            imputeinfofile = imputeinfofile,
-            problemloci = problemloci,
-            impute_exe = impute_exe,
-            min_normal_depth = min_normal_depth,
-            chrom_names = chrom_names,
-            snp6_reference_info_file = snp6_reference_info_file,
-            heterozygous_filter = heterozygous_filter,
-            usebeagle = usebeagle,
-            beaglejar = beaglejar,
-            beagleref = gsub("CHROMNAME", chrom, beagleref_template),
-            beagleplink = gsub("CHROMNAME", chrom, beagleplink_template),
-            beaglemaxmem = beaglemaxmem,
-            beaglenthreads = beaglenthreads,
-            beaglewindow = beaglewindow,
-            beagleoverlap = beagleoverlap,
-            externalhaplotypeprefix = externalhaplotypeprefix,
-            use_previous_imputation = (sampleidx > 1)
-          )
+          # run_haplotyping(
+          #  chrom = chrom,
+          #  tumourname = samplename[sampleidx],
+          #  normalname = normalname,
+          #  ismale = ismale,
+          #  imputeinfofile = imputeinfofile,
+          #  problemloci = problemloci,
+          #  impute_exe = impute_exe,
+          #  min_normal_depth = min_normal_depth,
+          #  chrom_names = chrom_names,
+          #  snp6_reference_info_file = snp6_reference_info_file,
+          #  heterozygous_filter = heterozygous_filter,
+          #  usebeagle = usebeagle,
+          #  beaglejar = beaglejar,
+          #  beagleref = gsub("CHROMNAME", chrom, beagleref_template),
+          #  beagleplink = gsub("CHROMNAME", chrom, beagleplink_template),
+          #  beaglemaxmem = beaglemaxmem,
+          #  beaglenthreads = beaglenthreads,
+          #  beaglewindow = beaglewindow,
+          #  beagleoverlap = beagleoverlap,
+          #  externalhaplotypeprefix = externalhaplotypeprefix,
+          #  use_previous_imputation = (sampleidx > 1)
+          # )
         }
       }
+      run_parallel_or_serial(
+        iterator = seq_along(chrom_names),
+        func = do_haplotyping,
+        debug = debug,
+        libs = libs
+      )
 
       # Kill the threads as from here its all single core
-      parallel::stopCluster(clp)
+      if (!debug) {
+        parallel::stopCluster(clp)
+      }
 
       # Combine all the BAF output into a single file
       concatenate_baf_files(
@@ -456,26 +467,23 @@ samples: {paste(samplename, collapse = ', ')}")
     multisamplehaplotypeprefix <- paste0(normalname, "_multisample_haplotypes_chr")
 
 
-    # Setup for parallel computing
-    clp <- parallel::makeCluster(nthreads, outfile = "")
-    doParallel::registerDoParallel(clp)
+    if (!debug) {
+      clp <- parallel::makeCluster(nthreads, outfile = "")
+      doParallel::registerDoParallel(clp)
+    }
 
-    # Reconstruct haplotypes
-    .libPaths()
-    foreach::foreach(i = seq_along(chrom_names)) %dopar% {
-      .libPaths(libs)
-      .libPaths()
+    run_parallel_or_serial(seq_along(chrom_names), function(i) {
       chrom <- chrom_names[i]
-      log_info("chrom {chrom}")
+      log_info("multisample phasing chrom {chrom}")
 
       get_multisample_phasing(
         chrom = chrom,
-        bbphasingprefixes = paste0(samplename, "_Battenberg_phased_chr"),
+        bbphasingprefixes = paste(samplename, "_Battenberg_phased_chr", sep = ""),
         maxlag = multisample_maxlag,
         relative_weight_balanced = multisample_relative_weight_balanced,
         outprefix = multisamplehaplotypeprefix
       )
-    }
+    }, libs)
 
     # continue over all samples to incorporate the multisample phasing
     for (sampleidx in 1:nsamples) {
@@ -493,42 +501,44 @@ samples: {paste(samplename, collapse = ', ')}")
       file.copy(from = haplotypedandbafsegmentedfiles, to = gsub(pattern = ".txt$", replacement = "_noMulti.txt", x = haplotypedandbafsegmentedfiles), overwrite = TRUE)
       # done renaming, next sections will overwrite orignals
 
-
-      foreach::foreach(i = seq_along(chrom_names)) %dopar% {
-        .libPaths(libs)
+      run_parallel_or_serial(seq_along(chrom_names), function(i) {
         chrom <- chrom_names[i]
-        log_info("chrom {chrom}")
+        log_info("sample in nsamples chrom {chrom}")
 
+        # Reconstruct haplotypes from external file
         input_known_haplotypes(
           chrom = chrom,
           chrom_names = chrom_names,
-          imputedHaplotypeFile = paste0(samplename[sampleidx], "_impute_output_chr", chrom, "_allHaplotypeInfo.txt"),
-          externalHaplotypeFile = paste0(multisamplehaplotypeprefix, chrom, ".vcf"),
+          imputedHaplotypeFile = paste(samplename[sampleidx], "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = ""),
+          externalHaplotypeFile = paste(multisamplehaplotypeprefix, chrom, ".vcf", sep = ""),
           oldfilesuffix = "_noMulti.txt"
         )
 
+        # Get BAFs for the specific chromosome
         GetChromosomeBAFs(
           chrom = chrom,
-          SNP_file = paste0(samplename[sampleidx], "_alleleFrequencies_chr", chrom, ".txt"),
-          haplotypeFile = paste0(samplename[sampleidx], "_impute_output_chr", chrom, "_allHaplotypeInfo.txt"),
+          SNP_file = paste(samplename[sampleidx], "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
+          haplotypeFile = paste(samplename[sampleidx], "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = ""),
           samplename = samplename[sampleidx],
-          outfile = paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),
+          outfile = paste(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
           chr_names = chrom_names,
           minCounts = min_normal_depth
         )
 
-        # Plot what we have until this point
+        # Plot the intermediate results
         plot_haplotype_data(
-          haplotyped_baf_file = paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt"),
-          image_file_name = paste0(samplename[sampleidx], "_chr", chrom, "_heterozygousData.png"),
+          haplotyped_baf_file = paste(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
+          image_file_name = paste(samplename[sampleidx], "_chr", chrom, "_heterozygousData.png", sep = ""),
           samplename = samplename[sampleidx],
           chrom = chrom
         )
-      }
+      }, debug, libs)
     }
 
     # Kill the threads as from here its single core
-    parallel::stopCluster(clp)
+    if (!debug) {
+      parallel::stopCluster(clp)
+    }
 
     for (sampleidx in 1:nsamples) {
       # Combine all the BAF output into a single file
@@ -552,24 +562,27 @@ samples: {paste(samplename, collapse = ', ')}")
   }
 
   # Setup for parallel computing
-  clp <- parallel::makeCluster(min(nthreads, nsamples), outfile = "")
-  doParallel::registerDoParallel(clp)
-  # for (sampleidx in 1:nsamples) {
-  foreach::foreach(sampleidx = 1:nsamples) %dopar% {
-    .libPaths(libs)
+  if (!debug) {
+    clp <- parallel::makeCluster(min(nthreads, nsamples), outfile = "")
+    doParallel::registerDoParallel(clp)
+  }
+
+  # Use the universal helper to process each sample
+  run_parallel_or_serial(seq_len(nsamples), function(sampleidx) {
+    # Scoping ensures this function sees 'samplename', 'libs', etc.
     log_info("Fitting final copy number and calling subclones for sample '{samplename[sampleidx]}'")
 
+    # Determine file paths based on data type and analysis mode
     if (data_type == "wgs" || data_type == "WGS") {
       logr_file <- paste(samplename[sampleidx], "_mutantLogR_gcCorrected.tab", sep = "")
       if (analysis == "paired") {
         allelecounts_file <- paste(samplename[sampleidx], "_alleleCounts.tab", sep = "")
       } else {
-        # Not produced by a number of analysis and is required for some plots. Setting to NULL  makes the pipeline not attempt to create these plots
         allelecounts_file <- NULL
       }
     }
 
-    # Fit a clonal copy number profile
+    # If 'debug' is TRUE, a crash here will now give a REAL line number
     fit_copy_number(
       samplename = samplename[sampleidx],
       outputfile_prefix = paste(samplename[sampleidx], "_", sep = ""),
@@ -594,7 +607,7 @@ samples: {paste(samplename, collapse = ', ')}")
       enhanced_grid_search = enhanced_grid_search
     )
 
-    # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
+    # Fit a second CN state (subclonal)
     log_info("call_subclones")
     call_subclones(
       sample_name = samplename[sampleidx],
@@ -618,8 +631,7 @@ samples: {paste(samplename, collapse = ', ')}")
       verbose_logging = verbose_logging
     )
 
-    # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
-    # Only do this when X chromosome is included
+    # Handle Male ChrX if applicable
     if (ismale && "X" %in% chrom_names) {
       log_info("callChrXsubclones")
       callChrXsubclones(
@@ -634,7 +646,7 @@ samples: {paste(samplename, collapse = ', ')}")
       )
     }
 
-    # Make some post-hoc plots
+    # Cleanup/Post-hoc visualisations
     log_info("make_posthoc_plots")
     make_posthoc_plots(
       samplename = samplename[sampleidx],
@@ -644,7 +656,7 @@ samples: {paste(samplename, collapse = ', ')}")
       allelecounts_file = allelecounts_file
     )
 
-    # Save refit suggestions for a future rerun
+    # Generate refit suggestions
     log_info("cnfit_to_refit_suggestions")
     cnfit_to_refit_suggestions(
       samplename = samplename[sampleidx],
@@ -652,10 +664,12 @@ samples: {paste(samplename, collapse = ', ')}")
       rho_psi_file = paste(samplename[sampleidx], "_rho_and_psi.txt", sep = ""),
       gamma_param = platform_gamma
     )
-  }
+  }, debug, libs)
 
   # Kill the threads as last part again is single core
-  parallel::stopCluster(clp)
+  if (!debug) {
+    parallel::stopCluster(clp)
+  }
 
   if (nsamples > 1) {
     log_info("Assessing mirrored subclonal allelic imbalance (MSAI)")

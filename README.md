@@ -362,7 +362,7 @@ mclapply(ffs[length(ffs):1],function(x)
                       a0=ref,
                       a1=alt)
     data.table::fwrite(ndf,file=out,
-                row.names=F,col_names=T,sep="\t",quote=F)
+                row.names=F,col.names=T,sep="\t",quote=F)
 },mc.cores=5)
 ##########################################################################
 
@@ -478,7 +478,7 @@ writeGC <- function(gccontent,chr,outdir)
 {
     data.table::fwrite(gccontent,
                 file=gzfile(paste0(outdir,"/1000_genomes_GC_corr_chr_",chr,".txt.gz")),
-                col_names=T,
+                col.names=T,
                 row.names=T,quote=F,sep="\t")
 }
 

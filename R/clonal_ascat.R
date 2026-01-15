@@ -255,7 +255,7 @@ runASCAT <- function(
     weight_unbalanced <- sum(s[, "length"] * is_not_balanced)
 
     results <- apply(indices, 1, function(idx) {
-      i <- idx[1]
+      dx[1]
       j <- idx[2]
       m <- current_d[i, j]
       psi <- as.numeric(rownames(current_d)[i])
@@ -314,7 +314,10 @@ runASCAT <- function(
   rho_opt1_plot <- vector(mode = "numeric")
 
   if (nropt > 0) {
-    data.table::fwrite(paste(nropt, " copy number solutions found", sep = ""), file = cnaStatusFile, quote = FALSE, col_names = FALSE, row.names = FALSE)
+    data.table::fwrite(
+      paste(nropt, " copy number solutions found", sep = ""),
+      file = cnaStatusFile, quote = FALSE, col.names = FALSE, row.names = FALSE
+    )
 
     # Find the global minimum among the local optima
     all_m <- sapply(valid_optima, function(x) x$m)
@@ -333,8 +336,8 @@ runASCAT <- function(
       }
     }
   } else {
-    data.table::fwrite("no copy number solutions found", file = cnaStatusFile, quote = FALSE, col_names = FALSE, row.names = FALSE)
-    print("No suitable copy number solution found")
+    writeLines("no copy number solutions found", con = cnaStatusFile)
+    log_info("No suitable copy number solution found")
     psi <- ploidy <- rho <- NA
     psi_opt1_plot <- rho_opt1_plot <- -1
   }
@@ -514,12 +517,12 @@ run_clonal_ASCAT <- function(
 
   is_ref_better <- FALSE
   if (is.na(rho_opt1)) {
-    print("reference segment did not provide a possible solution")
+    log_info("reference segment did not provide a possible solution")
   } else if (psi_opt1 >= psi_min_initial && psi_opt1 <= psi_max_initial && rho_opt1 >= rho_min_initial && rho_opt1 <= rho_max_initial && ((minimise && distance.from.ref.seg < best.distance) || (!minimise && distance.from.ref.seg > best.distance))) {
     is_ref_better <- T
-    print("reference segment gives better results than grid search")
+    log_info("reference segment gives better results than grid search")
   } else {
-    print("reference segment gives no better results than grid search. Reverting to grid search solution")
+    log_info("reference segment gives no better results than grid search. Reverting to grid search solution")
   }
 
   psi_without_ref <- optima_info_without_ref$psi_opt1
@@ -594,7 +597,7 @@ run_clonal_ASCAT <- function(
 
   # If there aren't any clonally fit segments, the above yields NA. In this case, revert to the original grid search psi_t
   if (is.na(psi_t)) {
-    print("Recalculated psi_t was NA, reverting to grid search solution. This occurs when no segment could be fit with a clonal state, check sample for contamination")
+    log_info("Recalculated psi_t was NA, reverting to grid search solution. This occurs when no segment could be fit with a clonal state, check sample for contamination")
     psi_t <- psi_without_ref
   }
 
@@ -647,30 +650,33 @@ get_segment_info <- function(segLogR, segBAF_table) {
 #' Optimized Segment Maker
 make_segments <- function(r, b) {
   keep <- !is.na(r) & !is.na(b)
+
+  # Return empty matrix with correct names if no data
   if (!any(keep)) {
-    return(matrix(ncol = 3, nrow = 0, dimnames = list(NULL, c("r", "b", "length"))))
+    pcf_segments <- matrix(nrow = 0, ncol = 3)
+    colnames(pcf_segments) <- c("r", "b", "length")
+    return(pcf_segments)
   }
 
   r_clean <- r[keep]
   b_clean <- b[keep]
+
+  # Calculate segment IDs
   ids <- data.table::rleid(r_clean, b_clean)
 
-  # To get 'r' and 'b' for each segment (the values at the start of each group):
-  # which(!duplicated(ids)) finds the index of the first row of every new segment.
+  # Calculate first occurrence and lengths
   first_idx <- which(!duplicated(ids))
-
-  # To get 'length' (the count of rows in each group):
-  # collapse::fnobs counts observations per group ID extremely quickly.
-  # we cast to numeric to match the original matrix type perfectly.
   res_len <- as.numeric(collapse::fnobs(r_clean, g = ids))
 
-  # Creating the matrix via cbind on atomic vectors is nearly instantaneous.
-  # This avoids the 'as.matrix' call that slows down data.frame-based approaches.
-  pcf_segments <- cbind(
-    r      = r_clean[first_idx],
-    b      = b_clean[first_idx],
-    length = res_len
-  )
+  # Pre-allocate matrix to ensure 'array extent' is always 3
+  # This prevents the 'dimnames' error by guaranteeing ncol = 3
+  pcf_segments <- matrix(nrow = length(first_idx), ncol = 3)
+  colnames(pcf_segments) <- c("r", "b", "length")
+
+  # Fill the pre-allocated matrix
+  pcf_segments[, "r"] <- r_clean[first_idx]
+  pcf_segments[, "b"] <- b_clean[first_idx]
+  pcf_segments[, "length"] <- res_len
 
   return(pcf_segments)
 }
