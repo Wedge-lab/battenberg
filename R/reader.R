@@ -108,17 +108,20 @@ read_bafsegmented <- function(filename, header = TRUE) {
   dt <- data.table::fread(
     file = filename,
     header = header,
-    sep = "\t"
+    sep = "\t",
+    # Force column types to prevent the coercion warnings
+    colClasses = c(Chromosome = "character", Position = "integer")
   )
+  # If the file uses 'chr', 'chrom', or 'CHR', we standardize it to 'Chromosome'
+  if ("CHR" %in% colnames(dt)) {
+    data.table::setnames(dt, "CHR", "Chromosome")
+  } else if ("chr" %in% colnames(dt)) {
+    data.table::setnames(dt, "chr", "Chromosome")
+  }
 
-  # Standardize Chromosome name and force Position to integer
-  data.table::setnames(dt, old = "Chromosome", new = "CHR", skip_absent = TRUE)
-  dt[, Position := as.integer(Position)]
-
-  log_info("Verified headers bafsegmented {paste(colnames(dt), collapse = ', ')}")
+  log_info("Verified headers bafsegmented: {paste(colnames(dt), collapse = ', ')}")
   return(dt)
 }
-
 #' Parser for imputed genotype data
 #' @param filename Filename of the file to read in
 #' @return A data frame with the imputed genotype output

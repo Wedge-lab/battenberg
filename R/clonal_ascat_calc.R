@@ -258,3 +258,49 @@ calc_psi_t <- function(total_cn, r, rho, gamma_param) {
   psi_t <- (psi - 2 * (1 - rho)) / rho
   return(psi_t)
 }
+
+
+# Optimized Batch version of the t-test logic
+calc_batch_standardised_errors <- function(s, rho, psi, gamma_param) {
+  # s contains columns: r (LogR), b (BAF_req), length, size, mean, sd
+
+  scale <- psi * 2^(s[, "r"] / gamma_param)
+  nMajor_raw <- (rho - 1 + s[, "b"] * scale) / rho
+  nMinor_raw <- (rho - 1 + (1 - s[, "b"]) * scale) / rho
+
+  # Vectorized floor at 0.01
+  nMajor <- pmax(0.01, nMajor_raw)
+  nMinor <- pmax(0.01, nMinor_raw)
+
+  # Instead of a 4-item list per segment, we do 4 separate vector calculations
+  # This is where the massive speedup happens
+  nMaj_opts <- list(floor(nMajor), ceil(nMajor), floor(nMajor), ceil(nMajor))
+  nMin_opts <- list(ceil(nMinor), ceil(nMinor), floor(nMinor), floor(nMinor))
+
+  # Calculate BAF levels for all 4 possibilities across all segments simultaneously
+  BAF_levels <- lapply(1:4, function(k) {
+    denom <- (2 - 2 * rho + rho * (nMaj_opts[[k]] + nMin_opts[[k]]))
+    (1 - rho + rho * nMaj_opts[[k]]) / denom
+  })
+
+  # Vectorized "which.min(abs(BAF_levels - BAF_req))"
+  # We find the distance for all 4 options
+  diffs <- cbind(
+    abs(BAF_levels[[1]] - s[, "b"]),
+    abs(BAF_levels[[2]] - s[, "b"]),
+    abs(BAF_levels[[3]] - s[, "b"]),
+    abs(BAF_levels[[4]] - s[, "b"])
+  )
+
+  # Pick the best index for every segment at once
+  best_idx <- max.col(-diffs) # max of negative is min
+
+  # Map the best mu values
+  mu <- mapply(function(row, col) BAF_levels[[col]][row], 1:nrow(s), best_idx)
+
+  # Final t-variable calculation
+  is_valid <- s[, "size"] > 0 & s[, "sd"] != 0
+  tvar <- ifelse(is_valid, (s[, "mean"] - mu) * sqrt(s[, "size"]) / s[, "sd"], 0)
+
+  return(tvar)
+}

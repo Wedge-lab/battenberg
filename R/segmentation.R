@@ -159,7 +159,16 @@ segment_baf_phased <- function(
   # @param gamma
   # @param no_segmentation Do not perform segmentation. This step will switch the haplotype blocks, but then just takes the mean BAFphased as BAFsegm
   # @return A data.frame with columns Chromosome,Position,BAF,BAFphased,BAFseg
-  run_pcf <- function(BAFrawchr, presegment_chrom_start, presegment_chrom_end, phasekmin, phasegamma, kmin, gamma, no_segmentation = FALSE) {
+  run_pcf <- function(
+    BAFrawchr,
+    presegment_chrom_start,
+    presegment_chrom_end,
+    phasekmin,
+    phasegamma,
+    kmin,
+    gamma,
+    no_segmentation = FALSE
+  ) {
     row.indices <- which(BAFrawchr$Position >= presegment_chrom_start &
       BAFrawchr$Position <= presegment_chrom_end)
 
@@ -175,7 +184,7 @@ segment_baf_phased <- function(
       sdev <- 0.09
     }
 
-    print(paste("BAFlen=", length(BAF), sep = ""))
+    log_info("BAFlen={length(BAF)}")
     if (length(BAF) < 50) {
       BAFsegm <- rep(mean(BAF), length(BAF))
     } else {
@@ -231,7 +240,7 @@ segment_baf_phased <- function(
 
   BAFoutput <- NULL
   for (chr in unique(BAFraw[, 1])) {
-    print(paste0("Segmenting ", chr))
+    log_info("Segmenting: '{chr}'")
     BAFrawchr <- BAFraw[BAFraw[, 1] == chr, c(2, 3)]
     BAFrawchr <- BAFrawchr[!is.na(BAFrawchr[, 2]), ]
     if (!is.null(bkps)) {

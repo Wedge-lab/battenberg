@@ -426,26 +426,26 @@ samples: {paste(samplename, collapse = ', ')}")
       }
 
       # Combine all the BAF output into a single file
-      concatenate_baf_files(
-        input_start = paste(samplename[sampleidx], "_chr", sep = ""),
-        input_end = "_heterozygousMutBAFs_haplotyped.txt",
-        output_file = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
-        chr_names = chrom_names
-      )
+      # concatenate_baf_files(
+      #  input_start = paste(samplename[sampleidx], "_chr", sep = ""),
+      #  input_end = "_heterozygousMutBAFs_haplotyped.txt",
+      #  output_file = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
+      #  chr_names = chrom_names
+      # )
     }
 
     # Segment the phased and haplotyped BAF data
-    segment_baf_phased(
-      samplename = samplename[sampleidx],
-      inputfile = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
-      outputfile = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
-      prior_breakpoints_file = prior_breakpoints_file,
-      gamma = segmentation_gamma,
-      phasegamma = phasing_gamma,
-      kmin = segmentation_kmin,
-      phasekmin = phasing_kmin,
-      calc_seg_baf_option = calc_seg_baf_option
-    )
+    # segment_baf_phased(
+    #  samplename = samplename[sampleidx],
+    #  inputfile = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
+    #  outputfile = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
+    #  prior_breakpoints_file = prior_breakpoints_file,
+    #  gamma = segmentation_gamma,
+    #  phasegamma = phasing_gamma,
+    #  kmin = segmentation_kmin,
+    #  phasekmin = phasing_kmin,
+    #  calc_seg_baf_option = calc_seg_baf_option
+    # )
 
     if (nsamples > 1 || write_battenberg_phasing) {
       # Write the Battenberg phasing information to disk as a vcf

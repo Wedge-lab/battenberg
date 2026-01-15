@@ -382,7 +382,7 @@ run_haplotyping <- function(
 ) {
   previoushaplotypefile <- list.files(pattern = paste0("_impute_output_chr", chrom, "_allHaplotypeInfo.txt"))[1]
   if (use_previous_imputation && !is.na(previoushaplotypefile)) {
-    print(paste0("Previous imputation results found, copying info from", previoushaplotypefile, " to flip alleles"))
+    log_info("Previous imputation results found, copying info from {.path {previoushaplotypefile}} to flip alleles")
     currenthaplotypefile <- paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = "")
     if (previoushaplotypefile != currenthaplotypefile) {
       file.copy(from = previoushaplotypefile, to = paste(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = ""))

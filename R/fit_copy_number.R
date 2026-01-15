@@ -51,29 +51,22 @@ fit_copy_number <- function(
   assert_file_exists(inputfile_baf_segmented)
   assert_file_exists(inputfile_baf)
   assert_file_exists(inputfile_logr)
-  # Check for enough options supplied for rho and psi
+
   if ((max_ploidy - min_ploidy) < 0.05) {
     log_failure("Supplied ploidy range must be larger than 0.05: {min_ploidy}-{max_ploidy}")
-  }
-  if ((max_rho - min_rho) < 0.01) {
-    log_failure("Supplied rho range must be larger than 0.01: {min_rho}-{max_rho}")
   }
 
   # Read in the required data
   segmented.BAF.data <- read_bafsegmented(inputfile_baf_segmented)
   data.table::setDF(segmented.BAF.data)
-  log_info("Read segmented BAF: {nrow(segmented.BAF.data)} rows")
 
   raw.BAF.data <- read_baf_as_data_frame(inputfile_baf)
   names(raw.BAF.data)[3] <- samplename
 
-  log_info("Read raw BAF: {nrow(raw.BAF.data)} rows")
   raw.logR.data <- read_baf_as_data_frame(inputfile_logr)
   names(raw.logR.data)[3] <- samplename
-  log_info("Read raw LogR: {nrow(raw.logR.data)} rows, and samplename is {samplename}")
 
-  # Assign rownames as those are required by various clonal_ascat.R functions
-  # If there are duplicates (possible with old versions of BB) then remove those
+  # Remove duplicates and set rownames
   identifiers <- paste(segmented.BAF.data[, 1], segmented.BAF.data[, 2], sep = "_")
   dups <- which(duplicated(identifiers))
   if (length(dups) > 0) {
@@ -81,28 +74,18 @@ fit_copy_number <- function(
     identifiers <- identifiers[-dups]
   }
   rownames(segmented.BAF.data) <- identifiers
-  log_info("Segmented BAF now has {nrow(segmented.BAF.data)} rows with unique identifiers")
 
   # Drop NAs
   raw.BAF.data <- raw.BAF.data[!is.na(raw.BAF.data[, 3]), ]
   raw.logR.data <- raw.logR.data[!is.na(raw.logR.data[, 3]), ]
-  log_info("After dropping NAs - raw BAF: {nrow(raw.BAF.data)}, raw LogR: {nrow(raw.logR.data)}")
-  if (nrow(raw.BAF.data) == 0) {
-    log_failure("No raw BAF data remaining after dropping NAs. Cannot continue")
-  }
-  if (nrow(raw.logR.data) == 0) {
-    log_failure("No raw LogR data remaining after dropping NAs. Cannot continue")
-  }
-
 
   BAF.data <- list()
   logR.data <- list()
   segmented.logR.data <- list()
   matched.segmented.BAF.data <- list()
-  gsubchr <- function(chr) gsub("chr", "", as.character(chr))
 
+  gsubchr <- function(chr) gsub("chr", "", as.character(chr))
   chr_names <- gsubchr(unique(segmented.BAF.data[, 1]))
-  log_info("Processing chromosomes: {paste(chr_names, collapse=', ')}")
 
   segmented.BAF.data$Chromosome <- gsubchr(segmented.BAF.data$Chromosome)
   raw.BAF.data$Chromosome <- gsubchr(raw.BAF.data$Chromosome)
@@ -112,147 +95,146 @@ fit_copy_number <- function(
   baf_split <- split(raw.BAF.data, f = raw.BAF.data$Chromosome)
   logr_split <- split(raw.logR.data, f = raw.logR.data$Chromosome)
 
-  log_info("Data split by chromosome - segmented: {length(baf_segmented_split)}, raw BAF: {length(baf_split)}, raw LogR: {length(logr_split)}")
-
-  # For each chromosome
+  # For each chromosome: Merge and initial alignment
   for (chr in chr_names) {
     chr.BAF.data <- baf_split[[chr]]
     chr.segmented.BAF.data <- baf_segmented_split[[chr]]
 
-    log_info("Processing chromosome {chr}: raw BAF rows = {ifelse(is.null(chr.BAF.data), 0, nrow(chr.BAF.data))}, segmented BAF rows = {ifelse(is.null(chr.segmented.BAF.data), 0, nrow(chr.segmented.BAF.data))}")
+    if (is.null(chr.BAF.data) || nrow(chr.BAF.data) == 0) next
 
-    if (is.null(chr.BAF.data) || nrow(chr.BAF.data) == 0) {
-      log_info("Skipping chromosome {chr} because raw BAF is empty")
-      next
-    }
-
-    # Merge segmented and raw BAF on Position
-    merged <- merge(chr.segmented.BAF.data, chr.BAF.data, by.x = "Position", by.y = "Position", all = TRUE)
-    log_info("Chromosome {chr}: merged rows = {nrow(merged)}")
+    merged <- merge(chr.segmented.BAF.data, chr.BAF.data, by = "Position", all = TRUE)
 
     matched.segmented.BAF.data[[chr]] <- merged
-    BAF.data[[chr]] <- merged[, c("Position", samplename[sampleidx]), drop = FALSE]
+    BAF.data[[chr]] <- merged[, c("Position", samplename), drop = FALSE]
 
-    # Merge LogR
     chr.logR.data <- logr_split[[chr]]
     if (!is.null(chr.logR.data) && nrow(chr.logR.data) > 0) {
       merged_logR <- merge(merged, chr.logR.data, by = "Position", all = TRUE)
-      log_info("Chromosome {chr}: LogR merged rows = {nrow(merged_logR)}")
-      logR.data[[chr]] <- merged_logR[, ncol(merged_logR), drop = FALSE] # Last column is LogR
-      segmented.logR.data[[chr]] <- merged_logR[, 3, drop = FALSE] # third column of merged segment
-    } else {
-      log_info("Chromosome {chr}: no LogR data")
+      logR.data[[chr]] <- merged_logR[, c(1, ncol(merged_logR)), drop = FALSE]
+      segmented.logR.data[[chr]] <- merged_logR[, c(1, 3), drop = FALSE]
     }
   }
 
-
-  # Sync the dataframes
-  selection <- c()
+  # Sync the dataframes: Ensure absolute row-parity across all lists
   for (chrom in chr_names) {
-    matched.segmented.BAF.data.chr <- matched.segmented.BAF.data[[chrom]] # matched.segmented.BAF.data[matched.segmented.BAF.data[,1]==chrom,]
-    logR.data.chr <- logR.data[[chrom]] # logR.data[logR.data[,1]==chrom,]
-
-    selection <- matched.segmented.BAF.data.chr[, 2] %in% logR.data.chr[, 2]
-    if (sum(selection) == 0) {
-      log_info("Chromosome {chrom}: no positions match between segmented BAF and LogR, skipping")
+    if (is.null(matched.segmented.BAF.data[[chrom]]) || is.null(logR.data[[chrom]])) {
+      matched.segmented.BAF.data[[chrom]] <- logR.data[[chrom]] <- BAF.data[[chrom]] <- segmented.logR.data[[chrom]] <- NULL
       next
     }
-    matched.segmented.BAF.data[[chrom]] <- matched.segmented.BAF.data.chr[selection, ]
+
+    # Match based on the common Position column
+    selection <- matched.segmented.BAF.data[[chrom]]$Position %in% logR.data[[chrom]]$Position
+
+    if (sum(selection) == 0) {
+      matched.segmented.BAF.data[[chrom]] <- logR.data[[chrom]] <- BAF.data[[chrom]] <- segmented.logR.data[[chrom]] <- NULL
+      next
+    }
+
+    # Subset everything using the same selection vector
+    matched.segmented.BAF.data[[chrom]] <- matched.segmented.BAF.data[[chrom]][selection, ]
     segmented.logR.data[[chrom]] <- segmented.logR.data[[chrom]][selection, ]
+    BAF.data[[chrom]] <- BAF.data[[chrom]][selection, ]
+
+    # Final alignment of the raw LogR list
+    logR.data[[chrom]] <- logR.data[[chrom]][logR.data[[chrom]]$Position %in% matched.segmented.BAF.data[[chrom]]$Position, ]
   }
 
-  # Combine the split data frames into a single for the subsequent steps
-  matched.segmented.BAF.data <- do.call(rbind, matched.segmented.BAF.data)
+  log_info("Combining split data frames into final structures...")
+  # Combine split data frames
   matched.segmented.BAF.data <- data.table::rbindlist(matched.segmented.BAF.data)
-  segmented.logR.data <- do.call(rbind, segmented.logR.data)
-  BAF.data <- do.call(rbind, BAF.data)
-  logR.data <- do.call(rbind, logR.data)
-  names(matched.segmented.BAF.data)[5] <- samplename
+  segmented.logR.data <- data.table::rbindlist(segmented.logR.data)
+  BAF.data <- data.table::rbindlist(BAF.data)
+  logR.data <- data.table::rbindlist(logR.data)
 
-  # write out the segmented logR data
-  row.names(segmented.logR.data) <- row.names(matched.segmented.BAF.data)
-  row.names(logR.data) <- row.names(matched.segmented.BAF.data)
-  data.table::fwrite(segmented.logR.data, paste(samplename, ".logRsegmented.txt", sep = ""), sep = "\t", quote = FALSE, col.names = FALSE, row.names = FALSE)
+  log_info("Final data synchronization check: {nrow(matched.segmented.BAF.data)} loci remaining.")
+  # Fail Fast: Verify synchronization
+  stopifnot(nrow(matched.segmented.BAF.data) == nrow(logR.data))
 
-  # Prepare the data for going into the runASCAT functions
-  segBAF <- 1 - matched.segmented.BAF.data[, 5]
-  segLogR <- segmented.logR.data[, 3]
-  logR <- logR.data[, 3]
-  names(segBAF) <- rownames(matched.segmented.BAF.data)
-  names(segLogR) <- rownames(matched.segmented.BAF.data)
-  names(logR) <- rownames(matched.segmented.BAF.data)
+  # Prepare vectors for ASCAT
+  # We use [[2]] to grab the value column (since [[1]] is Position)
+  segBAF <- 1 - matched.segmented.BAF.data[[5]]
+  segLogR <- segmented.logR.data[[2]]
+  logR <- logR.data[[2]]
 
-  chr_segs <- NULL
-  for (ch in seq_along(chr_names)) {
-    chr_segs[[ch]] <- which(logR.data[, 1] == chr_names[ch])
+  # Crucial: Use rownames to allow ASCAT to map segments to probes
+  row_ids <- paste(matched.segmented.BAF.data$Chromosome, matched.segmented.BAF.data$Position, sep = "_")
+  names(segBAF) <- row_ids
+  names(segLogR) <- row_ids
+  names(logR) <- row_ids
+
+  # Calculate chromosome indices for the combined vectors
+  chr_segs <- list()
+  for (i in seq_along(chr_names)) {
+    chr_segs[[i]] <- which(matched.segmented.BAF.data$Chromosome == chr_names[i])
   }
 
+  # Run ASCAT Grid Search
   if (use_preset_rho_psi) {
+    log_info("Using preset rho ({preset_rho}) and psi ({preset_psi}). Skipping grid search.")
     ascat_optimum_pair <- list(rho = preset_rho, psi = preset_psi, ploidy = preset_psi)
   } else {
-    distance_outfile <- paste(outputfile_prefix, "distance.png", sep = "", collapse = "")
-    copynumberprofile_outfile <- paste(outputfile_prefix, "copynumberprofile.png", sep = "", collapse = "")
-    nonroundedprofile_outfile <- paste(outputfile_prefix, "nonroundedprofile.png", sep = "", collapse = "")
-    cnaStatusFile <- paste(outputfile_prefix, "copynumber_solution_status.txt", sep = "", collapse = "")
+    log_info("Starting ASCAT Grid Search (this may take several minutes)...")
+    distance_outfile <- paste0(outputfile_prefix, "distance.png")
+    copynumberprofile_outfile <- paste0(outputfile_prefix, "copynumberprofile.png")
+    nonroundedprofile_outfile <- paste0(outputfile_prefix, "nonroundedprofile.png")
+    cnaStatusFile <- paste0(outputfile_prefix, "copynumber_solution_status.txt")
 
     if (enhanced_grid_search) {
+      log_info("Running ENHANCED grid search...")
       ascat_optimum_pair <- runASCAT_enhanced(
-        logR, 1 - BAF.data[, 3], segLogR, segBAF,
+        logR, 1 - BAF.data[[2]], segLogR, segBAF,
         chr_segs, ascat_dist_choice, distance_outfile,
         copynumberprofile_outfile, nonroundedprofile_outfile,
         cnaStatusFile = cnaStatusFile, gamma = gamma_param,
-        allow100percent = TRUE, reliabilityFile = NA, min_ploidy = min_ploidy,
+        allow100percent = TRUE, min_ploidy = min_ploidy,
         max_ploidy = max_ploidy, min_rho = min_rho, max_rho = max_rho,
         min_goodness = min_goodness, chr_names = chr_names, analysis = analysis,
-        uninformative_baf_threshold = uninformative_baf_threshold,
-        verbose = TRUE
+        uninformative_baf_threshold = uninformative_baf_threshold
       )
     } else {
+      log_info("Running STANDARD grid search...")
       ascat_optimum_pair <- runASCAT(
-        logR, 1 - BAF.data[, 3], segLogR, segBAF,
+        logR, 1 - BAF.data[[2]], segLogR, segBAF,
         chr_segs, ascat_dist_choice,
         distancepng = distance_outfile,
         copynumberprofilespng = copynumberprofile_outfile,
         nonroundedprofilepng = nonroundedprofile_outfile,
         cnaStatusFile = cnaStatusFile,
         gamma = gamma_param, allow100percent = TRUE,
-        reliabilityFile = NA, min_ploidy = min_ploidy,
-        max_ploidy = max_ploidy, min_rho = min_rho, max_rho = max_rho,
+        min_ploidy = min_ploidy, max_ploidy = max_ploidy,
+        min_rho = min_rho, max_rho = max_rho,
         min_goodness = min_goodness, chr_names = chr_names, analysis = analysis,
         uninformative_baf_threshold = uninformative_baf_threshold
       )
     }
+    log_info("Grid Search complete. Optimum found: Rho={ascat_optimum_pair$rho}, Psi={ascat_optimum_pair$psi}")
   }
 
-  distance_outfile <- paste(outputfile_prefix, "second_distance.png", sep = "", collapse = "")
-  copynumberprofile_outfile <- paste(outputfile_prefix, "second_copynumberprofile.png", sep = "", collapse = "")
-  nonroundedprofile_outfile <- paste(outputfile_prefix, "second_nonroundedprofile.png", sep = "", collapse = "")
-
-  # All is set up, now run ASCAT to obtain a clonal copynumber profile
+  log_info("Running final clonal ASCAT model fit...")
+  # Final clonal ASCAT run
   out <- run_clonal_ASCAT(
-    logR, 1 - BAF.data[, 3], segLogR, segBAF, chr_segs,
+    logR, 1 - BAF.data[[2]], segLogR, segBAF, chr_segs,
     matched.segmented.BAF.data, ascat_optimum_pair, dist_choice,
-    distance_outfile, copynumberprofile_outfile, nonroundedprofile_outfile,
+    paste0(outputfile_prefix, "second_distance.png"),
+    paste0(outputfile_prefix, "second_copynumberprofile.png"),
+    paste0(outputfile_prefix, "second_nonroundedprofile.png"),
     gamma_param = gamma_param, read_depth, uninformative_baf_threshold,
-    allow100percent = TRUE, reliabilityFile = NA, psi_min_initial = min_ploidy,
+    allow100percent = TRUE, psi_min_initial = min_ploidy,
     psi_max_initial = max_ploidy, rho_min_initial = min_rho,
     rho_max_initial = max_rho, chr_names = chr_names
   )
 
-  ascat_optimum_pair_fraction_of_genome <- out$output_optimum_pair_without_ref
-  ascat_optimum_pair_ref_seg <- out$output_optimum_pair
-  is_ref_better <- out$is_ref_better
-
-  # Save rho, psi and ploidy for future reference
+  log_info("ASCAT modeling complete for {samplename}. Writing output files.")
+  # Save results
   rho_psi_output <- data.frame(
-    rho = c(ascat_optimum_pair$rho, ascat_optimum_pair_fraction_of_genome$rho, ascat_optimum_pair_ref_seg$rho),
-    psi = c(ascat_optimum_pair$psi, ascat_optimum_pair_fraction_of_genome$psi, ascat_optimum_pair_ref_seg$psi),
-    ploidy = c(ascat_optimum_pair$ploidy, ascat_optimum_pair_fraction_of_genome$ploidy, ascat_optimum_pair_ref_seg$ploidy),
+    rho = c(ascat_optimum_pair$rho, out$output_optimum_pair_without_ref$rho, out$output_optimum_pair$rho),
+    psi = c(ascat_optimum_pair$psi, out$output_optimum_pair_without_ref$psi, out$output_optimum_pair$psi),
+    ploidy = c(ascat_optimum_pair$ploidy, out$output_optimum_pair_without_ref$ploidy, out$output_optimum_pair$ploidy),
     distance = c(NA, out$distance_without_ref, out$distance),
-    is_best = c(NA, !is_ref_better, is_ref_better),
+    is_best = c(NA, !out$is_ref_better, out$is_ref_better),
     row.names = c("ASCAT", "FRAC_GENOME", "REF_SEG")
   )
-  data.table::fwrite(rho_psi_output, paste(outputfile_prefix, "rho_and_psi.txt", sep = ""), quote = FALSE, sep = "\t")
+  data.table::fwrite(rho_psi_output, paste0(outputfile_prefix, "rho_and_psi.txt"), sep = "\t")
 }
 
 #' Fit subclonal copy number
@@ -643,357 +625,6 @@ determine_copynumber <- function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctr
   return(list(subcloneres = subcloneres, BAFpvals = BAFpvals))
 }
 
-
-#' Merge copy number segments
-#'
-#' Merges segments if there is not enough evidence for them to be separate. Two adjacent segments are merged
-#' when they are either fit with the same clonal copy number state or when their BAF is not significantly different
-#' and their logR puts them in the same square.
-#' @param subclones A completely fit copy number profile in Battenberg output format
-#' @param bafsegmented A BAFsegmented data.frame with the 5 columns that corresponds to the subclones file
-#' @param logR The raw logR data
-#' @param rho The rho estimate that the profile was fit with
-#' @param psi the psi estimate that the profile was fit with
-#' @param platform_gamma The gamma parameter for this platform
-#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median== 0|1, mean, median. (Default: 3)
-#' @param verbose A boolean to show merging operations (Default: FALSE)
-#' @return A list with two fields: bafsegmented and subclones. The subclones field contains a data.frame in
-#' Battenberg output format with the merged segments. The bafsegmented field contains the BAFsegmented data
-#' corresponding to the provided subclones data.frame.
-#' @author sd11, tl
-#' @noRd
-merge_segments <- function(
-  subclones,
-  bafsegmented,
-  logR,
-  rho,
-  psi,
-  platform_gamma,
-  calc_seg_baf_option = 3,
-  verbose_logging = FALSE
-) {
-  calc_nmin <- function(rho, psi, baf, logr, platform_gamma) {
-    return((rho - 1 - (baf - 1) * 2^(logr / platform_gamma) * ((1 - rho) * 2 + rho * psi)) / rho)
-  }
-  calc_nmaj <- function(rho, psi, baf, logr, platform_gamma) {
-    return((rho - 1 + baf * 2^(logr / platform_gamma) * ((1 - rho) * 2 + rho * psi)) / rho)
-  }
-  # Convert DF into GRanges objects
-  df2gr <- function(DF, chr, pos1, pos2) {
-    return(GenomicRanges::makeGRangesFromDataFrame(
-      df = DF,
-      keep.extra.columns = TRUE,
-      ignore.strand = TRUE,
-      seqinfo = NULL,
-      seqnames.field = chr,
-      start.field = pos1,
-      end.field = pos2,
-      starts.in.df.are.0based = FALSE
-    ))
-  }
-  # Function called when two segments have not been merged so there is no need to recheck those again
-  update_neighbour <- function(subclones, INDEX, INDEX_N) {
-    if (INDEX_N > INDEX) {
-      subclones$Next_checked[INDEX] <- TRUE
-      subclones$Prev_checked[INDEX_N] <- TRUE
-    } else {
-      subclones$Prev_checked[INDEX] <- TRUE
-      subclones$Next_checked[INDEX_N] <- TRUE
-    }
-    return(subclones)
-  }
-  # Function called when two segments have been merged so we need to recheck its two neighbours
-  updateAround <- function(subclones, INDEX) {
-    if (INDEX > 1) {
-      subclones$Prev_checked[INDEX] <- FALSE
-      subclones$Next_checked[INDEX - 1] <- FALSE
-    } else {
-      subclones$Prev_checked[INDEX] <- TRUE
-    }
-    if (INDEX < length(subclones)) {
-      subclones$Next_checked[INDEX] <- FALSE
-      subclones$Prev_checked[INDEX + 1] <- FALSE
-    } else {
-      subclones$Next_checked[INDEX] <- TRUE
-    }
-    return(subclones)
-  }
-  # Function called to test whether two segments must be checked
-  check_status <- function(subclones, INDEX, INDEX_N) {
-    if (INDEX_N > INDEX) {
-      # Largest segment (INDEX_N) is after smallest one (INDEX)
-      stopifnot(subclones$Next_checked[INDEX] == subclones$Prev_checked[INDEX_N])
-      if (subclones$Next_checked[INDEX] && subclones$Prev_checked[INDEX_N]) {
-        return(TRUE)
-      } else {
-        return(FALSE)
-      }
-    } else {
-      # Largest segment (INDEX_N) is before smallest one (INDEX)
-      stopifnot(subclones$Prev_checked[INDEX] == subclones$Next_checked[INDEX_N])
-      if (subclones$Prev_checked[INDEX] && subclones$Next_checked[INDEX_N]) {
-        return(TRUE)
-      } else {
-        return(FALSE)
-      }
-    }
-  }
-
-  # Function to merge two segments
-  merge_seg <- function(
-    subclones, bafsegmented,
-    logR, INDEX, INDEX_N,
-    calc_seg_baf_option
-  ) {
-    # Standard GenomicRanges coordinate updates
-    if (INDEX_N < INDEX) {
-      GenomicRanges::end(
-        subclones[INDEX_N]
-      ) <- GenomicRanges::end(subclones[INDEX])
-    } else {
-      GenomicRanges::start(
-        subclones[INDEX_N]
-      ) <- GenomicRanges::start(subclones[INDEX])
-    }
-
-    # Remove the merged-from segment
-    subclones <- subclones[-INDEX]
-    if (INDEX_N < INDEX) INDEX <- INDEX - 1
-
-    # Trigger local neighbor update logic
-    subclones <- updateAround(subclones, INDEX)
-
-    # Efficient overlap extraction
-    # subjectHits is the linter-safe version of @to
-    baf_idx <- S4Vectors::subjectHits(
-      GenomicRanges::findOverlaps(subclones[INDEX], bafsegmented)
-    )
-    baf_vals <- bafsegmented$BAFphased[baf_idx]
-
-    # Modernized BAF calculation with safety for NA values
-    if (calc_seg_baf_option == 1) {
-      NEW_BAF <- collapse::fmedian(baf_vals, na.rm = TRUE)
-    } else if (calc_seg_baf_option == 2) {
-      NEW_BAF <- collapse::fmean(baf_vals, na.rm = TRUE)
-    } else if (calc_seg_baf_option == 3) {
-      # Calculate both using high-performance C++ bindings
-      m_baf <- collapse::fmedian(baf_vals, na.rm = TRUE)
-
-      # Robust Logic: Only use the median if it's not NA
-      # This avoids the "missing value where TRUE/FALSE needed" error
-      if (!is.na(m_baf) && m_baf != 0 && m_baf != 1) {
-        NEW_BAF <- m_baf
-      } else {
-        NEW_BAF <- collapse::fmean(baf_vals, na.rm = TRUE)
-      }
-    }
-
-    # LogR update with safety for empty segments
-    logr_idx <- S4Vectors::subjectHits(
-      GenomicRanges::findOverlaps(subclones[INDEX], logR)
-    )
-
-    if (length(logr_idx) == 0) {
-      subclones[INDEX]$LogR <- 0
-    } else {
-      subclones[INDEX]$LogR <- collapse::fmean(
-        logR$logR[logr_idx],
-        na.rm = TRUE
-      )
-    }
-
-    # Update metadata on the S4 objects
-    subclones[INDEX]$BAF <- NEW_BAF
-    bafsegmented$BAFseg[baf_idx] <- NEW_BAF
-
-    # Standard Evaluation sequence generation
-    subclones$ID <- seq_along(subclones)
-
-    list(subclones = subclones, bafsegmented = bafsegmented)
-  }
-
-  log_debug("Converting DFs into GRanges objects")
-
-  subclones <- subclones |>
-    df2gr("chr", "startpos", "endpos") |>
-    GenomicRanges::sort()
-
-  bafsegmented <- bafsegmented |>
-    df2gr("Chromosome", "Position", "Position") |>
-    GenomicRanges::sort()
-
-  logR <- logR |>
-    df2gr("Chromosome", "Position", "Position") |>
-    GenomicRanges::sort()
-  names(GenomicRanges::mcols(logR)) <- "logR"
-
-  # Get unique chromosomes
-  chr_names <- unique(as.character(GenomicRanges::seqnames(bafsegmented)))
-
-  # Split by chromosome
-  subclones <- split(subclones, GenomicRanges::seqnames(subclones))
-  bafsegmented <- split(bafsegmented, GenomicRanges::seqnames(bafsegmented))
-  logR <- split(logR, GenomicRanges::seqnames(logR))
-
-  if (!all(chr_names %in% names(subclones)) || !all(chr_names %in% names(bafsegmented)) || !all(chr_names %in% names(logR))) {
-    log_failure("Missing data for some chromosomes in one or more inputs")
-  }
-
-  # Process each chromosome
-  for (CHR in chr_names) {
-    log_debug("Merging segments within: {CHR}")
-
-    subclones_chr <- subclones[[CHR]]
-    bafsegmented_chr <- bafsegmented[[CHR]]
-    logR_chr <- logR[[CHR]]
-
-    # Initialize tracking columns
-    subclones_chr$ID <- seq_along(subclones_chr)
-    subclones_chr$prev_checked <- FALSE
-    subclones_chr$next_checked <- FALSE
-    subclones_chr$prev_checked[1] <- TRUE
-    subclones_chr$next_checked[length(subclones_chr)] <- TRUE
-
-    while (TRUE) {
-      # Find segments needing checks
-      unchecked <- which(!subclones_chr$prev_checked | !subclones_chr$next_checked)
-      if (length(unchecked) == 0) break
-
-      # Select smallest unchecked segment
-      widths <- GenomicRanges::width(subclones_chr[unchecked])
-      index <- unchecked[which.min(widths)]
-
-      log_debug("Working on segment: {index} ({subclones_chr[index]})")
-
-      # Determine possible neighbors
-      n <- length(subclones_chr)
-      neighbors <- integer(0)
-      if (index > 1) neighbors <- c(neighbors, index - 1)
-      if (index < n) neighbors <- c(neighbors, index + 1)
-
-      if (length(neighbors) == 0) next
-
-      # Sort neighbors by distance (closest first)
-      dists <- GenomicRanges::distance(subclones_chr[index], subclones_chr[neighbors])
-      sorted_neighbors <- neighbors[order(dists)]
-
-      merged <- FALSE
-      for (index_n in sorted_neighbors) {
-        log_debug("Checking neighbour: {index_n} ({subclones_chr[index_n]}; distance={dists[which(neighbors == index_n)]})")
-
-        # Skip if already checked
-        if (check_status(subclones_chr, index, index_n)) {
-          log_debug("Already checked")
-          next
-        }
-
-        # Check distance threshold
-        if (GenomicRanges::distance(subclones_chr[index], subclones_chr[index_n]) > 3e6) {
-          log_debug("Distance > 3Mb - do not merge")
-          subclones_chr <- update_neighbour(subclones_chr, index, index_n)
-          next
-        }
-
-        # Check for identical clonal CN
-        if (subclones_chr$nMaj1_A[index] == subclones_chr$nMaj1_A[index_n] &&
-          subclones_chr$nMin1_A[index] == subclones_chr$nMin1_A[index_n] &&
-          subclones_chr$frac1_A[index] == 1 &&
-          subclones_chr$frac1_A[index_n] == 1) {
-          log_debug("Same clonal CN solution - merge")
-          res <- merge_seg(subclones_chr, bafsegmented_chr, logR_chr, index, index_n, calc_seg_baf_option)
-          subclones_chr <- res$subclones
-          bafsegmented_chr <- res$bafsegmented
-          merged <- TRUE
-          break
-        }
-
-        # Check for compatible CN via stats
-        log_debug("Different CN solutions: check BAF and logR")
-        nmin_curr <- round(calc_nmin(rho, psi, subclones_chr$BAF[index], subclones_chr$LogR[index], platform_gamma))
-        nmaj_curr <- round(calc_nmaj(rho, psi, subclones_chr$BAF[index], subclones_chr$LogR[index], platform_gamma))
-        nmin_other <- round(calc_nmin(rho, psi, subclones_chr$BAF[index_n], subclones_chr$LogR[index_n], platform_gamma))
-        nmaj_other <- round(calc_nmaj(rho, psi, subclones_chr$BAF[index_n], subclones_chr$LogR[index_n], platform_gamma))
-
-        if (nmin_curr == nmin_other || nmaj_curr == nmaj_other) {
-          # Check sufficient data points
-          logr_curr <- logR_chr$logR[GenomicRanges::findOverlaps(subclones_chr[index], logR_chr)@to]
-          logr_other <- logR_chr$logR[GenomicRanges::findOverlaps(subclones_chr[index_n], logR_chr)@to]
-          baf_curr <- bafsegmented_chr$BAFphased[GenomicRanges::findOverlaps(subclones_chr[index], bafsegmented_chr)@to]
-          baf_other <- bafsegmented_chr$BAFphased[GenomicRanges::findOverlaps(subclones_chr[index_n], bafsegmented_chr)@to]
-
-          if (sum(!is.na(logr_curr)) > 10 && sum(!is.na(logr_other)) > 10 &&
-            sum(!is.na(baf_curr)) > 10 && sum(!is.na(baf_other)) > 10) {
-            logr_p <- fast_p(logr_curr, logr_other)
-            baf_p <- fast_p(baf_curr, baf_other)
-            if (logr_p >= 0.05 && baf_p >= 0.05) {
-              log_debug("No significant difference - merge")
-              res <- merge_seg(subclones_chr, bafsegmented_chr, logR_chr, index, index_n, calc_seg_baf_option)
-              subclones_chr <- res$subclones
-              bafsegmented_chr <- res$bafsegmented
-              merged <- TRUE
-              break
-            } else {
-              log_debug("Significant difference - do not merge")
-              subclones_chr <- update_neighbour(subclones_chr, index, index_n)
-            }
-          } else {
-            log_debug("Too few values - do not merge")
-            subclones_chr <- update_neighbour(subclones_chr, index, index_n)
-          }
-        } else {
-          log_debug("Different squares - do not merge")
-          subclones_chr <- update_neighbour(subclones_chr, index, index_n)
-        }
-      }
-      if (merged) next # Continue while loop after merge
-    }
-
-    # Store back processed data
-    subclones[[CHR]] <- subclones_chr
-    bafsegmented[[CHR]] <- bafsegmented_chr
-  }
-
-  log_debug("Convert GRanges objects into DFs")
-
-  # Combine and convert to data frames
-  bafsegmented <- data.frame(Reduce(c, bafsegmented), stringsAsFactors = FALSE)[, -c(3:5)]
-  bafsegmented$seqnames <- as.character(bafsegmented$seqnames)
-  colnames(bafsegmented)[1:2] <- c("Chromosome", "Position")
-
-  subclones <- data.frame(Reduce(c, subclones), stringsAsFactors = FALSE)[, -c(4:5)]
-  subclones$seqnames <- as.character(subclones$seqnames)
-  colnames(subclones)[1:3] <- c("chr", "startpos", "endpos")
-  subclones$ID <- NULL
-  subclones$prev_checked <- NULL
-  subclones$next_checked <- NULL
-
-  return(list(bafsegmented = bafsegmented, subclones = subclones))
-}
-
-#' Mask segments that have a too high CN state
-#' @param subclones Subclones output data
-#' @param bafsegmented BAFsegmented data
-#' @param max_allowed_state The maximum state allowed before overruling takes place
-#' @return A list with the masked subclones, bafsegmented and the number of segments masked and their total genome size
-#' @author sd11
-mask_high_cn_segments <- function(subclones, bafsegmented, max_allowed_state) {
-  count <- 0
-  masked_size <- 0
-  for (i in seq_len(nrow(subclones))) {
-    if (subclones$nMaj1_A[i] > max_allowed_state || subclones$nMin1_A[i] > max_allowed_state) {
-      # Mask this segment
-      subclones[i, "nMaj1_A"] <- NA
-      subclones[i, "nMin1_A"] <- NA
-      subclones[i, "nMaj2_A"] <- NA
-      subclones[i, "nMin2_A"] <- NA
-      # Mask the BAFsegmented
-      bafsegmented[subclones$chr[i] == bafsegmented$Chromosome & subclones$startpos[i] < bafsegmented$Position & subclones$endpos[i] >= bafsegmented$Position, c("BAFseg")] <- NA
-      count <- count + 1
-      masked_size <- masked_size + (subclones$endpos[i] - subclones$startpos[i])
-    }
-  }
-  return(list(subclones = subclones, bafsegmented = bafsegmented, masked_count = count, masked_size = masked_size))
-}
 
 
 #' Plot the copy number genome wide in two different ways. This creates the Battenberg average

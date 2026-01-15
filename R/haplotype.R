@@ -27,7 +27,7 @@ GetChromosomeBAFs_SNP6 <- function(chrom, alleleFreqFile, haplotypeFile, samplen
   reversedHaplotypes <- variant_data[, 6] == 1
   alleleFreqs[reversedHaplotypes] <- 1.0 - alleleFreqs[reversedHaplotypes]
 
-  print(paste(nrow(variant_data), length(alleleFreqs), sep = ","))
+  log_info("{nrow(variant_data)},{length(alleleFreqs)}")
   # Combine the allele frequencies and variant info and save output
   knownMutBAFs <- cbind(chr_name, variant_data[, 3], alleleFreqs)
   data.table::fwrite(knownMutBAFs, outputfile, sep = "\t", row.names = FALSE, col.names = c("Chromosome", "Position", samplename), quote = FALSE)

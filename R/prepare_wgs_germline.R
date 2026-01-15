@@ -29,12 +29,12 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles_prefix, chrom_names) {
     ac <- utils::read.table(paste0(GERMLINENAME, "_alleleFrequencies_chr", chr, ".txt"), stringsAsFactors = FALSE)
     ac <- ac[order(ac$V2), ]
     AC[[chr]] <- ac
-    print(length(AC))
+    log_info("length(AC): '{length(AC)}'")
     # match allele counts with respective SNP alleles
 
     al <- utils::read.table(paste0(g1000alleles_prefix, chr, ".txt"), header = TRUE, stringsAsFactors = FALSE)
     AL[[chr]] <- al
-    print(length(AL))
+    log_info("length(AL): '{length(AL)}'")
     ref <- al$a0
     ref_df <- data.frame(pos = seq_len(nrow(al)), ref = ref + 2)
     REF <- ac[cbind(ref_df$pos, ref_df$ref)]
@@ -52,7 +52,7 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles_prefix, chrom_names) {
     ohet$Position_dist <- ohet$Position2 - ohet$Position
     ohet$Position_dist_percent <- ohet$Position_dist / max(ohet$Position_dist)
     OHET[[chr]] <- ohet
-    print(paste("chromosome", chr, "file read"))
+    log_info("chromosome {chr} file read")
   }
   # CREATE mutantBAF and mutantLogR *.tab files #
   germline <- GERMLINENAME
@@ -60,15 +60,15 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles_prefix, chrom_names) {
   for (chr in chrom_names) {
     MaC_CHR <- data.frame(chr = chr, MaC[[chr]])
     MAC <- rbind(MAC, MaC_CHR)
-    print(chr)
+    log_info("chr: {chr}")
   }
   names(MAC) <- c("chr", "position", "a0", "a1", "ref", "alt", "coverage", "baf")
-  print(utils::head(MAC))
-  print(dim(MAC))
+  log_info("names(MAC): '{capture.output(head(MAC))}'")
+  log_info("dim(MAC): '{paste(dim(MAC), collapse = ' ')'}")
   # in case of coverage == NA due to non-matching alleles or presence of indels in loci file
   MAC$logr <- log2(MAC$coverage / mean(MAC$coverage, na.rm = TRUE))
   MACC <- MAC[which(!is.na(MAC$baf)), ]
-  print(nrow(MAC) - nrow(MACC))
+  log_info("nrow(MAC) - nrow(MACC): '{nrow(MAC) - nrow(MACC)}'")
 
   BAF <- data.frame(Chromosome = MACC$chr, Position = MACC$pos, germline = MACC$baf)
   names(BAF)[names(BAF) == "germline"] <- germline
@@ -94,7 +94,7 @@ germline_baf_logR <- function(GERMLINENAME, g1000alleles_prefix, chrom_names) {
     AC   = AC,
     LogR = LogR
   ))
-  print("STEP 1 - BAF and LogR - completed")
+  log_info("STEP 1 - BAF and LogR - completed")
 }
 
 #' Reconstruct normal-pair allele count files for Germlines
@@ -141,7 +141,7 @@ germline_reconstruct_normal <- function(
     dir.create(PCF_folder)
   }
   i <- chrom
-  print(paste("chrom=", i))
+  log_info("chrom={i}")
   pcf_input <- data.frame(chr = i, position = GL_OHET[[i]]$Position, IVD = (GL_OHET[[i]]$Position_dist_percent))
   pcf_input <- pcf_input[which(pcf_input$position < chr_loc[i, "cen.left.base"] - CENTROMERE_DIST | pcf_input$position > chr_loc[i, "cen.right.base"] + CENTROMERE_DIST), ]
   # use only regions covered with gcCorrect LogR range
@@ -168,14 +168,14 @@ germline_reconstruct_normal <- function(
     if (mean(pcf_input$IVD) > 0.01 && chr_snp_density < min_normal_snp_density) {
       # mean(pcf_input$IVD) or mean(PCF$mean) indicates presence of jumps in IVD
       loh_regions <- loh_regions # LOH regions
-      print(paste("full-length chromosomal loss at chr", i))
+      log_info("full-length chromosomal loss at chr {i}")
     } else if (sum(loh_regions$diff) >= ((pcf_input$position[nrow(pcf_input)] - pcf_input$position[1])) * 0.9 && chr_snp_density > min_normal_snp_density) {
       # do PCF regions cover >=90% of the chromosome & is the chromosome snp density above the minimum
       loh_regions <- 0 # LOH regions
-      print(paste("no PCF jumps at chr", i))
+      log_info("no PCF jumps at chr {i}")
     } else {
       loh_regions <- loh_regions # LOH regions
-      print(paste("likely partial LOH(s) at chr", i))
+      log_info("likely partial LOH(s) at chr {i}")
     }
   } else {
     loh_regions <- 0
@@ -203,7 +203,7 @@ germline_reconstruct_normal <- function(
       }
     }
   } else {
-    print("no 'centromere noise' calculation")
+    log_info("no 'centromere noise' calculation")
   }
   if (!is.null(noise)) {
     LOH_regions <- loh_regions[-noise, ]
@@ -217,24 +217,24 @@ germline_reconstruct_normal <- function(
   }
   #
   if (is.null(dim(LOH_regions))) {
-    print(paste("no LOH detected in chr", i))
+    log_info("no LOH detected in chr {i}")
     LOH[[i]] <- 0
   } else if (dim(LOH_regions)[1] != 0 && dim(LOH_regions)[2] != 0) {
-    print(paste("we have LOH for", sum(LOH_regions$diff), "bp in chr", i))
+    log_info("we have LOH for {sum(LOH_regions$diff)} bp in chr {i}")
     LOH[[i]] <- data.frame(chr = i, LOH_regions)
   } else if (dim(LOH_regions)[1] == 0) {
-    print(paste("no LOH regions remained after noise correction for chr", i))
+    log_info("no LOH regions remained after noise correction for chr {i}")
     LOH[[i]] <- 0
   } else {
-    print("unkown issue!")
+    log_info("unkown issue!")
   }
-  print(paste("chrom=", i, "IVD-PCF finished"))
+  log_info("chrom={i} IVD-PCF finished")
   #
   ##
   # STEP 2 - get higher resolution LOH regions
   ##
   #
-  print(paste("chrom=", i))
+  log_info("chrom={i}")
   # use loop to find blocks with no LOH - while taking account of the centromere - RUN1
   ac <- GL_AC[[i]]
   al <- GL_AL[[i]]
@@ -245,7 +245,7 @@ germline_reconstruct_normal <- function(
     non_LOH <- data.frame()
     for (j in 1:(nrow(LOH[[i]]) + 1)) {
       if (j == 1 && chr_interval[1] == LOH[[i]]$start.pos[j]) {
-        print("LOH from start of chromosome")
+        log_info("LOH from start of chromosome")
       } else if (j == 1 && chr_interval[1] < LOH[[i]]$start.pos[j]) {
         non_loh <- data.frame(start = chr_interval[1], end = LOH[[i]]$start.pos[j] - 1)
       } else if (j > 1 && j <= nrow(LOH[[i]]) && LOH[[i]]$arm[j] == LOH[[i]]$arm[j - 1]) {
@@ -257,11 +257,11 @@ germline_reconstruct_normal <- function(
         if ((LOH[[i]]$end.pos[j - 1] + 1) < chr_interval[2]) {
           non_loh <- data.frame(start = LOH[[i]]$end.pos[j - 1] + 1, end = chr_interval[2])
         } else {
-          print("reached end of chromosome")
+          log_info("reached end of chromosome")
           rm(non_loh)
         }
       }
-      print(j)
+      log_info("j: '{j}'")
       if (exists("non_loh")) {
         non_LOH <- rbind(non_LOH, non_loh)
       }
@@ -293,14 +293,14 @@ germline_reconstruct_normal <- function(
   if (!is.null(non_LOH)) {
     pLOH_regions <- data.frame()
     if (is.na(match(i, c(13, 14, 15, 21, 22)))) {
-      print(paste("START", i, "p ARM"))
+      log_info("START {i} p ARM")
       PARM <- non_LOH[which(non_LOH$end <= chr_loc[i, ]$cen.left.base), ]
       if (nrow(PARM) > 0) {
         parm <- PARM
       } else if (nrow(PARM) == 0 && sum(non_LOH$diff) != 0) {
         parm <- data.frame(start = chr_interval[1], end = chr_loc[i, ]$cen.left.base - CENTROMERE_DIST)
       } else {
-        print("unknown issue")
+        log_info("unknown issue")
       }
 
       if (parm[nrow(parm), 1] < (parm[nrow(parm), 2] - CENTROMERE_DIST)) {
@@ -318,7 +318,7 @@ germline_reconstruct_normal <- function(
         seg_ivd <- ohet[which(ohet$Position_dist >= MIN_HET_DIST & ohet$Position >= parm$start[seg] & ohet$Position <= parm$end[seg]), ]
         if (nrow(seg_ivd) > 0) {
           win <- nrow(seg_ivd)
-          print(win)
+          log_info("win: '{win}'")
           for (j in 1:win) {
             loh <- NULL
             start <- seg_ivd$Position[j]
@@ -344,16 +344,16 @@ germline_reconstruct_normal <- function(
               LoH <- rbind(LoH, loh)
             }
             if (j %% 100 == 0) {
-              print(paste("interval=", j))
+              log_info("interval={j}")
             }
           }
         } else {
-          print(paste("no het SNPs in segment", seg))
+          log_info("no het SNPs in segment {seg}")
         }
         # no. of LOH intervals
-        print(paste("p-arm nrow(LOH) segment", seg, "=", nrow(LoH)))
+        log_info("p-arm nrow(LOH) segment {seg} = {nrow(LoH)}")
         if (nrow(LoH) == 0) {
-          print(paste("No LOH identified in p-arm segment", seg))
+          log_info("No LOH identified in p-arm segment {seg}")
         } else {
           if (nrow(LoH) == 1) {
             LoH_regions <- data.frame(chrom = i, arm = "p", start.pos = LoH$start, end.pos = LoH$end)
@@ -363,7 +363,7 @@ germline_reconstruct_normal <- function(
             LoH_regions <- data.frame()
             start <- LoH$start[1]
             for (j in 2:nrow(LoH)) {
-              print(j)
+              log_info("j: '{j}'")
               if (LoH$start[j] == LoH$end[j - 1]) {
                 # include the new row (i) in the merge
                 end <- LoH$end[j]
@@ -429,13 +429,13 @@ germline_reconstruct_normal <- function(
         )
         grDevices::dev.off()
         #
-        print("Candidate LOH regions plotted for pARM")
+        log_info("Candidate LOH regions plotted for pARM")
       }
     } else {
-      print(paste("chr", i, "is acrocentric - no p arm analysis"))
+      log_info("chr {i} is acrocentric - no p arm analysis")
     }
     # Q ARM RUN:
-    print(paste("START", i, "q ARM"))
+    log_info("START {i} q ARM")
     qLOH_regions <- data.frame()
     QARM <- non_LOH[which(non_LOH$start >= chr_loc[i, ]$cen.right.base), ]
     if (nrow(QARM) > 0) {
@@ -443,7 +443,7 @@ germline_reconstruct_normal <- function(
     } else if (nrow(QARM) == 0 && sum(non_LOH$diff) != 0) {
       qarm <- data.frame(start = chr_loc[i, ]$cen.right.base, end = chr_interval[2])
     } else {
-      print("unknown issue")
+      log_info("unknown issue")
     }
     # to exclude the first CENTROMERE_DIST next to the centromere (right side) - noisy
     qarm[1, 1] <- qarm[1, 1] + CENTROMERE_DIST
@@ -456,7 +456,7 @@ germline_reconstruct_normal <- function(
       seg_ivd <- ohet[which(ohet$Position_dist >= MIN_HET_DIST & ohet$Position >= qarm$start[seg] & ohet$Position <= qarm$end[seg]), ]
       if (nrow(seg_ivd) > 0) {
         win <- nrow(seg_ivd)
-        print(win)
+        log_info("win: '{win}'")
         for (j in 1:win) {
           loh <- NULL
           start <- seg_ivd$Position[j]
@@ -480,17 +480,17 @@ germline_reconstruct_normal <- function(
             LoH <- rbind(LoH, loh)
           }
           if (j %% 100 == 0) {
-            print(paste("interval=", j))
+            log_info("interval={j}")
           }
         }
       } else {
-        print(paste("no het SNPs in segment", seg))
+        log_info("no het SNPs in segment {seg}")
       }
 
       # no. of LoH intervals
-      print(paste("q-arm nrow(LoH) segment", seg, "=", nrow(LoH)))
+      log_info("q-arm nrow(LoH) segment {seg} = {nrow(LoH)}")
       if (nrow(LoH) == 0) {
-        print(paste("No LOH identified in q-arm segment", seg))
+        log_info("No LOH identified in q-arm segment {seg}")
       } else {
         if (nrow(LoH) == 1) {
           LoH_regions <- data.frame(chrom = i, arm = "q", start.pos = LoH$start, end.pos = LoH$end)
@@ -500,7 +500,7 @@ germline_reconstruct_normal <- function(
           # combine smaller regions into larger regions of LOH
           start <- LoH$start[1]
           for (j in 2:nrow(LoH)) {
-            print(j)
+            log_info("j: '{j}'")
             if (LoH$start[j] == LoH$end[j - 1]) {
               end <- LoH$end[j] # include the new row (i) in the merge
             } else {
@@ -565,7 +565,7 @@ germline_reconstruct_normal <- function(
       )
       grDevices::dev.off()
       #
-      print("Candidate LOH regions plotted for qARM")
+      log_info("Candidate LOH regions plotted for qARM")
     }
     # STEP 2.2: clean-up LOH[[i]] and merge LOH regions of both methods
 
@@ -577,7 +577,7 @@ germline_reconstruct_normal <- function(
         LOH[[i]]$denSNP[j] <- LOH[[i]]$nSNP[j] / ((LOH[[i]]$end.pos[j] - LOH[[i]]$start.pos[j]) * nSNPs / sum(chr_loc$length))
         if (LOH[[i]]$logR[j] > -0.8 || LOH[[i]]$denSNP[j] < 0.5) {
           noLOH <- append(noLOH, j)
-          print(j)
+          log_info("j: '{j}'")
         }
       }
       LOH[[i]] <- LOH[[i]][-noLOH, ]
@@ -614,7 +614,7 @@ germline_reconstruct_normal <- function(
         if (nrow(LOHarm) > 1) {
           start <- LOHarm$start.pos[1]
           for (j in 2:nrow(LOHarm)) {
-            print(j)
+            log_info("j: '{j}'")
             if (LOHarm$start.pos[j] == LOHarm$end.pos[j - 1]) {
               # include the new row (i) in the merge
               end <- LOHarm$end.pos[j]
@@ -644,20 +644,18 @@ germline_reconstruct_normal <- function(
     } else {
       LOHall <- LOH[[i]]
     }
-    print("LOHall")
-    print(LOHall)
+    log_info("LOHall: '{LOHall}'")
   } else {
     # no non_LOH region was found - all chromosome is called as LOH (highly unlikely at germline level)
     LOHall <- LOH[[i]][, c("chrom", "arm", "start.pos", "end.pos")]
-    print("LOHall")
-    print(LOHall)
+    log_info("LOHall: '{LOHall}'")
   }
 
   if (!is.null(nrow(LOHall))) {
     LOHall <- LOHall[!duplicated(LOHall), ]
     LOHall$diff <- LOHall$end.pos - LOHall$start.pos
   } else {
-    print(paste("no LOH (IVD and/or window-based) was identified for chr", i))
+    log_info("no LOH (IVD and/or window-based) was identified for chr {i}")
   }
   if (exists("non_loh")) {
     rm(non_loh)
@@ -676,26 +674,23 @@ germline_reconstruct_normal <- function(
     ####################################### get all non_LOH regions#
     for (j in 1:(nrow(LOHall) + 1)) {
       if (j == 1 && chr_interval[1] == LOHall$start.pos[j]) {
-        print("LOH from start of chromosome")
+        log_info("LOH from start of chromosome")
       } else if (j == 1 && chr_interval[1] < LOHall$start.pos[j]) {
         non_loh <- data.frame(start = chr_interval[1], end = LOHall$start.pos[j] - 1)
-        print("ONE")
       } else if (j > 1 && j <= nrow(LOHall) && LOHall$arm[j] == LOHall$arm[j - 1]) {
         non_loh <- data.frame(start = LOHall$end.pos[j - 1] + 1, end = LOHall$start.pos[j] - 1)
-        print("TWO")
       } else if (j > 1 && j <= nrow(LOHall) && LOHall$arm[j] != LOHall$arm[j - 1]) {
         non_loh <- data.frame(start = c(min(LOHall$end.pos[j - 1] + 1, chr_loc[i, ]$cen.left.base), chr_loc[i, ]$cen.right.base), end = c(chr_loc[i, ]$cen.left.base, LOHall$start.pos[j] - 1))
-        print("THREE")
       } else {
         # avoids going over the chromosome interval
         if ((LOHall$end.pos[j - 1] + 1) < chr_interval[2]) {
           non_loh <- data.frame(start = LOHall$end.pos[j - 1] + 1, end = chr_interval[2])
         } else {
-          print("reached end of chromosome")
+          log_info("reached end of chromosome")
           rm(non_loh)
         }
       }
-      print(j)
+      log_info("j: '{j}'")
       if (exists("non_loh")) {
         non_LOH <- rbind(non_LOH, non_loh)
       }
@@ -707,7 +702,7 @@ germline_reconstruct_normal <- function(
       non_LOH <- non_LOH[non_LOH$length >= 0, ]
       # total length of non-LOH regions in chr i
       non_LOH_length <- sum(non_LOH$length)
-      print(paste("Total length of non LOH regions =", non_LOH_length))
+      log_info("Total length of non LOH regions = {non_LOH_length}")
       # average Het SNP interval:
       # run this only if combined non-LOH regions are at least 1Mb long
       if (non_LOH_length > 1e6) {
@@ -719,7 +714,7 @@ germline_reconstruct_normal <- function(
       # replace with 5000 to increase run speed!?
       # no. of SNPs to be Hets in the LOH region (COMBINED FOR THE WHOLE CHROMOSOME):
       LOH_hetSNP_number <- floor(sum(LOHall$diff) / SNP_interval)
-      print(paste("No. of Het SNPs to be added to LOH regions:", LOH_hetSNP_number))
+      log_info("No. of Het SNPs to be added to LOH regions: {LOH_hetSNP_number}")
     }
     # reconstruct allele counts for the LOH region based on actual depth for all to be perfect heterozygotes - allele counts remain as integers
     lohs <- data.frame()
@@ -728,34 +723,34 @@ germline_reconstruct_normal <- function(
       loh <- ac[which(ac$position >= LOHall$start.pos[j] & ac$position <= LOHall$end.pos[j]), ]
       m <- merge(loh, al, "position")
       if (nrow(m) == nrow(loh)) {
-        print("merge OK")
+        log_info("merge OK")
       } else {
-        print("ERROR - merge not OK")
+        log_info("ERROR - merge not OK")
       }
       # RE-reconstruct allele counts for LOH region
       # # at least ten SNPs (if available in region) should be spiked in to be heterozygotes for PCF in Battenberg to pick it up
       hetSNP_number <- max(LOHall$diff[j] / SNP_interval, 10)
       if (nrow(m) >= hetSNP_number) {
-        print("more rows in LOH region than Het SNP number")
+        log_info("more rows in LOH region than Het SNP number")
         # to make the exact breakpoints are seen by Battenberg - making 1st and last SNP in region heterozygote
         spike <- c(1, utils::head(which(seq_len(nrow(m)) %% floor(nrow(m) / (hetSNP_number - 1)) == 0), -1), nrow(m))
         for (k in spike) {
           m$depth[k] <- max(m$depth[k], 10)
           m[cbind(k, 2 + m$a0[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, ceiling(m$depth[k] / 2))
           m[cbind(k, 2 + m$a1[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, floor(m$depth[k] / 2))
-          print(k)
+          log_info("k: '{k}'")
         }
       } else {
         # technically shouldn't happen
-        print("less rows in LOH region than Het SNP number - turning all into Heterozygotes")
+        log_info("less rows in LOH region than Het SNP number - turning all into Heterozygotes")
         for (k in seq_len(nrow(m))) {
           m$depth[k] <- max(m$depth[k], 10)
           m[cbind(k, 2 + m$a0[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, ceiling(m$depth[k] / 2))
           m[cbind(k, 2 + m$a1[k])] <- ifelse(m$depth[k] %% 2 == 0, m$depth[k] / 2, floor(m$depth[k] / 2))
-          print(k)
+          log_info("k: '{k}'")
         }
       }
-      print(paste("LOH region segment", j))
+      log_info("LOH region segment: '{j}'")
       lohs <- rbind(lohs, m)
     }
 
@@ -766,32 +761,32 @@ germline_reconstruct_normal <- function(
     for (j in seq_len(nrow(non_LOH))) {
       non_loh <- ac[which(ac$position >= non_LOH$start[j] & ac$position <= non_LOH$end[j]), ]
       non_lohs <- rbind(non_lohs, non_loh)
-      print(paste("non_LOH segment", j, "added"))
+      log_info("non_LOH segment {j} added")
     }
     # write out as alleleCounts file - "normal" ID #####################################
     if (nrow(non_lohs) + nrow(lohs) == nrow(ac)) {
       ac_out <- rbind(non_lohs, lohs)
       ac_out <- ac_out[order(ac_out$position), ]
       data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
-      print(paste("reconstruction OK - new alleleCounts file generated for chr", i))
+      log_info("reconstruction OK - new alleleCounts file generated for chr {i}")
     } else {
       centro_ac <- ac[which(ac$position > chr_loc$cen.left.base[i] & ac$position < chr_loc$cen.right.base[i]), ]
       ac_out <- rbind(non_lohs, lohs, centro_ac)
       ac_out <- ac_out[order(ac_out$position), ]
       ac_out <- ac_out[!duplicated(ac_out$position), ]
       if (nrow(ac_out) == nrow(ac)) {
-        print("reconstruction OK but SNPs found in the centromeric region - adding them back for consistency with original ac files")
+        log_info("reconstruction OK but SNPs found in the centromeric region - adding them back for consistency with original ac files")
         data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
       } else {
-        print("ERROR - missing SNPs - LOH and non-LOH regions not generated correctly; no AC file generated")
+        log_info("ERROR - missing SNPs - LOH and non-LOH regions not generated correctly; no AC file generated")
       }
     }
   } else {
     ac_out <- ac
     data.table::fwrite(ac_out, paste0(NORMALNAME, "_alleleFrequencies_chr", i, ".txt"), col.names = FALSE, row.names = FALSE, quote = FALSE, sep = "\t")
-    print(paste("No changes made to the alleleCounter file - no LOH in chr", i))
+    log_info("No changes made to the alleleCounter file - no LOH in chr {i}")
   }
-  print(paste("STEP 2&3 - chr", i, "completed"))
+  log_info("STEP 2&3 - chr {i} completed")
 }
 
 #' Prepare data for impute
@@ -1251,7 +1246,7 @@ prepare_wgs_germline <- function(
   )
 
   if (length(list.files(pattern = "normal_alleleFrequencies")) == length(chrom_names)) {
-    print("STEP 2 - Normal allelecounts reconstruction - completed")
+    log_info("STEP 2 - Normal allelecounts reconstruction - completed")
   } else {
     stop("Missing 'normal' allelecount files - all chromosomes NOT reconstructed")
   }
