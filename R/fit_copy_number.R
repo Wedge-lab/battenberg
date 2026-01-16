@@ -1,28 +1,39 @@
 #' Fit copy number
 #'
-#' Function that will fit a clonal copy number profile to segmented data. It first
-#' matches the raw LogR with the segmented BAF to create segmented LogR. Then ASCAT
-#' is run to obtain a clonal copy number profile. Beyond logRsegmented it produces
-#' the rho_and_psi file and the cellularity_ploidy file.
+#' Function that will fit a clonal copy number profile to segmented data. It
+#' first matches the raw LogR with the segmented BAF to create segmented LogR.
+#' Then ASCAT is run to obtain a clonal copy number profile. Beyond logRsegmented
+#' it produces the rho_and_psi file and the cellularity_ploidy file.
 #' @param samplename Samplename used to name the segmented logr output file
-#' @param outputfile_prefix Prefix used for all output file names, except logRsegmented
+#' @param outputfile_prefix Prefix used for all output file names, except
+#' logRsegmented
 #' @param inputfile_baf_segmented Filename that points to the BAF segmented data
 #' @param inputfile_baf Filename that points to the raw BAF data
 #' @param inputfile_logr Filename that points to the raw LogR data
-#' @param dist_choice The distance metric that is used internally to rank clonal copy number solutions
-#' @param ascat_dist_choice The distance metric used to obtain an initial cellularity and ploidy estimate
+#' @param dist_choice The distance metric that is used internally to rank clonal
+#' copy number solutions
+#' @param ascat_dist_choice The distance metric used to obtain an initial
+#' cellularity and ploidy estimate
 #' @param min_ploidy The minimum ploidy to consider (Default 1.6)
 #' @param max_ploidy The maximum ploidy to consider (Default 4.8)
 #' @param min_rho The minimum cellularity to consider (Default 0.1)
 #' @param max_rho The maximum cellularity to consider (Default 1.0)
-#' @param min_goodness The minimum goodness of fit for a solution to have to be considered (Default 63)
-#' @param uninformative_baf_threshold The threshold beyond which BAF becomes uninformative (Default 0.51)
-#' @param gamma_param Technology parameter, compaction of Log R profiles. Expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays (Default 1)
-#' @param use_preset_rho_psi Boolean whether to use user specified rho and psi values (Default FALSE)
-#' @param preset_rho A user specified rho to fit a copy number profile to (Default NA)
-#' @param preset_psi A user specified psi to fit a copy number profile to (Default NA)
+#' @param min_goodness The minimum goodness of fit for a solution to have to be
+#' considered (Default 63)
+#' @param uninformative_baf_threshold The threshold beyond which BAF becomes
+#' uninformative (Default 0.51)
+#' @param gamma_param Technology parameter, compaction of Log R profiles.
+#' Expected decrease in case of deletion in diploid sample, 100 "\%" aberrant
+#' cells; 1 in ideal case, 0.55 of Illumina 109K arrays (Default 1)
+#' @param use_preset_rho_psi Boolean whether to use user specified rho and psi
+#' values (Default FALSE)
+#' @param preset_rho A user specified rho to fit a copy number profile to
+#' (Default NA)
+#' @param preset_psi A user specified psi to fit a copy number profile to
+#' (Default NA)
 #' @param read_depth Legacy parameter that is no longer used (Default 30)
-#' @param analysis A String representing the type of analysis to be run, this determines whether the distance figure is produced (Default paired)
+#' @param analysis A String representing the type of analysis to be run, this
+#' determines whether the distance figure is produced (Default paired)
 #' @author dw9, sd11
 #' @export
 fit_copy_number <- function(
@@ -45,7 +56,7 @@ fit_copy_number <- function(
   preset_psi = NA,
   read_depth = 30,
   analysis = "paired",
-  nthreads,
+  nthreads = 1,
   enhanced_grid_search = FALSE
 ) {
   assert_file_exists(inputfile_baf_segmented)
@@ -53,11 +64,13 @@ fit_copy_number <- function(
   assert_file_exists(inputfile_logr)
 
   if ((max_ploidy - min_ploidy) < 0.05) {
-    log_failure("Supplied ploidy range must be larger than 0.05: {min_ploidy}-{max_ploidy}")
+    log_failure("Supplied ploidy range must be larger than 0.05: \\
+                {min_ploidy}-{max_ploidy}")
   }
 
   # Read in the required data
   segmented.BAF.data <- read_bafsegmented(inputfile_baf_segmented)
+
   data.table::setDF(segmented.BAF.data)
 
   raw.BAF.data <- read_baf_as_data_frame(inputfile_baf)
@@ -146,7 +159,8 @@ fit_copy_number <- function(
   BAF.data <- data.table::rbindlist(BAF.data)
   logR.data <- data.table::rbindlist(logR.data)
 
-  log_info("Final data synchronization check: {nrow(matched.segmented.BAF.data)} loci remaining.")
+  log_info("Final data synchronization check: {nrow(matched.segmented.BAF.data)} \\
+           loci remaining.")
   # Fail Fast: Verify synchronization
   stopifnot(nrow(matched.segmented.BAF.data) == nrow(logR.data))
 
@@ -175,9 +189,18 @@ fit_copy_number <- function(
   } else {
     log_info("Starting ASCAT Grid Search (this may take several minutes)...")
     distance_outfile <- paste0(outputfile_prefix, "distance.png")
-    copynumberprofile_outfile <- paste0(outputfile_prefix, "copynumberprofile.png")
-    nonroundedprofile_outfile <- paste0(outputfile_prefix, "nonroundedprofile.png")
-    cnaStatusFile <- paste0(outputfile_prefix, "copynumber_solution_status.txt")
+    copynumberprofile_outfile <- paste0(
+      outputfile_prefix,
+      "copynumberprofile.png"
+    )
+    nonroundedprofile_outfile <- paste0(
+      outputfile_prefix,
+      "nonroundedprofile.png"
+    )
+    cnaStatusFile <- paste0(
+      outputfile_prefix,
+      "copynumber_solution_status.txt"
+    )
 
     if (enhanced_grid_search) {
       log_info("Running ENHANCED grid search...")
@@ -188,8 +211,10 @@ fit_copy_number <- function(
         cnaStatusFile = cnaStatusFile, gamma = gamma_param,
         allow100percent = TRUE, min_ploidy = min_ploidy,
         max_ploidy = max_ploidy, min_rho = min_rho, max_rho = max_rho,
-        min_goodness = min_goodness, chr_names = chr_names, analysis = analysis,
-        uninformative_baf_threshold = uninformative_baf_threshold
+        min_goodness = min_goodness, chr_names = chr_names,
+        analysis = analysis,
+        uninformative_baf_threshold = uninformative_baf_threshold,
+        nthreads = nthreads
       )
     } else {
       log_info("Running STANDARD grid search...")
@@ -204,10 +229,12 @@ fit_copy_number <- function(
         min_ploidy = min_ploidy, max_ploidy = max_ploidy,
         min_rho = min_rho, max_rho = max_rho,
         min_goodness = min_goodness, chr_names = chr_names, analysis = analysis,
-        uninformative_baf_threshold = uninformative_baf_threshold
+        uninformative_baf_threshold = uninformative_baf_threshold,
+        nthreads = nthreads
       )
     }
-    log_info("Grid Search complete. Optimum found: Rho={ascat_optimum_pair$rho}, Psi={ascat_optimum_pair$psi}")
+    log_info("Grid Search complete. Optimum found: \\
+             Rho={ascat_optimum_pair$rho}, Psi={ascat_optimum_pair$psi}")
   }
 
   log_info("Running final clonal ASCAT model fit...")
@@ -221,7 +248,8 @@ fit_copy_number <- function(
     gamma_param = gamma_param, read_depth, uninformative_baf_threshold,
     allow100percent = TRUE, psi_min_initial = min_ploidy,
     psi_max_initial = max_ploidy, rho_min_initial = min_rho,
-    rho_max_initial = max_rho, chr_names = chr_names
+    rho_max_initial = max_rho, chr_names = chr_names,
+    nthreads = nthreads
   )
 
   log_info("ASCAT modeling complete for {samplename}. Writing output files.")
@@ -234,7 +262,10 @@ fit_copy_number <- function(
     is_best = c(NA, !out$is_ref_better, out$is_ref_better),
     row.names = c("ASCAT", "FRAC_GENOME", "REF_SEG")
   )
-  data.table::fwrite(rho_psi_output, paste0(outputfile_prefix, "rho_and_psi.txt"), sep = "\t")
+  data.table::fwrite(rho_psi_output,
+    paste0(outputfile_prefix, "rho_and_psi.txt"),
+    sep = "\t"
+  )
 }
 
 #' Fit subclonal copy number
@@ -246,23 +277,37 @@ fit_copy_number <- function(
 #' a different state: Subclonal copy number.
 #' @param sample_name Name of the sample, used in figures
 #' @param baf_segmented_file String that points to a file with segmented BAF output
-#' @param logr_file String that points to the raw LogR file to be used in the subclonal copy number figures
-#' @param rho_psi_file String pointing to the rho_and_psi file generated by \code{fit_copy_number}
-#' @param output_file Filename of the file where the final copy number fit will be written to
-#' @param output_figures_prefix Prefix of the filenames for the chromosome specific copy number figures
-#' @param output_gw_figures_prefix Prefix of the filenames for the genome wide copy number figures
+#' @param logr_file String that points to the raw LogR file to be used in the
+#' subclonal copy number figures
+#' @param rho_psi_file String pointing to the rho_and_psi file generated by
+#' \code{fit_copy_number}
+#' @param output_file Filename of the file where the final copy number fit will be
+#' written to
+#' @param output_figures_prefix Prefix of the filenames for the chromosome specific
+#' copy number figures
+#' @param output_gw_figures_prefix Prefix of the filenames for the genome wide copy
+#' number figures
 #' @param chr_names Vector of allowed chromosome names
-#' @param masking_output_file Filename of where the masking details need to be written. Masking is performed to remove very high copy number state segments
+#' @param masking_output_file Filename of where the masking details need to be
+#' written. Masking is performed to remove very high copy number state segments
 #' @param max_allowed_state The maximum CN state allowed (Default 250)
 #' @param cn_upper_limit The maximum CN that can be called (Default 1000)
-#' @param prior_breakpoints_file A two column file with prior breakpoints, possibly from structural variants. This file must contain two columns: chromosome and position. These are used when making the figures
+#' @param prior_breakpoints_file A two column file with prior breakpoints, possibly
+#' from structural variants. This file must contain two columns: chromosome and
+#' position. These are used when making the figures
 #' @param gamma Technology specific scaling parameter for LogR (Default 1)
 #' @param segmentation_gamma Legacy parameter that is no longer used (Default NA)
-#' @param siglevel Threshold under which a p-value becomes significant. When it is significant a second copy number state will be fitted (Default 0.05)
-#' @param maxdist Slack in BAF space to allow a segment to be off it's optimum before becoming significant. A segment becomes significant very quickly when a breakpoint is missed, this parameter alleviates the effect (Default 0.01)
-#' @param noperms The number of permutations to be run when bootstrapping the confidence intervals on the copy number state of each segment (Default 1000)
+#' @param siglevel Threshold under which a p-value becomes significant. When it is
+#' significant a second copy number state will be fitted (Default 0.05)
+#' @param maxdist Slack in BAF space to allow a segment to be off it's optimum
+#' before becoming significant. A segment becomes significant very quickly when a
+#' breakpoint is missed, this parameter alleviates the effect (Default 0.01)
+#' @param noperms The number of permutations to be run when bootstrapping the
+#' confidence intervals on the copy number state of each segment (Default 1000)
 #' @param seed Seed to set when performing bootstrapping (Default: Current time)
-#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment. Options are: 1 - median, 2 - mean, 3 - ifelse median==0|1, mean, median. (Default: 3)
+#' @param calc_seg_baf_option Various options to recalculate the BAF of a segment.
+#' Options are: 1 - median, 2 - mean, 3 - ifelse median==0|1, mean, median.
+#' (Default: 3)
 #' @author dw9, sd11
 #' @export
 call_subclones <- function(
@@ -477,7 +522,10 @@ call_subclones <- function(
 #' @return A data.frame with copy number determined for each segment
 #' @author dw9
 #' @noRd
-determine_copynumber <- function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctrans.logR, maxdist, siglevel, noperms, cn_upper_limit) {
+#' @export
+determine_copynumber <- function(BAFvals, LogRvals, rho, psi, gamma, ctrans,
+                                 ctrans.logR, maxdist, siglevel, noperms,
+                                 cn_upper_limit) {
   # Standardizing inputs - stripped redundant as.vector calls
   BAFphased <- BAFvals[, 4]
   BAFseg <- BAFvals[, 5]
@@ -626,19 +674,23 @@ determine_copynumber <- function(BAFvals, LogRvals, rho, psi, gamma, ctrans, ctr
 }
 
 
-
-#' Plot the copy number genome wide in two different ways. This creates the Battenberg average
-#' profile where subclonal copy number is represented as a mixture of two different states and
-#' the Battenberg subclones profile where subclonal copy number is plotted as two different
-#' separate states. The thickness of the line represents the fraction of tumour cells carying
-#' the particular state.
+#' Plot the copy number genome wide in two different ways. This creates the
+#' Battenberg average profile where subclonal copy number is represented as a
+#' mixture of two different states and the Battenberg subclones profile where
+#' subclonal copy number is plotted as two different separate states. The thickness
+#' of the line represents the fraction of tumour cells carying the particular state
 #' @noRd
-plot_gw_subclonal_cn <- function(subclones, BAFvals, rho, ploidy, goodness, output_gw_figures_prefix, chr_names, tumourname) {
-  # Map start and end of each segment into the BAF values. The plot uses the index of this BAF table as x-axis
+plot_gw_subclonal_cn <- function(subclones, BAFvals, rho, ploidy, goodness,
+                                 output_gw_figures_prefix, chr_names,
+                                 tumourname) {
+  # Map start and end of each segment into the BAF values. The plot uses the index
+  # of this BAF table as x-axis
   pos_min <- array(NA, nrow(subclones))
   pos_max <- array(NA, nrow(subclones))
   for (i in seq_len(nrow(subclones))) {
-    segm_chr <- subclones$chr[i] == BAFvals$Chromosome & subclones$startpos[i] < BAFvals$Position & subclones$endpos[i] >= BAFvals$Position
+    segm_chr <- subclones$chr[i] == BAFvals$Chromosome &
+      subclones$startpos[i] < BAFvals$Position &
+      subclones$endpos[i] >= BAFvals$Position
     pos_min[i] <- min(which(segm_chr))
     pos_max[i] <- max(which(segm_chr))
   }
@@ -649,7 +701,9 @@ plot_gw_subclonal_cn <- function(subclones, BAFvals, rho, ploidy, goodness, outp
   subcl_max <- array(NA, length(is_subclonal))
   for (i in seq_along(is_subclonal)) {
     segment_index <- is_subclonal[i]
-    segm_chr <- subclones$chr[segment_index] == BAFvals$Chromosome & subclones$startpos[segment_index] < BAFvals$Position & subclones$endpos[segment_index] >= BAFvals$Position
+    segm_chr <- subclones$chr[segment_index] == BAFvals$Chromosome &
+      subclones$startpos[segment_index] < BAFvals$Position &
+      subclones$endpos[segment_index] >= BAFvals$Position
     subcl_min[i] <- min(which(segm_chr))
     subcl_max[i] <- max(which(segm_chr))
   }
@@ -660,8 +714,16 @@ plot_gw_subclonal_cn <- function(subclones, BAFvals, rho, ploidy, goodness, outp
   is_subclonal_maj[is.na(is_subclonal_maj)] <- FALSE
   is_subclonal_min[is.na(is_subclonal_min)] <- FALSE
 
-  segment_states_min <- subclones$nMin1_A * ifelse(is_subclonal_min, subclones$frac1_A, 1) + ifelse(is_subclonal_min, subclones$nMin2_A, 0) * ifelse(is_subclonal_min, subclones$frac2_A, 0)
-  segment_states_maj <- subclones$nMaj1_A * ifelse(is_subclonal_maj, subclones$frac1_A, 1) + ifelse(is_subclonal_maj, subclones$nMaj2_A, 0) * ifelse(is_subclonal_maj, subclones$frac2_A, 0)
+  segment_states_min <- subclones$nMin1_A * ifelse(is_subclonal_min,
+    subclones$frac1_A, 1
+  ) +
+    ifelse(is_subclonal_min, subclones$nMin2_A, 0) *
+      ifelse(is_subclonal_min, subclones$frac2_A, 0)
+  segment_states_maj <- subclones$nMaj1_A * ifelse(is_subclonal_maj,
+    subclones$frac1_A, 1
+  ) +
+    ifelse(is_subclonal_maj, subclones$nMaj2_A, 0) *
+      ifelse(is_subclonal_maj, subclones$frac2_A, 0)
   segment_states_tot <- segment_states_maj + segment_states_min
 
   # Determine which SNPs are on which chromosome, to be used as a proxy for chromosome size in the plots
@@ -767,7 +829,11 @@ make_posthoc_plots <- function(samplename, logr_file, bafsegmented_file, logrseg
   logrsegmented <- as.data.frame(read_table_generic(logrsegmented_file, header = FALSE))
   colnames(logrsegmented) <- c("Chromosome", "Position", "logRseg")
   outputfile <- paste0(samplename, "_alleleratio.png")
-  allele_ratio_plot(samplename = samplename, logr = logr, bafsegmented = bafsegmented, logrsegmented = logrsegmented, outputfile = outputfile, max.plot.cn = 8)
+  allele_ratio_plot(
+    samplename = samplename, logr = logr,
+    bafsegmented = bafsegmented, logrsegmented = logrsegmented,
+    outputfile = outputfile, max.plot.cn = 8
+  )
 
   if (!is.null(allelecounts_file)) {
     allelecounts <- as.data.frame(read_table_generic(allelecounts_file))
@@ -779,22 +845,32 @@ make_posthoc_plots <- function(samplename, logr_file, bafsegmented_file, logrseg
 
 #' Fit ChrX subclonal copy number (male only)
 #'
-#' Function to call ChrX copy number based on LogR (suitable for male samples). Copy number
-#' cannot be called for the non-PAR region of ChrX due to the hemizygosity of all 1000G SNPs.
-#' This function enables calling subclonal copy number for the non-PAR region by segmenting LogR.
-#' A number of correction steps are undertaken to account for the noisy nature of LogR. This function
-#' requires the following libraries: copynumber, data.table and ggplot2. It reads in three files generated
-#' by previous steps of Battenberg, namely samplename_mutantLogR_gcCorrected.tab, samplename_purity_ploidy.txt
+#' Function to call ChrX copy number based on LogR (suitable for male samples).
+#' Copy number cannot be called for the non-PAR region of ChrX due to the
+#' hemizygosity of all 1000G SNPs. This function enables calling subclonal copy
+#' number for the non-PAR region by segmenting LogR. A number of correction steps
+#' are undertaken to account for the noisy nature of LogR. This function
+#' requires the following libraries: copynumber, data.table and ggplot2. It reads
+#' in three files generated by previous steps of Battenberg, namely
+#' samplename_mutantLogR_gcCorrected.tab, samplename_purity_ploidy.txt
 #' and samplename_copynumber_extended.txt.
-#' This function will also update the Battenberg genome-wide profile plots (average.png and subclones.png) to include the chrX profile by also
+#' This function will also update the Battenberg genome-wide profile plots
+#' (average.png and subclones.png) to include the chrX profile by also
 #' reading in the samplename.BAFsegmented.txt and samplename_rho_psi.txt files
-#' @param tumourname The sample name used for Battenberg (i.e. the tumour BAM file name without the .bam extension)
-#' @param X_gamma The PCF gamma value for segmentation of 1000G SNP LogR values (Default 1000)
-#' @param X_kmin The min number of SNPs to support a segment in PCF of LogR values (Default 100)
+#' @param tumourname The sample name used for Battenberg (i.e. the tumour BAM
+#' file name without the .bam extension)
+#' @param X_gamma The PCF gamma value for segmentation of 1000G SNP LogR values
+#' (Default 1000)
+#' @param X_kmin The min number of SNPs to support a segment in PCF of LogR values
+#' (Default 100)
 #' @param genomebuild The genome build used in running Battenberg (hg19 or hg38)
-#' @param AR Should the segment carrying the androgen receptor (AR) locus to be visually distinguished in average plot? (Default TRUE)
-#' @param prior_breakpoints_file A two column text file with prior genome-wide breakpoints, possibly from structural variants. This file must contain two columns with headers "chr" and "pos" representing chromosome and position.
-#' @param chrom_names A vector containing the names of chromosomes to be included in the final genome-wide Battenberg copy number plot with chrX
+#' @param AR Should the segment carrying the androgen receptor (AR) locus to be
+#' visually distinguished in average plot? (Default TRUE)
+#' @param prior_breakpoints_file A two column text file with prior genome-wide
+#' breakpoints, possibly from structural variants. This file must contain two
+#' columns with headers "chr" and "pos" representing chromosome and position.
+#' @param chrom_names A vector containing the names of chromosomes to be included
+#' in the final genome-wide Battenberg copy number plot with chrX
 #' @author naser.ansari-pour
 #' @export
 callChrXsubclones <- function(

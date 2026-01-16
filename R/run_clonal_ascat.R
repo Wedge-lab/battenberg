@@ -7,27 +7,44 @@
 #' profile. This function performs both a grid search and tries to find a reference
 #' segment, but the grid search result is always used for now.
 #' @param lrr (unsegmented) log R, in genomic sequence (all probes), with probe IDs
-#' @param baf (unsegmented) B Allele Frequency, in genomic sequence (all probes), with probe IDs
-#' @param lrrsegmented log R, segmented, in genomic sequence (all probes), with probe IDs
-#' @param bafsegmented B Allele Frequency, segmented, in genomic sequence (only probes heterozygous in germline), with probe IDs
-#' @param chromosomes a list containing c vectors, where c is the number of chromosomes and every vector contains all probe numbers per chromosome
+#' @param baf (unsegmented) B Allele Frequency, in genomic sequence (all probes),
+#' with probe IDs
+#' @param lrrsegmented log R, segmented, in genomic sequence (all probes), with
+#' probe IDs
+#' @param bafsegmented B Allele Frequency, segmented, in genomic sequence (only
+#' probes heterozygous in germline), with probe IDs
+#' @param chromosomes a list containing c vectors, where c is the number of
+#' chromosomes and every vector contains all probe numbers per chromosome
 #' @param segBAF_table Segmented BAF data.frame from \code{get_segment_info}
-#' @param input_optimum_pair A list containing fields for rho, psi and ploidy, as is output from \code{runASCAT}
-#' @param dist_choice The distance metric to be used internally to penalise a copy number solution
-#' @param distancepng if NA: distance is plotted, if filename is given, the plot is written to a .png file (Default NA)
-#' @param copynumberprofilespng if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file (Default NA)
-#' @param nonroundedprofilepng if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)
-#' @param gamma_param technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
+#' @param input_optimum_pair A list containing fields for rho, psi and ploidy,
+#' as is output from \code{runASCAT}
+#' @param dist_choice The distance metric to be used internally to penalise a copy
+#' number solution
+#' @param distancepng if NA: distance is plotted, if filename is given, the plot
+#' is written to a .png file (Default NA)
+#' @param copynumberprofilespng if NA: possible copy number profiles are plotted,
+#' if filename is given, the plot is written to a .png file (Default NA)
+#' @param nonroundedprofilepng if NA: copy number profile before rounding is
+#' plotted (total copy number as well as the copy number of the minor allele), if
+#' filename is given, the plot is written to a .png file (Default NA)
+#' @param gamma_param technology parameter, compaction of Log R profiles (expected
+#' decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in
+#' ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)
 #' @param read_depth TODO: unused parameter that should be removed
-#' @param uninformative_baf_threshold The threshold beyond which BAF becomes uninformative
-#' @param allow100percent A boolean whether to allow a 100"\%" cellularity solution
-#' @param reliabilityFile String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)
+#' @param uninformative_baf_threshold The threshold beyond which BAF becomes
+#' uninformative
+#' @param allow100percent A boolean whether to allow a 100"\%" cellularity
+#' solution
+#' @param reliabilityFile String to where fit reliabilty information should be
+#' written. This file contains backtransformed BAF and LogR values for segments
+#' using the fitted copy number profile (Default NA)
 #' @param psi_min_initial Minimum psi value to be considered (Default: 1.0)
 #' @param psi_max_initial Maximum psi value to be considered (Default: 5.4)
 #' @param rho_min_initial Minimum rho value to be considered (Default: 0.1)
 #' @param rho_max_initial Maximum rho value to be considered (Default: 1.05)
 #' @param chr_names A vector with chromosome names used for plotting
-#' @return A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is_ref_better
+#' @return A list with fields output_optimum_pair, output_optimum_pair_without_ref,
+#' distance, distance_without_ref, minimise and is_ref_better
 #' @export
 run_clonal_ASCAT <- function(
   lrr, baf, lrrsegmented,
@@ -44,7 +61,8 @@ run_clonal_ASCAT <- function(
   psi_max_initial = 5.4,
   rho_min_initial = 0.1,
   rho_max_initial = 1.05,
-  chr_names
+  chr_names,
+  nthreads = 1
 ) {
   siglevel_BAF <- 0.05
   maxdist_BAF <- 0.01
@@ -66,7 +84,11 @@ run_clonal_ASCAT <- function(
   s <- get_segment_info(lrrsegmented, segBAF_table)
   # Make sure no segment of length 1 remains - TODO: this should not occur and needs to be prevented upstream
   s <- s[s[, 3] > 1, ]
-  dist_matrix_info <- create_distance_matrix_clonal(s, dist_choice, gamma_param, read_depth, siglevel_BAF, maxdist_BAF, siglevel_LogR, maxdist_LogR, uninformative_baf_threshold, new_bounds) # kjd 10-2-2013
+  dist_matrix_info <- create_distance_matrix_clonal(
+    s, dist_choice, gamma_param, read_depth, siglevel_BAF, maxdist_BAF,
+    siglevel_LogR, maxdist_LogR, uninformative_baf_threshold, new_bounds,
+    nthreads = nthreads
+  ) # kjd 10-2-2013
 
   d <- dist_matrix_info$distance_matrix
   minimise <- dist_matrix_info$minimise
@@ -107,11 +129,15 @@ run_clonal_ASCAT <- function(
   is_ref_better <- FALSE
   if (is.na(rho_opt1)) {
     log_info("reference segment did not provide a possible solution")
-  } else if (psi_opt1 >= psi_min_initial && psi_opt1 <= psi_max_initial && rho_opt1 >= rho_min_initial && rho_opt1 <= rho_max_initial && ((minimise && distance.from.ref.seg < best.distance) || (!minimise && distance.from.ref.seg > best.distance))) {
+  } else if (psi_opt1 >= psi_min_initial && psi_opt1 <= psi_max_initial &&
+    rho_opt1 >= rho_min_initial && rho_opt1 <= rho_max_initial &&
+    ((minimise && distance.from.ref.seg < best.distance) ||
+      (!minimise && distance.from.ref.seg > best.distance))) {
     is_ref_better <- T
     log_info("reference segment gives better results than grid search")
   } else {
-    log_info("reference segment gives no better results than grid search. Reverting to grid search solution")
+    log_info("reference segment gives no better results than grid search. \\
+             Reverting to grid search solution")
   }
 
   psi_without_ref <- optima_info_without_ref$psi_opt1
@@ -126,18 +152,36 @@ run_clonal_ASCAT <- function(
     psi <- psi_without_ref
     ploidy <- ploidy_without_ref
     goodness_of_fit <- goodness_of_fit_without_ref * 100
-    nAfull <- (rho - 1 - (b - 1) * 2^(r / gamma_param) * ((1 - rho) * 2 + rho * psi)) / rho
-    nBfull <- (rho - 1 + b * 2^(r / gamma_param) * ((1 - rho) * 2 + rho * psi)) / rho
+    nAfull <- (rho - 1 - (b - 1) * 2^(r / gamma_param) *
+      ((1 - rho) * 2 + rho * psi)) / rho
+    nBfull <- (rho - 1 + b * 2^(r / gamma_param) *
+      ((1 - rho) * 2 + rho * psi)) / rho
     nA <- pmax(round(nAfull), 0)
     nB <- pmax(round(nBfull), 0)
 
-    rBacktransform <- gamma_param * log((rho * (nA + nB) + (1 - rho) * 2) / ((1 - rho) * 2 + rho * psi), 2)
+    rBacktransform <- gamma_param *
+      log((rho * (nA + nB) + (1 - rho) * 2) / ((1 - rho) * 2 + rho * psi), 2)
     bBacktransform <- (1 - rho + rho * nB) / (2 - 2 * rho + rho * (nA + nB))
-    rConf <- ifelse(abs(rBacktransform) > 0.15, pmin(100, pmax(0, 100 * (1 - abs(rBacktransform - r) / abs(r)))), NA)
-    bConf <- ifelse(bBacktransform != 0.5, pmin(100, pmax(0, ifelse(b == 0.5, 100, 100 * (1 - abs(bBacktransform - b) / abs(b - 0.5))))), NA)
+    rDiff <- 1 - abs(rBacktransform - r) / abs(r)
+    rConf <- ifelse(abs(rBacktransform) > 0.15,
+      pmin(100, pmax(0, 100 * rDiff)), NA
+    )
+    bDiff <- 1 - abs(bBacktransform - b) / abs(b - 0.5)
+    bConf <- ifelse(bBacktransform != 0.5,
+      pmin(100, pmax(0, ifelse(b == 0.5, 100, 100 * bDiff))), NA
+    )
     # DCW 150711 - get deviations from expected values
     if (!is.na(reliabilityFile)) {
-      data.table::fwrite(data.frame(segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf, segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = FALSE)
+      data.table::fwrite(
+        data.frame(
+          segmentedBAF = b, backTransformedBAF = bBacktransform,
+          confidenceBAF = bConf, segmentedR = r,
+          backTransformedR = rBacktransform, confidenceR = rConf,
+          nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull
+        ),
+        reliabilityFile,
+        sep = ",", row.names = FALSE
+      )
     }
 
     # Make plots
@@ -182,7 +226,11 @@ run_clonal_ASCAT <- function(
   }
 
   # Recalculate the psi_t for this rho using only clonal segments
-  psi_t <- recalc_psi_t(psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF_table, siglevel_BAF, maxdist_BAF, include_subcl_segments = FALSE)
+  psi_t <- recalc_psi_t(
+    psi_without_ref, rho_without_ref, gamma_param, lrrsegmented, segBAF_table,
+    siglevel_BAF, maxdist_BAF,
+    include_subcl_segments = FALSE
+  )
 
   # If there aren't any clonally fit segments, the above yields NA. In this case, revert to the original grid search psi_t
   if (is.na(psi_t)) {
@@ -192,9 +240,21 @@ run_clonal_ASCAT <- function(
 
   output_optimum_pair <- list(psi = psi_opt1, rho = rho_opt1, ploidy = ploidy_opt1)
   # output_optimum_pair_without_ref = list(psi = psi_without_ref, rho = rho_without_ref, ploidy = ploidy_without_ref)
-  # Use the recalculated psi_t from the clonal segments as our final estimate of psi_t which is data driven with rho fixed
-  output_optimum_pair_without_ref <- list(psi = psi_t, rho = rho_without_ref, ploidy = ploidy_without_ref)
-  return(list(output_optimum_pair = output_optimum_pair, output_optimum_pair_without_ref = output_optimum_pair_without_ref, distance = distance.from.ref.seg, distance_without_ref = best.distance, minimise = minimise, is_ref_better = is_ref_better)) # kjd 20-2-2014, adapted by DCW 140314
+  # Use the recalculated psi_t from the clonal segments as our final estimate
+  # of psi_t which is data driven with rho fixed
+  output_optimum_pair_without_ref <- list(
+    psi = psi_t, rho = rho_without_ref, ploidy = ploidy_without_ref
+  )
+  return(
+    list(
+      output_optimum_pair = output_optimum_pair,
+      output_optimum_pair_without_ref = output_optimum_pair_without_ref,
+      distance = distance.from.ref.seg,
+      distance_without_ref = best.distance,
+      minimise = minimise,
+      is_ref_better = is_ref_better
+    )
+  ) # kjd 20-2-2014, adapted by DCW 140314
 }
 
 #' Function extends the ASCAT \code{make_segments} function to make segments
@@ -204,8 +264,11 @@ run_clonal_ASCAT <- function(
 #' @noRd
 get_segment_info <- function(segLogR, segBAF_table) {
   # Column 5: Segmented BAF (b), Column 4: Phased BAF (BAFke)
-  b_raw <- segBAF_table[, 5]
-  b_phased <- segBAF_table[, 4]
+  log_info("b_raw: {segBAF_table[[5]]}")
+  log_info("b_phased: {segBAF_table[[4]]}")
+  b_raw <- segBAF_table[[5]]
+  b_phased <- segBAF_table[[4]]
+
 
   # Match original make_segments(r, b) call
   pcf_segments <- make_segments(segLogR, b_raw)

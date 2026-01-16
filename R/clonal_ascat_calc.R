@@ -274,8 +274,8 @@ calc_batch_standardised_errors <- function(s, rho, psi, gamma_param) {
 
   # Instead of a 4-item list per segment, we do 4 separate vector calculations
   # This is where the massive speedup happens
-  nMaj_opts <- list(floor(nMajor), ceil(nMajor), floor(nMajor), ceil(nMajor))
-  nMin_opts <- list(ceil(nMinor), ceil(nMinor), floor(nMinor), floor(nMinor))
+  nMaj_opts <- list(floor(nMajor), ceiling(nMajor), floor(nMajor), ceiling(nMajor))
+  nMin_opts <- list(ceiling(nMinor), ceiling(nMinor), floor(nMinor), floor(nMinor))
 
   # Calculate BAF levels for all 4 possibilities across all segments simultaneously
   BAF_levels <- lapply(1:4, function(k) {

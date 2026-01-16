@@ -1201,7 +1201,6 @@ prepare_wgs_germline <- function(
         )
       },
       debug = debug,
-      label = "Germline Allele Counting"
     )
   }
   # Standardise Chr notation (removes 'chr' string if present; essential for cell_line_baf_logR)

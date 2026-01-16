@@ -1,69 +1,126 @@
 #' Run the Battenberg pipeline
-#' @param analysis The mode of Battenberg copy number analysis to be undertaken: 'paired' for tumour-normal pair, 'cell_line' for Cell line tumour-only and 'germline' for germline CNV of normal sample (Default: 'paired')
-#' @param samplename Sample identifier (tumour or germline), this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
-#' @param normalname Matched normal identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.
+#' @param analysis The mode of Battenberg copy number analysis to be undertaken:
+#' 'paired' for tumour-normal pair, 'cell_line' for Cell line tumour-only and
+#' 'germline' for germline CNV of normal sample (Default: 'paired')
+#' @param samplename Sample identifier (tumour or germline), this is used as a
+#' prefix for the output files. If allele counts are supplied separately, they
+#' are expected to have this identifier as prefix.
+#' @param normalname Matched normal identifier, this is used as a prefix for the
+#' output files. If allele counts are supplied separately, they are expected to
+#' have this identifier as prefix.
 #' @param sample_data_file A BAM or CEL file for the sample
-#' @param normal_data_file A BAM or CEL file for the normal-pair (paired analysis)
-#' @param imputeinfofile Full path to a Battenberg impute info file with pointers to Impute2 reference data
-#' @param g1000prefix Full prefix path to 1000 Genomes SNP loci data, as part of the Battenberg reference data
-#' @param problemloci Full path to a problem loci file that contains SNP loci that should be filtered out
-#' @param gccorrectprefix Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)
-#' @param repliccorrectprefix Full prefix path to replication timing files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)
-#' @param g1000allelesprefix Full prefix path to 1000 Genomes SNP alleles data, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)
-#' @param ismale A boolean set to TRUE if the donor is male, set to FALSE if female, not required for SNP6 data (Default: NA)
-#' @param data_type String that contains either wgs or snp6 depending on the supplied input data (Default: wgs)
-#' @param impute_exe Pointer to the Impute2 executable (Default: impute2, i.e. expected in $PATH)
-#' @param allelecounter_exe Pointer to the alleleCounter executable (Default: alleleCounter, i.e. expected in $PATH)
-#' @param nthreads The number of concurrent processes to use while running the Battenberg pipeline (Default: 8)
-#' @param platform_gamma Platform scaling factor, suggestions are set to 1 for wgs and to 0.55 for snp6 (Default: 1)
-#' @param phasing_gamma Gamma parameter used when correcting phasing mistakes (Default: 1)
-#' @param segmentation_gamma The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 10)
-#' @param segmentation_gamma_multisample The gamma parameter controls the size of the penalty of starting a new segment during mutlisample segmentation. It is the key parameter for controlling the number of segments (Default: 10)
-#' @param segmentation_kmin Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)
+#' @param normal_data_file A BAM or CEL file for the
+#' normal-pair (paired analysis)
+#' @param imputeinfofile Full path to a Battenberg impute info file with
+#' pointers to Impute2 reference data
+#' @param g1000prefix Full prefix path to 1000 Genomes SNP loci data, as part of
+#' the Battenberg reference data
+#' @param problemloci Full path to a problem loci file that contains SNP
+#' loci that should be filtered out
+#' @param gccorrectprefix Full prefix path to GC content files, as part of the
+#' Battenberg reference data, not required for SNP6 data (Default: NULL)
+#' @param repliccorrectprefix Full prefix path to replication timing files,
+#' as part of the Battenberg reference data, not required
+#' for SNP6 data (Default: NULL)
+#' @param g1000allelesprefix Full prefix path to 1000 Genomes SNP alleles data,
+#' as part of the Battenberg reference data, not required for SNP6 data
+#' (Default: NA)
+#' @param ismale A boolean set to TRUE if the donor is male, set to FALSE if
+#' female, not required for SNP6 data (Default: NA)
+#' @param data_type String that contains either wgs or snp6 depending on the
+#' supplied input data (Default: wgs)
+#' @param impute_exe Pointer to the Impute2 executable (Default: impute2, i.e.
+#' expected in $PATH)
+#' @param allelecounter_exe Pointer to the alleleCounter executable (Default:
+#' alleleCounter, i.e. expected in $PATH)
+#' @param nthreads The number of concurrent processes to use while running the
+#' Battenberg pipeline (Default: 8)
+#' @param platform_gamma Platform scaling factor,
+#' suggestions are set to 1 for wgs and to 0.55 for snp6 (Default: 1)
+#' @param phasing_gamma Gamma parameter used when correcting phasing mistakes
+#' (Default: 1)
+#' @param segmentation_gamma The gamma parameter controls the size of the penalty
+#' of starting a new segment during segmentation. It is therefore the key parameter
+#' for controlling the number of segments (Default: 10)
+#' @param segmentation_gamma_multisample The gamma parameter controls the size of
+#' the penalty of starting a new segment during mutlisample segmentation. It is the
+#' key parameter for controlling the number of segments (Default: 10)
+#' @param segmentation_kmin Kmin represents the minimum number of probes/SNPs that
+#' a segment should consist of (Default: 3)
 #' @param phasing_kmin Kmin used when correcting for phasing mistakes (Default: 3)
-#' @param clonality_dist_metric  Distance metric to use when choosing purity/ploidy combinations (Default: 0)
-#' @param ascat_dist_metric Distance metric to use when choosing purity/ploidy combinations (Default: 1)
+#' @param clonality_dist_metric  Distance metric to use when choosing purity/ploidy
+#' combinations (Default: 0)
+#' @param ascat_dist_metric Distance metric to use when choosing purity/ploidy
+#' combinations (Default: 1)
 #' @param min_ploidy Minimum ploidy to be considered (Default: 1.6)
 #' @param max_ploidy Maximum ploidy to be considered (Default: 4.8)
 #' @param min_rho Minimum purity to be considered (Default: 0.1)
 #' @param max_rho Maximum purity to be considered (Default: 1.0)
-#' @param min_goodness Minimum goodness of fit required for a purity/ploidy combination to be accepted as a solution (Default: 0.63)
-#' @param uninformative_baf_threshold The threshold beyond which BAF becomes uninformative (Default: 0.51)
-#' @param min_normal_depth Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)
-#' @param min_base_qual Minimum base quality required for a read to be counted when allele counting (Default: 20)
-#' @param min_map_qual Minimum mapping quality required for a read to be counted when allele counting (Default: 35)
+#' @param min_goodness Minimum goodness of fit required for a purity/ploidy
+#' combination to be accepted as a solution (Default: 0.63)
+#' @param uninformative_baf_threshold The threshold beyond which BAF becomes
+#' uninformative (Default: 0.51)
+#' @param min_normal_depth Minimum depth required in the matched normal for a SNP
+#' to be considered as part of the wgs analysis (Default: 10)
+#' @param min_base_qual Minimum base quality required for a read to be counted when
+#' allele counting (Default: 20)
+#' @param min_map_qual Minimum mapping quality required for a read to be counted
+#' when allele counting (Default: 35)
 #' @param max_allowed_state The maximum CN state allowed (Default 250)
-#' @param cn_upper_limit Maximum number of copy number that can be called (Default 1000)
-#' @param calc_seg_baf_option Sets way to calculate BAF per segment: 1=mean, 2=median, 3=ifelse median==0 | 1, mean, median (Default (paired): 3, cell_line & germline: 1)
-#' @param skip_allele_counting Provide TRUE when allele counting can be skipped (i.e. its already done) (Default: FALSE)
-#' @param skip_preprocessing Provide TRUE when preprocessing is already complete (Default: FALSE)
-#' @param skip_phasing  Provide TRUE when phasing is already complete (Default: FALSE)
+#' @param cn_upper_limit Maximum number of copy number that can be called
+#' (Default 1000)
+#' @param calc_seg_baf_option Sets way to calculate BAF per segment: 1=mean,
+#' 2=median, 3=ifelse median==0 | 1, mean, median (Default (paired): 3,
+#' cell_line & germline: 1)
+#' @param skip_allele_counting Provide TRUE when allele counting can be skipped
+#' (i.e. its already done) (Default: FALSE)
+#' @param skip_preprocessing Provide TRUE when preprocessing is already complete
+#' (Default: FALSE)
+#' @param skip_phasing  Provide TRUE when phasing is already complete
+#' (Default: FALSE)
 #' @param usebeagle Should use beagle5 instead of impute2 Default: FALSE
 #' @param beaglejar Full path to Beagle java jar file Default: NA
-#' @param beagleref_template Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA
-#' @param beagleplink_template Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA
+#' @param beagleref_template Full path template to Beagle reference files where
+#' the chromosome is replaced by 'CHROMNAME' Default: NA
+#' @param beagleplink_template Full path template to Beagle plink files where the
+#' chromosome is replaced by 'CHROMNAME' Default: NA
 #' @param beaglemaxmem Integer Beagle max heap size in Gb  Default: 10
 #' @param beaglenthreads Integer number of threads used by beagle5 Default:1
 #' @param beaglewindow Integer size of the genomic window for beagle5 (cM) Default:40
 #' @param beagleoverlap Integer size of the overlap between windows beagle5 Default:4
-#' @param javajre Path to the Java JRE executable, only required for haplotype reconstruction with Beagle (default java, i.e. in $PATH)
-#' @param snp6_reference_info_file Reference files for the SNP6 pipeline only (Default: NA)
-#' @param apt_probeset_genotype_exe Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)
-#' @param apt_probeset_summarize_exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-summarize)
-#' @param norm_geno_clust_exe  Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)
-#' @param birdseed_report_file Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)
-#' @param heterozygous_filter Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")
-#' @param prior_breakpoints_file A two column file with prior breakpoints to be used during segmentation (Default: NULL)
-#' @param genomebuild Genome build upon which the 1000G SNP coordinates were obtained (Default: hg38; options: "hg19" or "hg38")
+#' @param javajre Path to the Java JRE executable, only required for haplotype
+#' reconstruction with Beagle (default java, i.e. in $PATH)
+#' @param snp6_reference_info_file Reference files for the SNP6 pipeline only
+#' (Default: NA)
+#' @param apt_probeset_genotype_exe Helper tool for extracting data from CEL files,
+#' SNP6 pipeline only (Default: apt-probeset-genotype)
+#' @param apt_probeset_summarize_exe  Helper tool for extracting data from CEL
+#' files, SNP6 pipeline only (Default: apt-probeset-summarize)
+#' @param norm_geno_clust_exe  Helper tool for extracting data from CEL files,
+#' SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)
+#' @param birdseed_report_file Sex inference output file, SNP6 pipeline only
+#' (Default: birdseed.report.txt)
+#' @param heterozygous_filter Legacy option to set a heterozygous SNP filter, SNP6
+#' pipeline only (Default: "none")
+#' @param prior_breakpoints_file A two column file with prior breakpoints to be
+#' used during segmentation (Default: NULL)
+#' @param genomebuild Genome build upon which the 1000G SNP coordinates were
+#' obtained (Default: hg38; options: "hg19" or "hg38")
 #' @param chrom_chrod_file TODO: no idea what this does
-#' @param externalhaplotypefile Vcf containing externally obtained haplotype blocks (Default: NA)
-#' @param write_battenberg_phasing Write the Battenberg phasing results as vcf to disk, e.g. for multisample cases (Default: TRUE)
-#' @param multisample_maxlag Maximal number of upstream SNPs used in the multisample haplotyping to inform the haplotype at another SNP (Default: 100)
-#' @param multisample_relative_weight_balanced Relative weight to give to haplotype info from a sample without allelic imbalance in the region (Default: 0.25)
-#' @param enhanced_grid_search Should use multi-start, parallelized and multi-approach grid search (Default: FALSE)
+#' @param externalhaplotypefile Vcf containing externally obtained haplotype blocks
+#' (Default: NA)
+#' @param write_battenberg_phasing Write the Battenberg phasing results as vcf to
+#' disk, e.g. for multisample cases (Default: TRUE)
+#' @param multisample_maxlag Maximal number of upstream SNPs used in the multisample
+#' haplotyping to inform the haplotype at another SNP (Default: 100)
+#' @param multisample_relative_weight_balanced Relative weight to give to haplotype
+#' info from a sample without allelic imbalance in the region (Default: 0.25)
+#' @param enhanced_grid_search Should use multi-start, parallelized and
+#' multi-approach grid search (Default: FALSE)
 #' @param verbose_logging Print out more information during the run (Default: FALSE)
 #' @param logging_path Path to write log files to (Default: ".")
-#' @param debug Flag the determines if battenberg runs in debug mode or not. The difference is no parallelization in debug mode. (Default: FALSE)
+#' @param debug Flag the determines if battenberg runs in debug mode or not. The
+#' difference is no parallelization in debug mode. (Default: FALSE)
 
 #' @author sd11, jdemeul, Naser Ansari-Pour, Julio Cesar Cortes Rios
 #' @export
@@ -206,8 +263,8 @@ battenberg <- function(
 
   if (data_type == "wgs" || data_type == "WGS") {
     if (nsamples > 1) {
-      log_info("Running Battenberg in multisample mode on {nsamples}\
-samples: {paste(samplename, collapse = ', ')}")
+      log_info("Running Battenberg in multisample mode on {nsamples} samples: \\
+                {paste(samplename, collapse = ', ')}")
     }
     chrom_names <- get_chrom_names(imputeinfofile, ismale, analysis = analysis)
   } else if (data_type == "snp6" || data_type == "SNP6") {
@@ -230,7 +287,8 @@ samples: {paste(samplename, collapse = ', ')}")
 
         if (analysis == "paired") {
           if (is.null(normalname) || is.na(normalname)) {
-            log_failure("No normal sample is specified for 'paired analysis' - a normal paired BAM is required")
+            log_failure("No normal sample is specified for 'paired analysis' \\
+                        - a normal paired BAM is required")
           }
           prepare_wgs(
             chrom_names = chrom_names,
@@ -451,8 +509,15 @@ samples: {paste(samplename, collapse = ', ')}")
       # Write the Battenberg phasing information to disk as a vcf
       write_battenberg_phasing(
         tumourname = samplename[sampleidx],
-        SNPfiles = paste0(samplename[sampleidx], "_alleleFrequencies_chr", chrom_names, ".txt"),
-        imputedHaplotypeFiles = paste0(samplename[sampleidx], "_impute_output_chr", chrom_names, "_allHaplotypeInfo.txt"),
+        SNPfiles = paste0(
+          samplename[sampleidx], "_alleleFrequencies_chr",
+          chrom_names, ".txt"
+        ),
+        imputedHaplotypeFiles = paste0(
+          samplename[sampleidx],
+          "_impute_output_chr", chrom_names,
+          "_allHaplotypeInfo.txt"
+        ),
         bafsegmented_file = paste0(samplename[sampleidx], ".BAFsegmented.txt"),
         outprefix = paste0(samplename[sampleidx], "_Battenberg_phased_chr"),
         chrom_names = chrom_names,
@@ -494,11 +559,41 @@ samples: {paste(samplename, collapse = ', ')}")
       segfiles <- paste0(samplename[sampleidx], "_segment_chr", chrom_names, ".png")
       haplotypedandbafsegmentedfiles <- paste0(samplename[sampleidx], c("_heterozygousMutBAFs_haplotyped.txt", ".BAFsegmented.txt"))
 
-      file.copy(from = MutBAFfiles, to = gsub(pattern = ".txt$", replacement = "_noMulti.txt", x = MutBAFfiles), overwrite = TRUE)
-      file.copy(from = heterozygousdatafiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = heterozygousdatafiles), overwrite = TRUE)
-      file.copy(from = raffiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = raffiles), overwrite = TRUE)
-      file.copy(from = segfiles, to = gsub(pattern = ".png$", replacement = "_noMulti.png", x = segfiles), overwrite = TRUE)
-      file.copy(from = haplotypedandbafsegmentedfiles, to = gsub(pattern = ".txt$", replacement = "_noMulti.txt", x = haplotypedandbafsegmentedfiles), overwrite = TRUE)
+      file.copy(
+        from = MutBAFfiles,
+        to = gsub(
+          pattern = ".txt$", replacement = "_noMulti.txt",
+          x = MutBAFfiles
+        ), overwrite = TRUE
+      )
+      file.copy(
+        from = heterozygousdatafiles,
+        to = gsub(
+          pattern = ".png$", replacement = "_noMulti.png",
+          x = heterozygousdatafiles
+        ), overwrite = TRUE
+      )
+      file.copy(
+        from = raffiles,
+        to = gsub(
+          pattern = ".png$", replacement = "_noMulti.png",
+          x = raffiles
+        ), overwrite = TRUE
+      )
+      file.copy(
+        from = segfiles,
+        to = gsub(
+          pattern = ".png$", replacement = "_noMulti.png",
+          x = segfiles
+        ), overwrite = TRUE
+      )
+      file.copy(
+        from = haplotypedandbafsegmentedfiles,
+        to = gsub(
+          pattern = ".txt$", replacement = "_noMulti.txt",
+          x = haplotypedandbafsegmentedfiles
+        ), overwrite = TRUE
+      )
       # done renaming, next sections will overwrite orignals
 
       run_parallel_or_serial(seq_along(chrom_names), function(i) {
@@ -509,26 +604,48 @@ samples: {paste(samplename, collapse = ', ')}")
         input_known_haplotypes(
           chrom = chrom,
           chrom_names = chrom_names,
-          imputedHaplotypeFile = paste(samplename[sampleidx], "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = ""),
-          externalHaplotypeFile = paste(multisamplehaplotypeprefix, chrom, ".vcf", sep = ""),
+          imputedHaplotypeFile = paste(samplename[sampleidx],
+            "_impute_output_chr", chrom,
+            "_allHaplotypeInfo.txt",
+            sep = ""
+          ),
+          externalHaplotypeFile = paste(multisamplehaplotypeprefix, chrom,
+            ".vcf",
+            sep = ""
+          ),
           oldfilesuffix = "_noMulti.txt"
         )
 
         # Get BAFs for the specific chromosome
         GetChromosomeBAFs(
           chrom = chrom,
-          SNP_file = paste(samplename[sampleidx], "_alleleFrequencies_chr", chrom, ".txt", sep = ""),
-          haplotypeFile = paste(samplename[sampleidx], "_impute_output_chr", chrom, "_allHaplotypeInfo.txt", sep = ""),
+          SNP_file = paste(samplename[sampleidx], "_alleleFrequencies_chr",
+            chrom, ".txt",
+            sep = ""
+          ),
+          haplotypeFile = paste(samplename[sampleidx], "_impute_output_chr",
+            chrom, "_allHaplotypeInfo.txt",
+            sep = ""
+          ),
           samplename = samplename[sampleidx],
-          outfile = paste(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
+          outfile = paste(samplename[sampleidx], "_chr", chrom,
+            "_heterozygousMutBAFs_haplotyped.txt",
+            sep = ""
+          ),
           chr_names = chrom_names,
           minCounts = min_normal_depth
         )
 
         # Plot the intermediate results
         plot_haplotype_data(
-          haplotyped_baf_file = paste(samplename[sampleidx], "_chr", chrom, "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
-          image_file_name = paste(samplename[sampleidx], "_chr", chrom, "_heterozygousData.png", sep = ""),
+          haplotyped_baf_file = paste(samplename[sampleidx], "_chr", chrom,
+            "_heterozygousMutBAFs_haplotyped.txt",
+            sep = ""
+          ),
+          image_file_name = paste(samplename[sampleidx], "_chr", chrom,
+            "_heterozygousData.png",
+            sep = ""
+          ),
           samplename = samplename[sampleidx],
           chrom = chrom
         )
@@ -582,6 +699,15 @@ samples: {paste(samplename, collapse = ', ')}")
       }
     }
 
+    # Calculate safe inner threads to avoid thrashing
+    # If debug is enabled, force sequential execution
+    inner_threads <- if (debug) 1 else max(1, floor(nthreads / nsamples))
+    log_info(paste0(
+      "battenberg.R calculation: nthreads=", nthreads,
+      ", nsamples=", nsamples, ", debug=", debug,
+      " -> inner_threads=", inner_threads
+    ))
+
     # If 'debug' is TRUE, a crash here will now give a REAL line number
     fit_copy_number(
       samplename = samplename[sampleidx],
@@ -603,7 +729,7 @@ samples: {paste(samplename, collapse = ', ')}")
       preset_psi = NA,
       read_depth = 30,
       analysis = analysis,
-      nthreads = nthreads,
+      nthreads = inner_threads,
       enhanced_grid_search = enhanced_grid_search
     )
 
@@ -615,9 +741,17 @@ samples: {paste(samplename, collapse = ', ')}")
       logr_file = logr_file,
       rho_psi_file = paste(samplename[sampleidx], "_rho_and_psi.txt", sep = ""),
       output_file = paste(samplename[sampleidx], "_copynumber.txt", sep = ""),
-      output_figures_prefix = paste(samplename[sampleidx], "_subclones_chr", sep = ""),
-      output_gw_figures_prefix = paste(samplename[sampleidx], "_BattenbergProfile", sep = ""),
-      masking_output_file = paste(samplename[sampleidx], "_segment_masking_details.txt", sep = ""),
+      output_figures_prefix = paste(samplename[sampleidx], "_subclones_chr",
+        sep = ""
+      ),
+      output_gw_figures_prefix = paste(samplename[sampleidx],
+        "_BattenbergProfile",
+        sep = ""
+      ),
+      masking_output_file = paste(samplename[sampleidx],
+        "_segment_masking_details.txt",
+        sep = ""
+      ),
       prior_breakpoints_file = prior_breakpoints_file,
       chr_names = chrom_names,
       gamma = platform_gamma,

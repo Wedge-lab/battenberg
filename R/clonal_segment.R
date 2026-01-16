@@ -6,85 +6,111 @@
 #' the tumour genome segment in question is "clonal".
 #' @noRd
 is_segment_clonal <- function(
-  LogR,
-  BAF_req,
-  BAF_length,
-  BAF_size,
-  BAF_mean,
-  BAF_sd,
-  rho,
-  psi,
-  gamma_param,
-  siglevel_BAF,
-  maxdist_BAF
+  LogR, BAF_req, BAF_length, BAF_size, BAF_mean, BAF_sd,
+  rho, psi, gamma_param, siglevel_BAF, maxdist_BAF
 ) {
-  # if we don't have a value for LogR, fill in 0
-  if (is.na(LogR)) {
-    LogR <- 0
-  }
+  # Handle NAs in LogR efficiently
+  # If LogR is a vector, we modify it in place
+  LogR[is.na(LogR)] <- 0
 
-  nA <- (rho - 1 - (BAF_req - 1) * 2^(LogR / gamma_param) * ((1 - rho) * 2 + rho * psi)) / rho
-  nB <- (rho - 1 + BAF_req * 2^(LogR / gamma_param) * ((1 - rho) * 2 + rho * psi)) / rho
+  # Pre-calculate shared terms
+  factor <- 2^(LogR / gamma_param)
+  term_base <- (rho - 1)
+  term_psi <- ((1 - rho) * 2 + rho * psi)
 
-  nMajor <- max(nA, nB, na.rm = TRUE)
-  nMinor <- min(nA, nB, na.rm = TRUE)
+  nA <- (term_base - (BAF_req - 1) * factor * term_psi) / rho
+  nB <- (term_base + BAF_req * factor * term_psi) / rho
 
-  # check for big shifts in nMajor - if there's a big shift, we shouldn't trust a clonal call
+  nMajor <- pmax(nA, nB, na.rm = TRUE)
+  nMinor <- pmin(nA, nB, na.rm = TRUE)
+
+  # Check validation logic (Vectorized)
   nMajor.saved <- nMajor
 
-  # DCW - increase nMajor and nMinor together, to avoid impossible combinations (with negative subclonal fractions)
-  if (nMinor < 0) {
-    if (BAF_req == 1) {
-      # avoid calling infinite copy number
-      nMajor <- 1000
-    } else {
-      nMajor <- nMajor + BAF_req * (0.01 - nMinor) / (1 - BAF_req)
-      if (nMajor < 0) nMajor <- 1000
+  # Validation logic for negative nMinor
+  neg_idx <- which(nMinor < 0)
+  if (length(neg_idx) > 0) {
+    b_req_sub <- BAF_req[neg_idx]
+
+    # Identify which ones are BAF_req == 1
+    is_one <- abs(b_req_sub - 1) < 1e-9
+
+    # Case 1: BAF == 1 -> Major = 1000
+    nMajor[neg_idx[is_one]] <- 1000
+
+    # Case 2: BAF != 1 -> Recalculate Major
+    not_one <- neg_idx[!is_one]
+    if (length(not_one) > 0) {
+      val <- nMajor[not_one] + BAF_req[not_one] * (0.01 - nMinor[not_one]) / (1 - BAF_req[not_one])
+      # Clamp to 1000 if negative
+      val[val < 0] <- 1000
+      nMajor[not_one] <- val
     }
-    nMinor <- 0.01
+
+    nMinor[neg_idx] <- 0.01
   }
 
-  # note that these are sorted in the order of ascending BAF:
-  nMaj <- c(floor(nMajor), ceiling(nMajor), floor(nMajor), ceiling(nMajor))
-  nMin <- c(ceiling(nMinor), ceiling(nMinor), floor(nMinor), floor(nMinor))
-
-  BAF_levels <- (1 - rho + rho * nMaj) / (2 - 2 * rho + rho * (nMaj + nMin))
-  # problem if rho=1 and nMaj=0 and nMin=0
-  BAF_levels[nMaj == 0 & nMin == 0] <- 0.5
-
-  # DCW - just test corners on the nearest edge to determine clonality
-  # If the segment is called as subclonal, this is the edge that will be used to determine the subclonal proportions that are reported first
+  # prioritizeCopyNumbers is now vectorized (assumed - we will update it next)
   all.edges <- prioritizeCopyNumbers(
-    rho = rho,
-    psi = psi,
-    BAF_req = BAF_req, # The observed BAF value for this segment
-    nMajor = nMajor,
-    nMinor = nMinor,
-    full = TRUE
+    rho = rho, psi = psi, BAF_req = BAF_req,
+    nMajor = nMajor, nMinor = nMinor, full = TRUE
   )
 
-  nMaj.test <- all.edges[1, c(1, 3)]
-  nMin.test <- all.edges[1, c(2, 4)]
-  test.BAF_levels <- (1 - rho + rho * nMaj.test) / (2 - 2 * rho + rho * (nMaj.test + nMin.test))
-  # problem if rho=1 and nMaj=0 and nMin=0
-  test.BAF_levels[nMaj.test == 0 & nMin.test == 0] <- 0.5
-  whichclosestlevel.test <- which.min(abs(test.BAF_levels - BAF_req))
+  # Columns: 1=nM1, 2=nm1, 3=nM2, 4=nm2
+  nMaj.test <- all.edges[, c(1, 3), drop = FALSE]
+  nMin.test <- all.edges[, c(2, 4), drop = FALSE]
 
-  # problem caused by segments with constant BAF (usually 1 or 2)
-  if (BAF_sd == 0) {
-    pval <- 0
-  } else {
-    pval <- calc_Pvalue_t_twotailed(BAF_size, BAF_req, BAF_sd, test.BAF_levels[whichclosestlevel.test], maxdist_BAF)
+  # Calculate levels for both options (Option 1 and Option 2)
+  calc_baf <- function(nM, nm) {
+    num <- 1 - rho + rho * nM
+    den <- 2 - 2 * rho + rho * (nM + nm)
+    lev <- num / den
+    lev[nM == 0 & nm == 0] <- 0.5
+    lev
   }
 
-  balanced <- nMaj.test[whichclosestlevel.test] == nMin.test[whichclosestlevel.test]
+  lev1 <- calc_baf(nMaj.test[, 1], nMin.test[, 1])
+  lev2 <- calc_baf(nMaj.test[, 2], nMin.test[, 2])
 
+  dist1 <- abs(lev1 - BAF_req)
+  dist2 <- abs(lev2 - BAF_req)
+
+  # Vectorized choice of best index
+  choose_2 <- dist2 < dist1
+
+  best_nMaj <- ifelse(choose_2, nMaj.test[, 2], nMaj.test[, 1])
+  best_nMin <- ifelse(choose_2, nMin.test[, 2], nMin.test[, 1])
+  best_level <- ifelse(choose_2, lev2, lev1)
+
+  # P-value calculation
+  # Handle BAF_sd == 0 case
+  pval <- numeric(length(BAF_req))
+  valid_sd <- BAF_sd > 0
+
+  if (any(valid_sd)) {
+    # Assuming calc_Pvalue_t_twotailed is vectorized
+    pval[valid_sd] <- calc_Pvalue_t_twotailed(
+      BAF_size[valid_sd], BAF_req[valid_sd],
+      BAF_sd[valid_sd], best_level[valid_sd], maxdist_BAF
+    )
+  }
+  # SD == 0 stays 0
+
+  balanced <- (best_nMaj == best_nMin)
+
+  # Clonal decision
   is_clonal <- (pval > siglevel_BAF)
-  # check for big shifts in nMajor - if there's a big shift, we shouldn't trust a clonal call
-  # This is particularly problematic for very high cellularity samples, like some of the ovarian samples
-  is_clonal <- (pval > siglevel_BAF & nMajor - nMajor.saved < 1)
 
-  return(list(is_clonal = is_clonal, balanced = balanced, nMaj.test = nMaj.test[whichclosestlevel.test], nMin.test = nMin.test[whichclosestlevel.test]))
+  # Stability check (Vectorized)
+  unstable <- (nMajor - nMajor.saved) >= 1
+  is_clonal[unstable] <- FALSE
+
+  return(list(
+    is_clonal = is_clonal,
+    balanced = balanced,
+    nMaj = best_nMaj,
+    nMin = best_nMin
+  ))
 }
 
 

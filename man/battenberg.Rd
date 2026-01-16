@@ -64,7 +64,7 @@ battenberg(
   birdseed_report_file = "birdseed.report.txt",
   heterozygous_filter = "none",
   prior_breakpoints_file = NULL,
-  genomebuild = "hg19",
+  genomebuild = "hg38",
   chrom_coord_file = NULL,
   enhanced_grid_search = FALSE,
   verbose_logging = FALSE,
@@ -191,13 +191,15 @@ battenberg(
 
 \item{prior_breakpoints_file}{A two column file with prior breakpoints to be used during segmentation (Default: NULL)}
 
-\item{genomebuild}{Genome build upon which the 1000G SNP coordinates were obtained (Default: hg19; options: "hg19" or "hg38")}
+\item{genomebuild}{Genome build upon which the 1000G SNP coordinates were obtained (Default: hg38; options: "hg19" or "hg38")}
 
 \item{enhanced_grid_search}{Should use multi-start, parallelized and multi-approach grid search (Default: FALSE)}
 
 \item{verbose_logging}{Print out more information during the run (Default: FALSE)}
 
 \item{logging_path}{Path to write log files to (Default: ".")}
+
+\item{debug}{Flag the determines if battenberg runs in debug mode or not. The difference is no parallelization in debug mode. (Default: FALSE)}
 
 \item{chrom_chrod_file}{TODO: no idea what this does}
 }

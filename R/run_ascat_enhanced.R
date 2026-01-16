@@ -7,10 +7,11 @@
 runASCAT_enhanced <- function(
   lrr, baf, lrrsegmented, bafsegmented, chromosomes, dist_choice,
   distancepng = NA, copynumberprofilespng = NA, nonroundedprofilepng = NA,
-  cnaStatusFile = "copynumber_solution_status.txt", gamma = 0.55, allow100percent,
-  reliabilityFile = NA, min_ploidy = 1.6, max_ploidy = 4.8, min_rho = 0.1, max_rho = 1.0,
-  min_goodness = 63, uninformative_baf_threshold = 0.51, chr_names, analysis = "paired",
-  smart_ordering = TRUE, early_termination = TRUE, verbose = TRUE
+  cnaStatusFile = "copynumber_solution_status.txt", gamma = 0.55,
+  allow100percent, reliabilityFile = NA, min_ploidy = 1.6, max_ploidy = 4.8,
+  min_rho = 0.1, max_rho = 1.0, min_goodness = 63,
+  uninformative_baf_threshold = 0.51, chr_names, analysis = "paired",
+  smart_ordering = TRUE, early_termination = TRUE, verbose = TRUE, nthreads = 1
 ) {
   start_time <- Sys.time()
 
@@ -29,13 +30,23 @@ runASCAT_enhanced <- function(
   dist_matrix_info <- create_distance_matrix(s, dist_choice, gamma,
     uninformative_baf_threshold = uninformative_baf_threshold,
     min_psi = dist_min_psi, max_psi = dist_max_psi,
-    min_rho = dist_min_rho, max_rho = dist_max_rho
+    min_rho = dist_min_rho, max_rho = dist_max_rho,
+    nthreads = nthreads
   )
   d <- dist_matrix_info$distance_matrix
+
+  log_debug("--- Debug: Grid and Segments ---")
+  log_debug("Number of segments created: {nrow(s)}")
+  log_debug("Distance matrix dimensions: {nrow(d)} x: {ncol(d)}")
+  log_debug("Theoretical Max Distance: {round(TheoretMaxdist, 4)}")
+
   minimise <- dist_matrix_info$minimise
 
   # Theoretical maximum distance (weighted by length)
-  TheoretMaxdist <- collapse::fsum(rep(0.25, nrow(s)) * s[, "length"], na.rm = TRUE)
+  # Theoretical maximum distance (weighted by length)
+  TheoretMaxdist <- collapse::fsum(rep(0.25, nrow(s)) * s[, "length"],
+    na.rm = TRUE
+  )
   if (!minimise) d <- -d
 
   # 3. Pre-compute Search Parameters
@@ -69,8 +80,8 @@ runASCAT_enhanced <- function(
 
       if (is_local_minimum_fast(d, i, j, m)) {
         solution <- calculate_solution_fast(
-          psi_values[i], rho_values[j], s_b, s_r, s_length, total_length, gamma,
-          min_ploidy, max_ploidy, min_rho, max_rho,
+          psi_values[i], rho_values[j], s_b, s_r, s_length, total_length,
+          gamma, min_ploidy, max_ploidy, min_rho, max_rho,
           min_goodness, m, TheoretMaxdist, minimise, allow100percent,
           baf_mask = baf_mask, denom_abb = denom_abb
         )
@@ -110,9 +121,10 @@ runASCAT_enhanced <- function(
         if (is_local_minimum_fast(d_mod, i, j, m)) {
           solution <- calculate_solution_fast(
             psi_values[i], rho_values[j], s_b, s_r, s_length, total_length, gamma,
-            min_ploidy, max_ploidy, min_rho, max_rho,
+            gamma, min_ploidy, max_ploidy, min_rho, max_rho,
             min_goodness, m, TheoretMaxdist, minimise, allow100percent,
-            baf_mask = baf_mask, denom_abb = denom_abb, skip_zero_check = TRUE
+            baf_mask = baf_mask, denom_abb = denom_abb,
+            skip_zero_check = TRUE
           )
           if (!solution_is_null(solution)) {
             nropt <- 1
@@ -172,18 +184,30 @@ runASCAT_enhanced <- function(
   nA <- pmax(round(nAfull), 0)
   nB <- pmax(round(nBfull), 0)
 
-  rBacktransform <- gamma * log((rho * (nA + nB) + (1 - rho) * 2) / ((1 - rho) * 2 + rho * psi), 2)
+  rBacktransform <- gamma * log(
+    (rho * (nA + nB) +
+      (1 - rho) * 2) / ((1 - rho) * 2 + rho * psi),
+    2
+  )
   bBacktransform <- (1 - rho + rho * nB) / (2 - 2 * rho + rho * (nA + nB))
 
   # Logic check: ensures reliability metrics are identical to original source
-  rConf <- ifelse(abs(rBacktransform) > 0.15, pmin(100, pmax(0, 100 * (1 - abs(rBacktransform - r) / abs(r)))), NA)
-  bConf <- ifelse(bBacktransform != 0.5, pmin(100, pmax(0, ifelse(b == 0.5, 100, 100 * (1 - abs(bBacktransform - b) / abs(b - 0.5))))), NA)
+  # Logic check: ensures reliability metrics are identical to original source
+  rDiff <- 1 - abs(rBacktransform - r) / abs(r)
+  rConf <- ifelse(abs(rBacktransform) > 0.15,
+    pmin(100, pmax(0, 100 * rDiff)), NA
+  )
+  bDiff <- 1 - abs(bBacktransform - b) / abs(b - 0.5)
+  bConf <- ifelse(bBacktransform != 0.5,
+    pmin(100, pmax(0, ifelse(b == 0.5, 100, 100 * bDiff))), NA
+  )
 
   if (!is.na(reliabilityFile)) {
     data.table::fwrite(
       data.frame(
-        segmentedBAF = b, backTransformedBAF = bBacktransform, confidenceBAF = bConf,
-        segmentedR = r, backTransformedR = rBacktransform, confidenceR = rConf,
+        segmentedBAF = b, backTransformedBAF = bBacktransform,
+        confidenceBAF = bConf, segmentedR = r,
+        backTransformedR = rBacktransform, confidenceR = rConf,
         nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull
       ),
       reliabilityFile,
@@ -282,7 +306,11 @@ calculate_solution_fast <- function(
   }
 
   # Goodness check
-  goodness_of_fit <- if (minimise) (1 - distance_value / TheoretMaxdist) * 100 else -distance_value / TheoretMaxdist * 100
+  goodness_of_fit <- if (minimise) {
+    (1 - distance_value / TheoretMaxdist) * 100
+  } else {
+    -distance_value / TheoretMaxdist * 100
+  }
   if (is.na(goodness_of_fit) || goodness_of_fit < min_goodness) {
     return(NULL)
   }
@@ -297,8 +325,10 @@ calculate_solution_fast <- function(
     perczeroAbb <- 0
     if (denom_abb > 0) {
       # Use which() to avoid NA issues in logical indexing
+      # Use which() to avoid NA issues in logical indexing
       perczeroAbb <- (collapse::fsum(s_length[which(baf_mask & nA_r == 0)]) +
-        collapse::fsum(s_length[which(baf_mask & nB_r == 0)])) / denom_abb
+        collapse::fsum(s_length[which(baf_mask & nB_r == 0)])) /
+        denom_abb
     }
     if (!(percentzero > 0.01 || perczeroAbb > 0.1)) {
       return(NULL)

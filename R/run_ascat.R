@@ -38,7 +38,8 @@ runASCAT <- function(
   max_ploidy = 4.8, min_rho = 0.1,
   max_rho = 1.0, min_goodness = 63,
   uninformative_baf_threshold = 0.51,
-  chr_names, analysis = "paired"
+  chr_names, analysis = "paired",
+  nthreads = 1
 ) {
   # Setup inputs and segments
   ch <- chromosomes
@@ -58,7 +59,8 @@ runASCAT <- function(
     min_psi = dist_min_psi,
     max_psi = dist_max_psi,
     min_rho = dist_min_rho,
-    max_rho = dist_max_rho
+    max_rho = dist_max_rho,
+    nthreads = nthreads
   )
   d <- dist_matrix_info$distance_matrix
   minimise <- dist_matrix_info$minimise

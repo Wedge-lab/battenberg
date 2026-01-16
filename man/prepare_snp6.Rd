@@ -14,7 +14,7 @@ prepare_snp6(
   apt_probeset_summarize_exe = "apt-probeset-summarize",
   norm_geno_clust_exe = "normalize_affy_geno_cluster.pl",
   birdseed_report_file = "birdseed.report.txt",
-  genomebuild = "hg19"
+  genomebuild = "hg38"
 )
 }
 \arguments{
