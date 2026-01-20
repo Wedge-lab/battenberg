@@ -13,7 +13,7 @@ library(Battenberg)
 ###############################################################################
 
 # Sample specific
-# is_male = F
+# is_male = FALSE
 # TUMOURNAME = "NASCR-0016"
 # NORMALCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016B1.CEL"
 # TUMOURCEL = "/nfs/cgpstats1/pvl/ASCAT/NeoAva/CELfiles/NASCR-0016.CEL"
@@ -72,10 +72,11 @@ fit_copy_number(
   min_goodness = MIN_GOODNESS_OF_FIT,
   uninformative_baf_threshold = BALANCED_THRESHOLD,
   gamma_param = PLATFORM_GAMMA,
-  use_preset_rho_psi = T,
+  use_preset_rho_psi = TRUE,
   preset_rho = PRESET_RHO,
   preset_psi = PRESET_PSI,
-  read_depth = 30
+  read_depth = 30,
+  nthreads = NTHREADS
 )
 
 # Go over all segments, determine which segements are a mixture of two states and fit a second CN state

@@ -23,6 +23,7 @@
 #' @param uninformative_baf_threshold The threshold beyond which BAF becomes uninformative (Default 0.51)
 #' @param chr_names A vector with chromosome names used for plotting
 #' @param analysis A String representing the type of analysis to be run, this determines whether the distance figure is produced (Default paired)
+#' @param nthreads The number of paralel processes to run
 #' @return A list with fields psi, rho and ploidy
 #' @export
 # the limit on rho is lenient and may lead to spurious solutions
@@ -63,6 +64,9 @@ runASCAT <- function(
     nthreads = nthreads
   )
   d <- dist_matrix_info$distance_matrix
+  if (all(is.na(d)) || all(is.infinite(d))) {
+    log_failure("Distance matrix is entirely NA or Inf in runASCAT. No valid copy number solution possible.")
+  }
   minimise <- dist_matrix_info$minimise
 
   # Calculate theoretical max distance for goodness of fit
@@ -218,7 +222,15 @@ runASCAT <- function(
     bBT <- (1 - rho + rho * nB) / (2 - 2 * rho + rho * (nA + nB))
 
     if (!is.na(reliabilityFile)) {
-      data.table::fwrite(data.frame(segmentedBAF = b, backTransformedBAF = bBT, segmentedR = r, backTransformedR = rBT, nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull), reliabilityFile, sep = ",", row.names = FALSE)
+      data.table::fwrite(
+        data.frame(
+          segmentedBAF = b, backTransformedBAF = bBT, segmentedR = r,
+          backTransformedR = rBT, nA = nA, nB = nB, nAfull = nAfull,
+          nBfull = nBfull
+        ),
+        reliabilityFile,
+        sep = ",", row.names = FALSE
+      )
     }
 
     # Generate Profile Plots

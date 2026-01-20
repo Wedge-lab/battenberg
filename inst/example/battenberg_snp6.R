@@ -9,9 +9,6 @@ option_list <- list(
   make_option(c("--nb"), type = "character", default = NULL, help = "CEL file of matched normal", metavar = "character"),
   make_option(c("--sex"), type = "character", default = NULL, help = "Sex of the sample", metavar = "character"),
   make_option(c("-o", "--output"), type = "character", default = NULL, help = "Directory where output will be written", metavar = "character"),
-  make_option(c("--skip_allelecount"), type = "logical", default = FALSE, action = "store_true", help = "Provide when alleles don't have to be counted. This expects allelecount files on disk", metavar = "character"),
-  make_option(c("--skip_preprocessing"), type = "logical", default = FALSE, action = "store_true", help = "Provide when pre-processing has previously completed. This expects the files on disk", metavar = "character"),
-  make_option(c("--skip_phasing"), type = "logical", default = FALSE, action = "store_true", help = "Provide when phasing has previously completed. This expects the files on disk", metavar = "character"),
   make_option(c("--cpu"), type = "numeric", default = 8, help = "The number of CPU cores to be used by the pipeline (Default: 8)", metavar = "character")
 )
 
@@ -25,9 +22,6 @@ NORMALCEL <- opt$nb
 SAMPLECEL <- opt$sb
 is_male <- opt$sex == "male" | opt$sex == "Male"
 RUN_DIR <- opt$output
-SKIP_ALLELECOUNTING <- opt$skip_allelecount
-SKIP_PREPROCESSING <- opt$skip_preprocessing
-SKIP_PHASING <- opt$skip_phasing
 NTHREADS <- opt$cpu
 
 # The normalname parameter is not used as the pipeline starts from a single file with both sample of interest and normal in one file, as is dumped from the CEL files
@@ -86,7 +80,6 @@ battenberg(
   g1000prefix = G1000PREFIX,
   problemloci = PROBLEMLOCI,
   data_type = "snp6",
-  impute_exe = IMPUTE_EXE,
   nthreads = NTHREADS,
   platform_gamma = PLATFORM_GAMMA,
   phasing_gamma = PHASING_GAMMA,
@@ -101,9 +94,6 @@ battenberg(
   min_goodness = MIN_GOODNESS_OF_FIT,
   uninformative_baf_threshold = BALANCED_THRESHOLD,
   calc_seg_baf_option = CALC_SEG_BAF_OPTION,
-  skip_allele_counting = SKIP_ALLELECOUNTING,
-  skip_preprocessing = SKIP_PREPROCESSING,
-  skip_phasing = SKIP_PHASING,
   snp6_reference_info_file = SNP6_REF_INFO_FILE,
   apt_probeset_genotype_exe = APT_PROBESET_GENOTYPE_EXE,
   apt_probeset_summarize_exe = APT_PROBESET_SUMMARIZE_EXE,

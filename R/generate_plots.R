@@ -35,7 +35,7 @@ generate_plots_battenberg <- function(
         nA = nA, nB = nB, nAfull = nAfull, nBfull = nBfull
       ),
       reliabilityFile,
-      sep = ",", row.names = F
+      sep = ",", row.names = FALSE
     )
   }
 

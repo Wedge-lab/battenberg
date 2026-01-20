@@ -22,10 +22,9 @@ prepare_wgs_germline(
   repliccorrectprefix,
   min_base_qual,
   min_map_qual,
-  allelecounter_exe,
+  allele_counts_dir,
   min_normal_depth,
-  skip_allele_counting,
-  debug = FALSE
+  libs
 )
 }
 \arguments{
@@ -45,27 +44,17 @@ prepare_wgs_germline(
 
 \item{kmin_ivd}{The min number of SNPs to support a segment in PCF of 1000G hetSNP IVD values (Default 50)}
 
+\item{centromere_noise_seg_size}{The maximum size of PCF segment to be removed as noise when it overlaps with the centromere due to the noisy nature of data (Default 1e6)}
+
 \item{centromere_dist}{The minimum distance from the centromere to ignore in analysis due to the noisy nature of data in the vicinity of centromeres (Default 5e5)}
 
 \item{min_het_dist}{The minimum distance for detecting higher resolution inter-hetSNP regions with potential LOH while accounting for inherent homozygote stretches (Default 1e5)}
 
-\item{gamma_logr}{The PCF gamma value for confirming LOH within each inter-hetSNP candidate segment (Default 100)}
-
-\item{length_adjacent}{The length of adjacent regions either side of a candidate inter-hetSNP LOH region to be plotted (Default 5e4)}
-
-\item{gccorrectprefix}{Prefix path to GC content reference data}
-
-\item{repliccorrectprefix}{Prefix path to replication timing reference data (supply NULL if no replication timing correction is to be applied)}
-
-\item{min_base_qual}{Minimum base quality required for a read to be counted}
-
-\item{min_map_qual}{Minimum mapping quality required for a read to be counted}
-
-\item{allelecounter_exe}{Path to the allele counter executable (can be found in $PATH)}
+\item{allele_counts_dir}{Directory containing the allele counts files}
 
 \item{min_normal_depth}{Minimum depth required in the normal for a SNP to be included}
 
-\item{skip_allele_counting}{Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)}
+\item{libs}{Path to the R libraries to be used by parallel workers}
 }
 \description{
 This function performs part of the Battenberg WGS pipeline: Counting alleles, generating BAF and logR,

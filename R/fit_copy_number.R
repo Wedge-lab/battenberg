@@ -34,6 +34,8 @@
 #' @param read_depth Legacy parameter that is no longer used (Default 30)
 #' @param analysis A String representing the type of analysis to be run, this
 #' determines whether the distance figure is produced (Default paired)
+#' @param nthreads The number of paralel processes to run
+#' @param enhanced_grid_search Flag to determine if the grid search should be performed with a higher number of steps (Default: FALSE)
 #' @author dw9, sd11
 #' @export
 fit_copy_number <- function(
@@ -162,6 +164,9 @@ fit_copy_number <- function(
   log_info("Final data synchronization check: {nrow(matched.segmented.BAF.data)} \\
            loci remaining.")
   # Fail Fast: Verify synchronization
+  if (nrow(matched.segmented.BAF.data) < 100) {
+    log_failure("Too few SNPs ({nrow(matched.segmented.BAF.data)}) remain after synchronization. Data is likely unusable.")
+  }
   stopifnot(nrow(matched.segmented.BAF.data) == nrow(logR.data))
 
   # Prepare vectors for ASCAT
@@ -235,6 +240,11 @@ fit_copy_number <- function(
     }
     log_info("Grid Search complete. Optimum found: \\
              Rho={ascat_optimum_pair$rho}, Psi={ascat_optimum_pair$psi}")
+
+    # guard rail - check for valid solution
+    if (is.na(ascat_optimum_pair$rho) || is.na(ascat_optimum_pair$psi)) {
+      log_failure("Grid search failed to find a valid purity/ploidy solution. Data might be too noisy.")
+    }
   }
 
   log_info("Running final clonal ASCAT model fit...")
@@ -252,6 +262,13 @@ fit_copy_number <- function(
     nthreads = nthreads
   )
 
+  if (is.na(out$output_optimum_pair$rho) || is.na(out$output_optimum_pair$psi)) {
+    log_failure("Final clonal model fit failed to identify a valid purity/ploidy solution.")
+  }
+  d <- out$dist_matrix_info$distance_matrix
+  if (all(is.na(d)) || all(is.infinite(d))) {
+    log_failure("Distance matrix is entirely NA or Inf. No valid copy number solution possible.")
+  }
   log_info("ASCAT modeling complete for {samplename}. Writing output files.")
   # Save results
   rho_psi_output <- data.frame(
@@ -308,6 +325,8 @@ fit_copy_number <- function(
 #' @param calc_seg_baf_option Various options to recalculate the BAF of a segment.
 #' Options are: 1 - median, 2 - mean, 3 - ifelse median==0|1, mean, median.
 #' (Default: 3)
+#' @param verbose_logging Print out more information during the run (Default: FALSE)
+#' @param nthreads The number of paralel processes to run
 #' @author dw9, sd11
 #' @export
 call_subclones <- function(
@@ -319,7 +338,8 @@ call_subclones <- function(
   prior_breakpoints_file = NULL, gamma = 1,
   segmentation_gamma = NA, siglevel = 0.05,
   maxdist = 0.01, noperms = 1000, seed = as.integer(Sys.time()),
-  calc_seg_baf_option = 3, verbose_logging = FALSE
+  calc_seg_baf_option = 3, verbose_logging = FALSE,
+  nthreads = 1
 ) {
   set.seed(seed)
 
@@ -385,7 +405,6 @@ call_subclones <- function(
     file = masking_output_file,
     quote = FALSE,
     sep = "\t",
-    row.names = FALSE
   )
 
   # Generate output paths
@@ -394,11 +413,11 @@ call_subclones <- function(
 
   data.table::fwrite(
     subcloneres[, c(1:3, 8:13)], output_file,
-    quote = FALSE, sep = "\t", row.names = FALSE
+    quote = FALSE, sep = "\t"
   )
   data.table::fwrite(
     subcloneres, paste0(base_out, "_extended.", ext_out),
-    quote = FALSE, sep = "\t", row.names = FALSE
+    quote = FALSE, sep = "\t"
   )
 
   subcloneres$length <- subcloneres$endpos - subcloneres$startpos
@@ -429,7 +448,7 @@ call_subclones <- function(
     goodness <- max(0, min(1, 1 - subclonal_fraction))
   }
 
-  message(sprintf("PGA.is.clonal = %2.1f%%", goodness * 100))
+  log_info("PGA.is.clonal = {sprintf('%2.1f%%', goodness * 100)}")
 
   # Visualization
   segment_breakpoints <- collapse_bafsegmented_to_segments(BAFvals)
@@ -441,47 +460,47 @@ call_subclones <- function(
     svs <- data.table::fread(prior_breakpoints_file, data.table = FALSE)
   }
 
-  for (chr in chr_names) {
+  parallel::mclapply(chr_names, function(chr) {
     chr_idx <- SNPpos[, 1] == chr
     pos <- SNPpos[chr_idx, 2]
 
-    if (length(pos) == 0) next
+    if (length(pos) > 0) {
+      svs_pos <- if (has_prior) {
+        collapse::fsubset(
+          svs, svs[[1]] == chr
+        )[[2]] / 1e6
+      } else {
+        NULL
+      }
+      bp_chr <- collapse::fsubset(
+        segment_breakpoints, segment_breakpoints[[1]] == chr
+      )
+      breakpoints_pos <- sort(unique(c(bp_chr[[2]], bp_chr[[3]]) / 1e6))
 
-    svs_pos <- if (has_prior) {
-      collapse::fsubset(
-        svs, svs[[1]] == chr
-      )[[2]] / 1e6
-    } else {
-      NULL
+      grDevices::png(
+        filename = paste0(output_figures_prefix, chr, ".png"),
+        width = 2000, height = 2000, res = 200, type = "cairo"
+      )
+      create_subclonal_cn_plot(
+        chrom = chr,
+        chrom_position = pos / 1e6,
+        LogRposke = LogRvals[LogRvals[, 1] == chr, 2],
+        LogRchr = LogRvals[LogRvals[, 1] == chr, 3],
+        BAFchr = BAF[chr_idx],
+        BAFsegchr = BAFseg[chr_idx],
+        BAFpvalschr = BAFpvals[chr_idx],
+        subcloneres = subcloneres,
+        siglevel = siglevel,
+        x_min = min(pos) / 1e6,
+        x_max = max(pos) / 1e6,
+        title = paste(sample_name, ", chromosome ", chr),
+        xlab = "Position (Mb)", ylab_logr = "LogR", ylab_baf = "BAF (phased)",
+        breakpoints_pos = breakpoints_pos,
+        svs_pos = svs_pos
+      )
+      grDevices::dev.off()
     }
-    bp_chr <- collapse::fsubset(
-      segment_breakpoints, segment_breakpoints[[1]] == chr
-    )
-    breakpoints_pos <- sort(unique(c(bp_chr[[2]], bp_chr[[3]]) / 1e6))
-
-    grDevices::png(
-      filename = paste0(output_figures_prefix, chr, ".png"),
-      width = 2000, height = 2000, res = 200, type = "cairo"
-    )
-    create_subclonal_cn_plot(
-      chrom = chr,
-      chrom_position = pos / 1e6,
-      LogRposke = LogRvals[LogRvals[, 1] == chr, 2],
-      LogRchr = LogRvals[LogRvals[, 1] == chr, 3],
-      BAFchr = BAF[chr_idx],
-      BAFsegchr = BAFseg[chr_idx],
-      BAFpvalschr = BAFpvals[chr_idx],
-      subcloneres = subcloneres,
-      siglevel = siglevel,
-      x_min = min(pos) / 1e6,
-      x_max = max(pos) / 1e6,
-      title = paste(sample_name, ", chromosome ", chr),
-      xlab = "Position (Mb)", ylab_logr = "LogR", ylab_baf = "BAF (phased)",
-      breakpoints_pos = breakpoints_pos,
-      svs_pos = svs_pos
-    )
-    grDevices::dev.off()
-  }
+  }, mc.cores = nthreads)
 
   # Clean up and calculate Ploidy
   subclones <- as.data.frame(subcloneres)
@@ -522,7 +541,6 @@ call_subclones <- function(
 #' @return A data.frame with copy number determined for each segment
 #' @author dw9
 #' @noRd
-#' @export
 determine_copynumber <- function(BAFvals, LogRvals, rho, psi, gamma, ctrans,
                                  ctrans.logR, maxdist, siglevel, noperms,
                                  cn_upper_limit) {
@@ -539,101 +557,163 @@ determine_copynumber <- function(BAFvals, LogRvals, rho, psi, gamma, ctrans,
   res_list <- vector(mode = "list", length = length(BAFlevels))
   BAFpvals <- vector(length = length(BAFseg))
 
-  for (i in seq_along(BAFlevels)) {
-    l <- BAFlevels[i]
-    l <- max(l, 1 - l)
+  # 1. Fast LogR averaging using collapse
+  # Map each LogR probe to a segment index
+  # LogRpos and segment boundaries (startpos/endpos) are both sorted globally
+  # We can find which segment each LogR probe falls into.
 
-    # Segment slicing
+  # Get all segment boundaries
+  seg_starts <- BAFpos[switchpoints[-length(switchpoints)] + 1]
+  seg_ends <- BAFpos[switchpoints[-1]]
+
+  # findInterval returns index i such that seg_starts[i] <= LogRpos < seg_starts[i+1]
+  # We need to ensure LogRpos <= seg_ends[i] as well (handling gaps)
+  seg_ids <- findInterval(LogRpos, seg_starts)
+
+  # Filter LogR probes that are within the matched segment's end and not infinite
+  valid_logr <- seg_ids > 0 & LogRpos <= seg_ends[pmax(1, seg_ids)] & !is.infinite(LogRvals[[3]])
+
+  # Calculate mean LogR per segment ID
+  # We use collapse::fmean with the assigned group IDs
+  seg_logr_means <- as.numeric(collapse::fmean(LogRvals[[3]][valid_logr], g = seg_ids[valid_logr]))
+
+  # Map back to the BAFlevels (some segments might be missing LogR data)
+  LogR_vec <- numeric(length(BAFlevels))
+  LogR_vec[sort(unique(seg_ids[valid_logr]))] <- seg_logr_means
+
+  # 2. Vectorized Clonal Math
+  # BAFlevels (l) is normalized to be major allele freq (>= 0.5)
+  l_vec <- pmax(BAFlevels, 1 - BAFlevels)
+
+  # Precompute terms
+  logr_factor <- 2^(LogR_vec / gamma)
+  nMajor_vec <- (rho - 1 + l_vec * psi * logr_factor) / rho
+  nMinor_vec <- (rho - 1 + (1 - l_vec) * psi * logr_factor) / rho
+
+  # Handle physical impossibility (Negative nMinor)
+  neg_minor <- nMinor_vec < 0 & !is.na(nMinor_vec)
+  if (any(neg_minor)) {
+    is_one <- l_vec == 1
+    nMajor_vec[neg_minor & is_one] <- cn_upper_limit
+    nMajor_vec[neg_minor & !is_one] <- nMajor_vec[neg_minor & !is_one] +
+      l_vec[neg_minor & !is_one] * (0.01 - nMinor_vec[neg_minor & !is_one]) / (1 - l_vec[neg_minor & !is_one])
+    nMinor_vec[neg_minor] <- 0.01
+  }
+
+  # 3. Vectorized is_segment_clonal-style testing
+  # We need BAF_size, BAF_sd for each segment for the p-value
+  # We can get these from the BAFphased data using the switchpoints
+  baf_groups <- rep(seq_along(BAFlevels), diff(switchpoints))
+  BAF_stats <- data.frame(
+    mean = as.numeric(collapse::fmean(BAFphased, g = baf_groups)),
+    sd   = as.numeric(collapse::fsd(BAFphased, g = baf_groups)),
+    size = as.numeric(collapse::fnobs(BAFphased, g = baf_groups))
+  )
+  BAF_stats$sd[is.na(BAF_stats$sd)] <- 0
+
+  # Call is_segment_clonal in one vectorized go
+  # is_segment_clonal is already vectorized and returns best_nMaj, best_nMin, is_clonal
+  # We need to ensure we have all required parameters
+  best_clonal_res <- is_segment_clonal(
+    LogR = LogR_vec,
+    BAF_req = l_vec,
+    BAF_length = BAF_stats$size, # approximating length with size
+    BAF_size = BAF_stats$size,
+    BAF_mean = BAF_stats$mean,
+    BAF_sd = BAF_stats$sd,
+    rho = rho,
+    psi = psi,
+    gamma_param = gamma,
+    siglevel_BAF = siglevel,
+    maxdist_BAF = maxdist
+  )
+
+  # Map p-values back to SNP-level BAFpvals
+  # Note: is_segment_clonal (vectorized version) doesn't return pval currently,
+  # but it sets is_clonal based on pval > siglevel.
+  # We actually need the p-value ourselves to fill BAFpvals.
+  # Let's extract that logic or re-calculate here.
+
+  # Re-calculate best_level for p-value (Option 1 vs 2)
+  # This matches the prioritized testing in determine_copynumber
+  calc_baf_lev <- function(nM, nm) {
+    num <- 1 - rho + rho * nM
+    den <- 2 - 2 * rho + rho * (nM + nm)
+    lev <- num / den
+    lev[nM == 0 & nm == 0] <- 0.5
+    lev
+  }
+
+  best_levels <- calc_baf_lev(best_clonal_res$nMaj, best_clonal_res$nMin)
+
+  # Vectorized p-value calculation
+  p_vals <- numeric(length(BAFlevels))
+  valid_stats <- BAF_stats$size > 1 & BAF_stats$sd > 0
+  if (any(valid_stats)) {
+    p_vals[valid_stats] <- calc_Pvalue_t_twotailed(
+      sample_size = BAF_stats$size[valid_stats],
+      sample_mean = BAF_stats$mean[valid_stats],
+      sample_SD   = BAF_stats$sd[valid_stats],
+      mu_pop      = best_levels[valid_stats],
+      max_dist    = maxdist
+    )
+  }
+
+  # Fill BAFpvals (SNP level)
+  BAFpvals <- p_vals[baf_groups]
+
+  # 4. Process Subclonal Segments (Only for those where p_vals <= siglevel)
+  # This part is harder to vectorize fully due to the bootstrap loop,
+  # but we only do it for the subclonal subset.
+  subclonal_idx <- which(p_vals <= siglevel)
+
+  for (i in seq_along(BAFlevels)) {
+    l <- l_vec[i]
+    LogR <- LogR_vec[i]
+    ntot <- nMajor_vec[i] + nMinor_vec[i]
+
     start_idx <- switchpoints[i] + 1
     end_idx <- switchpoints[i + 1]
-    BAFke <- BAFphased[start_idx:end_idx]
-    n_ke <- length(BAFke)
 
-    startpos <- min(BAFpos[start_idx:end_idx])
-    endpos <- max(BAFpos[start_idx:end_idx])
-    chrom <- BAFvals[start_idx, ]$Chromosome[1]
+    curr_start <- seg_starts[i] %% 1e9
+    curr_end <- seg_ends[i] %% 1e9
 
-    # LogR calculation
-    LogR <- mean(LogRvals[LogRpos >= startpos & LogRpos <= endpos & !is.infinite(LogRvals[, 3]), 3], na.rm = TRUE)
-    if (is.na(LogR)) LogR <- 0
-
-    # Theoretical Copy Number
-    nMajor <- (rho - 1 + l * psi * 2^(LogR / gamma)) / rho
-    nMinor <- (rho - 1 + (1 - l) * psi * 2^(LogR / gamma)) / rho
-
-    if (is.na(nMinor)) next
-
-    # Handle physical impossibility
-    if (nMinor < 0) {
-      if (l == 1) nMajor <- cn_upper_limit else nMajor <- nMajor + l * (0.01 - nMinor) / (1 - l)
-      nMinor <- 0.01
-    }
-
-    # Clonal testing math
-    ntot <- nMajor + nMinor
-    nMaj <- c(floor(nMajor), ceiling(nMajor), floor(nMajor), ceiling(nMajor))
-    nMin <- c(ceiling(nMinor), ceiling(nMinor), floor(nMinor), floor(nMinor))
-
-    levels_vec <- (1 - rho + rho * nMaj) / (2 - 2 * rho + rho * (nMaj + nMin))
-    levels_vec[nMaj == 0 & nMin == 0] <- 0.5
-
-    all.edges <- prioritizeCopyNumbers(
-      rho = rho,
-      psi = psi,
-      BAF_req = l,
-      nMajor = nMajor,
-      nMinor = nMinor,
-      full = TRUE
-    )
-
-    nMaj_test <- all.edges[1, c(1, 3)]
-    nMin_test <- all.edges[1, c(2, 4)]
-    test_levels <- (1 - rho + rho * nMaj_test) / (2 - 2 * rho + rho * (nMaj_test + nMin_test))
-    best_idx <- which.min(abs(test_levels - l))
-
-    # Optimized Significance Testing
-    sd_BAFke <- collapse::fsd(BAFke)
-
-    # Manual one-sample t-test (Fast)
-    if (n_ke > 1 && !is.na(sd_BAFke) && sd_BAFke > 0) {
-      t_stat <- (mean(BAFke) - test_levels[best_idx]) / (sd_BAFke / sqrt(n_ke))
-      p_val <- 2 * stats::pt(-abs(t_stat), df = n_ke - 1)
-    } else {
-      p_val <- 0
-    }
-
-    if (abs(l - test_levels[best_idx]) < maxdist) p_val <- 1
-    BAFpvals[start_idx:end_idx] <- p_val
-
-    # Clean coordinates
-    clean_start <- startpos %% 1e9
-    clean_end <- endpos %% 1e9
-
-    if (p_val <= siglevel) {
+    if (i %in% subclonal_idx) {
       # SUBCLONAL
-      na_idx <- which(is.na(rowSums(all.edges)))
-      if (length(na_idx) > 0) all.edges <- rbind(all.edges[-na_idx, ], all.edges[na_idx, ])
+      BAFke <- BAFphased[start_idx:end_idx]
+      n_ke <- length(BAFke)
+      sd_BAFke <- BAF_stats$sd[i]
 
-      nM1 <- all.edges[, 1]
-      nmi1 <- all.edges[, 2]
-      nM2 <- all.edges[, 3]
-      nmi2 <- all.edges[, 4]
+      # Need all edges for subclonal optimization
+      all_edges <- prioritizeCopyNumbers(
+        rho = rho, psi = psi, BAF_req = l,
+        nMajor = nMajor_vec[i], nMinor = nMinor_vec[i], full = TRUE
+      )
 
+      na_idx <- which(is.na(rowSums(all_edges)))
+      if (length(na_idx) > 0) all_edges <- rbind(all_edges[-na_idx, ], all_edges[na_idx, ])
+
+      nM1 <- all_edges[, 1]
+      nmi1 <- all_edges[, 2]
+      nM2 <- all_edges[, 3]
+      nmi2 <- all_edges[, 4]
+
+      # Vectorized math for tau across all 6 options
       tau <- (1 - rho + rho * nM2 - 2 * l * (1 - rho) - l * rho * (nmi2 + nM2)) /
         (l * rho * (nmi1 + nM1) - l * rho * (nmi2 + nM2) - rho * nM1 + rho * nM2)
 
-      sdl <- sd_BAFke / sqrt(sum(!is.na(BAFke)))
+      sdl <- sd_BAFke / sqrt(n_ke)
 
-      # Optimized Delta method for SDtau
-      # Calculation grouped to avoid redundant operations
+      # Optimized Delta method for sdtau
       calc_sdtau <- function(curr_l) {
         (1 - rho + rho * nM2 - 2 * curr_l * (1 - rho) - curr_l * rho * (nmi2 + nM2)) /
           (curr_l * rho * (nmi1 + nM1) - curr_l * rho * (nmi2 + nM2) - rho * nM1 + rho * nM2)
       }
       sdtau <- (abs(calc_sdtau(l + sdl) - tau) + abs(calc_sdtau(l - sdl) - tau)) / 2
 
-      # Vectorized Bootstrap
-      boot_means <- rowMeans(matrix(sample(BAFke, n_ke * noperms, replace = TRUE), nrow = noperms))
+      # Optimized Bootstrap (Vectorized)
+      # We generate all samples at once
+      boot_means <- colMeans(matrix(sample(BAFke, n_ke * noperms, replace = TRUE), nrow = n_ke))
 
       opt_data <- vector("list", 6)
       for (opt in seq_along(tau)) {
@@ -643,29 +723,25 @@ determine_copynumber <- function(BAFvals, LogRvals, rho, psi, gamma, ctrans,
         o_frac <- sort(pFrac)
         opt_data[[opt]] <- c(
           nM1[opt], nmi1[opt], tau[opt], nM2[opt], nmi2[opt], 1 - tau[opt],
-          sdtau[opt], collapse::fsd(pFrac), o_frac[25], o_frac[975]
+          sdtau[opt], collapse::fsd(pFrac), o_frac[round(0.025 * noperms)], o_frac[round(0.975 * noperms)]
         )
       }
 
-      res_list[[i]] <- c(chrom, clean_start, clean_end, l, p_val, LogR, ntot, unlist(opt_data))
+      res_list[[i]] <- c(BAFvals$Chromosome[start_idx], curr_start, curr_end, l, p_vals[i], LogR, ntot, unlist(opt_data))
     } else {
       # CLONAL
       res_list[[i]] <- c(
-        chrom, clean_start, clean_end, l, p_val, LogR, ntot,
-        nMaj_test[best_idx], nMin_test[best_idx], 1, rep(NA, 57)
+        BAFvals$Chromosome[start_idx], curr_start, curr_end, l, p_vals[i], LogR, ntot,
+        best_clonal_res$nMaj[i], best_clonal_res$nMin[i], 1, rep(NA, 57)
       )
     }
   }
 
-  # Final formatting - Modernized
+
+  # Final formatting
   subcloneres <- as.data.frame(do.call(rbind, res_list))
-
-  # Column Naming (Vectorized)
-  suffixes <- c("nMaj1", "nMin1", "frac1", "nMaj2", "nMin2", "frac2", "SDfrac", "SDfrac_BS", "frac1_0.025", "frac1_0.975")
-  groups <- c("A", "B", "C", "D", "E", "F")
-  dynamic_names <- as.vector(t(outer(groups, suffixes, function(x, y) paste0(y, "_", x))))
-
   colnames(subcloneres) <- c("chr", "startpos", "endpos", "BAF", "pval", "LogR", "ntot", dynamic_names)
+
 
   # Modern fast type conversion
   subcloneres[-1] <- lapply(subcloneres[-1], function(x) as.numeric(as.character(x)))
@@ -684,29 +760,39 @@ plot_gw_subclonal_cn <- function(subclones, BAFvals, rho, ploidy, goodness,
                                  output_gw_figures_prefix, chr_names,
                                  tumourname) {
   # Map start and end of each segment into the BAF values. The plot uses the index
-  # of this BAF table as x-axis
-  pos_min <- array(NA, nrow(subclones))
-  pos_max <- array(NA, nrow(subclones))
-  for (i in seq_len(nrow(subclones))) {
-    segm_chr <- subclones$chr[i] == BAFvals$Chromosome &
-      subclones$startpos[i] < BAFvals$Position &
-      subclones$endpos[i] >= BAFvals$Position
-    pos_min[i] <- min(which(segm_chr))
-    pos_max[i] <- max(which(segm_chr))
+  # of this BAF table as x-axis. Using O(M) vectorized approach.
+  pos_min <- rep(NA_integer_, nrow(subclones))
+  pos_max <- rep(NA_integer_, nrow(subclones))
+
+  for (chr in unique(as.character(subclones$chr))) {
+    baf_idx <- which(BAFvals$Chromosome == chr)
+    if (length(baf_idx) == 0) next
+
+    sub_idx <- which(subclones$chr == chr)
+    curr_sub <- subclones[sub_idx, ]
+
+    # Map each SNP to a segment index using findInterval
+    # Original logic: startpos < Position <= endpos
+    snp_to_seg <- findInterval(BAFvals$Position[baf_idx], curr_sub$startpos)
+
+    # Validate SNPs are within the assigned segment's endpos
+    valid_mask <- snp_to_seg > 0
+    in_seg_mask <- valid_mask & BAFvals$Position[baf_idx] <= curr_sub$endpos[pmax(1, snp_to_seg)]
+
+    if (any(in_seg_mask)) {
+      seg_ids_found <- snp_to_seg[in_seg_mask]
+      abs_snp_indices <- baf_idx[in_seg_mask]
+
+      # Find min/max SNP index for each segment found
+      pos_min[sub_idx[unique(seg_ids_found)]] <- collapse::fmin(abs_snp_indices, g = seg_ids_found)
+      pos_max[sub_idx[unique(seg_ids_found)]] <- collapse::fmax(abs_snp_indices, g = seg_ids_found)
+    }
   }
 
-  # For those segments that are subclonal, Obtain the second state.
+  # For those segments that are subclonal, we can now just subset the pre-calculated boundaries.
   is_subclonal <- which(subclones$frac1_A < 1)
-  subcl_min <- array(NA, length(is_subclonal))
-  subcl_max <- array(NA, length(is_subclonal))
-  for (i in seq_along(is_subclonal)) {
-    segment_index <- is_subclonal[i]
-    segm_chr <- subclones$chr[segment_index] == BAFvals$Chromosome &
-      subclones$startpos[segment_index] < BAFvals$Position &
-      subclones$endpos[segment_index] >= BAFvals$Position
-    subcl_min[i] <- min(which(segm_chr))
-    subcl_max[i] <- max(which(segm_chr))
-  }
+  subcl_min <- pos_min[is_subclonal]
+  subcl_max <- pos_max[is_subclonal]
 
   # Determine whether it's the major or the minor allele that is represented by two states
   is_subclonal_maj <- abs(subclones$nMaj1_A - subclones$nMaj2_A) > 0
@@ -879,7 +965,7 @@ callChrXsubclones <- function(
   AR = TRUE, prior_breakpoints_file = NULL,
   chrom_names, data_type = "wgs"
 ) {
-  message(paste("Processing sample:", tumourname))
+  log_info("Processing sample: {tumourname}")
 
   # Set genome-specific coordinates
   if (genomebuild == "hg19") {
@@ -904,7 +990,7 @@ callChrXsubclones <- function(
     pcf_input_raw$Position > par_regions[1] &
     pcf_input_raw$Position < par_regions[2], ]
   colnames(pcf_input)[3] <- tumourname
-  message(paste("Number of chrX nonPAR SNPs =", nrow(pcf_input)))
+  log_info("Number of chrX nonPAR SNPs = {nrow(pcf_input)}")
 
   # Segmentation with optional prior breakpoints
   if (!is.null(prior_breakpoints_file)) {
@@ -1125,7 +1211,7 @@ callChrXsubclones <- function(
     }
   }
   merged_df <- do.call(rbind, merged_list) |> (\(x) x[order(x$startpos), ])()
-  message(paste("Number of rows merged =", nrow(out_df) - nrow(merged_df)))
+  log_info("Number of rows merged = {nrow(out_df) - nrow(merged_df)}")
 
   # Update File Outputs
   autosomal_only <- bb_data[!bb_data$chr %in% c("X", "chrX"), ]
@@ -1192,6 +1278,7 @@ callChrXsubclones <- function(
 
   grDevices::pdf(paste0(tumourname, "_chrX_average_ploidy.pdf"))
   print(avg_plot)
+  log_info("Average ploidy plot generated for chrX.")
   grDevices::dev.off()
 
   # Final Genome-wide Plot Update
@@ -1203,7 +1290,10 @@ callChrXsubclones <- function(
 
   # Simulate ChrX BAF for plot (Male sample)
   sim_len <- round(nrow(baf_raw) * 0.05)
-  baf_sim_x <- data.frame(Chromosome = "X", Position = sort(sample(1:155e6, sim_len)), BAF = sample(0:1, sim_len, replace = TRUE), BAFphased = 1, BAFseg = 1)
+  baf_sim_x <- data.frame(
+    Chromosome = "X", Position = sort(sample(1:155e6, sim_len)),
+    BAF = sample(0:1, sim_len, replace = TRUE), BAFphased = 1, BAFseg = 1
+  )
   baf_updated <- rbind(baf_raw[!baf_raw$Chromosome %in% c("X", "chrX"), ], baf_sim_x)
 
   plot_gw_subclonal_cn(
@@ -1233,5 +1323,5 @@ fast_p <- function(x, y) {
   t_stat <- (m1 - m2) / se
   df <- (v1 / n1 + v2 / n2)^2 / ((v1 / n1)^2 / (n1 - 1) + (v2 / n2)^2 / (n2 - 1))
 
-  return(2 * stats::pt(-abs(t_stat), df))
+  2 * stats::pt(-abs(t_stat), df)
 }

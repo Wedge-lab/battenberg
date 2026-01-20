@@ -2,3 +2,5 @@
   # Keep your scipen setting
   options(scipen = 999)
 }
+
+.datatable.aware <- TRUE

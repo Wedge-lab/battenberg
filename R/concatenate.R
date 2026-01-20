@@ -38,7 +38,16 @@ concatenateAlleleCountFiles <- function(inputStart, inputEnd, chr_names) {
   # We read them as data.tables first (internal to rbindlist)
   # then convert to data.frame at the very end.
   combined <- data.table::rbindlist(
-    lapply(infiles, read_table_generic)
+    lapply(infiles, function(f) {
+      dt <- read_table_generic(f)
+      if (nrow(dt) == 0) {
+        log_failure("Allele count file is empty: {f}")
+      }
+      if (ncol(dt) < 6) {
+        log_failure("Allele count file has fewer than 6 columns: {f}")
+      }
+      return(dt)
+    })
   )
   data.table::setDF(combined)
   return(combined)

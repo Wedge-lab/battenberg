@@ -17,10 +17,10 @@ pak:
 
 deps:
 	@echo "Installing all dependencies listed in DESCRIPTION..."
+	Rscript -e "if (!requireNamespace('pak', quietly = TRUE)) install.packages('pak', repos = 'https://cloud.r-project.org')"
 	Rscript -e "pak::pkg_install(c('Crick-CancerGenomics/ascat/ASCAT', 'igordot/copynumber'))"
-	Rscript -e "options(repos = c(CRAN = 'https://cloud.r-project.org')); \
-                pak::repo_add(Bioc = '3.18'); \
-		        pak::local_install_deps(upgrade = TRUE, dependencies = TRUE)"
+	Rscript -e "pak::repo_add(Bioc = '3.18'); \
+		        pak::local_install_deps(upgrade = FALSE, dependencies = TRUE)"
 
 check:
 	Rscript -e "devtools::check(error_on = 'warning')"

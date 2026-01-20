@@ -25,41 +25,58 @@ run_clonal_ASCAT(
   psi_max_initial = 5.4,
   rho_min_initial = 0.1,
   rho_max_initial = 1.05,
-  chr_names
+  chr_names,
+  nthreads = 1
 )
 }
 \arguments{
 \item{lrr}{(unsegmented) log R, in genomic sequence (all probes), with probe IDs}
 
-\item{baf}{(unsegmented) B Allele Frequency, in genomic sequence (all probes), with probe IDs}
+\item{baf}{(unsegmented) B Allele Frequency, in genomic sequence (all probes),
+with probe IDs}
 
-\item{lrrsegmented}{log R, segmented, in genomic sequence (all probes), with probe IDs}
+\item{lrrsegmented}{log R, segmented, in genomic sequence (all probes), with
+probe IDs}
 
-\item{bafsegmented}{B Allele Frequency, segmented, in genomic sequence (only probes heterozygous in germline), with probe IDs}
+\item{bafsegmented}{B Allele Frequency, segmented, in genomic sequence (only
+probes heterozygous in germline), with probe IDs}
 
-\item{chromosomes}{a list containing c vectors, where c is the number of chromosomes and every vector contains all probe numbers per chromosome}
+\item{chromosomes}{a list containing c vectors, where c is the number of
+chromosomes and every vector contains all probe numbers per chromosome}
 
 \item{segBAF_table}{Segmented BAF data.frame from \code{get_segment_info}}
 
-\item{input_optimum_pair}{A list containing fields for rho, psi and ploidy, as is output from \code{runASCAT}}
+\item{input_optimum_pair}{A list containing fields for rho, psi and ploidy,
+as is output from \code{runASCAT}}
 
-\item{dist_choice}{The distance metric to be used internally to penalise a copy number solution}
+\item{dist_choice}{The distance metric to be used internally to penalise a copy
+number solution}
 
-\item{distancepng}{if NA: distance is plotted, if filename is given, the plot is written to a .png file (Default NA)}
+\item{distancepng}{if NA: distance is plotted, if filename is given, the plot
+is written to a .png file (Default NA)}
 
-\item{copynumberprofilespng}{if NA: possible copy number profiles are plotted, if filename is given, the plot is written to a .png file (Default NA)}
+\item{copynumberprofilespng}{if NA: possible copy number profiles are plotted,
+if filename is given, the plot is written to a .png file (Default NA)}
 
-\item{nonroundedprofilepng}{if NA: copy number profile before rounding is plotted (total copy number as well as the copy number of the minor allele), if filename is given, the plot is written to a .png file (Default NA)}
+\item{nonroundedprofilepng}{if NA: copy number profile before rounding is
+plotted (total copy number as well as the copy number of the minor allele), if
+filename is given, the plot is written to a .png file (Default NA)}
 
-\item{gamma_param}{technology parameter, compaction of Log R profiles (expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)}
+\item{gamma_param}{technology parameter, compaction of Log R profiles (expected
+decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in
+ideal case, 0.55 of Illumina 109K arrays) (Default 0.55)}
 
 \item{read_depth}{TODO: unused parameter that should be removed}
 
-\item{uninformative_baf_threshold}{The threshold beyond which BAF becomes uninformative}
+\item{uninformative_baf_threshold}{The threshold beyond which BAF becomes
+uninformative}
 
-\item{allow100percent}{A boolean whether to allow a 100"\%" cellularity solution}
+\item{allow100percent}{A boolean whether to allow a 100"\%" cellularity
+solution}
 
-\item{reliabilityFile}{String to where fit reliabilty information should be written. This file contains backtransformed BAF and LogR values for segments using the fitted copy number profile (Default NA)}
+\item{reliabilityFile}{String to where fit reliabilty information should be
+written. This file contains backtransformed BAF and LogR values for segments
+using the fitted copy number profile (Default NA)}
 
 \item{psi_min_initial}{Minimum psi value to be considered (Default: 1.0)}
 
@@ -70,9 +87,12 @@ run_clonal_ASCAT(
 \item{rho_max_initial}{Maximum rho value to be considered (Default: 1.05)}
 
 \item{chr_names}{A vector with chromosome names used for plotting}
+
+\item{nthreads}{The number of paralel processes to run}
 }
 \value{
-A list with fields output_optimum_pair, output_optimum_pair_without_ref, distance, distance_without_ref, minimise and is_ref_better
+A list with fields output_optimum_pair, output_optimum_pair_without_ref,
+distance, distance_without_ref, minimise and is_ref_better
 }
 \description{
 This function takes an initial optimum rho/psi pair and uses

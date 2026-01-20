@@ -554,6 +554,7 @@ squaresplot <- function(tumourname, run_dir, segment_chr, segment_pos,
   q <- q + ggplot2::labs(title = paste0(tumourname, " chr", subclone$chr, ": ", subclone$startpos, "-", subclone$endpos))
 
   print(q)
+  log_info("Plot 'q' generated.")
   grDevices::dev.off()
 }
 
@@ -813,6 +814,7 @@ totalcn_chrom_plot <- function(
 
   grDevices::png(outputfile, width = 2000, height = 1300, type = "cairo")
   print(p)
+  log_info("Plot 'p' generated.")
   grDevices::dev.off()
 }
 
@@ -853,7 +855,7 @@ allele_ratio_plot <- function(
 
   log_info("Calculating copy ratios..")
   for (chrom in unique(bafsegmented$Chromosome)) {
-    print(chrom)
+    log_info("Plot for chromosome {chrom} generated.")
 
     baf_chrom <- bafsegmented[bafsegmented$Chromosome == chrom, ]
     logrseg_chrom <- logrsegmented[logrsegmented$Chromosome == chrom, ]

@@ -4,15 +4,14 @@
 \alias{run_parallel_or_serial}
 \title{Run code in parallel or serial based on debug status}
 \usage{
-run_parallel_or_serial(iterator, func, debug, libs)
+run_parallel_or_serial(iterator, func, libs)
 }
 \arguments{
 \item{iterator}{A vector or list to iterate over (e.g., seq_along(x)).}
 
 \item{func}{A function to apply to each element of the iterator.}
 
-\item{debug}{Logical; if TRUE, uses lapply for easier debugging and
-tracebacks. If FALSE, uses foreach with the %dopar% operator.}
+\item{libs}{Path to library paths for workers.}
 }
 \value{
 A list of results from the applied function.

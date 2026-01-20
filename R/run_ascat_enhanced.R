@@ -35,18 +35,17 @@ runASCAT_enhanced <- function(
   )
   d <- dist_matrix_info$distance_matrix
 
-  log_debug("--- Debug: Grid and Segments ---")
-  log_debug("Number of segments created: {nrow(s)}")
-  log_debug("Distance matrix dimensions: {nrow(d)} x: {ncol(d)}")
-  log_debug("Theoretical Max Distance: {round(TheoretMaxdist, 4)}")
-
-  minimise <- dist_matrix_info$minimise
-
-  # Theoretical maximum distance (weighted by length)
   # Theoretical maximum distance (weighted by length)
   TheoretMaxdist <- collapse::fsum(rep(0.25, nrow(s)) * s[, "length"],
     na.rm = TRUE
   )
+
+  minimise <- dist_matrix_info$minimise
+
+  log_debug("--- Debug: Grid and Segments ---")
+  log_debug("Number of segments created: {nrow(s)}")
+  log_debug("Distance matrix dimensions: {nrow(d)} x: {ncol(d)}")
+  log_debug("Theoretical Max Distance: {round(TheoretMaxdist, 4)}")
   if (!minimise) d <- -d
 
   # 3. Pre-compute Search Parameters
@@ -93,22 +92,19 @@ runASCAT_enhanced <- function(
           localmin_vals[nropt] <- m
 
           if (verbose) {
-            cat(
-              "Found solution", nropt, "at point", points_checked, ": rho=",
-              round(rho_values[j], 3), ", psi=", round(psi_values[i], 3), "\n"
-            )
+            log_info("Found solution {nropt} at point {points_checked}: rho={round(rho_values[j], 3)}, psi={round(psi_values[i], 3)}")
           }
 
           if (early_termination && solution$goodness >= (min_goodness + 5)) break
         }
       }
-      if (verbose && points_checked %% 5000 == 0) cat("Progress:", points_checked, "points checked\n")
+      if (verbose && points_checked %% 5000 == 0) log_info("Progress: {points_checked} points checked")
     }
   }
 
   # 5. Handle 100% Aberrant Fallback
   if (allow100percent && nropt == 0) {
-    if (verbose) cat("Trying 100% aberrant solutions...\n")
+    if (verbose) log_info("Trying 100% aberrant solutions...")
     d_mod <- d
     d_mod[, rho_values <= 1] <- 1e20
     search_order_100 <- create_smart_search_order(d_mod, smart_ordering, FALSE)
@@ -121,10 +117,10 @@ runASCAT_enhanced <- function(
         if (is_local_minimum_fast(d_mod, i, j, m)) {
           solution <- calculate_solution_fast(
             psi_values[i], rho_values[j], s_b, s_r, s_length, total_length, gamma,
-            gamma, min_ploidy, max_ploidy, min_rho, max_rho,
+            min_ploidy, max_ploidy, min_rho, max_rho,
             min_goodness, m, TheoretMaxdist, minimise, allow100percent,
             baf_mask = baf_mask, denom_abb = denom_abb,
-            skip_zero_check = TRUE
+            skip_zero_check = FALSE
           )
           if (!solution_is_null(solution)) {
             nropt <- 1

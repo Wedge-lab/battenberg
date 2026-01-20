@@ -8,14 +8,9 @@ option_list <- list(
   make_option(c("-n", "--normalname"), type = "character", default = NULL, help = "Samplename of the normal", metavar = "character"),
   make_option(c("--tb"), type = "character", default = NULL, help = "Sample BAM file", metavar = "character"),
   make_option(c("--nb"), type = "character", default = NULL, help = "Normal BAM file", metavar = "character"),
-  make_option(c("--beagle_jar"), type = "character", default = NULL, help = "Full path to beagle jar", metavar = "character"),
-  make_option(c("--beagle_ref_template"), type = "character", default = NULL, help = "Full path to beagle reference template", metavar = "character"),
-  make_option(c("--beagle_plink_template"), type = "character", default = NULL, help = "Full path to beagle plink maps template", metavar = "character"),
-  make_option(c("--sex"), type = "character", default = NULL, help = "Sex of the sample", metavar = "character"),
-  make_option(c("-o", "--output"), type = "character", default = NULL, help = "Directory where output will be written", metavar = "character"),
-  make_option(c("--skip_allelecount"), type = "logical", default = FALSE, action = "store_true", help = "Provide when alleles don't have to be counted. This expects allelecount files on disk", metavar = "character"),
-  make_option(c("--skip_preprocessing"), type = "logical", default = FALSE, action = "store_true", help = "Provide when pre-processing has previously completed. This expects the files on disk", metavar = "character"),
-  make_option(c("--skip_phasing"), type = "logical", default = FALSE, action = "store_true", help = "Provide when phasing has previously completed. This expects the files on disk", metavar = "character"),
+  make_option(c("--allele_counts_dir"), type = "character", default = NULL, help = "Directory where allele counts are stored", metavar = "character"),
+  make_option(c("--impute_results_dir"), type = "character", default = NULL, help = "Directory where imputation results are stored", metavar = "character"),
+  make_option(c("--cpu"), type = "numeric", default = 8, help = "The number of CPU cores to be used by the pipeline (Default: 8)", metavar = "character"),
   make_option(c("--cpu"), type = "numeric", default = 8, help = "The number of CPU cores to be used by the pipeline (Default: 8)", metavar = "character"),
   make_option(c("--bp"), type = "character", default = NULL, help = "Optional two column file (chromosome and position) specifying prior breakpoints to be used during segmentation", metavar = "character"),
   make_option(c("--max_allowed_state"), type = "character", default = NULL, help = "Maximum allowed state", metavar = "character"),
@@ -39,14 +34,8 @@ if (startsWith(opt$tb, "c(")) {
   SAMPLEBAM <- opt$tb
 }
 NORMALBAM <- opt$nb
-BEAGLEJAR <- opt$beagle_jar
-BEAGLEREF_template <- opt$beagle_ref_template
-beagleplink_template <- opt$beagle_plink_template
-is_male <- opt$sex == "male" | opt$sex == "Male"
-RUN_DIR <- opt$output
-SKIP_ALLELECOUNTING <- opt$skip_allelecount
-SKIP_PREPROCESSING <- opt$skip_preprocessing
-SKIP_PHASING <- opt$skip_phasing
+ALLELE_COUNTS_DIR <- opt$allele_counts_dir
+IMPUTE_RESULTS_DIR <- opt$impute_results_dir
 NTHREADS <- opt$cpu
 PRIOR_BREAKPOINTS_FILE <- opt$bp
 MAX_ALLOWED_STATE <- opt$max_allowed_state
@@ -110,8 +99,8 @@ if (GENOMEBUILD == "hg19") {
   }
 }
 
-print(IMPUTEINFOFILE)
-print(G1000PREFIX_AC)
+log_info("IMPUTEINFOFILE: '{IMPUTEINFOFILE}'")
+log_info("G1000PREFIX_AC: '{G1000PREFIX_AC}'")
 
 PLATFORM_GAMMA <- 1
 PHASING_GAMMA <- 1
@@ -159,18 +148,10 @@ battenberg(
   gccorrectprefix = GCCORRECTPREFIX,
   repliccorrectprefix = REPLICCORRECTPREFIX,
   problemloci = PROBLEMLOCI,
+  allele_counts_dir = ALLELE_COUNTS_DIR,
+  impute_results_dir = IMPUTE_RESULTS_DIR,
   data_type = "wgs",
-  impute_exe = IMPUTE_EXE,
-  allelecounter_exe = ALLELECOUNTER,
-  usebeagle = USEBEAGLE, ## set to TRUE to use beagle
-  beaglejar = BEAGLEJAR, ## path
-  beagleref = BEAGLEREF_template, ## pathtemplate
-  beagleplink = beagleplink_template, ## pathtemplate
-  beaglemaxmem = BEAGLE_MAX_MEM,
-  beaglenthreads = BEAGLENTHREADS,
-  beaglewindow = BEAGLEWINDOW,
-  beagleoverlap = BEAGLEOVERLAP,
-  javajre = JAVAJRE,
+  usebeagle = USEBEAGLE,
   nthreads = NTHREADS,
   platform_gamma = PLATFORM_GAMMA,
   phasing_gamma = PHASING_GAMMA,
@@ -189,9 +170,6 @@ battenberg(
   min_base_qual = MIN_BASE_QUAL,
   min_map_qual = MIN_MAP_QUAL,
   calc_seg_baf_option = CALC_SEG_BAF_OPTION,
-  skip_allele_counting = SKIP_ALLELECOUNTING,
-  skip_preprocessing = SKIP_PREPROCESSING,
-  skip_phasing = SKIP_PHASING,
   prior_breakpoints_file = PRIOR_BREAKPOINTS_FILE,
   max_allowed_state = MAX_ALLOWED_STATE,
   genomebuild = GENOMEBUILD,

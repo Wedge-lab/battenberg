@@ -43,6 +43,7 @@
 #' @param rho_min_initial Minimum rho value to be considered (Default: 0.1)
 #' @param rho_max_initial Maximum rho value to be considered (Default: 1.05)
 #' @param chr_names A vector with chromosome names used for plotting
+#' @param nthreads The number of paralel processes to run
 #' @return A list with fields output_optimum_pair, output_optimum_pair_without_ref,
 #' distance, distance_without_ref, minimise and is_ref_better
 #' @export
@@ -91,6 +92,9 @@ run_clonal_ASCAT <- function(
   ) # kjd 10-2-2013
 
   d <- dist_matrix_info$distance_matrix
+  if (all(is.na(d)) || all(is.infinite(d))) {
+    log_failure("Distance matrix is entirely NA or Inf in run_clonal_ASCAT. No valid copy number solution possible.")
+  }
   minimise <- dist_matrix_info$minimise
 
   # DCW 210314

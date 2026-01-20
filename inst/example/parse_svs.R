@@ -33,14 +33,14 @@ parse_svs_1 <- function(vcffile, ref_genome = "hg19") {
   )
   endpoints <- alt(svs)
   endpoints <- lapply(endpoints, function(x) {
-    if (grepl("[", x, fixed = T)) {
-      chrompos <- unlist(strsplit(x, "[", fixed = T))[2]
-    } else if (grepl("]", x, fixed = T)) {
-      chrompos <- unlist(strsplit(x, "]", fixed = T))[2]
+    if (grepl("[", x, fixed = TRUE)) {
+      chrompos <- unlist(strsplit(x, "[", fixed = TRUE))[2]
+    } else if (grepl("]", x, fixed = TRUE)) {
+      chrompos <- unlist(strsplit(x, "]", fixed = TRUE))[2]
     } else {
       chrompos <- NA
     }
-    chrompos_split <- unlist(strsplit(chrompos, ":", fixed = T))
+    chrompos_split <- unlist(strsplit(chrompos, ":", fixed = TRUE))
     return(data.frame(chromosome = chrompos_split[1], position = as.numeric(chrompos_split[2])))
   })
   endpoints <- do.call(rbind, endpoints)

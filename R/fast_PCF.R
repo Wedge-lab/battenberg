@@ -34,28 +34,10 @@ exactPcf <- function(y, kmin = 5, gamma, yest) {
     bestAver[k] <- (initSum + Sum[kminP1]) / k
     bestCost[k] <- (initKvad + Kvad[kminP1]) - k * bestAver[k]^2
   }
-  for (n in (2 * kmin):N) {
-    yn <- y[n]
-    yn2 <- yn^2
-    Sum[kminP1:n] <- Sum[kminP1:n] + yn
-    Aver[kminP1:n] <- Sum[kminP1:n] / ((n - kmin):1)
-    Kvad[kminP1:n] <- Kvad[kminP1:n] + yn2
-    nMkminP1 <- n - kmin + 1
-    Cost[kminP1:nMkminP1] <- bestCost[kmin:(n - kmin)] + Kvad[kminP1:nMkminP1] - Sum[kminP1:nMkminP1] * Aver[kminP1:nMkminP1] + gamma
-    Pos <- which.min(Cost[kminP1:nMkminP1]) + kmin
-    cost <- Cost[Pos]
-    aver <- Aver[Pos]
-    totAver <- (Sum[kminP1] + initSum) / n
-    totCost <- (Kvad[kminP1] + initKvad) - n * totAver * totAver
-    if (totCost < cost) {
-      Pos <- 1
-      cost <- totCost
-      aver <- totAver
-    }
-    bestCost[n] <- cost
-    bestAver[n] <- aver
-    bestSplit[n] <- Pos - 1
-  }
+  # Call C++ core for the O(N^2) dynamic programming
+  cpp_res <- exactPcf_cpp(y, kmin, gamma)
+  bestSplit <- cpp_res$bestSplit
+  bestAver <- cpp_res$bestAver
   n <- N
   antInt <- 0
   if (yest) {
@@ -164,7 +146,6 @@ PottsCompact <- function(kmin, gamma, nr, res, sq, yest) {
   initAve <- initSum / initAnt
   bestCost <- rep(0, N)
   bestCost[1] <- initKvad - initSum * initAve
-  bestSplit <- rep(0, N)
   k <- 2
   while (sum(nr[1:k]) < 2 * kmin) {
     Ant[2:k] <- Ant[2:k] + nr[k]
@@ -173,30 +154,10 @@ PottsCompact <- function(kmin, gamma, nr, res, sq, yest) {
     bestCost[k] <- (initKvad + Kvad[2]) - (initSum + Sum[2])^2 / (initAnt + Ant[2])
     k <- k + 1
   }
-  for (n in k:N) {
-    Ant[2:n] <- Ant[2:n] + nr[n]
-    Sum[2:n] <- Sum[2:n] + res[n]
-    Kvad[2:n] <- Kvad[2:n] + sq[n]
-    limit <- n
-    while (limit > 2 && Ant[limit] < kmin) {
-      limit <- limit - 1
-    }
-    Cost[2:limit] <- bestCost[1:limit - 1] + Kvad[2:limit] - Sum[2:limit]^2 / Ant[2:limit]
-    Pos <- which.min(Cost[2:limit]) + 1
-    cost <- Cost[Pos] + gamma
-    totCost <- (Kvad[2] + initKvad) - (Sum[2] + initSum)^2 / (Ant[2] + initAnt)
-    if (totCost < cost) {
-      Pos <- 1
-      cost <- totCost
-    }
-    bestCost[n] <- cost
-    bestSplit[n] <- Pos - 1
-  }
-  if (yest) {
-    res <- findEst(bestSplit, N, nr, res, TRUE)
-  } else {
-    res <- findEst(bestSplit, N, nr, res, FALSE)
-  }
+  # Call C++ core for the O(N^2) dynamic programming
+  cpp_res <- PottsCompact_cpp(kmin, gamma, nr, res, sq)
+  # Optimize the back-tracking and state expansion in C++
+  res <- findEst_cpp(cpp_res$bestSplit, N, nr, res, yest)
   return(res)
 }
 
@@ -210,39 +171,6 @@ compact <- function(y, mark) {
   ))
 }
 
-findEst <- function(bestSplit, N, Nr, Sum, yest) {
-  n <- N
-  lengde <- rep(0, N)
-  antInt <- 0
-  while (n > 0) {
-    antInt <- antInt + 1
-    lengde[antInt] <- n - bestSplit[n]
-    n <- bestSplit[n]
-  }
-  lengde <- lengde[antInt:1]
-  lengdeOrig <- rep(0, antInt)
-  startOrig <- rep(1, antInt + 1)
-  verdi <- rep(0, antInt)
-  start <- rep(1, antInt + 1)
-  for (i in 1:antInt) {
-    start[i + 1] <- start[i] + lengde[i]
-    lengdeOrig[i] <- sum(Nr[start[i]:(start[i + 1] - 1)])
-    startOrig[i + 1] <- startOrig[i] + lengdeOrig[i]
-    verdi[i] <- sum(Sum[start[i]:(start[i + 1] - 1)]) / lengdeOrig[i]
-  }
-
-  if (yest) {
-    yhat <- rep(0, startOrig[antInt + 1] - 1)
-    for (i in 1:antInt) {
-      yhat[startOrig[i]:(startOrig[i + 1] - 1)] <- verdi[i]
-    }
-    startOrig <- startOrig[1:antInt]
-    return(list(Lengde = lengdeOrig, sta = startOrig, mean = verdi, nIntervals = antInt, yhat = yhat))
-  } else {
-    startOrig <- startOrig[1:antInt]
-    return(list(Lengde = lengdeOrig, sta = startOrig, mean = verdi, nIntervals = antInt))
-  }
-}
 
 
 markWithPotts <- function(kmin, gamma, nr, res, sq, subsize) {
@@ -274,57 +202,19 @@ markWithPotts <- function(kmin, gamma, nr, res, sq, subsize) {
     bestCost[k] <- (initKvad + Kvad[2]) - (initSum + Sum[2])^2 / (initAnt + Ant[2])
     k <- k + 1
   }
-  for (n in k:N) {
-    Ant[2:n] <- Ant[2:n] + nr[n]
-    Sum[2:n] <- Sum[2:n] + res[n]
-    Kvad[2:n] <- Kvad[2:n] + sq[n]
-    limit <- n
-    while (limit > 2 && Ant[limit] < kmin) {
-      limit <- limit - 1
-    }
-    Cost[2:limit] <- bestCost[1:limit - 1] + Kvad[2:limit] - Sum[2:limit]^2 / Ant[2:limit]
-    Pos <- which.min(Cost[2:limit]) + 1
-    cost <- Cost[Pos] + gamma
-    totCost <- (Kvad[2] + initKvad) - (Sum[2] + initSum)^2 / (Ant[2] + initAnt)
-    if (totCost < cost) {
-      Pos <- 1
-      cost <- totCost
-    }
-    bestCost[n] <- cost
-    bestSplit[n] <- Pos - 1
-    markSub[Pos - 1] <- TRUE
-  }
-  help <- findMarks(markSub, nr, subsize)
+  # Call C++ core for the O(N^2) dynamic programming
+  cpp_res <- PottsCompact_cpp(kmin, gamma, nr, res, sq)
+  bestSplit <- cpp_res$bestSplit
+
+  # Reproduce markSub logic: mark the best split position for EVERY n
+  markSub[bestSplit[bestSplit > 0]] <- TRUE
+
+  # Optimize the mark expansion in C++
+  help <- findMarks_cpp(markSub, nr, subsize)
   return(help = help)
 }
 
 
-findMarks <- function(markSub, Nr, subsize) {
-  ## markSub: marks in compressed scale
-  ## NR: number of observations between potenstial breakpoints
-  mark <- rep(FALSE, subsize) ## marks in original scale
-  if (sum(markSub) < 1) {
-    return(mark)
-  } else {
-    N <- length(markSub)
-    ant <- seq(1:N)
-    help <- ant[markSub]
-    lengdeHelp <- length(help)
-    help0 <- c(0, help[1:(lengdeHelp - 1)])
-    lengde <- help - help0
-    start <- 1
-    oldStart <- 1
-    startOrig <- 1
-    for (i in 1:lengdeHelp) {
-      start <- start + lengde[i]
-      lengdeOrig <- sum(Nr[oldStart:(start - 1)])
-      startOrig <- startOrig + lengdeOrig
-      mark[startOrig - 1] <- TRUE
-      oldStart <- start
-    }
-    return(mark)
-  }
-}
 
 filterMarkS4 <- function(x, kmin, L, L2, frac1, frac2, frac3, thres) {
   lengdeArr <- length(x)

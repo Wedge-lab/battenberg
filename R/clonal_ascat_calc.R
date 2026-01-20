@@ -168,30 +168,42 @@ calc_standardised_error <- function(
   nMinor <- (rho - 1 + (1 - BAF_req) * scale_factor) / rho
 
   # Floor at 0.01 (enforce "positive square")
-  nMajor <- max(0.01, nMajor, na.rm = TRUE)
-  nMinor <- max(0.01, nMinor, na.rm = TRUE)
+  nMajor <- pmax(0.01, nMajor)
+  nMinor <- pmax(0.01, nMinor)
 
-  # note that these are sorted in the order of ascending BAF:
-  nMaj <- c(floor(nMajor), ceiling(nMajor), floor(nMajor), ceiling(nMajor))
-  nMin <- c(ceiling(nMinor), ceiling(nMinor), floor(nMinor), floor(nMinor))
+  # We test 4 rounding combinations to see which matches BAF_req best
+  nMaj_opts <- list(floor(nMajor), ceiling(nMajor), floor(nMajor), ceiling(nMajor))
+  nMin_opts <- list(ceiling(nMinor), ceiling(nMinor), floor(nMinor), floor(nMinor))
 
-  denom <- (2 - 2 * rho + rho * (nMaj + nMin))
-  valid <- which(denom != 0)
-  nMaj <- nMaj[valid]
-  nMin <- nMin[valid]
-  BAF_levels <- (1 - rho + rho * nMaj) / denom[valid]
+  # Compute BAF levels for all 4 options (Vectorized)
+  BAF_levels <- lapply(1:4, function(k) {
+    denom <- (2 - 2 * rho + rho * (nMaj_opts[[k]] + nMin_opts[[k]]))
+    (1 - rho + rho * nMaj_opts[[k]]) / pmax(denom, 1e-10)
+  })
 
-  # Tie-breaking logic (Kept exactly as original)
-  best <- which.min(abs(BAF_levels - BAF_req))
-  if (length(BAF_levels) >= 3) {
-    if (BAF_levels[best] == 0.5 && BAF_levels[2] == 0.5 && BAF_levels[3] == 0.5) {
-      best <- ifelse((nMajor + nMinor) > (floor(nMinor) + floor(nMajor) + 1), 2, 3)
-    }
-  }
+  # Find the best option for each segment (Vectorized)
+  # diffs will be N x 4 matrix
+  diffs <- cbind(
+    abs(BAF_levels[[1]] - BAF_req),
+    abs(BAF_levels[[2]] - BAF_req),
+    abs(BAF_levels[[3]] - BAF_req),
+    abs(BAF_levels[[4]] - BAF_req)
+  )
 
-  mu <- BAF_levels[best]
-  is_valid <- (BAF_size > 0 && BAF_sd != 0 && length(mu) > 0)
-  tvar <- if (is_valid) (BAF_mean - mu) * sqrt(BAF_size) / BAF_sd else 0
+  # Tie-breaking logic (Handle the 0.5 case for each segment)
+  # This is usually for balanced regions.
+  # We use max.col to find the index of the minimum difference
+  best_idx <- max.col(-diffs, ties.method = "first")
+
+  # Extract the best mu values
+  # mu <- rep(0, length(BAF_req))
+  # for(k in 1:4) mu[best_idx == k] <- BAF_levels[[k]][best_idx == k]
+  # More R-idiomatic way:
+  mu <- vapply(seq_along(best_idx), function(i) BAF_levels[[best_idx[i]]][i], numeric(1))
+
+  # Final t-variable calculation
+  is_valid <- (BAF_size > 0 & BAF_sd != 0)
+  tvar <- ifelse(is_valid, (BAF_mean - mu) * sqrt(BAF_size) / BAF_sd, 0)
 
   return(list(included_segment = as.numeric(is_valid), tvar = tvar))
 }
@@ -214,34 +226,38 @@ recalc_psi_t <- function(psi, rho, gamma_param, lrrsegmented, segBAF_table, sigl
   # Make sure no segment of length 1 remains - TODO: this should not occur and needs to be prevented upstream
   s <- s[s[, 3] > 1, ]
 
-  # Fetch all segments, if required check which ones are clonal with this rho/psi configuration
-  segs <- list()
-  for (i in seq_len(nrow(s))) {
-    segment_info <- is_segment_clonal(
-      LogR = s[i, "r"],
-      BAF_req = s[i, "b"],
-      BAF_length = s[i, "length"],
-      BAF_size = s[i, "size"],
-      BAF_mean = s[i, "mean"],
-      BAF_sd = s[i, "sd"],
-      rho = rho,
-      psi = psi,
-      gamma_param = gamma_param,
-      siglevel_BAF = siglevel_BAF,
-      maxdist_BAF = maxdist_BAF
-    )
-    # Include this segment if we want to include all segments, or if we don't want subclonal segments include it only if its clonal
-    if (include_subcl_segments || segment_info$is_clonal) {
-      nMaj <- segment_info$nMaj.test
-      nMin <- segment_info$nMin.test
-      psi_t <- calc_psi_t(nMaj + nMin, s[i, "r"], rho, gamma_param)
-      segs[[length(segs) + 1]] <- data.frame(nMaj = nMaj, nMin = nMin, length = s[i, "length"], psi_t = psi_t)
-    }
-  }
-  segs <- data.table::rbindlist(segs)
+  # Check which segments are clonal with this rho/psi configuration
+  segment_info <- is_segment_clonal(
+    LogR = s[, "r"],
+    BAF_req = s[, "b"],
+    BAF_length = s[, "length"],
+    BAF_size = s[, "size"],
+    BAF_mean = s[, "mean"],
+    BAF_sd = s[, "sd"],
+    rho = rho,
+    psi = psi,
+    gamma_param = gamma_param,
+    siglevel_BAF = siglevel_BAF,
+    maxdist_BAF = maxdist_BAF
+  )
 
-  # Calculate psi_t as the weighted average copy number across all segments
-  psi_t <- sum(segs$psi_t * segs$length, na.rm = TRUE) / sum(segs$length, na.rm = TRUE)
+  # Include this segment if we want to include all segments,
+  # or if we don't want subclonal segments include it only if its clonal
+  keep_mask <- if (include_subcl_segments) rep(TRUE, nrow(s)) else segment_info$is_clonal
+
+  if (!any(keep_mask)) {
+    return(NA)
+  }
+
+  nMaj <- segment_info$nMaj[keep_mask]
+  nMin <- segment_info$nMin[keep_mask]
+  s_r <- s[keep_mask, "r"]
+  s_len <- s[keep_mask, "length"]
+
+  # Calculate psi_t for each segment and then the weighted average
+  psi_t_vec <- calc_psi_t(nMaj + nMin, s_r, rho, gamma_param)
+  psi_t <- collapse::fsum(psi_t_vec * s_len) / collapse::fsum(s_len)
+
   return(psi_t)
 }
 
@@ -296,7 +312,7 @@ calc_batch_standardised_errors <- function(s, rho, psi, gamma_param) {
   best_idx <- max.col(-diffs) # max of negative is min
 
   # Map the best mu values
-  mu <- mapply(function(row, col) BAF_levels[[col]][row], 1:nrow(s), best_idx)
+  mu <- mapply(function(row, col) BAF_levels[[col]][row], seq_len(nrow(s)), best_idx)
 
   # Final t-variable calculation
   is_valid <- s[, "size"] > 0 & s[, "sd"] != 0

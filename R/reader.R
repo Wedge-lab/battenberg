@@ -26,10 +26,10 @@ read_table_generic <- function(file, header = TRUE, stringsAsFactor = FALSE, sep
     skip = skip,
     colClasses = col_classes,
     check.names = TRUE,
-    data.table = FALSE,
+    data.table = TRUE,
     nThread = 4
   )
-  log_info("Verified headers generic {paste(colnames(dt), collapse = ', ')}")
+  log_info("Verified headers generic {paste(colnames(d), collapse = ', ')}")
   return(d)
 }
 

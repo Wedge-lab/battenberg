@@ -1,35 +1,3 @@
-#' Obtain allele counts for 1000 Genomes loci through external program alleleCount
-#'
-#' @param bam.file A BAM alignment file on which the counter should be run.
-#' @param output_file The file where output should go.
-#' @param g1000.loci A file with 1000 Genomes SNP loci.
-#' @param min.base.qual The minimum base quality required for it to be counted (optional, default=20).
-#' @param min.map.qual The minimum mapping quality required for it to be counted (optional, default=35).
-#' @param allelecounter.exe A pointer to where the alleleCounter executable can be found (optional, default points to $PATH).
-#' @author sd11
-#' @export
-getAlleleCounts <- function(bam.file, output_file, g1000.loci, min.base.qual = 20, min.map.qual = 35, allelecounter.exe = "alleleCounter") {
-  cmd <- paste(
-    allelecounter.exe,
-    "-b", bam.file,
-    "-l", g1000.loci,
-    "-o", output_file,
-    "-m", min.base.qual,
-    "-q", min.map.qual
-  )
-
-
-  # alleleCount >= v4.0.0 is sped up considerably on 1000G loci when run in dense-snp mode
-  counter_version <- system(paste(allelecounter.exe, "--version"), intern = TRUE)
-  if (as.integer(substr(x = counter_version, start = 1, stop = 1)) >= 4) {
-    cmd <- paste(cmd, "--dense-snps")
-  }
-
-  exit_code <- system(cmd, wait = TRUE)
-  stopifnot(exit_code == 0)
-}
-
-
 #' Obtain BAF and LogR from the allele counts (Optimized)
 #' @export
 getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFile.prefix, figuresFile.prefix, BAFnormalFile, BAFmutantFile, logRnormalFile, logRmutantFile, combinedAlleleCountsFile, chr_names, g1000file.prefix, minCounts = NA, samplename = "sample1", seed = as.integer(Sys.time())) {
@@ -135,29 +103,29 @@ getBAFsAndLogRs <- function(tumourAlleleCountsFile.prefix, normalAlleleCountsFil
 
 
   # Write Normal BAF
-  baseDT[, (samplename) := normalBAF]
+  baseDT[[samplename]] <- normalBAF
   data.table::fwrite(baseDT, file = BAFnormalFile, sep = "\t")
   log_info("Saved Normal BAF to: {normalizePath(BAFnormalFile, mustWork = FALSE)}")
 
   # Write Mutant BAF
-  baseDT[, (samplename) := mutantBAF]
+  baseDT[[samplename]] <- mutantBAF
   data.table::fwrite(baseDT, file = BAFmutantFile, sep = "\t")
   log_info("Saved Mutant BAF to: {normalizePath(BAFmutantFile, mustWork = FALSE)}")
 
   # Write Normal LogR
-  baseDT[, (samplename) := normalLogR]
+  baseDT[[samplename]] <- normalLogR
   data.table::fwrite(baseDT, file = logRnormalFile, sep = "\t")
   log_info("Saved Normal LogR to: {normalizePath(logRnormalFile, mustWork = FALSE)}")
 
 
   # Write Mutant LogR
-  baseDT[, (samplename) := tumorLogR_final]
+  baseDT[[samplename]] <- tumorLogR_final
   data.table::fwrite(baseDT, file = logRmutantFile, sep = "\t")
   log_info("Saved Mutant LogR to: {normalizePath(logRmutantFile, mustWork = FALSE)}")
 
   # Write Combined Allele Counts
   # We use a standard data.table definition here which is safe from list-bloat
-  baseDT[, (samplename) := NULL] # Clean up the sample column before combining
+  baseDT[[samplename]] <- NULL # Clean up the sample column before combining
   combinedDT <- cbind(baseDT, data.table::data.table(
     mutCountT1 = mutCount1,
     mutCountT2 = mutCount2,
@@ -334,7 +302,7 @@ gc_correct_wgs <- function(
   # Pure comments instead of numbering
 
   if (is.null(gc_content_file_prefix)) {
-    stop("GC content reference files must be supplied")
+    log_failure("GC content reference files must be supplied")
   }
 
   Tumor_LogR <- read_logr(Tumour_LogR_file)
@@ -437,11 +405,7 @@ gc_correct_wgs <- function(
   Tumor_LogR[[3]] <- resids
 
   # Log results
-  message(paste0("Noise Reduction: ", round(reduction, 2), "%"))
 
-  sd_before <- stats::sd(y, na.rm = TRUE)
-  sd_after <- stats::sd(resids, na.rm = TRUE)
-  reduction <- ((sd_before - sd_after) / sd_before) * 100
   # Post-correction correlation check
   corr_post_short <- abs(stats::cor(resids[keep_idx], GC_data[[maxGCcol_insert]][keep_idx], use = "complete.obs"))
   corr_post_long <- abs(stats::cor(resids[keep_idx], GC_data[[maxGCcol_amplic]][keep_idx], use = "complete.obs"))
@@ -477,11 +441,10 @@ gc_correct_wgs <- function(
 #' @param repliccorrectprefix Prefix path to replication timing reference data (supply NULL if no replication timing correction is to be applied)
 #' @param min_base_qual Minimum base quality required for a read to be counted
 #' @param min_map_qual Minimum mapping quality required for a read to be counted
-#' @param allelecounter_exe Path to the allele counter executable (can be found in $PATH)
+#' @param allele_counts_dir Directory containing the allele counts files
 #' @param min_normal_depth Minimum depth required in the normal for a SNP to be included
 #' @param nthreads The number of paralel processes to run
-#' @param skip_allele_counting Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)
-#' @param skip_allele_counting_normal Flag, set to TRUE from the second sample onwards for multisample case (Default: FALSE)
+#' @param libs Path to the R libraries to be used by parallel workers
 #' @author sd11
 #' @export
 prepare_wgs <- function(
@@ -496,79 +459,46 @@ prepare_wgs <- function(
   repliccorrectprefix,
   min_base_qual,
   min_map_qual,
-  allelecounter_exe,
+  allele_counts_dir,
   min_normal_depth,
   nthreads,
-  skip_allele_counting,
-  skip_allele_counting_normal = FALSE,
-  debug = FALSE
+  libs
 ) {
-  if (!skip_allele_counting) {
-    do_allele_counting <- function(i) {
-      getAlleleCounts(
-        bam.file = normalbam,
-        output_file = paste(
-          normalname,
-          "_alleleFrequencies_chr",
-          chrom_names[i], ".txt",
-          sep = ""
-        ),
-        g1000.loci = paste(g1000prefix, chrom_names[i], ".txt", sep = ""),
-        min.base.qual = min_base_qual,
-        min.map.qual = min_map_qual,
-        allelecounter.exe = allelecounter_exe
-      )
+  # Check files exist
+  tumour_prefix <- file.path(allele_counts_dir, paste0(tumourname, "_alleleFrequencies_chr"))
+  normal_prefix <- file.path(allele_counts_dir, paste0(normalname, "_alleleFrequencies_chr"))
 
-      if (!skip_allele_counting_normal) {
-        getAlleleCounts(
-          bam.file = normalbam,
-          output_file = paste(normalname,
-            "_alleleFrequencies_chr",
-            chrom_names[i], ".txt",
-            sep = ""
-          ),
-          g1000.loci = paste(
-            g1000prefix,
-            chrom_names[i], ".txt",
-            sep = ""
-          ),
-          min.base.qual = min_base_qual,
-          min.map.qual = min_map_qual,
-          allelecounter.exe = allelecounter_exe
-        )
-      }
-    }
-    run_parallel_or_serial(
-      iterator = seq_along(chrom_names),
-      func = do_allele_counting,
-      debug = debug
-    )
+  # Simple validation for first chromosome to ensure files are present
+  # Note: detailed validation could loop over all chromosomes
+  first_tumour_file <- paste0(tumour_prefix, chrom_names[1], ".txt")
+  if (!file.exists(first_tumour_file)) {
+    log_failure("Expected tumour allele counts file not found: {first_tumour_file}")
   }
 
   # Obtain BAF and LogR from the raw allele counts
-  # getBAFsAndLogRs(
-  #  tumourAlleleCountsFile.prefix = paste(tumourname, "_alleleFrequencies_chr", sep = ""),
-  #  normalAlleleCountsFile.prefix = paste(normalname, "_alleleFrequencies_chr", sep = ""),
-  #  figuresFile.prefix = paste(tumourname, "_", sep = ""),
-  #  BAFnormalFile = paste(tumourname, "_normalBAF.tab", sep = ""),
-  #  BAFmutantFile = paste(tumourname, "_mutantBAF.tab", sep = ""),
-  #  logRnormalFile = paste(tumourname, "_normalLogR.tab", sep = ""),
-  #  logRmutantFile = paste(tumourname, "_mutantLogR.tab", sep = ""),
-  #  combinedAlleleCountsFile = paste(tumourname, "_alleleCounts.tab", sep = ""),
-  #  chr_names = chrom_names,
-  #  g1000file.prefix = g1000allelesprefix,
-  #   minCounts = min_normal_depth,
-  #   samplename = tumourname
-  # )
+  getBAFsAndLogRs(
+    tumourAlleleCountsFile.prefix = tumour_prefix,
+    normalAlleleCountsFile.prefix = normal_prefix,
+    figuresFile.prefix = paste(tumourname, "_", sep = ""),
+    BAFnormalFile = paste(tumourname, "_normalBAF.tab", sep = ""),
+    BAFmutantFile = paste(tumourname, "_mutantBAF.tab", sep = ""),
+    logRnormalFile = paste(tumourname, "_normalLogR.tab", sep = ""),
+    logRmutantFile = paste(tumourname, "_mutantLogR.tab", sep = ""),
+    combinedAlleleCountsFile = paste(tumourname, "_alleleCounts.tab", sep = ""),
+    chr_names = chrom_names,
+    g1000file.prefix = g1000allelesprefix,
+    minCounts = min_normal_depth,
+    samplename = tumourname
+  )
   # Perform GC correction
-  # gc_correct_wgs(
-  #  Tumour_LogR_file = paste(tumourname, "_mutantLogR.tab", sep = ""),
-  #  outfile = paste(tumourname, "_mutantLogR_gcCorrected.tab", sep = ""),
-  #  correlations_outfile = paste(tumourname, "_GCwindowCorrelations.txt", sep = ""),
-  #  gc_content_file_prefix = gccorrectprefix,
-  #  replic_timing_file_prefix = repliccorrectprefix,
-  #  chrom_names = chrom_names
-  # )
+  gc_correct_wgs(
+    Tumour_LogR_file = paste(tumourname, "_mutantLogR.tab", sep = ""),
+    outfile = paste(tumourname, "_mutantLogR_gcCorrected.tab", sep = ""),
+    correlations_outfile = paste(tumourname, "_GCwindowCorrelations.txt", sep = ""),
+    gc_content_file_prefix = gccorrectprefix,
+    replic_timing_file_prefix = repliccorrectprefix,
+    chrom_names = chrom_names
+  )
 }
 
 #' A helper function to split the genome into parts

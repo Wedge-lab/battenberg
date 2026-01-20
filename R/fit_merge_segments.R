@@ -331,20 +331,47 @@ merge_segments <- function(
 #' @return A list with the masked subclones, bafsegmented and the number of segments masked and their total genome size
 #' @author sd11
 mask_high_cn_segments <- function(subclones, bafsegmented, max_allowed_state) {
-  count <- 0
-  masked_size <- 0
-  for (i in seq_len(nrow(subclones))) {
-    if (subclones$nMaj1_A[i] > max_allowed_state || subclones$nMin1_A[i] > max_allowed_state) {
-      # Mask this segment
-      subclones[i, "nMaj1_A"] <- NA
-      subclones[i, "nMin1_A"] <- NA
-      subclones[i, "nMaj2_A"] <- NA
-      subclones[i, "nMin2_A"] <- NA
-      # Mask the BAFsegmented
-      bafsegmented[subclones$chr[i] == bafsegmented$Chromosome & subclones$startpos[i] < bafsegmented$Position & subclones$endpos[i] >= bafsegmented$Position, c("BAFseg")] <- NA
-      count <- count + 1
-      masked_size <- masked_size + (subclones$endpos[i] - subclones$startpos[i])
-    }
+  to_mask_idx <- which(subclones$nMaj1_A > max_allowed_state | subclones$nMin1_A > max_allowed_state)
+
+  if (length(to_mask_idx) == 0) {
+    return(list(
+      subclones = subclones,
+      bafsegmented = bafsegmented,
+      masked_count = 0,
+      masked_size = 0
+    ))
   }
-  return(list(subclones = subclones, bafsegmented = bafsegmented, masked_count = count, masked_size = masked_size))
+
+  count <- length(to_mask_idx)
+  masked_size <- sum(subclones$endpos[to_mask_idx] - subclones$startpos[to_mask_idx])
+
+  # Identify segments to mask in the BAFsegmented file
+  # Use GenomicRanges for O(N+M) overlap detection instead of the O(N*M) loop
+  segs_to_mask <- subclones[to_mask_idx, ]
+  gr_segs <- GenomicRanges::GRanges(
+    seqnames = segs_to_mask$chr,
+    # Original logic: startpos < Position <= endpos
+    ranges = IRanges::IRanges(start = segs_to_mask$startpos + 1, end = segs_to_mask$endpos)
+  )
+
+  gr_snps <- GenomicRanges::GRanges(
+    seqnames = bafsegmented$Chromosome,
+    ranges = IRanges::IRanges(start = bafsegmented$Position, end = bafsegmented$Position)
+  )
+
+  # Find SNPs that fall within any masked segment
+  overlaps <- GenomicRanges::findOverlaps(gr_snps, gr_segs)
+  if (length(overlaps) > 0) {
+    bafsegmented$BAFseg[unique(S4Vectors::queryHits(overlaps))] <- NA
+  }
+
+  # Now mask the subclones table
+  subclones[to_mask_idx, c("nMaj1_A", "nMin1_A", "nMaj2_A", "nMin2_A")] <- NA
+
+  return(list(
+    subclones = subclones,
+    bafsegmented = bafsegmented,
+    masked_count = count,
+    masked_size = masked_size
+  ))
 }

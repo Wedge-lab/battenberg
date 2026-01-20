@@ -33,7 +33,8 @@ runASCAT_enhanced(
   analysis = "paired",
   smart_ordering = TRUE,
   early_termination = TRUE,
-  verbose = TRUE
+  verbose = TRUE,
+  nthreads = 1
 )
 }
 \description{

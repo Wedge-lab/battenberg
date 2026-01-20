@@ -24,14 +24,15 @@ fit_copy_number(
   preset_psi = NA,
   read_depth = 30,
   analysis = "paired",
-  nthreads,
+  nthreads = 1,
   enhanced_grid_search = FALSE
 )
 }
 \arguments{
 \item{samplename}{Samplename used to name the segmented logr output file}
 
-\item{outputfile_prefix}{Prefix used for all output file names, except logRsegmented}
+\item{outputfile_prefix}{Prefix used for all output file names, except
+logRsegmented}
 
 \item{inputfile_baf_segmented}{Filename that points to the BAF segmented data}
 
@@ -39,9 +40,11 @@ fit_copy_number(
 
 \item{inputfile_logr}{Filename that points to the raw LogR data}
 
-\item{dist_choice}{The distance metric that is used internally to rank clonal copy number solutions}
+\item{dist_choice}{The distance metric that is used internally to rank clonal
+copy number solutions}
 
-\item{ascat_dist_choice}{The distance metric used to obtain an initial cellularity and ploidy estimate}
+\item{ascat_dist_choice}{The distance metric used to obtain an initial
+cellularity and ploidy estimate}
 
 \item{min_ploidy}{The minimum ploidy to consider (Default 1.6)}
 
@@ -51,27 +54,39 @@ fit_copy_number(
 
 \item{max_rho}{The maximum cellularity to consider (Default 1.0)}
 
-\item{min_goodness}{The minimum goodness of fit for a solution to have to be considered (Default 63)}
+\item{min_goodness}{The minimum goodness of fit for a solution to have to be
+considered (Default 63)}
 
-\item{uninformative_baf_threshold}{The threshold beyond which BAF becomes uninformative (Default 0.51)}
+\item{uninformative_baf_threshold}{The threshold beyond which BAF becomes
+uninformative (Default 0.51)}
 
-\item{gamma_param}{Technology parameter, compaction of Log R profiles. Expected decrease in case of deletion in diploid sample, 100 "\%" aberrant cells; 1 in ideal case, 0.55 of Illumina 109K arrays (Default 1)}
+\item{gamma_param}{Technology parameter, compaction of Log R profiles.
+Expected decrease in case of deletion in diploid sample, 100 "\%" aberrant
+cells; 1 in ideal case, 0.55 of Illumina 109K arrays (Default 1)}
 
-\item{use_preset_rho_psi}{Boolean whether to use user specified rho and psi values (Default FALSE)}
+\item{use_preset_rho_psi}{Boolean whether to use user specified rho and psi
+values (Default FALSE)}
 
-\item{preset_rho}{A user specified rho to fit a copy number profile to (Default NA)}
+\item{preset_rho}{A user specified rho to fit a copy number profile to
+(Default NA)}
 
-\item{preset_psi}{A user specified psi to fit a copy number profile to (Default NA)}
+\item{preset_psi}{A user specified psi to fit a copy number profile to
+(Default NA)}
 
 \item{read_depth}{Legacy parameter that is no longer used (Default 30)}
 
-\item{analysis}{A String representing the type of analysis to be run, this determines whether the distance figure is produced (Default paired)}
+\item{analysis}{A String representing the type of analysis to be run, this
+determines whether the distance figure is produced (Default paired)}
+
+\item{nthreads}{The number of paralel processes to run}
+
+\item{enhanced_grid_search}{Flag to determine if the grid search should be performed with a higher number of steps (Default: FALSE)}
 }
 \description{
-Function that will fit a clonal copy number profile to segmented data. It first
-matches the raw LogR with the segmented BAF to create segmented LogR. Then ASCAT
-is run to obtain a clonal copy number profile. Beyond logRsegmented it produces
-the rho_and_psi file and the cellularity_ploidy file.
+Function that will fit a clonal copy number profile to segmented data. It
+first matches the raw LogR with the segmented BAF to create segmented LogR.
+Then ASCAT is run to obtain a clonal copy number profile. Beyond logRsegmented
+it produces the rho_and_psi file and the cellularity_ploidy file.
 }
 \author{
 dw9, sd11

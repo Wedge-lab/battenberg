@@ -49,6 +49,7 @@ Imports:
   SummarizedExperiment,
   collapse,
   dplyr,
+  Rcpp,
   RcppRoll,
   optparse,
   tictoc,
@@ -57,6 +58,7 @@ Remotes:
   Crick-CancerGenomics/ascat/ASCAT,
   igordot/copynumber
 URL: https://github.com/ohsu-comp-bio/battenberg
+LinkingTo: Rcpp
 LazyLoad: yes
 Suggests:
   lintr,

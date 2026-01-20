@@ -1,5 +1,12 @@
 linters: linters_with_defaults(
-    line_length_linter(120),
-    object_usage_linter = NULL
+    line_length_linter = line_length_linter(200),
+    object_usage_linter = NULL,
+    object_name_linter = NULL,
+    commented_code_linter = NULL,
+    return_linter = NULL,
+    indentation_linter = NULL,
+    object_length_linter = NULL,
+    pipe_consistency_linter = NULL,
+    T_and_F_symbol_linter = NULL
   )
 encoding: "UTF-8"

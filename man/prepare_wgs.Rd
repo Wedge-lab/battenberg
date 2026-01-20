@@ -16,12 +16,10 @@ prepare_wgs(
   repliccorrectprefix,
   min_base_qual,
   min_map_qual,
-  allelecounter_exe,
+  allele_counts_dir,
   min_normal_depth,
   nthreads,
-  skip_allele_counting,
-  skip_allele_counting_normal = FALSE,
-  debug = FALSE
+  libs
 )
 }
 \arguments{
@@ -47,15 +45,13 @@ prepare_wgs(
 
 \item{min_map_qual}{Minimum mapping quality required for a read to be counted}
 
-\item{allelecounter_exe}{Path to the allele counter executable (can be found in $PATH)}
+\item{allele_counts_dir}{Directory containing the allele counts files}
 
 \item{min_normal_depth}{Minimum depth required in the normal for a SNP to be included}
 
 \item{nthreads}{The number of paralel processes to run}
 
-\item{skip_allele_counting}{Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)}
-
-\item{skip_allele_counting_normal}{Flag, set to TRUE from the second sample onwards for multisample case (Default: FALSE)}
+\item{libs}{Path to the R libraries to be used by parallel workers}
 }
 \description{
 This function performs part of the Battenberg WGS pipeline: Counting alleles, constructing BAF and logR

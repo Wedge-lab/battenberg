@@ -11,22 +11,14 @@ run_haplotyping_germline(
   ismale,
   imputeinfofile,
   problemloci,
-  impute_exe,
+  impute_results_dir,
   min_normal_depth,
   chrom_names,
   externalhaplotypeprefix = NA,
   use_previous_imputation = FALSE,
   snp6_reference_info_file = NA,
   heterozygous_filter = NA,
-  usebeagle = FALSE,
-  beaglejar = NA,
-  beagleref = NA,
-  beagleplink = NA,
-  beaglemaxmem = 10,
-  beaglenthreads = 1,
-  beaglewindow = 40,
-  beagleoverlap = 4,
-  javajre = "java"
+  usebeagle = FALSE
 )
 }
 \arguments{
@@ -42,8 +34,6 @@ run_haplotyping_germline(
 
 \item{problemloci}{Full path to the problematic loci reference file}
 
-\item{impute_exe}{Path to the impute executable (can be found if its in $PATH)}
-
 \item{min_normal_depth}{Minimal depth in the matched normal required for a SNP to be used}
 
 \item{chrom_names}{A vector containing the names of chromosomes to be included}
@@ -52,7 +42,9 @@ run_haplotyping_germline(
 
 \item{heterozygous_filter}{SNP6 only parameter Default: NA}
 
-\item{usebeagle}{Should use beagle5 instead of impute2 Default: FALSE}
+\item{usebeagle}{Logical, if TRUE expects Beagle VCF output and converts to IMPUTE format.}
+
+\item{impute_exe}{Path to the impute executable (can be found if its in $PATH)}
 
 \item{beaglejar}{Full path to Beagle java jar file Default: NA}
 

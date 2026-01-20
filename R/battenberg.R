@@ -29,27 +29,29 @@
 #' female, not required for SNP6 data (Default: NA)
 #' @param data_type String that contains either wgs or snp6 depending on the
 #' supplied input data (Default: wgs)
-#' @param impute_exe Pointer to the Impute2 executable (Default: impute2, i.e.
-#' expected in $PATH)
-#' @param allelecounter_exe Pointer to the alleleCounter executable (Default:
-#' alleleCounter, i.e. expected in $PATH)
+#' @param allele_counts_dir Directory containing the allele counts files (Required for WGS/CellLine/Germline).
+#' @param impute_results_dir Directory containing the imputed haplotype results (Required for phasing).
 #' @param nthreads The number of concurrent processes to use while running the
 #' Battenberg pipeline (Default: 8)
 #' @param platform_gamma Platform scaling factor,
 #' suggestions are set to 1 for wgs and to 0.55 for snp6 (Default: 1)
 #' @param phasing_gamma Gamma parameter used when correcting phasing mistakes
 #' (Default: 1)
-#' @param segmentation_gamma The gamma parameter controls the size of the penalty
-#' of starting a new segment during segmentation. It is therefore the key parameter
+#' @param segmentation_gamma The gamma parameter
+#' controls the size of the penalty
+#' of starting a new segment during segmentation.
+#' It is therefore the key parameter
 #' for controlling the number of segments (Default: 10)
-#' @param segmentation_gamma_multisample The gamma parameter controls the size of
-#' the penalty of starting a new segment during mutlisample segmentation. It is the
+#' @param segmentation_gamma_multisample The gamma parameter
+#' controls the size of the penalty of starting a new segment
+#' during mutlisample segmentation. It is the
 #' key parameter for controlling the number of segments (Default: 10)
-#' @param segmentation_kmin Kmin represents the minimum number of probes/SNPs that
-#' a segment should consist of (Default: 3)
-#' @param phasing_kmin Kmin used when correcting for phasing mistakes (Default: 3)
-#' @param clonality_dist_metric  Distance metric to use when choosing purity/ploidy
-#' combinations (Default: 0)
+#' @param segmentation_kmin Kmin represents the minimum number of
+#' probes/SNPs that a segment should consist of (Default: 3)
+#' @param phasing_kmin Kmin used when correcting for phasing mistakes
+#' (Default: 3)
+#' @param clonality_dist_metric Distance metric to use when
+#' choosing purity/ploidy combinations (Default: 0)
 #' @param ascat_dist_metric Distance metric to use when choosing purity/ploidy
 #' combinations (Default: 1)
 #' @param min_ploidy Minimum ploidy to be considered (Default: 1.6)
@@ -60,68 +62,38 @@
 #' combination to be accepted as a solution (Default: 0.63)
 #' @param uninformative_baf_threshold The threshold beyond which BAF becomes
 #' uninformative (Default: 0.51)
-#' @param min_normal_depth Minimum depth required in the matched normal for a SNP
-#' to be considered as part of the wgs analysis (Default: 10)
-#' @param min_base_qual Minimum base quality required for a read to be counted when
-#' allele counting (Default: 20)
-#' @param min_map_qual Minimum mapping quality required for a read to be counted
-#' when allele counting (Default: 35)
+#' @param min_normal_depth Minimum depth required in the matched normal
+#' for a SNP to be considered as part of the wgs analysis (Default: 10)
+#' @param min_base_qual Minimum base quality required for a read to
+#' be counted when allele counting (Default: 20)
+#' @param min_map_qual Minimum mapping quality required for a read to
+#' be counted when allele counting (Default: 35)
 #' @param max_allowed_state The maximum CN state allowed (Default 250)
 #' @param cn_upper_limit Maximum number of copy number that can be called
 #' (Default 1000)
 #' @param calc_seg_baf_option Sets way to calculate BAF per segment: 1=mean,
 #' 2=median, 3=ifelse median==0 | 1, mean, median (Default (paired): 3,
 #' cell_line & germline: 1)
-#' @param skip_allele_counting Provide TRUE when allele counting can be skipped
-#' (i.e. its already done) (Default: FALSE)
-#' @param skip_preprocessing Provide TRUE when preprocessing is already complete
+#' @param externalhaplotypefile Vcf containing externally
+#' obtained haplotype blocks (Default: NA)
+#' @param write_battenberg_phasing Write the Battenberg phasing results
+#' as vcf to disk, e.g. for multisample cases (Default: TRUE)
+#' @param multisample_maxlag Maximal number of upstream SNPs used in the
+#' multisample haplotyping to inform the haplotype at another SNP (Default: 100)
+#' @param multisample_relative_weight_balanced Relative weight to give to
+#' haplotype info from a sample without allelic imbalance
+#' in the region (Default: 0.25)
+#' @param snp6_reference_info_file Reference info file for SNP6 data (Default: NA)
+#' @param enhanced_grid_search Flag to determine if the grid search should be performed with a higher number of steps (Default: FALSE)
+#' @param usebeagle Logical, if TRUE, expects Beagle output (VCF) in impute_results_dir and converts to IMPUTE format (Default: FALSE)
+#' @param verbose_logging Print out more information during the run
 #' (Default: FALSE)
-#' @param skip_phasing  Provide TRUE when phasing is already complete
-#' (Default: FALSE)
-#' @param usebeagle Should use beagle5 instead of impute2 Default: FALSE
-#' @param beaglejar Full path to Beagle java jar file Default: NA
-#' @param beagleref_template Full path template to Beagle reference files where
-#' the chromosome is replaced by 'CHROMNAME' Default: NA
-#' @param beagleplink_template Full path template to Beagle plink files where the
-#' chromosome is replaced by 'CHROMNAME' Default: NA
-#' @param beaglemaxmem Integer Beagle max heap size in Gb  Default: 10
-#' @param beaglenthreads Integer number of threads used by beagle5 Default:1
-#' @param beaglewindow Integer size of the genomic window for beagle5 (cM) Default:40
-#' @param beagleoverlap Integer size of the overlap between windows beagle5 Default:4
-#' @param javajre Path to the Java JRE executable, only required for haplotype
-#' reconstruction with Beagle (default java, i.e. in $PATH)
-#' @param snp6_reference_info_file Reference files for the SNP6 pipeline only
-#' (Default: NA)
-#' @param apt_probeset_genotype_exe Helper tool for extracting data from CEL files,
-#' SNP6 pipeline only (Default: apt-probeset-genotype)
-#' @param apt_probeset_summarize_exe  Helper tool for extracting data from CEL
-#' files, SNP6 pipeline only (Default: apt-probeset-summarize)
-#' @param norm_geno_clust_exe  Helper tool for extracting data from CEL files,
-#' SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)
-#' @param birdseed_report_file Sex inference output file, SNP6 pipeline only
-#' (Default: birdseed.report.txt)
-#' @param heterozygous_filter Legacy option to set a heterozygous SNP filter, SNP6
-#' pipeline only (Default: "none")
-#' @param prior_breakpoints_file A two column file with prior breakpoints to be
-#' used during segmentation (Default: NULL)
-#' @param genomebuild Genome build upon which the 1000G SNP coordinates were
-#' obtained (Default: hg38; options: "hg19" or "hg38")
-#' @param chrom_chrod_file TODO: no idea what this does
-#' @param externalhaplotypefile Vcf containing externally obtained haplotype blocks
-#' (Default: NA)
-#' @param write_battenberg_phasing Write the Battenberg phasing results as vcf to
-#' disk, e.g. for multisample cases (Default: TRUE)
-#' @param multisample_maxlag Maximal number of upstream SNPs used in the multisample
-#' haplotyping to inform the haplotype at another SNP (Default: 100)
-#' @param multisample_relative_weight_balanced Relative weight to give to haplotype
-#' info from a sample without allelic imbalance in the region (Default: 0.25)
-#' @param enhanced_grid_search Should use multi-start, parallelized and
-#' multi-approach grid search (Default: FALSE)
-#' @param verbose_logging Print out more information during the run (Default: FALSE)
+#' @param skip_preprocessing Boolean, if TRUE skips the initial allele counting and GC correction (Default: FALSE)
+#' @param preprocessed_data_dir Directory where existing preprocessed .tab files are located. If provided and skip_preprocessing is TRUE, files will be copied to local directory. (Default: NA)
 #' @param logging_path Path to write log files to (Default: ".")
-#' @param debug Flag the determines if battenberg runs in debug mode or not. The
-#' difference is no parallelization in debug mode. (Default: FALSE)
-
+#'
+#' @useDynLib Battenberg, .registration = TRUE
+#' @importFrom data.table :=
 #' @author sd11, jdemeul, Naser Ansari-Pour, Julio Cesar Cortes Rios
 #' @export
 battenberg <- function(
@@ -133,13 +105,13 @@ battenberg <- function(
   imputeinfofile,
   g1000prefix,
   problemloci,
+  allele_counts_dir,
+  impute_results_dir,
   gccorrectprefix = NULL,
   repliccorrectprefix = NULL,
   g1000allelesprefix = NA,
   ismale = NA,
   data_type = "wgs",
-  impute_exe = "impute2",
-  allelecounter_exe = "alleleCounter",
   nthreads = 8,
   platform_gamma = 1,
   phasing_gamma = 1,
@@ -160,19 +132,7 @@ battenberg <- function(
   max_allowed_state = 250,
   cn_upper_limit = 1000,
   calc_seg_baf_option = 3,
-  skip_allele_counting = FALSE,
-  skip_preprocessing = FALSE,
-  skip_phasing = FALSE,
   externalhaplotypefile = NA,
-  usebeagle = FALSE,
-  beaglejar = NA,
-  beagleref_template = NA,
-  beagleplink_template = NA,
-  beaglemaxmem = 10,
-  beaglenthreads = 1,
-  beaglewindow = 40,
-  beagleoverlap = 4,
-  javajre = "java",
   write_battenberg_phasing = TRUE,
   multisample_relative_weight_balanced = 0.25,
   multisample_maxlag = 90,
@@ -188,12 +148,32 @@ battenberg <- function(
   chrom_coord_file = NULL,
   enhanced_grid_search = FALSE,
   verbose_logging = FALSE,
-  logging_path = ".",
-  debug = FALSE
+  usebeagle = FALSE,
+  skip_preprocessing = FALSE,
+  preprocessed_data_dir = NA,
+  logging_path = "."
 ) {
   libs <- .libPaths()
+
+  # Set global thread limits based on user configuration
+  if (requireNamespace("data.table", quietly = TRUE)) {
+    data.table::setDTthreads(nthreads)
+  }
+  Sys.setenv(OMP_NUM_THREADS = nthreads)
+  Sys.setenv(MKL_NUM_THREADS = nthreads)
+  Sys.setenv(OPENBLAS_NUM_THREADS = nthreads)
+
   log_setup(logging_path, verbose_logging)
-  log_info("Starting analysis for {samplename} in debug='{debug}' mode")
+
+  # Inform the user about the thread configuration
+  log_info(strrep("-", 60))
+  log_info("Battenberg Thread Configuration:")
+  log_info("  - Total thread budget: {nthreads}")
+  log_info("  - The pipeline will dynamically allocate these cores between")
+  log_info("    sample-level and logic-level parallelism.")
+  log_info(strrep("-", 60))
+
+  log_info("Starting analysis for {samplename}")
 
 
   if (analysis == "cell_line") {
@@ -202,7 +182,8 @@ battenberg <- function(
     phasing_kmin <- 2
     segmentation_gamma <- 20
     segmentation_kmin <- 3
-    # no matched normal required, but we  are generating normal counts which have this name coded
+    # no matched normal required, but we  are
+    # generating normal counts which have this name coded
     normalname <- paste0(samplename, "_normal")
     # other cell_line specific parameter values
     min_ploidy <- min_ploidy
@@ -216,7 +197,8 @@ battenberg <- function(
     phasing_kmin <- 1
     segmentation_gamma <- 3
     segmentation_kmin <- 3
-    # no matched normal required, but we  are generating normal counts which have this name coded
+    # no matched normal required,
+    # but we  are generating normal counts which have this name coded
     normalname <- paste0(samplename, "_normal")
     min_ploidy <- 1.5
     max_ploidy <- 2.5
@@ -225,7 +207,8 @@ battenberg <- function(
   }
 
   if (data_type == "wgs" && is.na(ismale)) {
-    log_failure("Please provide a boolean denominator whether this sample represents a male donor")
+    log_failure("Please provide a boolean denominator whether \\
+    this sample represents a male donor")
   }
 
   if (data_type == "wgs" && is.na(g1000allelesprefix)) {
@@ -245,21 +228,15 @@ battenberg <- function(
   }
 
   # check whether the impute_info.txt file contains correct paths
-  check_imputeinfofile(imputeinfofile = imputeinfofile, is_male = ismale, usebeagle = usebeagle)
+  # check whether the impute_info.txt file contains correct paths
+  check_imputeinfofile(
+    imputeinfofile = imputeinfofile,
+    is_male = ismale,
+    usebeagle = usebeagle
+  )
 
   # check whether multisample case
   nsamples <- length(samplename)
-  if (nsamples > 1) {
-    if (length(skip_allele_counting) < nsamples) {
-      skip_allele_counting <- rep(skip_allele_counting[1], nsamples)
-    }
-    if (length(skip_preprocessing) < nsamples) {
-      skip_preprocessing <- rep(skip_preprocessing[1], nsamples)
-    }
-    if (length(skip_phasing) < nsamples) {
-      skip_phasing <- rep(skip_phasing[1], nsamples)
-    }
-  }
 
   if (data_type == "wgs" || data_type == "WGS") {
     if (nsamples > 1) {
@@ -269,26 +246,35 @@ battenberg <- function(
     chrom_names <- get_chrom_names(imputeinfofile, ismale, analysis = analysis)
   } else if (data_type == "snp6" || data_type == "SNP6") {
     if (nsamples > 1) {
-      log_failure("Battenberg multisample mode has not been tested with SNP6 data")
+      log_failure("Battenberg multisample mode has \\
+       not been tested with SNP6 data")
     }
     chrom_names <- get_chrom_names(imputeinfofile, TRUE)
-    logr_file <- paste(samplename, "_mutantLogR.tab", sep = "")
-    allelecounts_file <- NULL
   }
+  # Global parameter validation
+  if (!missing(allele_counts_dir) && !is.na(allele_counts_dir) && !dir.exists(allele_counts_dir)) {
+    log_failure("allele_counts_dir does not exist: {allele_counts_dir}")
+  }
+  if (!missing(impute_results_dir) && !is.na(impute_results_dir) && !dir.exists(impute_results_dir)) {
+    log_failure("impute_results_dir does not exist: {impute_results_dir}")
+  }
+
   log_info(chrom_names)
   for (sampleidx in 1:nsamples) {
-    if (!skip_preprocessing[sampleidx]) {
-      if (data_type == "wgs" || data_type == "WGS") {
-        # Setup for parallel computing
-        if (!debug) {
-          clp <- parallel::makeCluster(nthreads, outfile = "")
-          doParallel::registerDoParallel(clp)
-        }
+    if (data_type == "wgs" || data_type == "WGS") {
+      # Setup for parallel computing
+      if (nthreads > 1 && !skip_preprocessing) {
+        # In preprocessing, we run samples sequentially in a for loop.
+        # So each sample can use the FULL nthreads budget for chromosome-level parallelism.
+        clp <- parallel::makeCluster(nthreads, outfile = "")
+        doParallel::registerDoParallel(clp)
+      }
 
+      if (!skip_preprocessing) {
         if (analysis == "paired") {
           if (is.null(normalname) || is.na(normalname)) {
-            log_failure("No normal sample is specified for 'paired analysis' \\
-                        - a normal paired BAM is required")
+            log_failure("No normal sample is specified for \\
+                'paired analysis' - a normal paired BAM is required")
           }
           prepare_wgs(
             chrom_names = chrom_names,
@@ -302,18 +288,17 @@ battenberg <- function(
             repliccorrectprefix = repliccorrectprefix,
             min_base_qual = min_base_qual,
             min_map_qual = min_map_qual,
-            allelecounter_exe = allelecounter_exe,
+            allele_counts_dir = allele_counts_dir,
             min_normal_depth = min_normal_depth,
             nthreads = nthreads,
-            skip_allele_counting = skip_allele_counting[sampleidx],
-            skip_allele_counting_normal = (sampleidx > 1)
+            libs = libs
           )
         } else if (analysis == "cell_line") {
           prepare_wgs_cell_line(
             chrom_names = chrom_names,
             chrom_coord = chrom_coord_file,
-            tumourbam = sample_data_file,
-            tumourname = samplename,
+            tumourbam = sample_data_file[sampleidx],
+            tumourname = samplename[sampleidx],
             g1000lociprefix = g1000prefix,
             g1000allelesprefix = g1000allelesprefix,
             gamma_ivd = 1e5,
@@ -327,16 +312,16 @@ battenberg <- function(
             repliccorrectprefix = repliccorrectprefix,
             min_base_qual = min_base_qual,
             min_map_qual = min_map_qual,
-            allelecounter_exe = allelecounter_exe,
+            allele_counts_dir = allele_counts_dir,
             min_normal_depth = min_normal_depth,
-            skip_allele_counting = skip_allele_counting[sampleidx]
+            libs = libs
           )
         } else if (analysis == "germline") {
           prepare_wgs_germline(
             chrom_names = chrom_names,
             chrom_coord = chrom_coord_file,
-            germlinebam = sample_data_file,
-            germlinename = samplename,
+            germlinebam = sample_data_file[sampleidx],
+            germlinename = samplename[sampleidx],
             g1000lociprefix = g1000prefix,
             g1000allelesprefix = g1000allelesprefix,
             gamma_ivd = 1e5,
@@ -350,34 +335,70 @@ battenberg <- function(
             repliccorrectprefix = repliccorrectprefix,
             min_base_qual = min_base_qual,
             min_map_qual = min_map_qual,
-            allelecounter_exe = allelecounter_exe,
+            allele_counts_dir = allele_counts_dir,
             min_normal_depth = min_normal_depth,
-            skip_allele_counting = skip_allele_counting[sampleidx]
+            libs = libs
           )
         }
-
-        # Kill the threads
-        if (!debug) {
-          parallel::stopCluster(clp)
-        }
-      } else if (data_type == "snp6" || data_type == "SNP6") {
-        prepare_snp6(
-          tumour_cel_file = sample_data_file[sampleidx],
-          normal_cel_file = normal_data_file,
-          tumourname = samplename[sampleidx],
-          chrom_names = chrom_names,
-          snp6_reference_info_file = snp6_reference_info_file,
-          apt_probeset_genotype_exe = apt_probeset_genotype_exe,
-          apt_probeset_summarize_exe = apt_probeset_summarize_exe,
-          norm_geno_clust_exe = norm_geno_clust_exe,
-          birdseed_report_file = birdseed_report_file,
-          genomebuild = genomebuild
-        )
       } else {
-        message("Unknown data type provided, please provide wgs or snp6")
-        q(save = "no", status = 1)
+        log_info("Skipping preprocessing (allele counting and GC correction) for sample '{samplename[sampleidx]}'")
+
+        # If a preprocessed directory is provided, copy the files to current working directory
+        if (!is.na(preprocessed_data_dir) && dir.exists(preprocessed_data_dir)) {
+          log_info("Providing existing preprocessed files from {preprocessed_data_dir}")
+
+          files_to_copy <- c(
+            paste0(samplename[sampleidx], "_mutantBAF.tab"),
+            paste0(samplename[sampleidx], "_normalBAF.tab"),
+            paste0(samplename[sampleidx], "_mutantLogR.tab"),
+            paste0(samplename[sampleidx], "_normalLogR.tab"),
+            paste0(samplename[sampleidx], "_alleleCounts.tab"),
+            paste0(samplename[sampleidx], "_mutantLogR_gcCorrected.tab"),
+            paste0(samplename[sampleidx], "_GCwindowCorrelations.txt")
+          )
+
+          # Also copy allele frequency files if they exist there, as they are needed for haplotyping
+          freq_files <- list.files(preprocessed_data_dir, pattern = paste0("^", samplename[sampleidx], "_alleleFrequencies_chr.*\\.txt$"))
+          files_to_copy <- c(files_to_copy, freq_files)
+
+          for (f in files_to_copy) {
+            src <- file.path(preprocessed_data_dir, f)
+            if (file.exists(src)) {
+              log_info("Copying {f} to current directory")
+              file.copy(src, ".", overwrite = TRUE)
+            } else if (!grepl("gcCorrected|Correlations", f)) {
+              # Some files might be optional or missing depending on analysis mode,
+              # but essential ones should be warned about
+              log_warning("Expected preprocessed file {f} not found in {preprocessed_data_dir}")
+            }
+          }
+        }
       }
+
+      # Kill the threads
+      if (nthreads > 1 && !skip_preprocessing) {
+        parallel::stopCluster(clp)
+      }
+    } else if (data_type == "snp6" || data_type == "SNP6") {
+      prepare_snp6(
+        tumour_cel_file = sample_data_file[sampleidx],
+        normal_cel_file = normal_data_file,
+        tumourname = samplename[sampleidx],
+        chrom_names = chrom_names,
+        snp6_reference_info_file = snp6_reference_info_file,
+        apt_probeset_genotype_exe = apt_probeset_genotype_exe,
+        apt_probeset_summarize_exe = apt_probeset_summarize_exe,
+        norm_geno_clust_exe = norm_geno_clust_exe,
+        birdseed_report_file = birdseed_report_file,
+        genomebuild = genomebuild
+      )
+    } else {
+      log_failure("Unknown data type provided, please provide wgs or snp6")
+      q(save = "no", status = 1)
     }
+
+    # Removed } else (end of if !skip_preprocessing) as skipping logic is now handled by presence of directories/files inside prepare functions or removed entirely.
+
 
     if (data_type == "snp6" || data_type == "SNP6") {
       # Infer what the gender is - WGS requires it to be specified
@@ -386,7 +407,7 @@ battenberg <- function(
     }
 
 
-    if (!skip_phasing[sampleidx]) {
+    if (TRUE) {
       # if external phasing data is provided (as a vcf), split into chromosomes for use in haplotype reconstruction
       if (!is.na(externalhaplotypefile) && file.exists(externalhaplotypefile)) {
         externalhaplotypeprefix <- paste0(normalname, "_external_haplotypes_chr")
@@ -407,7 +428,8 @@ battenberg <- function(
       }
 
       # Setup for parallel computing
-      if (!debug) {
+      # Setup for parallel computing
+      if (nthreads > 1) {
         clp <- parallel::makeCluster(nthreads, outfile = "")
         doParallel::registerDoParallel(clp)
       }
@@ -421,89 +443,72 @@ battenberg <- function(
           log_info("germline chrom {chrom}")
           run_haplotyping_germline(
             chrom = chrom,
-            germlinename = samplename,
+            germlinename = samplename[sampleidx],
             normalname = normalname,
             ismale = ismale,
             imputeinfofile = imputeinfofile,
             problemloci = problemloci,
-            impute_exe = impute_exe,
+            impute_results_dir = impute_results_dir,
             min_normal_depth = min_normal_depth,
             chrom_names = chrom_names,
-            externalhaplotypeprefix = NA,
-            use_previous_imputation = FALSE,
             snp6_reference_info_file = NA,
             heterozygous_filter = NA,
-            usebeagle = usebeagle,
-            beaglejar = beaglejar,
-            beagleref = gsub("CHROMNAME", chrom, beagleref_template),
-            beagleplink = gsub("CHROMNAME", chrom, beagleplink_template),
-            beaglemaxmem = beaglemaxmem,
-            beaglenthreads = beaglenthreads,
-            beaglewindow = beaglewindow,
-            beagleoverlap = beagleoverlap
+            usebeagle = usebeagle
           )
         } else {
           .libPaths(libs)
           chrom <- chrom_names[i]
           log_info("chrom {chrom}")
-          # run_haplotyping(
-          #  chrom = chrom,
-          #  tumourname = samplename[sampleidx],
-          #  normalname = normalname,
-          #  ismale = ismale,
-          #  imputeinfofile = imputeinfofile,
-          #  problemloci = problemloci,
-          #  impute_exe = impute_exe,
-          #  min_normal_depth = min_normal_depth,
-          #  chrom_names = chrom_names,
-          #  snp6_reference_info_file = snp6_reference_info_file,
-          #  heterozygous_filter = heterozygous_filter,
-          #  usebeagle = usebeagle,
-          #  beaglejar = beaglejar,
-          #  beagleref = gsub("CHROMNAME", chrom, beagleref_template),
-          #  beagleplink = gsub("CHROMNAME", chrom, beagleplink_template),
-          #  beaglemaxmem = beaglemaxmem,
-          #  beaglenthreads = beaglenthreads,
-          #  beaglewindow = beaglewindow,
-          #  beagleoverlap = beagleoverlap,
-          #  externalhaplotypeprefix = externalhaplotypeprefix,
-          #  use_previous_imputation = (sampleidx > 1)
-          # )
+          run_haplotyping(
+            chrom = chrom,
+            tumourname = samplename[sampleidx],
+            normalname = normalname,
+            ismale = ismale,
+            imputeinfofile = imputeinfofile,
+            problemloci = problemloci,
+            impute_results_dir = impute_results_dir,
+            min_normal_depth = min_normal_depth,
+            chrom_names = chrom_names,
+            snp6_reference_info_file = snp6_reference_info_file,
+            heterozygous_filter = heterozygous_filter,
+            externalhaplotypeprefix = externalhaplotypeprefix,
+            usebeagle = usebeagle
+          )
         }
       }
       run_parallel_or_serial(
         iterator = seq_along(chrom_names),
         func = do_haplotyping,
-        debug = debug,
         libs = libs
       )
 
       # Kill the threads as from here its all single core
-      if (!debug) {
+      # Kill the threads as from here its all single core
+      if (nthreads > 1) {
         parallel::stopCluster(clp)
       }
 
       # Combine all the BAF output into a single file
-      # concatenate_baf_files(
-      #  input_start = paste(samplename[sampleidx], "_chr", sep = ""),
-      #  input_end = "_heterozygousMutBAFs_haplotyped.txt",
-      #  output_file = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
-      #  chr_names = chrom_names
-      # )
+      concatenate_baf_files(
+        input_start = paste(samplename[sampleidx], "_chr", sep = ""),
+        input_end = "_heterozygousMutBAFs_haplotyped.txt",
+        output_file = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
+        chr_names = chrom_names
+      )
     }
 
     # Segment the phased and haplotyped BAF data
-    # segment_baf_phased(
-    #  samplename = samplename[sampleidx],
-    #  inputfile = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
-    #  outputfile = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
-    #  prior_breakpoints_file = prior_breakpoints_file,
-    #  gamma = segmentation_gamma,
-    #  phasegamma = phasing_gamma,
-    #  kmin = segmentation_kmin,
-    #  phasekmin = phasing_kmin,
-    #  calc_seg_baf_option = calc_seg_baf_option
-    # )
+    segment_baf_phased(
+      samplename = samplename[sampleidx],
+      inputfile = paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep = ""),
+      outputfile = paste(samplename[sampleidx], ".BAFsegmented.txt", sep = ""),
+      prior_breakpoints_file = prior_breakpoints_file,
+      gamma = segmentation_gamma,
+      phasegamma = phasing_gamma,
+      kmin = segmentation_kmin,
+      phasekmin = phasing_kmin,
+      calc_seg_baf_option = calc_seg_baf_option
+    )
 
     if (nsamples > 1 || write_battenberg_phasing) {
       # Write the Battenberg phasing information to disk as a vcf
@@ -532,7 +537,7 @@ battenberg <- function(
     multisamplehaplotypeprefix <- paste0(normalname, "_multisample_haplotypes_chr")
 
 
-    if (!debug) {
+    if (nthreads > 1) {
       clp <- parallel::makeCluster(nthreads, outfile = "")
       doParallel::registerDoParallel(clp)
     }
@@ -649,11 +654,12 @@ battenberg <- function(
           samplename = samplename[sampleidx],
           chrom = chrom
         )
-      }, debug, libs)
+      }, libs)
     }
 
     # Kill the threads as from here its single core
-    if (!debug) {
+    # Kill the threads as from here its single core
+    if (nthreads > 1) {
       parallel::stopCluster(clp)
     }
 
@@ -679,8 +685,13 @@ battenberg <- function(
   }
 
   # Setup for parallel computing
-  if (!debug) {
-    clp <- parallel::makeCluster(min(nthreads, nsamples), outfile = "")
+  # Setup for parallel computing
+  if (nthreads > 1) {
+    # Dynamic Budgeting: Divide total nthreads by the number of samples being run in parallel.
+    # If we have 40 cores and 2 samples, each sample gets 20 cores (inner_threads).
+    # If we have more samples than cores, each sample gets 1 core.
+    num_sample_workers <- min(nsamples, nthreads)
+    clp <- parallel::makeCluster(num_sample_workers, outfile = "")
     doParallel::registerDoParallel(clp)
   }
 
@@ -700,15 +711,12 @@ battenberg <- function(
     }
 
     # Calculate safe inner threads to avoid thrashing
-    # If debug is enabled, force sequential execution
-    inner_threads <- if (debug) 1 else max(1, floor(nthreads / nsamples))
-    log_info(paste0(
-      "battenberg.R calculation: nthreads=", nthreads,
-      ", nsamples=", nsamples, ", debug=", debug,
-      " -> inner_threads=", inner_threads
-    ))
-
-    # If 'debug' is TRUE, a crash here will now give a REAL line number
+    # If NO parallel grid search, force sequential execution
+    inner_threads <- max(1, floor(nthreads / min(nsamples, nthreads)))
+    log_info(
+      "Dynamic Threading: budget={nthreads}, workers={min(nsamples, nthreads)} -> inner_threads={inner_threads} (per sample)"
+    )
+    # Parallel workers will now report their index and error details if they fail
     fit_copy_number(
       samplename = samplename[sampleidx],
       outputfile_prefix = paste(samplename[sampleidx], "_", sep = ""),
@@ -759,6 +767,7 @@ battenberg <- function(
       siglevel = 0.05,
       maxdist = 0.01,
       max_allowed_state = max_allowed_state,
+      nthreads = inner_threads,
       cn_upper_limit = cn_upper_limit,
       noperms = 1000,
       calc_seg_baf_option = calc_seg_baf_option,
@@ -798,10 +807,11 @@ battenberg <- function(
       rho_psi_file = paste(samplename[sampleidx], "_rho_and_psi.txt", sep = ""),
       gamma_param = platform_gamma
     )
-  }, debug, libs)
+  }, libs)
 
   # Kill the threads as last part again is single core
-  if (!debug) {
+  # Kill the threads as last part again is single core
+  if (nthreads > 1) {
     parallel::stopCluster(clp)
   }
 

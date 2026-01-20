@@ -13,13 +13,13 @@ battenberg(
   imputeinfofile,
   g1000prefix,
   problemloci,
+  allele_counts_dir,
+  impute_results_dir,
   gccorrectprefix = NULL,
   repliccorrectprefix = NULL,
   g1000allelesprefix = NA,
   ismale = NA,
   data_type = "wgs",
-  impute_exe = "impute2",
-  allelecounter_exe = "alleleCounter",
   nthreads = 8,
   platform_gamma = 1,
   phasing_gamma = 1,
@@ -40,19 +40,7 @@ battenberg(
   max_allowed_state = 250,
   cn_upper_limit = 1000,
   calc_seg_baf_option = 3,
-  skip_allele_counting = FALSE,
-  skip_preprocessing = FALSE,
-  skip_phasing = FALSE,
   externalhaplotypefile = NA,
-  usebeagle = FALSE,
-  beaglejar = NA,
-  beagleref_template = NA,
-  beagleplink_template = NA,
-  beaglemaxmem = 10,
-  beaglenthreads = 1,
-  beaglewindow = 40,
-  beagleoverlap = 4,
-  javajre = "java",
   write_battenberg_phasing = TRUE,
   multisample_relative_weight_balanced = 0.25,
   multisample_maxlag = 90,
@@ -68,56 +56,84 @@ battenberg(
   chrom_coord_file = NULL,
   enhanced_grid_search = FALSE,
   verbose_logging = FALSE,
-  logging_path = ".",
-  debug = FALSE
+  usebeagle = FALSE,
+  logging_path = "."
 )
 }
 \arguments{
-\item{analysis}{The mode of Battenberg copy number analysis to be undertaken: 'paired' for tumour-normal pair, 'cell_line' for Cell line tumour-only and 'germline' for germline CNV of normal sample (Default: 'paired')}
+\item{analysis}{The mode of Battenberg copy number analysis to be undertaken:
+'paired' for tumour-normal pair, 'cell_line' for Cell line tumour-only and
+'germline' for germline CNV of normal sample (Default: 'paired')}
 
-\item{samplename}{Sample identifier (tumour or germline), this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.}
+\item{samplename}{Sample identifier (tumour or germline), this is used as a
+prefix for the output files. If allele counts are supplied separately, they
+are expected to have this identifier as prefix.}
 
-\item{normalname}{Matched normal identifier, this is used as a prefix for the output files. If allele counts are supplied separately, they are expected to have this identifier as prefix.}
+\item{normalname}{Matched normal identifier, this is used as a prefix for the
+output files. If allele counts are supplied separately, they are expected to
+have this identifier as prefix.}
 
 \item{sample_data_file}{A BAM or CEL file for the sample}
 
-\item{normal_data_file}{A BAM or CEL file for the normal-pair (paired analysis)}
+\item{normal_data_file}{A BAM or CEL file for the
+normal-pair (paired analysis)}
 
-\item{imputeinfofile}{Full path to a Battenberg impute info file with pointers to Impute2 reference data}
+\item{imputeinfofile}{Full path to a Battenberg impute info file with
+pointers to Impute2 reference data}
 
-\item{g1000prefix}{Full prefix path to 1000 Genomes SNP loci data, as part of the Battenberg reference data}
+\item{g1000prefix}{Full prefix path to 1000 Genomes SNP loci data, as part of
+the Battenberg reference data}
 
-\item{problemloci}{Full path to a problem loci file that contains SNP loci that should be filtered out}
+\item{problemloci}{Full path to a problem loci file that contains SNP
+loci that should be filtered out}
 
-\item{gccorrectprefix}{Full prefix path to GC content files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)}
+\item{allele_counts_dir}{Directory containing the allele counts files (Required for WGS/CellLine/Germline).}
 
-\item{repliccorrectprefix}{Full prefix path to replication timing files, as part of the Battenberg reference data, not required for SNP6 data (Default: NULL)}
+\item{impute_results_dir}{Directory containing the imputed haplotype results (Required for phasing).}
 
-\item{g1000allelesprefix}{Full prefix path to 1000 Genomes SNP alleles data, as part of the Battenberg reference data, not required for SNP6 data (Default: NA)}
+\item{gccorrectprefix}{Full prefix path to GC content files, as part of the
+Battenberg reference data, not required for SNP6 data (Default: NULL)}
 
-\item{ismale}{A boolean set to TRUE if the donor is male, set to FALSE if female, not required for SNP6 data (Default: NA)}
+\item{repliccorrectprefix}{Full prefix path to replication timing files,
+as part of the Battenberg reference data, not required
+for SNP6 data (Default: NULL)}
 
-\item{data_type}{String that contains either wgs or snp6 depending on the supplied input data (Default: wgs)}
+\item{g1000allelesprefix}{Full prefix path to 1000 Genomes SNP alleles data,
+as part of the Battenberg reference data, not required for SNP6 data
+(Default: NA)}
 
-\item{impute_exe}{Pointer to the Impute2 executable (Default: impute2, i.e. expected in $PATH)}
+\item{ismale}{A boolean set to TRUE if the donor is male, set to FALSE if
+female, not required for SNP6 data (Default: NA)}
 
-\item{allelecounter_exe}{Pointer to the alleleCounter executable (Default: alleleCounter, i.e. expected in $PATH)}
+\item{data_type}{String that contains either wgs or snp6 depending on the
+supplied input data (Default: wgs)}
 
-\item{nthreads}{The number of concurrent processes to use while running the Battenberg pipeline (Default: 8)}
+\item{nthreads}{The number of concurrent processes to use while running the
+Battenberg pipeline (Default: 8)}
 
-\item{platform_gamma}{Platform scaling factor, suggestions are set to 1 for wgs and to 0.55 for snp6 (Default: 1)}
+\item{platform_gamma}{Platform scaling factor,
+suggestions are set to 1 for wgs and to 0.55 for snp6 (Default: 1)}
 
-\item{phasing_gamma}{Gamma parameter used when correcting phasing mistakes (Default: 1)}
+\item{phasing_gamma}{Gamma parameter used when correcting phasing mistakes
+(Default: 1)}
 
-\item{segmentation_gamma}{The gamma parameter controls the size of the penalty of starting a new segment during segmentation. It is therefore the key parameter for controlling the number of segments (Default: 10)}
+\item{segmentation_gamma}{The gamma parameter
+controls the size of the penalty
+of starting a new segment during segmentation.
+It is therefore the key parameter
+for controlling the number of segments (Default: 10)}
 
-\item{segmentation_kmin}{Kmin represents the minimum number of probes/SNPs that a segment should consist of (Default: 3)}
+\item{segmentation_kmin}{Kmin represents the minimum number of
+probes/SNPs that a segment should consist of (Default: 3)}
 
-\item{phasing_kmin}{Kmin used when correcting for phasing mistakes (Default: 3)}
+\item{phasing_kmin}{Kmin used when correcting for phasing mistakes
+(Default: 3)}
 
-\item{clonality_dist_metric}{Distance metric to use when choosing purity/ploidy combinations (Default: 0)}
+\item{clonality_dist_metric}{Distance metric to use when
+choosing purity/ploidy combinations (Default: 0)}
 
-\item{ascat_dist_metric}{Distance metric to use when choosing purity/ploidy combinations (Default: 1)}
+\item{ascat_dist_metric}{Distance metric to use when choosing purity/ploidy
+combinations (Default: 1)}
 
 \item{min_ploidy}{Minimum ploidy to be considered (Default: 1.6)}
 
@@ -127,81 +143,58 @@ battenberg(
 
 \item{max_rho}{Maximum purity to be considered (Default: 1.0)}
 
-\item{min_goodness}{Minimum goodness of fit required for a purity/ploidy combination to be accepted as a solution (Default: 0.63)}
+\item{min_goodness}{Minimum goodness of fit required for a purity/ploidy
+combination to be accepted as a solution (Default: 0.63)}
 
-\item{uninformative_baf_threshold}{The threshold beyond which BAF becomes uninformative (Default: 0.51)}
+\item{uninformative_baf_threshold}{The threshold beyond which BAF becomes
+uninformative (Default: 0.51)}
 
-\item{min_normal_depth}{Minimum depth required in the matched normal for a SNP to be considered as part of the wgs analysis (Default: 10)}
+\item{min_normal_depth}{Minimum depth required in the matched normal
+for a SNP to be considered as part of the wgs analysis (Default: 10)}
 
-\item{min_base_qual}{Minimum base quality required for a read to be counted when allele counting (Default: 20)}
+\item{min_base_qual}{Minimum base quality required for a read to
+be counted when allele counting (Default: 20)}
 
-\item{min_map_qual}{Minimum mapping quality required for a read to be counted when allele counting (Default: 35)}
+\item{min_map_qual}{Minimum mapping quality required for a read to
+be counted when allele counting (Default: 35)}
 
 \item{max_allowed_state}{The maximum CN state allowed (Default 250)}
 
-\item{cn_upper_limit}{Maximum number of copy number that can be called (Default 1000)}
+\item{cn_upper_limit}{Maximum number of copy number that can be called
+(Default 1000)}
 
-\item{calc_seg_baf_option}{Sets way to calculate BAF per segment: 1=mean, 2=median, 3=ifelse median==0 | 1, mean, median (Default (paired): 3, cell_line & germline: 1)}
+\item{calc_seg_baf_option}{Sets way to calculate BAF per segment: 1=mean,
+2=median, 3=ifelse median==0 | 1, mean, median (Default (paired): 3,
+cell_line & germline: 1)}
 
-\item{skip_allele_counting}{Provide TRUE when allele counting can be skipped (i.e. its already done) (Default: FALSE)}
+\item{externalhaplotypefile}{Vcf containing externally
+obtained haplotype blocks (Default: NA)}
 
-\item{skip_preprocessing}{Provide TRUE when preprocessing is already complete (Default: FALSE)}
+\item{write_battenberg_phasing}{Write the Battenberg phasing results
+as vcf to disk, e.g. for multisample cases (Default: TRUE)}
 
-\item{skip_phasing}{Provide TRUE when phasing is already complete (Default: FALSE)}
+\item{multisample_relative_weight_balanced}{Relative weight to give to
+haplotype info from a sample without allelic imbalance
+in the region (Default: 0.25)}
 
-\item{externalhaplotypefile}{Vcf containing externally obtained haplotype blocks (Default: NA)}
+\item{multisample_maxlag}{Maximal number of upstream SNPs used in the
+multisample haplotyping to inform the haplotype at another SNP (Default: 100)}
 
-\item{usebeagle}{Should use beagle5 instead of impute2 Default: FALSE}
+\item{segmentation_gamma_multisample}{The gamma parameter
+controls the size of the penalty of starting a new segment
+during mutlisample segmentation. It is the
+key parameter for controlling the number of segments (Default: 10)}
 
-\item{beaglejar}{Full path to Beagle java jar file Default: NA}
+\item{snp6_reference_info_file}{Reference info file for SNP6 data (Default: NA)}
 
-\item{beagleref_template}{Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA}
+\item{enhanced_grid_search}{Flag to determine if the grid search should be performed with a higher number of steps (Default: FALSE)}
 
-\item{beagleplink_template}{Full path template to Beagle plink files where the chromosome is replaced by 'CHROMNAME' Default: NA}
+\item{verbose_logging}{Print out more information during the run
+(Default: FALSE)}
 
-\item{beaglemaxmem}{Integer Beagle max heap size in Gb  Default: 10}
-
-\item{beaglenthreads}{Integer number of threads used by beagle5 Default:1}
-
-\item{beaglewindow}{Integer size of the genomic window for beagle5 (cM) Default:40}
-
-\item{beagleoverlap}{Integer size of the overlap between windows beagle5 Default:4}
-
-\item{javajre}{Path to the Java JRE executable, only required for haplotype reconstruction with Beagle (default java, i.e. in $PATH)}
-
-\item{write_battenberg_phasing}{Write the Battenberg phasing results as vcf to disk, e.g. for multisample cases (Default: TRUE)}
-
-\item{multisample_relative_weight_balanced}{Relative weight to give to haplotype info from a sample without allelic imbalance in the region (Default: 0.25)}
-
-\item{multisample_maxlag}{Maximal number of upstream SNPs used in the multisample haplotyping to inform the haplotype at another SNP (Default: 100)}
-
-\item{segmentation_gamma_multisample}{The gamma parameter controls the size of the penalty of starting a new segment during mutlisample segmentation. It is the key parameter for controlling the number of segments (Default: 10)}
-
-\item{snp6_reference_info_file}{Reference files for the SNP6 pipeline only (Default: NA)}
-
-\item{apt_probeset_genotype_exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-genotype)}
-
-\item{apt_probeset_summarize_exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: apt-probeset-summarize)}
-
-\item{norm_geno_clust_exe}{Helper tool for extracting data from CEL files, SNP6 pipeline only (Default: normalize_affy_geno_cluster.pl)}
-
-\item{birdseed_report_file}{Sex inference output file, SNP6 pipeline only (Default: birdseed.report.txt)}
-
-\item{heterozygous_filter}{Legacy option to set a heterozygous SNP filter, SNP6 pipeline only (Default: "none")}
-
-\item{prior_breakpoints_file}{A two column file with prior breakpoints to be used during segmentation (Default: NULL)}
-
-\item{genomebuild}{Genome build upon which the 1000G SNP coordinates were obtained (Default: hg38; options: "hg19" or "hg38")}
-
-\item{enhanced_grid_search}{Should use multi-start, parallelized and multi-approach grid search (Default: FALSE)}
-
-\item{verbose_logging}{Print out more information during the run (Default: FALSE)}
+\item{usebeagle}{Logical, if TRUE, expects Beagle output (VCF) in impute_results_dir and converts to IMPUTE format (Default: FALSE)}
 
 \item{logging_path}{Path to write log files to (Default: ".")}
-
-\item{debug}{Flag the determines if battenberg runs in debug mode or not. The difference is no parallelization in debug mode. (Default: FALSE)}
-
-\item{chrom_chrod_file}{TODO: no idea what this does}
 }
 \description{
 Run the Battenberg pipeline

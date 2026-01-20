@@ -6,6 +6,9 @@ if (getRversion() >= "2.15.1") {
     "i", "nMaj", "nMaj1_A", "nMin", "nMin1_A", "normal_binned",
     "pcf", "plotChrom", "pos", "ratioBAFseg", "ratioBAFseg_alt",
     "sol", "startpos", "subclonalCN", "total_cn_psi", "total_minor",
-    "tumour_binned", "xmax", "xmin", "y", "ymax", "ymin"
+    "tumour_binned", "xmax", "xmin", "y", "ymax", "ymin",
+    ".", ":=", "BAFphased", "BAFseg", "CHR", "Chromosome", "V2", "alt",
+    "alt_count", "dynamic_names", "fmean", "fmedian", "fnobs", "hap1", "hap2",
+    "parallel_grid_search", "ref", "ref_count"
   ))
 }

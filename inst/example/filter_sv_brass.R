@@ -13,7 +13,7 @@ infile <- opt$input
 outfile <- opt$output
 genome <- opt$genome
 
-brass <- utils::read.table(infile, header = FALSE, comment.char = "#", stringsAsFactor = F)
+brass <- utils::read.table(infile, header = FALSE, comment.char = "#", stringsAsFactor = FALSE)
 
 # fetch  TRDS entry
 trds_data <- lapply(brass$V8, function(x) {
@@ -40,14 +40,14 @@ second_chrpos <- unlist(lapply(second_chrpos, function(x) {
   }
 }))
 
-brass_breakpoints <- data.frame(chromosome = brass_filter$V1, position = brass_filter$V2, stringsAsFactors = F)
-brass_breakpoints <- rbind(brass_breakpoints, data.frame(chromosome = unlist(lapply(second_chrpos, function(x) unlist(strsplit(x, ":"))[1])), position = as.numeric(unlist(lapply(second_chrpos, function(x) unlist(strsplit(x, ":"))[2]))), stringsAsFactors = F))
+brass_breakpoints <- data.frame(chromosome = brass_filter$V1, position = brass_filter$V2, stringsAsFactors = FALSE)
+brass_breakpoints <- rbind(brass_breakpoints, data.frame(chromosome = unlist(lapply(second_chrpos, function(x) unlist(strsplit(x, ":"))[1])), position = as.numeric(unlist(lapply(second_chrpos, function(x) unlist(strsplit(x, ":"))[2]))), stringsAsFactors = FALSE))
 brass_breakpoints <- unique(brass_breakpoints)
 
 # sort
 brass_breakpoints_ordered <- df <- data.frame(matrix(ncol = 2, nrow = 0))
 colnames(brass_breakpoints_ordered) <- c("chromosome", "position")
-for (chrom in mixedsort(unique(brass_breakpoints$chromosome))) {
+for (chrom in gtools::mixedsort(unique(brass_breakpoints$chromosome))) {
   b_chrom <- brass_breakpoints[brass_breakpoints$chromosome == chrom, ]
   b_chrom <- b_chrom[order(b_chrom$position), ]
   brass_breakpoints_ordered <- rbind(brass_breakpoints_ordered, b_chrom)

@@ -62,7 +62,8 @@ log_info <- function(msg, ...) {
 #'
 #' @export
 log_debug <- function(msg, ...) {
-  cli::cli_inform(msg, ...)
+  caller_env <- parent.frame()
+  cli::cli_inform(msg, .envir = caller_env, ...)
   formatted_msg <- cli::format_inline(
     msg,
     .envir = parent.frame()
@@ -82,11 +83,32 @@ log_debug <- function(msg, ...) {
 #'
 #' @export
 log_failure <- function(msg, ...) {
-  cli::cli_abort(msg, ...)
+  caller_env <- parent.frame()
+  cli::cli_abort(msg, .envir = caller_env, ...)
   formatted_msg <- cli::format_inline(
     msg,
     .envir = parent.frame()
   )
   clean <- cli::ansi_strip(formatted_msg)
   logger::log_failure(clean)
+}
+
+#' Log Warning Messages
+#'
+#' Displays a warning to the console and records it to the log file
+#' at the `WARN` level.
+#'
+#' @param msg Character string. The warning message.
+#' @param ... Additional arguments passed to `cli::cli_warn()`.
+#'
+#' @export
+log_warning <- function(msg, ...) {
+  caller_env <- parent.frame()
+  cli::cli_warn(msg, .envir = caller_env, ...)
+  formatted_msg <- cli::format_inline(
+    msg,
+    .envir = parent.frame()
+  )
+  clean <- cli::ansi_strip(formatted_msg)
+  logger::log_warn(clean)
 }

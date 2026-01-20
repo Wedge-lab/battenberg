@@ -65,6 +65,104 @@ The bundle contains the following files:
 
 Go into ```inst/example``` for example WGS and SNP6 R-only pipelines.
 
+## Pre-processing and External Tools
+
+Battenberg now requires pre-calculated allele counts and haplotype information to be provided via directories. This approach offers better flexibility for integration into workflow managers (like Nextflow or Snakemake).
+
+Below are the exact command-line requirements for the tools previously managed internally by Battenberg.
+
+### 1. Allele Counting (`alleleCounter`)
+
+You must count alleles for both the **tumor** and **normal** samples across all autosomes and the X chromosome.
+
+**Command Template:**
+```bash
+alleleCounter \
+  -b <BAM_FILE> \
+  -l <LOCI_FILE> \
+  -o <OUTPUT_FILE> \
+  -m <MIN_BASE_QUAL> \
+  -q <MIN_MAP_QUAL> \
+  --dense-snps
+```
+
+**Naming Convention:**
+- Tumor: `[tumourname]_alleleFrequencies_chr[chrom].txt`
+- Normal: `[normalname]_alleleFrequencies_chr[chrom].txt`
+
+**Required Arguments:**
+- `-b`: Input BAM file.
+- `-l`: 1000 Genomes SNP loci file (e.g., `1kg.phase3.v5a_GRCh38nounref_loci_chr1.txt`).
+- `-m`: Minimum **base quality** (Default: 20).
+- `-q`: Minimum **mapping quality** (Default: 35).
+- `--dense-snps`: Required for performance when using 1000G loci (supported in alleleCounter >= v4.0.0).
+
+---
+
+### 2. Haplotype Phasing
+
+Battenberg supports two phasing backends: **IMPUTE2** and **Beagle5**. Results should be placed in the directory specified by `--impute_results_dir`.
+
+#### Option A: IMPUTE2
+If using IMPUTE2, you must provide combined haplotype info files.
+
+**Command Template:**
+```bash
+impute2 \
+  -m <GENETIC_MAP> \
+  -h <HAPLOTYPE_FILE> \
+  -l <LEGEND_FILE> \
+  -g <GENOTYPE_FILE> \
+  -int <START> <END> \
+  -Ne 20000 \
+  -o <OUTPUT_FILE> \
+  -phase \
+  -os 2
+```
+
+**Naming Convention:**
+- `[tumourname]_impute_output_chr[chrom]_allHaplotypeInfo.txt`
+
+**Format:** A space-separated file with 7 columns (ID, rsID, position, allele1, allele2, hap1, hap2). Note that Battenberg expects the *total* phased information for the chromosome in one file.
+
+#### Option B: Beagle5
+If using Beagle5, you can provide phased VCF files. Battenberg will automatically convert these to its internal format if `--usebeagle` is set.
+
+**Command Template:**
+```bash
+java -Xmx<MEM>g -jar beagle.jar \
+  gt=<INPUT_VCF> \
+  ref=<REF_VCF> \
+  map=<PLINK_MAP> \
+  out=<OUTPUT_PREFIX> \
+  nthreads=<THREADS> \
+  window=40 \
+  overlap=4 \
+  impute=false
+```
+
+**Naming Convention:**
+- `[tumourname]_beagle_output_chr[chrom].vcf.gz` (or `.vcf`)
+
+---
+
+### 3. Dir Structure and Execution
+
+When running Battenberg, point it to the directories containing these files:
+
+```bash
+R/cli.R \
+  --samplename SLX-1234.T \
+  --normalname SLX-1234.N \
+  --allele_counts_dir ./counts \
+  --impute_results_dir ./phasing \
+  --usebeagle TRUE \
+  ...
+```
+
+Battenberg will look for files matching the sample names inside those directories.
+
+
 ## Description of the output
 
 ### Key output files
@@ -509,57 +607,23 @@ The map plink files for Beagle can be downloaded from:
 http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/
 
 
-```
-BEAGLEJAR <- "$PATHTOBEAGLEFILES/beagle.24Aug19.3e8.jar"
-BEAGLEREF_template <- "$PATHTOBEAGLEFILES/chrCHROMNAME.1kg.phase3.v5a.b37.bref3"
-beagleplink_template <- "$PATHTOBEAGLEFILES/plink.chrCHROMNAME.GRCh37.map"
-
-timed <- system.time(battenberg(tumourname=TUMOURNAME,
-                                normalname=NORMALNAME,
-                                tumour_data_file=TUMOURBAM,
-                                normal_data_file=NORMALBAM,
-                                imputeinfofile=IMPUTEINFOFILE,
-                                g1000prefix=G1000PREFIX,
-                                problemloci=PROBLEMLOCI,
-                                gccorrectprefix=GCCORRECTPREFIX,
-                                repliccorrectprefix=REPLICCORRECTPREFIX,
-                                g1000allelesprefix=G1000PREFIX_AC,
-                                ismale=IS_MALE,
-                                data_type="wgs",
-                                impute_exe="impute2",
-                                allelecounter_exe="alleleCounter",
-                                nthreads=NTHREADS,
-                                platform_gamma=1,
-                                phasing_gamma=1,
-                                segmentation_gamma=10,
-                                segmentation_kmin=3,
-                                phasing_kmin=1,
-                                clonality_dist_metric=0,
-                                ascat_dist_metric=1,
-                                min_ploidy=1.6,
-                                max_ploidy=4.8, min_rho=0.1,
-                                min_goodness=0.63,
-                                uninformative_baf_threshold=0.51,
-                                min_normal_depth=10,
-                                min_base_qual=20,
-                                min_map_qual=35,
-                                calc_seg_baf_option=1,
-                                skip_allele_counting=F,
-                                skip_preprocessing=F,
-                                skip_phasing=F,
-                                usebeagle=USEBEAGLE, ##set to TRUE to use beagle
-                                beaglejar=BEAGLEJAR, ##path
-                                beagleref=BEAGLEREF_template, ##pathtemplate
-                                beagleplink=beagleplink_template, ##pathtemplate
-                                beaglemaxmem=15, 
-                                beaglenthreads=1,
-                                beaglewindow=40,
-                                beagleoverlap=4,
-                                snp6_reference_info_file=NA,
-                                apt_probeset_genotype_exe="apt-probeset-genotype",
-                                apt_probeset_summarize_exe="apt-probeset-summarize",
-                                norm_geno_clust_exe="normalize_affy_geno_cluster.pl",
-                                birdseed_report_file="birdseed.report.txt",
-                                heterozygous_filter="none",
-                                prior_breakpoints_file=NULL))
+```R
+battenberg(
+  samplename = "TUMOURNAME",
+  normalname = "NORMALNAME",
+  sample_data_file = "TUMOURBAM",
+  normal_data_file = "NORMALBAM",
+  imputeinfofile = "IMPUTEINFOFILE",
+  g1000prefix = "G1000PREFIX",
+  problemloci = "PROBLEMLOCI",
+  allele_counts_dir = "PATH/TO/ALLELE_COUNTS",
+  impute_results_dir = "PATH/TO/IMPUTE_RESULTS",
+  gccorrectprefix = "GCCORRECTPREFIX",
+  repliccorrectprefix = "REPLICCORRECTPREFIX",
+  g1000allelesprefix = "G1000PREFIX_AC",
+  ismale = TRUE,
+  data_type = "wgs",
+  nthreads = 8,
+  usebeagle = TRUE # Set to TRUE if using Beagle VCFs in impute_results_dir
+)
 ```

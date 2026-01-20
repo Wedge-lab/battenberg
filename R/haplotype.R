@@ -20,7 +20,7 @@ GetChromosomeBAFs_SNP6 <- function(chrom, alleleFreqFile, haplotypeFile, samplen
   variant_data <- variant_data[select, ]
 
   chr_name <- chrom
-  print(chr_name)
+  log_info("Processing: {chr_name}")
 
   # Switch the haplotypes where required
   alleleFreqs <- alleleFreqData$allele.frequency
@@ -30,7 +30,7 @@ GetChromosomeBAFs_SNP6 <- function(chrom, alleleFreqFile, haplotypeFile, samplen
   log_info("{nrow(variant_data)},{length(alleleFreqs)}")
   # Combine the allele frequencies and variant info and save output
   knownMutBAFs <- cbind(chr_name, variant_data[, 3], alleleFreqs)
-  data.table::fwrite(knownMutBAFs, outputfile, sep = "\t", row.names = FALSE, col.names = c("Chromosome", "Position", samplename), quote = FALSE)
+  data.table::fwrite(knownMutBAFs, outputfile, sep = "\t", col.names = c("Chromosome", "Position", samplename), quote = FALSE)
 }
 
 #' Morphs phased SNPs from WGS input into haplotype blocks
@@ -43,6 +43,7 @@ GetChromosomeBAFs_SNP6 <- function(chrom, alleleFreqFile, haplotypeFile, samplen
 #' @param chr_names Names of all allowed chromosomes as a Vector.
 #' @param minCounts An integer describing the minimum number of reads covering this position to be included in the output.
 #' @author dw9
+#' @importFrom data.table :=
 #' @export
 GetChromosomeBAFs <- function(
   chrom,
@@ -57,13 +58,58 @@ GetChromosomeBAFs <- function(
   if (!chrom %in% chr_names) {
     log_failure("chrom must be one of the allowed chromosomes specified in chr_names")
   }
-  if (!file.exists(SNP_file)) stop("SNP_file not found: ", SNP_file)
-  if (!file.exists(haplotypeFile)) stop("haplotypeFile not found: ", haplotypeFile)
+  if (!file.exists(SNP_file)) log_failure("SNP_file not found: {SNP_file}")
+  if (!file.exists(haplotypeFile)) log_failure("haplotypeFile not found: {haplotypeFile}")
   minCounts <- as.integer(minCounts)
 
-  # Load data efficiently
-  snp_dt <- data.table::fread(SNP_file, sep = "\t", header = TRUE)
-  phase_dt <- data.table::fread(haplotypeFile, header = FALSE)
+  log_info("Reading SNP file: {SNP_file}")
+  log_info("Reading haplotype file: {haplotypeFile}")
+  log_info("Minimum counts: {minCounts} {class(minCounts)}")
+  # Load data with explicit column classes to prevent join type mismatches
+  # SNP_file (allele frequencies) columns: CHR, POS, A, C, G, T, DEPTH
+  snp_dt <- data.table::fread(
+    SNP_file,
+    sep = "\t",
+    header = FALSE,
+    skip = "#",
+    colClasses = list(character = 1, integer = 2:7)
+  )
+  # haplotypeFile (phasing) columns: V1..V5 are meta, V6..V7+ are haplotypes. V3 is position.
+  phase_dt <- data.table::fread(
+    haplotypeFile,
+    header = FALSE,
+    colClasses = list(integer = 3)
+  )
+
+  # If header = FALSE was used but file had a header, the first row might contain NAs
+  # due to colClasses. We remove those rows.
+  snp_dt <- snp_dt[!is.na(snp_dt[[2]])]
+  phase_dt <- phase_dt[!is.na(phase_dt[[3]])]
+
+  # FORCE conversion using character midway to break any factor/weird metadata bonds
+  # We use set() to be more robust than := in some parallel environments
+  data.table::set(snp_dt, j = "V2", value = as.integer(as.character(snp_dt[["V2"]])))
+  data.table::set(phase_dt, j = "V3", value = as.integer(as.character(phase_dt[["V3"]])))
+
+  # Also force count columns to integer to avoid "non-numeric argument" errors later
+  for (col in paste0("V", 3:6)) {
+    if (col %in% names(snp_dt)) {
+      data.table::set(snp_dt, j = col, value = as.integer(as.character(snp_dt[[col]])))
+    }
+  }
+
+  # Remove any rows that failed conversion
+  snp_dt <- snp_dt[!is.na(snp_dt[["V2"]])]
+  phase_dt <- phase_dt[!is.na(phase_dt[["V3"]])]
+
+  log_info("VERIFIED types - SNP V2: {class(snp_dt$V2)}, Phase V3: {class(phase_dt$V3)}, SNP V3: {class(snp_dt$V3)}")
+
+  if (nrow(snp_dt) == 0) {
+    log_failure("SNP file is empty after filtering/type conversion: {SNP_file}")
+  }
+  if (nrow(phase_dt) == 0) {
+    log_failure("Haplotype file is empty after filtering/type conversion: {haplotypeFile}")
+  }
 
   # Use [[ indexing to explicitly reference columns by name (strings)
   # This avoids "no visible binding" warnings
@@ -85,11 +131,21 @@ GetChromosomeBAFs <- function(
     return(invisible(NULL))
   }
 
+  # Ensure count columns are numeric before matrix conversion
+  for (col in names(matched)[3:6]) {
+    matched[[col]] <- as.numeric(as.character(matched[[col]]))
+  }
+
+  if (nrow(matched) == 0) {
+    write_empty_output(chrom, samplename, outfile)
+    return(invisible(NULL))
+  }
+
   # Filter het_phase based on matched positions
   het_phase <- het_phase[het_phase[["V3"]] %in% matched[["V2"]]]
 
   # Map nucleotide characters to column offsets (A=3, C=4, G=5, T=6)
-  nuc_to_col <- c(A = 3L, C = 4L, G = 5L, T = 6L)
+  nuc_to_col <- c(A = 3L, C = 4L, G = 5L, "T" = 6L)
 
   # Extract phased alleles as characters
   ref_allele <- ifelse(het_phase[["V6"]] == 0, het_phase[["V4"]], het_phase[["V5"]])
@@ -252,6 +308,7 @@ concatenate_baf_files <- function(
     valid_files[1],
     n_max = 0,
     progress = FALSE,
+    show_col_types = FALSE
   ))
   col_spec <- vroom::cols(
     .default = vroom::col_guess(),
@@ -266,7 +323,8 @@ concatenate_baf_files <- function(
     delim = "\t",
     col_types = col_spec,
     progress = FALSE,
-    .name_repair = "universal"
+    show_col_types = FALSE,
+    .name_repair = "minimal"
   ) |>
     dplyr::select(-dplyr::any_of("file_path"))
 

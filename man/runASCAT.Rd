@@ -25,7 +25,8 @@ runASCAT(
   min_goodness = 63,
   uninformative_baf_threshold = 0.51,
   chr_names,
-  analysis = "paired"
+  analysis = "paired",
+  nthreads = 1
 )
 }
 \arguments{
@@ -70,6 +71,8 @@ runASCAT(
 \item{chr_names}{A vector with chromosome names used for plotting}
 
 \item{analysis}{A String representing the type of analysis to be run, this determines whether the distance figure is produced (Default paired)}
+
+\item{nthreads}{The number of paralel processes to run}
 }
 \value{
 A list with fields psi, rho and ploidy

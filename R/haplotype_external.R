@@ -117,6 +117,7 @@ input_known_haplotypes <- function(chrom_names, chrom, imputedHaplotypeFile, ext
 #' @param outprefix Output VCF prefix
 #' @param chrom_names Chromosome names
 #' @param include_homozygous Include homozygous SNPs (default FALSE)
+#' @importFrom data.table :=
 #' @export
 write_battenberg_phasing <- function(
   tumourname,
@@ -264,6 +265,8 @@ write_battenberg_phasing <- function(
   invisible(NULL)
 }
 
+#' Compute multisample phasing for common hetSNPs
+#'
 #' @param chrom chromosome for which to obtain haplotypes
 #' @param bbphasingprefixes Vector containing prefixes of the Battenberg_phased_chr files for the multiple samples
 #' @param maxlag Maximal number of upstream SNPs used to inform the haplotype at another SNPs

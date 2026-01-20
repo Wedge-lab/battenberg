@@ -5,7 +5,7 @@
 #' @noRd
 assert_file_exists <- function(filename) {
   if (!file.exists(filename)) {
-    warning(paste("Supplied file does not exist: ", filename, sep = ""))
+    log_failure("Supplied file does not exist: {filename}")
     quit(save = "no", status = 1)
   }
 }

@@ -22,13 +22,15 @@ prepare_wgs_cell_line(
   repliccorrectprefix,
   min_base_qual,
   min_map_qual,
-  allelecounter_exe,
+  allele_counts_dir,
   min_normal_depth,
-  skip_allele_counting
+  libs
 )
 }
 \arguments{
 \item{chrom_names}{A vector containing the names of chromosomes to be included}
+
+\item{chrom_coord}{Path to the chromosome coordinates file}
 
 \item{tumourbam}{Full path to the tumour BAM file}
 
@@ -60,11 +62,11 @@ prepare_wgs_cell_line(
 
 \item{min_map_qual}{Minimum mapping quality required for a read to be counted}
 
-\item{allelecounter_exe}{Path to the allele counter executable (can be found in $PATH)}
+\item{allele_counts_dir}{Directory containing the allele counts files}
 
 \item{min_normal_depth}{Minimum depth required in the normal for a SNP to be included}
 
-\item{skip_allele_counting}{Flag, set to TRUE if allele counting is already complete (files are expected in the working directory on disk)}
+\item{libs}{Path to the R libraries to be used by parallel workers}
 }
 \description{
 This function performs part of the Battenberg WGS pipeline: Counting alleles, generating BAF and logR,
