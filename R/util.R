@@ -286,7 +286,7 @@ suggest_refit = function(subclones_file, segment_chrom, segment_pos, new_nMaj, n
 cnfit_to_refit_suggestions = function(samplename, subclones_file, rho_psi_file, gamma_param, min_segment_size_mb=2) {
   # samplename = "NASCR-0016"
   # subclones_file = "NASCR-0016_subclones.txt"
-  subclones = Battenberg::read_table_generic(subclones_file)
+  subclones = BattenbergV3ARMS::read_table_generic(subclones_file)
   subclones$len = subclones$endpos/1000000-subclones$startpos/1000000
   subclones$is_cna = subclones$nMaj1_A!=subclones$nMin1_A
   

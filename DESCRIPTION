@@ -1,8 +1,7 @@
-Package: Battenberg
-Maintainer: Stefan Dentro <sd11@sanger.ac.uk>
+Package: BattenbergV3ARMS
+Maintainer: Marian Love <marian.love@manchester.ac.uk>
 License: GPL-3
-Type: Package
-Title: Battenberg subclonal copy number caller
+Title: Modified Battenberg subclonal copy number caller for chromosome arms
 Version: 3.0.0
 Encoding: UTF-8
 Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
@@ -16,7 +15,17 @@ Authors@R: c(person("David", "Wedge", role=c("aut"), email="dw9@sanger.ac.uk"),
     person("Jiqiu","Cheng", role="ctb"),
     person("Mohammed Faizal","Eeman Mootor", role="ctb"),
     person("Julio Cesar","Cortes Rios", role="ctb"))
-Description: Estimate subclonal copy number from whole genome sequencing or SNP6 data.
+Description: This is a modified version of Battenberg v3.0.0. 
+  Changes include processing chromosomes as p and q arms independently, 
+  adjustments for INDEL handling, and other experimental updates. 
+  This package is intended for experimental use only and should not 
+  replace the official Battenberg release. To enable BEAGLE5 to run efficiently on low-memory nodes (e.g., 8 GB), 
+  chromosomes are split into p and q arms and processed independently. 
+  Java memory should be set to 5 GB. This setup requires additional checks 
+  because some chromosomes may lack contributions from either the p or q arm 
+  and also necessitates garbage collection. Furthermore, for Nextflow, parallel 
+  workers need extra information to perform their tasks properly, so the 
+  workflow has been updated accordingly.
 Depends: 
   R (>= 4.3.1),
   stats,
@@ -50,4 +59,5 @@ Suggests:
   dplyr
 VignetteBuilder: 
   knitr
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
+

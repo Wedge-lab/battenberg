@@ -974,15 +974,15 @@ collapse_bafsegmented_to_segments = function(bafsegmented) {
 #' @export
 make_posthoc_plots = function(samplename, logr_file, bafsegmented_file, logrsegmented_file, allelecounts_file=NULL) {
   # Make some post-hoc plots
-  logr = Battenberg::read_table_generic(logr_file)
-  bafsegmented = as.data.frame(Battenberg::read_table_generic(bafsegmented_file))
-  logrsegmented = as.data.frame(Battenberg::read_table_generic(logrsegmented_file, header=F))
+  logr = BattenbergV3ARMS::read_table_generic(logr_file)
+  bafsegmented = as.data.frame(BattenbergV3ARMS::read_table_generic(bafsegmented_file))
+  logrsegmented = as.data.frame(BattenbergV3ARMS::read_table_generic(logrsegmented_file, header=F))
   colnames(logrsegmented) = c("Chromosome", "Position", "logRseg")
   outputfile = paste0(samplename, "_alleleratio.png")
   allele_ratio_plot(samplename=samplename, logr=logr, bafsegmented=bafsegmented, logrsegmented=logrsegmented, outputfile=outputfile, max.plot.cn=8)
   
   if (!is.null(allelecounts_file)) {
-    allelecounts = as.data.frame(Battenberg::read_table_generic(allelecounts_file))
+    allelecounts = as.data.frame(BattenbergV3ARMS::read_table_generic(allelecounts_file))
     outputfile = paste0(samplename, "_coverage.png")
     coverage_plot(samplename, allelecounts, outputfile)
   }
@@ -1381,7 +1381,7 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
   rho=rho_psi$purity
   ploidy=rho_psi$ploidy
   # Need BAFsegment file
-  BAFvals=as.data.frame(Battenberg:::read_bafsegmented(paste0(tumourname,".BAFsegmented.txt")))
+  BAFvals=as.data.frame(BattenbergV3ARMS:::read_bafsegmented(paste0(tumourname,".BAFsegmented.txt")))
   print("BAFvals")
   
   # replacing constant value of 90000 with chrX_BAFvals_length as a sample-specific way of counting the typical no. of het SNPs expected based on chrX length (chr 7 and 8 average hetSNP count) 
@@ -1396,7 +1396,7 @@ callChrXsubclones = function(tumourname,X_gamma=1000,X_kmin=100,genomebuild,AR=T
                 data.frame(Chromosome="X",Position=sort(sample(1:155e6,chrX_BAFvals_length,replace=F)), # 155e6: approximate length of chrX
                            BAF=sample(c(0,1),chrX_BAFvals_length,replace=T),BAFphased=1,BAFseg=1)) 
   
-  Battenberg:::plot.gw.subclonal.cn(subclones=BBnew, 
+  BattenbergV3ARMS:::plot.gw.subclonal.cn(subclones=BBnew, 
                                     BAFvals=BAFvals, 
                                     rho=rho, 
                                     ploidy=ploidy, 

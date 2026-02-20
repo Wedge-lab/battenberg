@@ -228,11 +228,68 @@ writebeagle.as.impute = function(vcf,
               sapply(haplotypes,"[",1),
               sapply(haplotypes,"[",2))
   write.table(dt,
-              file=outfile,
+             file=outfile,
               quote=F,
               col.names=F,
               row.names=F,
               sep="\t")
+}
+
+
+#######################################################################
+# Amendment of writebeagle.as.impute to take P and Q and deal with situations where one or both are not there
+########################################################################
+#' Writes output of beagle as output from impute (interface beagle/impute for Battenberg)
+#'
+#' This function writes a table formatted as a vcf to the drive for beagle5 to run on
+#'
+#' @param vcfP Character string: path to Beagle VCF for arm P (can be NULL).
+#' @param vcfQ Character string: path to Beagle VCF for arm Q (can be NULL)
+#' @param outfile character string path for impute-like outputfile
+#' @author maxime.tarabichi marian.love
+#' @export
+writebeagle.as.impute.arms <- function(vcfP = NULL,
+                                  vcfQ = NULL,
+                                  outfile) {
+  # Helper: Read if file exists
+  read_if_exists <- function(vcf) {
+    if (!is.null(vcf) && file.exists(vcf)) {
+      return(read_beagle_output(vcf))
+    }
+    return(NULL)
+  }
+
+  beagleoutP <- read_if_exists(vcfP)
+  beagleoutQ <- read_if_exists(vcfQ)
+
+  if (!is.null(beagleoutP) && is.null(beagleoutQ)) {
+    beagleout <- beagleoutP
+  } else if (is.null(beagleoutP) && !is.null(beagleoutQ)) {
+    beagleout <- beagleoutQ
+  } else if (!is.null(beagleoutP) && !is.null(beagleoutQ)) {
+    beagleout <- rbind(beagleoutP, beagleoutQ)
+  } else {
+    warning("Neither vcfP nor vcfQ files exist. Nothing to write.")
+    return(NULL)
+  }
+
+  haplotypes <- strsplit(beagleout$SAMP001, split = "\\|")
+  dt <- cbind(
+    paste0("snp_index", seq_len(nrow(beagleout))),
+    paste0("rs_index", seq_len(nrow(beagleout))),
+    beagleout[, 2],
+    beagleout[, 4],
+    beagleout[, 5],
+    sapply(haplotypes, `[`, 1),
+    sapply(haplotypes, `[`, 2)
+  )
+
+  write.table(dt,
+              file = outfile,
+              quote = FALSE,
+              col.names = FALSE,
+              row.names = FALSE,
+              sep = "\t")
 }
 
 
@@ -267,7 +324,7 @@ run.beagle5 = function(beaglejar,
     cmd <- paste0(javajre,
 		  " -Xmx",maxheap.gb,"g",
 		  " -Xms", maxheap.gb, "g",
-		  " -XX:+UseParallelOldGC",
+		  " -XX:+UseParallelGC",
                   " -jar ",beaglejar,
                   " gt=",vcfpath,
                   " ref=",reffile ,
@@ -280,7 +337,74 @@ run.beagle5 = function(beaglejar,
     EXIT_CODE=system(cmd, wait=T)
     stopifnot(EXIT_CODE==0)
 }
+# change -XX:+UseParallelOldGC to -XX:+UseParallelGC
+###########################################################################
+#Chromosomes split by arm defined by "gcCorrect_chromosome_coordinates_hg38.txt"
+###########################################################################
 
+#' Splits a VCF-like data frame by chromosome arm and writes each part
+#'
+#' This function splits a VCF-like data frame into p and q arms based on GRCh38 centromere positions
+#' and writes them separately similarly to writevcf.beagle
+#'
+#' @param vcf data frame in VCF-like format for Beagle
+#' @param chrom character string for chromosome (e.g., "1", "X")
+#' @param outprefix character string for output file prefix
+#' @param vcfversion character string for VCF version header (default "4.2")
+#' @param genomereference character string for genome build (default "GRCh38")
+#'
+#' @author marian.love
+#' @export
+split_and_writevcf_by_arm <- function(vcf,
+                                      chrom,
+                                      pathP,
+                                      pathQ,
+                                      vcfversion = "4.2",
+                                      genomereference = "GRCh38") {
+  centromere_split <- list(
+       "1" = 123605524, "2" = 93139352, "3" = 92214017, "4" = 50726026,
+    "5" = 48272854, "6" =59191912 , "7" = 59498944 , "8" = 44955505,
+    "9" = 44377363, "10" = 40640102, "11" = 52751712, "12" = 35977330,
+    "13" = 17025625, "14" = 17086762, "15" = 18362628, "16" = 37295921,
+    "17" =24849830, "18" = 18161053, "19" = 25844928, "20" =28237291 ,
+    "21" = 11890185, "22" =14004554 , "X" = 60509061
+
+  )
+
+  if (!(chrom %in% names(centromere_split))) {
+    stop("Chromosome not found in centromere positions table.")
+  }
+
+  vcf$POS <- as.numeric(vcf$POS)
+  centromere <- centromere_split[[chrom]]
+
+  vcf_p <- vcf[vcf$POS <= centromere, ]
+  vcf_q <- vcf[vcf$POS > centromere, ]
+ 
+  if (nrow(vcf_p) > 0) {
+    filepath_p <- pathP
+    cat(paste0(
+      "##fileformat=VCFv", vcfversion,
+      "\n##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
+      "\n##reference=", genomereference, "\n"
+    ), file = filepath_p)
+    suppressWarnings(write.table(vcf_p, file = filepath_p,
+                                 sep = "\t", col.names = TRUE,
+                                 row.names = FALSE, quote = FALSE, append = TRUE))
+  }
+
+  if (nrow(vcf_q) > 0) {
+    filepath_q <-pathQ
+    cat(paste0(
+      "##fileformat=VCFv", vcfversion,
+      "\n##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
+      "\n##reference=", genomereference, "\n"
+    ), file = filepath_q)
+    suppressWarnings(write.table(vcf_q, file = filepath_q,
+                                 sep = "\t", col.names = TRUE,
+                                 row.names = FALSE, quote = FALSE, append = TRUE))
+  }
+}
 
 #' Construct haplotypes for a chromosome
 #'
@@ -358,32 +482,97 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
     
     if(usebeagle){
       ## Convert input files for beagle5
-      imputeinputfile <- paste(tumourname,
-                               "_impute_input_chr",
-                               chrom, ".txt", sep="")
-      vcfbeagle <- convert.impute.input.to.beagle.input(imputeinput=imputeinputfile,
-                                                        chrom=chrom)
-      vcfbeagle_path <- paste(tumourname,"_beagle5_input_chr",chrom,".txt",sep="")
-      outbeagle_path <- paste(tumourname,"_beagle5_output_chr",chrom,".txt",sep="")
-      writevcf.beagle(vcfbeagle, filepath=vcfbeagle_path)
+      imputeinputfile <- paste0(tumourname, "_impute_input_chr", chrom, ".txt")
+      vcfbeagle <- convert.impute.input.to.beagle.input(imputeinput = imputeinputfile, chrom = chrom)
+      vcfbeagle_pathP <- paste0(tumourname, "_beagle5_input_chr", chrom, "_P.txt")
+      vcfbeagle_pathQ <- paste0(tumourname, "_beagle5_input_chr", chrom, "_Q.txt")
+      # want to split into P and Q
+      split_and_writevcf_by_arm(vcf = vcfbeagle, chrom = chrom, pathP = vcfbeagle_pathP, pathQ = vcfbeagle_pathQ )
+      
+      #writevcf.beagle(vcfbeagle, filepath = vcfbeagle_path)
+      outbeagle_pathP <- paste0(normalname, "_beagle5_output_chr", chrom, "_P.txt")
+      outbeagle_pathQ <- paste0(normalname, "_beagle5_output_chr", chrom, "_Q.txt")
+      outbeagle_path <- paste0(normalname, "_beagle5_output_chr", chrom, ".txt")
+      vcfoutP <- paste0(outbeagle_pathP, ".vcf.gz")
+      vcfoutQ <- paste0(outbeagle_pathQ, ".vcf.gz")
       ## Run beagle5 on the files
-      run.beagle5(beaglejar=beaglejar,
-                  vcfpath=vcfbeagle_path,
-                  reffile=beagleref,
-                  outpath=outbeagle_path,
-                  plinkfile=beagleplink,
-                  maxheap.gb=beaglemaxmem,
-                  nthreads=beaglenthreads,
-                  window=beaglewindow,
-                  overlap=beagleoverlap,
-                  javajre=javajre)
-      outfile <- paste(tumourname,
-                       "_impute_output_chr",
-                       chrom, "_allHaplotypeInfo.txt", sep="")
-      vcfout <- paste(outbeagle_path,".vcf.gz",sep="")
+      # Check and run for P arm
+      if (file.exists(vcfbeagle_pathP)) {
+        run.beagle5(
+          beaglejar = beaglejar,
+          vcfpath = vcfbeagle_pathP,
+          reffile = beagleref,
+          outpath = outbeagle_pathP,
+          plinkfile = beagleplink,
+          maxheap.gb = beaglemaxmem,
+          nthreads = beaglenthreads,
+          window = beaglewindow,
+          overlap = beagleoverlap,
+          javajre = javajre
+        )
+        # CLEAN-UP for memory
+        gc()  # Force R garbage collection
+  }
+      if (file.exists(vcfbeagle_pathQ)) {
+        run.beagle5(
+          beaglejar = beaglejar,
+          vcfpath = vcfbeagle_pathQ,
+          reffile = beagleref,
+          outpath = outbeagle_pathQ,
+          plinkfile = beagleplink,
+          maxheap.gb = beaglemaxmem,
+          nthreads = beaglenthreads,
+          window = beaglewindow,
+          overlap = beagleoverlap,
+          javajre = javajre
+        )
+        # CLEAN-UP for memory
+        gc()  # Force R garbage collection
+        }
+        
+        # After both arms: Clean large VCFs if loaded
+        if (exists("vcfbeagle")) {
+          rm(vcfbeagle)
+          gc()
+        }
+
+
       ## Convert beagle output file to impute2-like file
-      writebeagle.as.impute(vcf=vcfout,
-                            outfile=outfile)
+      hapfile <- paste0(tumourname, "_impute_output_chr", chrom, "_allHaplotypeInfo.txt")
+      writebeagle.as.impute.arms(vcfP = vcfoutP, vcfQ = vcfoutQ,  outfile = hapfile)
+      ## Clean up all the impute input beagle5 input beagle 5 output P and Q
+    # Remove the files if they exist
+      files_to_remove <- c(vcfoutP, vcfoutQ, outbeagle_pathP, outbeagle_pathQ, vcfbeagle_pathP, vcfbeagle_pathQ, imputeinputfile)
+      files_to_remove <- files_to_remove[file.exists(files_to_remove)]
+      file.remove(files_to_remove)
+    
+      ## Convert input files for beagle5
+      #imputeinputfile <- paste(tumourname,
+       #                        "_impute_input_chr",
+       #                        chrom, ".txt", sep="")
+      #vcfbeagle <- convert.impute.input.to.beagle.input(imputeinput=imputeinputfile,
+      #                                                 chrom=chrom)
+      #vcfbeagle_path <- paste(tumourname,"_beagle5_input_chr",chrom,".txt",sep="")
+      #outbeagle_path <- paste(tumourname,"_beagle5_output_chr",chrom,".txt",sep="")
+      #writevcf.beagle(vcfbeagle, filepath=vcfbeagle_path)
+      ## Run beagle5 on the files
+      #run.beagle5(beaglejar=beaglejar,
+      #            vcfpath=vcfbeagle_path,
+      #            reffile=beagleref,
+      #            outpath=outbeagle_path,
+      #            plinkfile=beagleplink,
+      #            maxheap.gb=beaglemaxmem,
+      #            nthreads=beaglenthreads,
+      #            window=beaglewindow,
+      #            overlap=beagleoverlap,
+      #            javajre=javajre)
+      #outfile <- paste(tumourname,
+      #                 "_impute_output_chr",
+      #                 chrom, "_allHaplotypeInfo.txt", sep="")
+      #vcfout <- paste(outbeagle_path,".vcf.gz",sep="")
+      ## Convert beagle output file to impute2-like file
+      #writebeagle.as.impute(vcf=vcfout,
+      #                      outfile=outfile)
     }
     else {
       # Run impute on the files
@@ -468,6 +657,7 @@ run_haplotyping = function(chrom, tumourname, normalname, ismale, imputeinfofile
                       samplename=tumourname,
                       chrom=chrom,
                       chr_names=chrom_names)
+                      
 }
 
 #' Construct haplotypes for a chromosome - germline WGS version

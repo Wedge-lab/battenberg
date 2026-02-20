@@ -590,7 +590,7 @@ segment.baf.phased.multisample = function(samplename, inputfile, outputfile, pri
   ######## End internal function definitions
   
   
-  BAFraw <- Reduce(f = function(...) merge(..., sort = F, all = F), x = lapply(X = inputfile, FUN = Battenberg:::read_baf))
+  BAFraw <- Reduce(f = function(...) merge(..., sort = F, all = F), x = lapply(X = inputfile, FUN = BattenbergV3ARMS:::read_baf))
   # BAFraw = as.data.frame(read_tsv(inputfile, col_types = paste0("ci", paste0(rep("n", length(samplename)), collapse = ""), collapse = "")))
   if (!is.null(prior_breakpoints_file)) { bkps = read.table(prior_breakpoints_file, header=T, stringsAsFactors=F) } else { bkps = NULL }
   

@@ -2,6 +2,11 @@
 
 This repository contains code for the whole genome sequencing subclonal copy number caller Battenberg, as described in [Nik-Zainal, Van Loo, Wedge, et al. (2012), Cell](https://www.ncbi.nlm.nih.gov/pubmed/22608083).
 
+---
+
+## Running BEAGLE5 on low-memory nodes on hg38
+The code has been modified to enable BEAGLE5 to run efficiently on low-memory nodes (e.g., 8GB). Chromosomes are split into p and q arms and processed independently. Java memory should be set to 5 GB. This setup requires additional checks because some chromosomes may lack contributions from either the p or q arm and also necessitates garbage collection. Furthermore, for Nextflow, parallel workers need extra information to perform their tasks properly.
+---
 ## Installation instructions
 
 The instructions below will install the latest stable Battenberg version.

@@ -1,4 +1,3 @@
-
 #' Run the Battenberg pipeline
 #'
 #' @param analysis The mode of Battenberg copy number analysis to be undertaken: 'paired' for tumour-normal pair, 'cell_line' for Cell line tumour-only and 'germline' for germline CNV of normal sample (Default: 'paired')
@@ -338,7 +337,26 @@ battenberg = function(analysis="paired",
       # Setup for parallel computing
       clp = parallel::makeCluster(nthreads,outfile="")
       doParallel::registerDoParallel(clp)
-      
+      # Setup cluster - amended M_LOVE 19_1_26 as could drop
+      # Export required functions/variables
+      vars_to_export <- c(
+        "run_haplotyping_germline", "run_haplotyping", "chrom_names", 
+        "snp6_reference_info_file", "beaglejar", "beagleplink.template", 
+        "beagleref.template", "samplename", "normalname", "ismale", 
+        "imputeinfofile", "problemloci", "impute_exe", "min_normal_depth", 
+        "usebeagle", "beaglemaxmem", "beaglenthreads", "beaglewindow", 
+        "beagleoverlap", "heterozygousFilter", "externalhaplotypeprefix", 
+        "analysis", "libs"
+      )
+
+      parallel::clusterExport(clp, varlist = vars_to_export, envir = environment())
+
+      # Load required libraries on all workers
+      parallel::clusterEvalQ(clp, {
+        .libPaths(libs)
+        library(foreach)
+      })
+
       # Reconstruct haplotypes
       # mclapply(1:length(chrom_names), function(chrom) {
       if (analysis=="germline"){
@@ -527,14 +545,72 @@ battenberg = function(analysis="paired",
     
   }
   
-  # Setup for parallel computing
-  clp = parallel::makeCluster(min(nthreads, nsamples),outfile="")
+## ------------------------------------------------------------
+## Setup parallel backend (ONLY if it helps)
+## ------------------------------------------------------------
+
+if (nsamples > 1) {
+  clp <- parallel::makeCluster(min(nthreads, nsamples), outfile = "")
   doParallel::registerDoParallel(clp)
-  # for (sampleidx in 1:nsamples) {
-  foreach::foreach (sampleidx=1:nsamples) %dopar% {
-    .libPaths(libs)
-    print(paste0("Fitting final copy number and calling subclones for sample ", samplename[sampleidx]))
-    
+  `%op%` <- foreach::`%dopar%`
+} else {
+  `%op%` <- foreach::`%do%`
+}
+
+## ------------------------------------------------------------
+## Export variables / functions ONLY if using a cluster
+## ------------------------------------------------------------
+
+if (nsamples > 1) {
+# List of variables and functions to export
+vars_and_funcs <- c(
+  # Variables
+  "chrom_names", "samplename", "sampleidx", "normalname", "ismale",
+  "imputeinfofile", "problemloci", "impute_exe", "min_normal_depth",
+  "usebeagle", "beaglemaxmem", "beaglenthreads", "beaglewindow", "beagleoverlap",
+  "heterozygousFilter", "externalhaplotypeprefix", "analysis",
+  "use_previous_imputation",
+  "snp6_reference_info_file", "beaglejar", "beagleplink.template", "beagleref.template",
+  "logr_file", "clonality_dist_metric", "ascat_dist_metric", "min_ploidy", "max_ploidy",
+  "min_rho", "max_rho", "min_goodness", "uninformative_BAF_threshold", "platform_gamma",
+  "enhanced_grid_search", "calc_seg_baf_option", "max_allowed_state", "cn_upper_limit",
+  "allelecounts_file", "prior_breakpoints_file", "genomebuild", "data_type",
+  
+  # Custom functions
+  "run_haplotyping", "run_haplotyping_germline",
+  "fit.copy.number", "callSubclones", "callChrXsubclones",
+  "make_posthoc_plots", "cnfit_to_refit_suggestions", 
+
+  "libs"
+)
+
+# Export everything to the cluster
+parallel::clusterExport(clp, varlist = vars_and_funcs, envir = environment())
+
+# Load required libraries on all workers
+parallel::clusterEvalQ(clp, {
+  library(foreach)
+  .libPaths(libs)
+  library(doParallel)
+  # Add any other libraries your functions depend on
+})
+}
+
+## ------------------------------------------------------------
+## Final CN fitting + subclonal calling
+## ------------------------------------------------------------
+
+foreach::foreach(sampleidx = seq_len(nsamples)) %op% {
+
+  message(
+    "Fitting final copy number and calling subclones for sample ",
+    samplename[sampleidx]
+  )
+
+  ## -------------------------
+  ## Input files
+  ## -------------------------
+
     if (data_type=="wgs" | data_type=="WGS") {
       logr_file = paste(samplename[sampleidx], "_mutantLogR_gcCorrected.tab", sep="")
       if (analysis=="paired") {
@@ -545,6 +621,11 @@ battenberg = function(analysis="paired",
       }
     }
     
+
+  ## -------------------------
+  ## Fit clonal copy number
+  ## -------------------------
+
     # Fit a clonal copy number profile
     fit.copy.number(samplename=samplename[sampleidx],
                     outputfile.prefix=paste(samplename[sampleidx], "_", sep=""),
@@ -568,6 +649,11 @@ battenberg = function(analysis="paired",
                     nthreads=nthreads,
                     enhanced_grid_search=enhanced_grid_search)
     
+
+  ## -------------------------
+  ## Call subclones
+  ## -------------------------
+
     # Go over all segments, determine which segements are a mixture of two states and fit a second CN state
     print("callSubclones")
     callSubclones(sample.name=samplename[sampleidx],
@@ -588,7 +674,12 @@ battenberg = function(analysis="paired",
                   cn_upper_limit=cn_upper_limit, 
                   noperms=1000,
                   calc_seg_baf_option=calc_seg_baf_option)
-    
+
+
+  ## -------------------------
+  ## ChrX handling (male only)
+  ## -------------------------
+
     # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
     # Only do this when X chromosome is included
     if (ismale & "X" %in% chrom_names){
@@ -602,15 +693,33 @@ battenberg = function(analysis="paired",
 			chrom_names=chrom_names,
                         data_type=data_type)
     }
-    
-    # Make some post-hoc plots
-    print("make_posthoc_plots")
+
+  ## -------------------------
+  ## Clean up folder
+  ## -------------------------
+unlink(list.files(pattern = "_Q\\.txt", full.names = TRUE))
+unlink(list.files(pattern = "_P\\.txt", full.names = TRUE))
+unlink(list.files(pattern = "alleleFrequencies", full.names = TRUE))
+
+
+
+
+  ## -------------------------
+  ## Post-hoc plots
+  ## -------------------------
+
+  print("make_posthoc_plots")
     make_posthoc_plots(samplename=samplename[sampleidx],
                        logr_file=logr_file,
                        bafsegmented_file=paste(samplename[sampleidx], ".BAFsegmented.txt", sep=""),
                        logrsegmented_file=paste(samplename[sampleidx], ".logRsegmented.txt", sep=""),
                        allelecounts_file=allelecounts_file)
     
+
+  ## -------------------------
+  ## Save refit suggestions
+  ## -------------------------
+
     # Save refit suggestions for a future rerun
     print("cnfit_to_refit_suggestions")
     cnfit_to_refit_suggestions(samplename=samplename[sampleidx],
@@ -618,11 +727,20 @@ battenberg = function(analysis="paired",
                                rho_psi_file=paste(samplename[sampleidx], "_rho_and_psi.txt", sep=""),
                                gamma_param=platform_gamma)
   }
-  
-  # Kill the threads as last part again is single core
+
+## ------------------------------------------------------------
+## Shutdown cluster cleanly
+## ------------------------------------------------------------
+
+if (nsamples > 1) {
   parallel::stopCluster(clp)
-  
-  if (nsamples > 1) {
+}
+
+## ------------------------------------------------------------
+## Multisample MSAI (only if applicable)
+## ------------------------------------------------------------
+
+if (nsamples > 1) {
     print("Assessing mirrored subclonal allelic imbalance (MSAI)")
     call_multisample_MSAI(rdsprefix = multisamplehaplotypeprefix,
                           subclonesfiles = paste0(samplename, "_copynumber_extended.txt"),
