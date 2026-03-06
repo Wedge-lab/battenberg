@@ -314,7 +314,7 @@ battenberg = function(analysis="paired",
       ismale = gender == "male"
     }
     
-    
+
     if (!skip_phasing[sampleidx]) {
       
       # if external phasing data is provided (as a vcf), split into chromosomes for use in haplotype reconstruction
@@ -406,6 +406,10 @@ battenberg = function(analysis="paired",
                         inputfile.postfix="_heterozygousMutBAFs_haplotyped.txt",
                         outputfile=paste(samplename[sampleidx], "_heterozygousMutBAFs_haplotyped.txt", sep=""),
                         chr_names=chrom_names)
+    } else{
+      # If skip_phasing, we just end the script here and return exit status 0, as the downstream steps of Battenberg can be run with the output of the previous steps as input
+      print("Phasing and haplotype reconstruction is skipped as requested, exiting with status 0")
+      q(save="no", status=0)
     }
     
     # Segment the phased and haplotyped BAF data
