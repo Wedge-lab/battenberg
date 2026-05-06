@@ -18,7 +18,7 @@ option_list = list(
   make_option(c("--skip_phasing"), type="logical", default=FALSE, action="store_true", help="Provide when phasing has previously completed. This expects the files on disk", metavar="character"),
   make_option(c("--cpu"), type="numeric", default=8, help="The number of CPU cores to be used by the pipeline (Default: 8)", metavar="character"),
   make_option(c("--bp"), type="character", default=NULL, help="Optional two column file (chromosome and position) specifying prior breakpoints to be used during segmentation", metavar="character"),
-  make_option(c("--max_allowed_state"), type="character", default=NULL, help="Maximum allowed state", metavar="character"),
+  make_option(c("--max_allowed_state"), type="numeric", default=250, help="Maximum allowed state", metavar="character"),
   make_option(c("-g", "--ref_genome_build"), type="character", default="hg19", help="Reference genome build to which the reads have been aligned. Options are hg19 and hg38", metavar="character"),
   make_option(c("--enhanced_grid_search"), type="logical", default=TRUE, action="store_true", help="Enables multi-start optimization grid search, particularly aimed at complex scenarios where normal grid search is too slow or provides suboptimal solutions", metavar="character")
 )
