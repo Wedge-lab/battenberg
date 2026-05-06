@@ -20,6 +20,7 @@ option_list = list(
   make_option(c("--bp"), type="character", default=NULL, help="Optional two column file (chromosome and position) specifying prior breakpoints to be used during segmentation", metavar="character"),
   make_option(c("--max_allowed_state"), type="numeric", default=250, help="Maximum allowed state", metavar="character"),
   make_option(c("-g", "--ref_genome_build"), type="character", default="hg19", help="Reference genome build to which the reads have been aligned. Options are hg19 and hg38", metavar="character"),
+  make_option(c("--chr_string"), type="logical", default=TRUE, help="Chromosome names include the 'chr' prefix", metavar="logical"),
   make_option(c("--enhanced_grid_search"), type="logical", default=TRUE, action="store_true", help="Enables multi-start optimization grid search, particularly aimed at complex scenarios where normal grid search is too slow or provides suboptimal solutions", metavar="character")
 )
 
@@ -51,6 +52,7 @@ NTHREADS = opt$cpu
 PRIOR_BREAKPOINTS_FILE = opt$bp
 MAX_ALLOWED_STATE = opt$max_allowed_state
 GENOMEBUILD = opt$ref_genome_build
+CHR_STRING = opt$chr_string
 ENHANCED_GRID_SEARCH = opt$enhanced_grid_search
 #analysis = "germline"
 
@@ -101,9 +103,7 @@ if (GENOMEBUILD=="hg19") {
 	REPLICCORRECTPREFIX = file.path(BASE_DIR, "RT_correction_hg38/1000G_RT_chr")
 	PROBLEMLOCI = file.path(BASE_DIR, "probloci/probloci.hg38_22072022.txt.gz")
 
-	BAM_HEADER <- scanBamHeader(SAMPLEBAM)
-	CHR_NAME <- BAM_HEADER[[1]]$text[[2]][[1]]
-	if (grepl('CHR',toupper(CHR_NAME),fixed=TRUE)) {
+	if (CHR_STRING) {
 	  G1000PREFIX = file.path(BASE_DIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_loci_chrstring_chr")
 	  CHROM_COORD_FILE = file.path(BASE_DIR, "chromosome_coordinates_hg38_chr.txt")
 	} else {
