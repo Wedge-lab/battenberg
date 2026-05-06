@@ -20,6 +20,7 @@ option_list = list(
   make_option(c("--bp"), type="character", default=NULL, help="Optional two column file (chromosome and position) specifying prior breakpoints to be used during segmentation", metavar="character"),
   make_option(c("--max_allowed_state"), type="numeric", default=250, help="Maximum allowed state", metavar="character"),
   make_option(c("-g", "--ref_genome_build"), type="character", default="hg19", help="Reference genome build to which the reads have been aligned. Options are hg19 and hg38", metavar="character"),
+  make_option(c("--ref_dir_path"), type="character", default=NULL, help="Path to Battenberg reference files for the selected genome build (hg19 or hg38)", metavar="character"),
   make_option(c("--chr_string"), type="logical", default=TRUE, help="Chromosome names include the 'chr' prefix", metavar="logical"),
   make_option(c("--enhanced_grid_search"), type="logical", default=TRUE, action="store_true", help="Enables multi-start optimization grid search, particularly aimed at complex scenarios where normal grid search is too slow or provides suboptimal solutions", metavar="character")
 )
@@ -52,6 +53,7 @@ NTHREADS = opt$cpu
 PRIOR_BREAKPOINTS_FILE = opt$bp
 MAX_ALLOWED_STATE = opt$max_allowed_state
 GENOMEBUILD = opt$ref_genome_build
+REF_DIR_PATH = opt$ref_dir_path
 CHR_STRING = opt$chr_string
 ENHANCED_GRID_SEARCH = opt$enhanced_grid_search
 #analysis = "germline"
@@ -77,7 +79,7 @@ IMPUTE_EXE = "impute2"
 
 if (GENOMEBUILD=="hg19") {
 # General static
-	BASE_DIR = "/mnt/bmh01-rds/UoOxford_David_W/shared/projects/battenberg/reference/hg19"
+	BASE_DIR = REF_DIR_PATH
 	IMPUTEINFOFILE = file.path(BASE_DIR, "impute_info.txt")
 	G1000PREFIX_AC = file.path(BASE_DIR, "battenberg_1000genomesloci2012_v3/1000genomesAlleles2012_chr")
 	G1000PREFIX = file.path(BASE_DIR, "battenberg_1000genomesloci2012_v3/1000genomesloci2012_chr")
@@ -96,7 +98,7 @@ if (GENOMEBUILD=="hg19") {
 
 
 } else if (GENOMEBUILD=="hg38") {
-	BASE_DIR = "/mnt/bmh01-rds/UoOxford_David_W/shared/projects/battenberg/reference/hg38"
+	BASE_DIR = REF_DIR_PATH
 	IMPUTEINFOFILE = file.path(BASE_DIR, "impute_info.txt")
 	G1000PREFIX_AC = file.path(BASE_DIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_allele_index_chr")
 	GCCORRECTPREFIX = file.path(BASE_DIR, "GC_correction_hg38/1000G_GC_chr")
