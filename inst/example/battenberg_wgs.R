@@ -103,7 +103,7 @@ if (GENOMEBUILD=="hg19") {
 	G1000PREFIX_AC = file.path(BASE_DIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_allele_index_chr")
 	GCCORRECTPREFIX = file.path(BASE_DIR, "GC_correction_hg38/1000G_GC_chr")
 	REPLICCORRECTPREFIX = file.path(BASE_DIR, "RT_correction_hg38/1000G_RT_chr")
-	PROBLEMLOCI = file.path(BASE_DIR, "probloci/probloci.hg38_22072022.txt.gz")
+	PROBLEMLOCI = file.path(BASE_DIR, "probloci/probloci.txt.gz")
 
 	if (CHR_STRING) {
 	  G1000PREFIX = file.path(BASE_DIR, "1000G_loci_hg38/1kg.phase3.v5a_GRCh38nounref_loci_chrstring_chr")
