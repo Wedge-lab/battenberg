@@ -39,6 +39,7 @@
 #' @param skip_allele_counting Provide TRUE when allele counting can be skipped (i.e. its already done) (Default: FALSE)
 #' @param skip_preprocessing Provide TRUE when preprocessing is already complete (Default: FALSE)
 #' @param skip_phasing  Provide TRUE when phasing is already complete (Default: FALSE)
+#' @param skip_chrX_subclones  Provide TRUE if do not want the chrX subclones male function (Default: FALSE)
 #' @param usebeagle Should use beagle5 instead of impute2 Default: FALSE
 #' @param beaglejar Full path to Beagle java jar file Default: NA
 #' @param beagleref.template Full path template to Beagle reference files where the chromosome is replaced by 'CHROMNAME' Default: NA
@@ -101,6 +102,7 @@ battenberg = function(analysis="paired",
                       skip_allele_counting=F,
                       skip_preprocessing=F,
                       skip_phasing=F,
+                      skip_chrX_subclones=F,
                       externalhaplotypefile = NA,
                       usebeagle=FALSE,
                       beaglejar=NA,
@@ -682,7 +684,7 @@ foreach::foreach(sampleidx = seq_len(nsamples)) %op% {
 
     # If patient is male, get copy number status of ChrX based only on logR segmentation (due to hemizygosity of SNPs)
     # Only do this when X chromosome is included
-    if (ismale & "X" %in% chrom_names){
+    if (!skip_chrX_subclones && ismale && "X" %in% chrom_names) {
       print("callChrXsubclones")
       callChrXsubclones(tumourname=samplename[sampleidx],
                         X_gamma=1000,
