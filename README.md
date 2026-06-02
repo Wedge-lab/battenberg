@@ -129,7 +129,7 @@ Battenberg can take prior breakpoints, from structural variants (SVs) for exampl
 
 ## Documentation
 
-Full documentation for this package is available at: https://wedge-lab.github.io/battenberg/
+Full documentation for this package is available in the [docs](docs/index.html) directory.
 The documentation includes:
 - Function reference with examples
 - Getting started guide
@@ -563,4 +563,3 @@ timed <- system.time(battenberg(tumourname=TUMOURNAME,
                                 heterozygousFilter="none",
                                 prior_breakpoints_file=NULL))
 ```
-
